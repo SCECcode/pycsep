@@ -1,0 +1,9 @@
+include README.md
+include CONTRIBUTING.md
+include LICENSE
+include CHANGELOG.txt
+setup.py
+csep/__init__.py
+csep/generate_runtime_environment.py
+csep/test/__init__.py
+csep/test/test_generate_runtime_enviornment.py
