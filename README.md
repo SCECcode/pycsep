@@ -1,2 +1,4 @@
-# csep2
-CSEP2 Development
+# Collection of routines used for conducting earthquake forecasting experiments
+
+
+## Place holder text goes here.
