@@ -1,8 +1,10 @@
 import os
+import sys
 import uuid
 import string
 import datetime
 import logging
+import shutil
 
 
 def generate_local_airflow_environment_test(*args, **kwargs):
@@ -23,12 +25,22 @@ def generate_local_airflow_environment_test(*args, **kwargs):
     """
     config = {}
     csep_home = os.environ['CSEP_DEV']
+    csep_models = os.environ['CSEP_MODELS']
 
     # parse from airflow context
     runtime = kwargs.pop('ts', datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S"))
     runtime = runtime.replace(":", "-")
     experiment_name = kwargs.pop('experiment_name', 'unknown')
     experiment_dir = kwargs.pop('experiment_dir', os.path.join(csep_home, experiment_name))
+    model_dir = kwargs.pop('model_dir')
+    if model_dir is not None:
+        model_dir = os.path.join(csep_models, model_dir)
+    else:
+        print('Error: CSEP_MODELS environment variable must be set. Exiting.')
+        sys.exit(-1)
+
+    config_filename = kwargs.pop('config_filename')
+
     run_id = '__'.join([experiment_name, runtime])
 
     logging.info('Configuring local run-time environment for run_id: {}.'.format(run_id))
@@ -42,15 +54,18 @@ def generate_local_airflow_environment_test(*args, **kwargs):
     config['experiment_dir'] = experiment_dir
     config['execution_runtime'] = runtime
     config['runtime_dir'] = run_dir
+    config['model_dir'] = model_dir
+    config['config_filename'] = config_filename
 
     # write configuration to logging
     logging.info(config)
-    
-    # make necessary directories 
+
+    # make necessary directories
     os.makedirs(config['experiment_dir'], exist_ok=True)
+
     # runtime directory should be unique
     os.makedirs(config['runtime_dir'])
-    
+
     # get values for config mapping
     fp = os.path.dirname(os.path.realpath(__file__))
     with open(os.path.join(fp, '../artifacts/runtime_config.tmpl'), 'r') as template_file:
@@ -58,6 +73,6 @@ def generate_local_airflow_environment_test(*args, **kwargs):
 
     with open(os.path.join(config['runtime_dir'], 'run_config.txt'), 'w') as config_file:
         config_file.writelines(template.substitute(config))
-    
+
     # push information back to airflow scheduler by returning
     return config
