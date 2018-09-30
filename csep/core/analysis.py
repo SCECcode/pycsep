@@ -1,7 +1,7 @@
 import docker
 import os
 
-def run_u3etas_calculation(config, *args, **kwargs):
+def run_u3etas_calculation(config, environment=None, command=None, *args, **kwargs):
     """
     run u3etas with new user interface.
 
@@ -21,11 +21,8 @@ def run_u3etas_calculation(config, *args, **kwargs):
     container = client.containers.run(config['container_tag'],
             volumes = {host_dir:
                 {'bind': container_dir, 'mode': 'rw'}},
-            environment = {'ETAS_MEM_GB': '6',
-                'ETAS_LAUNCHER': '/run_dir',
-                'ETAS_OUTPUT': '/run_dir/user_output',
-                'ETAS_THREADS': '1'},
-            command = ["u3etas_launcher.sh", os.path.join('/run_dir', config['config_filename'])],
+            environment = environment,
+            command = command,
             detach = True,
             stderr = True)
 
@@ -53,13 +50,8 @@ def run_u3etas_post_processing(config, **kwargs):
     container = client.containers.run(config['container_tag'],
             volumes = {host_dir:
                 {'bind': container_dir, 'mode': 'rw'}},
-            environment = {'ETAS_MEM_GB': '6',
-                'ETAS_LAUNCHER': '/run_dir',
-                'ETAS_OUTPUT': '/run_dir/user_output',
-                'ETAS_THREADS': '1'},
-            # FIXME: need to make this simulation agnostic? or just create bespoke function for each model?
-            command = ["u3etas_plot_generator.sh", os.path.join('/run_dir', config['config_filename']), 
-                "/run_dir/user_output/results_complete.bin"],
+            environment = environment,
+            command = command,
             detach = True,
             stderr = True)
 
