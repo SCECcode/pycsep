@@ -16,8 +16,21 @@ as a script
 
 # will contain parameters for the run
 # (num_sim, num_thread, memory)
+
+# associated with benchmark part 1
 # params = [(50,10,50), (100,10, 50), (200,10,50), (500, 20, 100)]
-params = [(200,10,50), (500, 20, 100)]
+
+# associated with benchmark part 2 -- failed due to memory constraints
+# params = [(200,10,50), (500, 20, 100)]
+
+# benchmark part 3 -- debugging run
+params = [(20,20,100)]
+
+# benchmark part 4 -- debugging run
+params = [(20,20,100)]
+
+# benchmark part 5 -- debugging run
+params = [(10,10,50), (5,5,25), (1,1,5)]
 
 for num_sim, num_thread, memory in params:
 
