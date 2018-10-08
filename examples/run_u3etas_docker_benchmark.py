@@ -20,17 +20,23 @@ as a script
 # associated with benchmark part 1
 # params = [(50,10,50), (100,10, 50), (200,10,50), (500, 20, 100)]
 
-# associated with benchmark part 2 -- failed due to memory constraints
+# associated with benchmark part 3 -- failed due to memory constraints
 # params = [(200,10,50), (500, 20, 100)]
 
-# benchmark part 3 -- debugging run
-params = [(20,20,100)]
-
 # benchmark part 4 -- debugging run
-params = [(20,20,100)]
+# params = [(20,20,100)]
 
 # benchmark part 5 -- debugging run
-params = [(10,10,50), (5,5,25), (1,1,5)]
+# params = [(20,20,100)]
+
+# benchmark part 6 -- debugging run
+# params = [(10,10,50), (5,5,25), (1,1,5)]
+
+# benchmark part 7
+# params = [(500,20,100)]
+
+# benchmark part 8
+params = [(500,20,100)]
 
 for num_sim, num_thread, memory in params:
 
@@ -41,7 +47,7 @@ for num_sim, num_thread, memory in params:
 
     # build docker image
     config = build_run_image(config, updated_inputs={'numSimulations': num_sim,
-                                                     'duration': 1.0})
+                                                     'duration': 0.0833333333})
     # run calculation
     t0 = time.time()
     run_u3etas_calculation(config,

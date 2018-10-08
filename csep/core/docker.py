@@ -33,13 +33,13 @@ def build_run_image(config, updated_inputs=None):
         json.dump(model_config, f)
 
     # build docker image with updated runtime file
-    container_tag = 'wsavran/csep:' + run_id
+    image_tag = 'wsavran/csep:' + run_id
     cli = docker.APIClient(base_url='unix://var/run/docker.sock')
-    for line in cli.build(path=runtime_dir, tag=container_tag, rm=True):
+    for line in cli.build(path=runtime_dir, tag=image_tag, rm=True):
         print(line.decode('utf-8'))
 
     # update config with new image tag
-    config['container_tag'] = container_tag
+    config['image_tag'] = image_tag
 
     # updated config
     return config

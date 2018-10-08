@@ -1,7 +1,6 @@
 import docker
 import os
 
-# TODO: combine these into one function
 def run_u3etas_calculation(config, environment=None, command=None, *args, **kwargs):
     """
     run u3etas with new user interface.
@@ -19,7 +18,7 @@ def run_u3etas_calculation(config, environment=None, command=None, *args, **kwar
     container_dir = '/run_dir/user_output'
 
     client = docker.from_env()
-    container = client.containers.run(config['container_tag'],
+    container = client.containers.run(config['image_tag'],
             volumes = {host_dir:
                 {'bind': container_dir, 'mode': 'rw'}},
             environment = environment,
