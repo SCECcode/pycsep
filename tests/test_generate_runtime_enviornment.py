@@ -21,14 +21,16 @@ class TestGenerateRuntimeEnvironment(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             experiment_dir = os.path.join(tmp_dir, self.experiment_name)
 
-            config = generate_local_airflow_environment_test(experiment_name=self.experiment_name, 
+            config = generate_local_airflow_environment_test(experiment_name=self.experiment_name,
                      experiment_dir=experiment_dir,
-                     ts=self.execution_runtime, 
+                     ts=self.execution_runtime,
+                     model_dir='testing',
+                     config_filename='testing',
                      run_id=self.run_id)
 
             with open(os.path.join(config['runtime_dir'], 'run_config.txt'), 'r') as f:
                 config_file = f.readlines()
-    
+
             template_lines = list(map(lambda x: x.strip(), config_file))
 
             test_lines = [
@@ -37,6 +39,7 @@ class TestGenerateRuntimeEnvironment(unittest.TestCase):
                 'execution_runtime: {}'.format(self.execution_runtime),
                 'experiment_directory: {}'.format(experiment_dir),
                 'runtime_directory: {}'.format(config['runtime_dir']),
+                'model_directory: {}'.format(config['model_dir'])
                 ]
 
             self.assertCountEqual(template_lines, test_lines)
@@ -48,10 +51,11 @@ class TestGenerateRuntimeEnvironment(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             experiment_dir = os.path.join(tmp_dir, self.experiment_name)
 
-            config = generate_local_airflow_environment_test(experiment_name=self.experiment_name, 
+            config = generate_local_airflow_environment_test(experiment_name=self.experiment_name,
                      experiment_dir=experiment_dir,
-                     ts=self.execution_runtime, 
+                     ts=self.execution_runtime,
+                     model_dir='testing',
+                     config_filename='testing',
                      run_id=self.run_id)
 
             self.assertTrue(os.path.isdir(config['runtime_dir']))
-

@@ -32,7 +32,7 @@ def generate_local_airflow_environment_test(*args, **kwargs):
     runtime = runtime.replace(":", "-")
     experiment_name = kwargs.pop('experiment_name', 'unknown')
     experiment_dir = kwargs.pop('experiment_dir', os.path.join(csep_home, experiment_name))
-    model_dir = kwargs.pop('model_dir')
+    model_dir = kwargs.pop('model_dir', None)
     if model_dir is not None:
         model_dir = os.path.join(csep_models, model_dir)
     else:
@@ -41,7 +41,8 @@ def generate_local_airflow_environment_test(*args, **kwargs):
 
     config_filename = kwargs.pop('config_filename')
 
-    run_id = '__'.join([experiment_name, runtime])
+    run_id = kwargs.pop('run_id', '__'.join([experiment_name, runtime]))
+
 
     logging.info('Configuring local run-time environment for run_id: {}.'.format(run_id))
 
@@ -74,5 +75,5 @@ def generate_local_airflow_environment_test(*args, **kwargs):
     with open(os.path.join(config['runtime_dir'], 'run_config.txt'), 'w') as config_file:
         config_file.writelines(template.substitute(config))
 
-    # push information back to airflow scheduler by returning
+    # push information back to scheduler by returning
     return config
