@@ -192,8 +192,11 @@ class ComcatCatalog(BaseCatalog):
     # TODO: Chagne this to something meaningful in the future
     CATALOG_ID = 'ComcatCatalog'
 
-    def __init__(self, min_magnitude=2.55, min_latitude=34.30, max_latitude=40.10, min_longitude=-125.40, max_longitude=-113.10,
-                    limit=None, start_time=None, end_time=None, start_epoch=None, duration_in_years=None, **kwargs):
+    def __init__(self, min_magnitude=2.55,
+            min_latitude=31.50, max_latitude=43.00,
+            min_longitude=-125.40, max_longitude=-113.10,
+            limit=None, start_time=None, end_time=None,
+            start_epoch=None, duration_in_years=None, **kwargs):
         """
         The default parameters are given from the California testing region defined by the CSEP1 template files. starttime
         and endtime are exepcted to be datetime objects with the UTC timezone.

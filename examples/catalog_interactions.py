@@ -23,8 +23,11 @@ print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1
 # Comcat Synthetics
 epoch_time = 709732655000
 duration_in_years = 1.0
+t0 = time.time()
 comcat = ComcatCatalog(start_epoch=epoch_time, duration_in_years=1.0, lazy_load=False)
-print("Downloaded Comcat Catalog with following parameters:")
+t1 = time.time()
+print("Fetched Comcat catalog in {} seconds.\n".format(t1-t0))
+print("Downloaded Comcat Catalog with following parameters")
 print("Start Date: {}\nEnd Date: {}".format(str(comcat.start_time), str(comcat.end_time)))
 print("Min Latitude: {} and Max Latitude: {}".format(comcat.min_latitude, comcat.max_latitude))
 print("Min Longitude: {} and Max Longitude: {}".format(comcat.min_longitude, comcat.max_longitude))
