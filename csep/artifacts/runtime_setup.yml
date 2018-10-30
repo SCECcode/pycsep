@@ -1,0 +1,51 @@
+# experiment title
+experiment: u3etas_benchmark
+
+# description of experiement and scientist responsible
+description: u3etas bencmark run m1.xxlarge, nsim=500, threads=20, gb=100gb
+author: william savran
+authored_date: 10-17-2018
+
+# these are global environment variables that are required by each system to operate.
+# this system section will contain information needed to connect to remote systems.
+# in the event we roll our own system execution model.
+# the backend will specify what type of execution model the system could have.
+# for example, a multi-machine submission will not be supported using an in-memory backend.
+system:
+  backend: in-memory
+  machines:
+  -
+    name: JetStream
+    environment:
+        csep_home: /home/wsavran/csep
+        csep_models: /home/wsavran/csep/models
+    type: local
+    runtime_directory:
+
+# these tasks do not contain information about the dependencies of between them
+# they should be present in the script that represents the experiment. if a function is listed here but
+# not defined in the execution script, the script will fail to run
+# this information is used to setup any necessary environment needed to configuring the jobs
+# the file information will be used for ensuring that files end up in appropriate locations, so use the
+# filepath of the mounted directory
+tasks:
+  -
+    name: generate_local_environment
+    type: python-callable
+    machine: JetStream
+  -
+    name: build_run_image
+    type: python-callable
+    machine: JetStream
+  -
+    name: run_u3etas_calculation
+    output_files:
+      - output_dir/results_complete.bin
+    type: docker-container
+    environment:
+      ETAS_MEM_GB: 15
+      ETAS_OUTPUT: /run_dir/user_output
+      ETAS_THREADS: 3
+    docker: true
+    command: u3etas_launcher /run_dir/u3etas_config.json
+    machine: JetStream
