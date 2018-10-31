@@ -7,7 +7,9 @@ from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years
 
 
 class BaseCatalog:
-
+    """
+    Base class for CSEP2 catalogs.
+    """
     def __init__(self, filename=None, catalog=None, catalog_id=None, lazy_load=True):
         self.filename = filename
         self.catalog_id = catalog_id
@@ -35,15 +37,16 @@ class BaseCatalog:
         Must be implemented for each model that gets used within CSEP.
         Base class assumes that catalogs are stored in default format which is defined.
 
-        param merged: if each catalog is specified as an individual file or merged
-        type merged: bool
+        :param merged: if each catalog is specified as an individual file or merged
+        :type merged: bool
         """
         raise NotImplementedError
 
     def convert_to_csep_format(self):
         """
-        This method should be overwritten for catalog formats that do not adhere to the CSEP2 ZMAP catalog format. For
+        This method should be overwritten for catalog formats that do not adhere to the CSEP ZMAP catalog format. For
         those that do, this method will return the catalog as is.
+
         """
         return self.get_dataframe()
 
@@ -88,32 +91,38 @@ class BaseCatalog:
 
 
 class UCERF3Catalog(BaseCatalog):
+    """
+    Handles catalog type for stochastic event sets produced by UCERF3.
+
+    :var header_dtype: numpy.dtype description of synthetic catalog header.
+    :var event_dtype:
+    """
+    # binary format of UCERF3 catalog
+    header_dtype = numpy.dtype([("file_version", ">i2"), ("catalog_size", ">i4")])
+    event_dtype = numpy.dtype([
+        ("rupture_id", ">i4"),
+        ("parent_id", ">i4"),
+        ("generation", ">i2"),
+        ("origin_time", ">i8"),
+        ("latitude", ">f8"),
+        ("longitude", ">f8"),
+        ("depth", ">f8"),
+        ("magnitude", ">f8"),
+        ("dist_to_parent", ">f8"),
+        ("erf_index", ">i4"),
+        ("fss_index", ">i4"),
+        ("grid_node_index", ">i4")
+    ])
     def __init__(self, **kwargs):
         # initialize parent constructor
         super().__init__(**kwargs)
 
-        # binary format of UCERF3 catalog
-        self.header_dtype = numpy.dtype([("file_version", ">i2"), ("catalog_size", ">i4")])
-        self.event_dtype = numpy.dtype([
-            ("rupture_id", ">i4"),
-            ("parent_id", ">i4"),
-            ("generation", ">i2"),
-            ("origin_time", ">i8"),
-            ("latitude", ">f8"),
-            ("longitude", ">f8"),
-            ("depth", ">f8"),
-            ("magnitude", ">f8"),
-            ("dist_to_parent", ">f8"),
-            ("erf_index", ">i4"),
-            ("fss_index", ">i4"),
-            ("grid_node_index", ">i4")
-        ])
 
     @classmethod
     def load_catalogs(cls, filename=None, convert=False, as_dataframe=False):
         """
         Loads catalogs based on the merged binary file format of UCERF3. File format is described at
-        https://scec.usc.edu/scecpedia/CSEP2_Storing_Stochastic_Event_Sets#Introduction
+        https://scec.usc.edu/scecpedia/CSEP2_Storing_Stochastic_Event_Sets#Introduction.
 
         There is also the load_catalog method that will work on the individual binary output of the UCERF3-ETAS
         model.
@@ -124,7 +133,7 @@ class UCERF3Catalog(BaseCatalog):
         :type convert: bool
         :param as_dataframe: if true, store in class as dataframe. if false, store as numpy array
         :type as_dataframe: bool
-        :returns: list of catalogs of type UCERF3_Catalog
+        :returns: list of catalogs of type UCERF3Catalog
         """
 
         # not sure how to access these without doing something ugly, so we're just going to redefine them here for the
@@ -189,7 +198,6 @@ class ComcatCatalog(BaseCatalog):
     """
     Class handling retrieval of Comcat Catalogs.
     """
-    # TODO: Chagne this to something meaningful in the future
     CATALOG_ID = 'ComcatCatalog'
 
     def __init__(self, min_magnitude=2.55,

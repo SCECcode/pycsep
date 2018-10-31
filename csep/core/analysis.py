@@ -3,10 +3,10 @@ import os
 
 def run_u3etas_calculation(config, environment=None, command=None, *args, **kwargs):
     """
-    run u3etas with new user interface.
+    Run u3etas calculation using Docker host.
 
     :param **kwargs: contains the context provided by airflow
-    type: dict
+    :type: dict
     """
     # get configuration dict from scheduler
     ti = kwargs.pop('ti', None)
