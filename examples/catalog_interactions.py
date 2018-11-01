@@ -6,17 +6,29 @@ from csep.core.catalogs import UCERF3Catalog, ComcatCatalog
 
 # UCERF3 Synthetics
 ucerf3_numbers = []
+nofaults_numbers = []
 min_magnitude = []
 t0 = time.time()
+
 filename='/Users/wsavran/Projects/CSEP2/u3etas_simulations/landers_experiment/10-23-2018_landers-pt1/results_complete.bin'
+filename_nofaults='/Users/wsavran/Projects/CSEP2/u3etas_simulations/landers_experiment/10-31-2018_landers-nofaults-pt1/results_complete.bin'
+
 for u3catalog in UCERF3Catalog.load_catalogs(filename=filename):
     if u3catalog.catalog_id % 500 == 0:
         print('Loading catalog {}.'.format(u3catalog.catalog_id))
     ucerf3_numbers.append(u3catalog.get_number_of_events())
 
     # print minimum magnitude
-    min_magnitude.append(numpy.min(u3catalog.catalog['magnitude']))
+    # min_magnitude.append(numpy.min(u3catalog.catalog['magnitude']))
 
+t1 = time.time()
+print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1, (t1-t0)))
+
+t0 = time.time()
+for u3catalog in UCERF3Catalog.load_catalogs(filename=filename_nofaults):
+    if u3catalog.catalog_id % 500 == 0:
+        print('Loading catalog {}.'.format(u3catalog.catalog_id))
+    nofaults_numbers.append(u3catalog.get_number_of_events())
 t1 = time.time()
 print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1, (t1-t0)))
 
@@ -35,6 +47,7 @@ print("Min Magnitude: {}\n".format(comcat.min_magnitude))
 comcat_count = comcat.get_number_of_events()
 print("Found {} events in the Comcat catalog.".format(comcat_count))
 print("Found {} events in the UCERF3 catalog with lowest number of events.".format(numpy.min(ucerf3_numbers)))
+print("Found {} events in the UCERF3-NoFaults catalog with lowest number of events.".format(numpy.min(nofaults_numbers)))
 
 # Plotting
 pyplot.figure()
@@ -44,6 +57,19 @@ pyplot.xlabel('Event Count')
 pyplot.ylabel('Frequency')
 pyplot.show()
 
+# Plotting
+pyplot.figure()
+pyplot.hist(nofaults_numbers, bins=60, color='blue', edgecolor='black', alpha=0.7)
+pyplot.axvline(x=comcat_count, linestyle='--', color='black')
+pyplot.xlabel('Event Count')
+pyplot.ylabel('Frequency')
+pyplot.show()
 
-
-
+# Plotting
+pyplot.figure()
+pyplot.hist(ucerf3_numbers, bins=60, color='blue', edgecolor='black', alpha=0.7)
+pyplot.hist(nofaults_numbers, bins=60, color='green', edgecolor='black', alpha=0.7)
+pyplot.axvline(x=comcat_count, linestyle='--', color='black')
+pyplot.xlabel('Event Count')
+pyplot.ylabel('Frequency')
+pyplot.show()

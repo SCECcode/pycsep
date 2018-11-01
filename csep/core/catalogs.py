@@ -136,24 +136,6 @@ class UCERF3Catalog(BaseCatalog):
         :returns: list of catalogs of type UCERF3Catalog
         """
 
-        # not sure how to access these without doing something ugly, so we're just going to redefine them here for the
-        # staticmethod
-        header_dtype = numpy.dtype([("file_version", ">i2"), ("catalog_size", ">i4")])
-        event_dtype = numpy.dtype([
-            ("rupture_id", ">i4"),
-            ("parent_id", ">i4"),
-            ("generation", ">i2"),
-            ("origin_time", ">i8"),
-            ("latitude", ">f8"),
-            ("longitude", ">f8"),
-            ("depth", ">f8"),
-            ("magnitude", ">f8"),
-            ("dist_to_parent", ">f8"),
-            ("erf_index", ">i4"),
-            ("fss_index", ">i4"),
-            ("grid_node_index", ">i4")
-        ])
-
         catalogs = []
         with open(filename, 'rb') as catalog_file:
             # parse 4byte header from merged file
@@ -162,11 +144,11 @@ class UCERF3Catalog(BaseCatalog):
             # load all catalogs from merged file
             for catalog_id in range(number_simulations_in_set):
 
-                header = numpy.fromfile(catalog_file, dtype=header_dtype, count=1)
+                header = numpy.fromfile(catalog_file, dtype=cls.header_dtype, count=1)
                 catalog_size = header['catalog_size'][0]
 
-                # read catalog and reorder as little endian
-                catalog = numpy.fromfile(catalog_file, dtype=event_dtype, count=catalog_size)
+                # read catalog
+                catalog = numpy.fromfile(catalog_file, dtype=cls.event_dtype, count=catalog_size)
 
                 # default format is numpy.array()
                 if as_dataframe:
