@@ -5,8 +5,6 @@ CSEP2 relaxes the assumption that forecasts supply Poissonian rates on structure
 supply :ref:`stochastic event sets <stochastic-event-set>`. Classes will be defined for each catalog type and should extend the
 :class:`BaseCatalog <csep.core.catalogs.BaseCatalog>` class.
 
-
-
 .. autoclass:: csep.core.catalogs.BaseCatalog
   :members:
 

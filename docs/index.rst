@@ -1,9 +1,10 @@
 Collaboratory for the Study of Earthquake Predictability
 ========================================================
 
-
+Content
+=======
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 0
 
    catalogs
    glossary

@@ -16,3 +16,7 @@
 2. Allow jobs to be submitted using slurm/pbs
 3. Write methods to call functions as subprocess
 4. General logging functions that will write logging information for project.
+
+### For Package
+1. Install CI and write unit tests for modules
+2. Clean up imports
