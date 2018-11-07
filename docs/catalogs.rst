@@ -8,6 +8,9 @@ supply :ref:`stochastic event sets <stochastic-event-set>`. Classes will be defi
 .. autoclass:: csep.core.catalogs.BaseCatalog
   :members:
 
+.. autoclass:: csep.core.catalogs.CSEPCatalog
+  :members:
+
 .. autoclass:: csep.core.catalogs.UCERF3Catalog
   :members:
 

@@ -43,11 +43,11 @@ class BaseCatalog:
 
     def write_catalog(self, binary = True):
         """
-        Write catalog in zipped ZMAP format. For interoperability all files should write to the same format.
+        Write catalog in bespoke format. For interoperability, CSEPCatalog classes should be used.
+        But we don't want to force the user to use a CSEP catalog if they are working with their own format.
         Each model might need to implement a custom reader if the file formats are different.
 
-        Catalog will be represented as a strucutred Numpy array with could be cast
-        into pandas DataFrame.
+        Interally, catalogs should implement some method to convert them into a pandas DataFrame.
         """
         raise NotImplementedError('write_catalog not implemented.')
 
@@ -86,8 +86,6 @@ class BaseCatalog:
         """
         num_events = self.get_number_of_events()
         return numpy.cumsum(numpy.ones(num_events))
-
-
 
     def get_magnitudes(self):
         """
@@ -135,25 +133,7 @@ class CSEPCatalog(BaseCatalog):
                            ('minute', numpy.int32),
                            ('second', numpy.int32)]
 
-    def load_catalog(self, merged=False):
-        """
-        Must be implemented for each model that gets used within CSEP.
-        Base class assumes that catalogs are stored in default format which is defined.
-
-        :param merged: if each catalog is specified as an individual file or merged
-        :type merged: bool
-        """
-        raise NotImplementedError
-
-    def convert_to_csep_format(self):
-        """
-        This method should be overwritten for catalog formats that do not adhere to the CSEP ZMAP catalog format. For
-        those that do, this method will return the catalog as is.
-
-        """
-        return self.get_dataframe()
-
-    def write_csep_catalog(self, binary = True):
+    def write_catalog(self, binary = True):
         """
         Write catalog in zipped ZMAP format. For interoperability all files should write to the same format.
         Each model might need to implement a custom reader if the file formats are different.
@@ -395,6 +375,12 @@ class ComcatCatalog(BaseCatalog):
         return self.catalog
 
     def get_datetimes(self):
+        """
+        Retreives numpy.array of datetime objects from Comcat eventset.
+
+        Returns:
+            numpy.array: of datetime.dateimte instances
+        """
         datetimes = []
         for event in self.catalog:
             datetimes.append(event.time)
