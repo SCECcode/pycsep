@@ -60,5 +60,5 @@ for num_sim, num_thread, memory in params:
     print('time for executing run_u3etas_calculation: {}'.format(t1-t0))
 
     # command for post-processing if we want to run
-    # command = ["u3etas_plot_generator.sh", os.path.join('/run_dir', config['config_filename']), 
+    # command = ["u3etas_plot_generator.sh", os.path.join('/run_dir', config['config_filename']),
     #     "/run_dir/user_output/results_complete.bin"],

@@ -78,7 +78,7 @@ class BaseCatalog:
     def get_cumulative_number_of_events(self):
         """
         Returns the cumulative number of events in the catalog. Primarily used for plotting purposes.
-        Defined in the base class because all functions should be iterable.
+        Defined in the base class because all catalogs should be iterable.
 
         Note:
         Returns:
@@ -89,7 +89,7 @@ class BaseCatalog:
 
     def get_magnitudes(self):
         """
-        extend getters to implement conversion from specific catalog type to CSEP catalog.
+        Extend getters to implement conversion from specific catalog type to CSEP catalog.
 
         :returns: list of magnitudes from catalog
         """
@@ -97,7 +97,7 @@ class BaseCatalog:
 
     def get_datetimes(self):
         """
-        returns datetime object from timestamp representation in catalog
+        Returns datetime object from timestamp representation in catalog
 
         :returns: list of timestamps from events in catalog.
         """
@@ -157,17 +157,17 @@ class CSEPCatalog(BaseCatalog):
     def get_dataframe(self):
         """
         Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
+
+        # TODO: add datetime column to dataframe
         """
-        df = pandas.DataFrame(self.catalog)
-        if 'catalog_id' not in df.keys():
-            df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
-        return df
+        pass
 
     def get_magnitudes(self):
         """
         extend getters to implement conversion from specific catalog type to CSEP catalog.
 
-        :returns: list of magnitudes from catalog
+        Returns:
+            (numpy.array): magnitudes from catalog
         """
         return self.catalog['magnitude']
 
@@ -189,10 +189,6 @@ class CSEPCatalog(BaseCatalog):
             datetimes.append(dt)
         return datetimes
 
-    def _get_latitude_and_longitude(self):
-        location = []
-        for event in self.catalog:
-            location.append()
 
 class UCERF3Catalog(BaseCatalog):
     """
@@ -294,6 +290,31 @@ class UCERF3Catalog(BaseCatalog):
             datetimes.append(dt)
         return numpy.array(datetimes)
 
+    def get_magnitudes(self):
+        """
+        Returns array of magnitudes from the catalog.
+
+        Returns:
+            numpy.array: magnitudes of observed events in the catalog
+        """
+        return self.catalog['magnitude']
+
+    def get_dataframe(self):
+        """
+        Converts catalog into dataframe with catalog_id column and datetime column added.
+
+        Returns:
+            (pandas.DataFrame): DataFrame representing the catalog
+        """
+        df = pandas.DataFrame(self.catalog)
+        if 'catalog_id' not in df.keys():
+            df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
+
+        if 'datetime' not in df.keys():
+            df['datetime'] = self.get_datetimes()
+
+        return df
+
 
 class ComcatCatalog(BaseCatalog):
     """
@@ -354,6 +375,7 @@ class ComcatCatalog(BaseCatalog):
         if self.start_time > self.end_time:
             raise ValueError('Error: start_time must be greater than end_time.')
 
+        # parent class constructor
         super().__init__(**kwargs)
 
     def load_catalog(self, **kwargs):
@@ -371,6 +393,7 @@ class ComcatCatalog(BaseCatalog):
             minlongitude=self.min_longitude, maxlongitude=self.max_longitude,
             starttime=self.start_time, endtime=self.end_time, **kwargs)
 
+
         self.catalog = eventlist
         return self.catalog
 
@@ -385,3 +408,38 @@ class ComcatCatalog(BaseCatalog):
         for event in self.catalog:
             datetimes.append(event.time)
         return numpy.array(datetimes)
+
+    def get_magnitudes(self):
+        """
+        Retrieves numpy.array of magnitudes from Comcat eventset.
+
+        Returns:
+            numpy.array: of magnitudes
+        """
+        magnitudes = []
+        for event in self.catalog:
+            magnitudes.append(event.magnitude)
+        return numpy.array(magnitudes)
+
+    def get_dataframe(self):
+        """
+        Converts libcomcat eventlist into pandas dataframe.
+
+        Note:
+            data frame keys (id, datetime, latitude, longitude,
+            depth, magnitude, and catalog_id)
+
+        Returns:
+            pandas.DataFrame: of select fields in eventlist
+        """
+        events = []
+        for event in self.catalog:
+            events.append({'id': event.id,
+                           'datetime': event.time,
+                           'latitude': event.latitude,
+                           'longitude': event.longitude,
+                           'depth': event.depth,
+                           'magnitude': event.magnitude,
+                           'catlog_id': self.catalog_id})
+        df = pandas.DataFrame(events)
+        return df

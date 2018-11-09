@@ -11,7 +11,9 @@ Example:
     TODO: Ensure this function works with generators using itertools.islice
 """
 
-def plot_cumulative_events_versus_time(stochastic_event_set, observation, percentiles=(5,95), filename=None, show=False):
+
+def plot_cumulative_events_versus_time(stochastic_event_set, observation, percentiles=(5,95),
+                                            filename=None, show=False):
     """
     Plots cumulative number of events against time for both the observed catalog and a stochastic event set.
     The stochastic event set will be visualized through the 5% and 95% confidence intervals shaded with the
@@ -23,6 +25,9 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, percen
         percentiles (tuple): tuple of percentiles to compute bounds on stochastic event set
         filename (str): filename of file to save, if not None will save to that file
         show (bool): whether to making blocking call to display figure
+
+    Returns:
+        tuple: (fig, ax) figure and axes handles
     """
     # set up figure
     fig = pyplot.figure()
@@ -76,7 +81,57 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, percen
     if filename is not None:
         fig.savefig(filename)
 
+    return (fig, ax)
 
+def plot_magnitude_versus_time(catalog, filename=None, show=False):
+    """
+    Plots magnitude versus linear time for an earthquake catalog.
 
+    Args:
+        catalog (:class:`~csep.core.catalogs.BaseCatalog`): catalog to visualize
 
-    #
+    Returns:
+        (tuple): fig and axes handle
+    """
+    fig = pyplot.figure(figsize=(8,3))
+    ax = fig.add_subplot(111)
+
+    # get time in days
+    # plotting timestamps for now, until I can format dates on axis properly
+    f = lambda x: numpy.array(x.timestamp()) / SECONDS_PER_DAY
+
+    # map returns a generator function which we collapse with list
+    days_elapsed = numpy.array(list(map(f, catalog.get_datetimes())))
+    days_elapsed = days_elapsed - days_elapsed[0]
+
+    magnitudes = catalog.get_magnitudes()
+
+    # make plot
+    ax.scatter(days_elapsed, magnitudes, marker='.', s=10)
+
+    # do some labeling of the figure
+    ax.set_title(catalog.name, fontsize=16, color='black')
+    ax.set_xlabel('Days Elapsed')
+    ax.set_ylabel('Magnitude')
+    fig.tight_layout()
+
+    # handle displaying of figures
+    if filename is not None:
+        fig.savefig(filename)
+
+    if show:
+        pyplot.show()
+
+    return (fig, ax)
+
+def plot_histogram(simulated, observation, filename=None, show=False):
+    """
+    Plots histogram of simulated values and shows observation with vertical line.
+
+    Args:
+        simulated (numpy.array): numpy.array like representation of statistics computed from catalogs.
+
+    Returns:
+        (tuple): fig and axes handle
+    """
+    raise NotImplementedError('plot_histogram has not been implemented.')

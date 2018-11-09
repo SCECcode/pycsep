@@ -4,7 +4,7 @@ import numpy
 import matplotlib.pyplot as pyplot
 
 from csep.core.catalogs import UCERF3Catalog, ComcatCatalog
-from csep.utils.plotting import plot_cumulative_events_versus_time
+from csep.utils.plotting import plot_cumulative_events_versus_time, plot_magnitude_versus_time
 
 """
 Note:
@@ -68,7 +68,7 @@ pyplot.hist(ucerf3_numbers, bins=60, color='blue', edgecolor='black', alpha=0.7)
 pyplot.axvline(x=comcat_count, linestyle='--', color='black')
 pyplot.xlabel('Event Count')
 pyplot.ylabel('Frequency')
-fig.savefig(os.path.join(project_root, '10-23-2018_landers-pt1/u3faults_hist-ntest.pdf'))
+pyplot.show()
 
 # Plotting
 fig = pyplot.figure()
@@ -76,9 +76,11 @@ pyplot.hist(nofaults_numbers, bins=60, color='blue', edgecolor='black', alpha=0.
 pyplot.axvline(x=comcat_count, linestyle='--', color='black')
 pyplot.xlabel('Event Count')
 pyplot.ylabel('Frequency')
-fig.savefig(os.path.join(project_root, '10-31-2018_landers-nofaults-pt1/u3nofaults_hist-ntest.pdf'))
+pyplot.show()
 
 # Plotting
+ucerf3_numbers = numpy.array(ucerf3_numbers)
+nofaults_numbers = numpy.array(nofaults_numbers)
 fig = pyplot.figure()
 pyplot.hist(ucerf3_numbers, bins=60, color='blue', edgecolor='black', alpha=0.7, label='UCERF3-ETAS')
 pyplot.hist(nofaults_numbers, bins=60, color='green', edgecolor='black', alpha=0.7, label='UCERF3-NoFaults')
@@ -86,8 +88,9 @@ pyplot.axvline(x=comcat_count, linestyle='--', color='black', label='Comcat')
 pyplot.xlabel('Event Count')
 pyplot.ylabel('Frequency')
 pyplot.legend(loc='best')
-fig.savefig(os.path.join(project_root, 'u3nofaults_p_withfaults_hist-ntest.pdf'))
+fig.savefig(os.path.join(project_root, 'u3nofaults_p_withfaults_hist-ntest_mw4.0.pdf'))
 pyplot.show()
-
-plot_cumulative_events_versus_time(u3catalogs, comcat, filename=os.path.join(project_root, 'u3etas-nofaults-cumulative-numbers.pdf'))
-plot_cumulative_events_versus_time(u3catalogs_nf, comcat, filename=os.path.join(project_root, 'u3etas-nofaults-cumulative-numbers.pdf'))
+#
+plot_cumulative_events_versus_time(u3catalogs, comcat, show=True)
+plot_cumulative_events_versus_time(u3catalogs_nf, comcat, show=True)
+plot_magnitude_versus_time(u3catalog_nf, show=True)
