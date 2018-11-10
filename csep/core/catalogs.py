@@ -126,6 +126,30 @@ class BaseCatalog:
         """
         raise NotImplementedError('get_latitudes_and_longitudes not implemented.')
 
+    def filter(self, statement):
+        import operator
+        """
+        Filters the catalog based on value.
+
+        Notes: only support lowpass, highpass style filters. Bandpass or notch not implemented.
+
+        Args:
+            statement (str): logical statement to evaluate, e.g., 'magnitude > 4.0'
+
+        Returns:
+            (BaseCatalog)
+        """
+        operators = {'>': operator.gt,
+                     '<': operator.lt,
+                     '>=': operator.ge,
+                     '<=': operator.le,
+                     '==': operator.eq}
+        name, type, value = statement.split(' ')
+        idx = numpy.where(operators[type](self.catalog[name], float(value)))
+        filtered = self.catalog[idx]
+        self.catalog = filtered
+        return self
+
 
 class CSEPCatalog(BaseCatalog):
     """
