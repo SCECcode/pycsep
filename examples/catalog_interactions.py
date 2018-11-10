@@ -8,7 +8,7 @@ from csep.utils.plotting import plot_cumulative_events_versus_time, plot_magnitu
 
 """
 Note:
-    This script requires about 12-14Gb of Ram.
+    This script requires about 12-14Gb of Ram because generators are not implemented for the plots.
 """
 
 # UCERF3 Synthetics
@@ -23,6 +23,8 @@ filename_nofaults = os.path.join(project_root, '10-31-2018_landers-nofaults-pt1/
 t0 = time.time()
 u3catalogs = list(UCERF3Catalog.load_catalogs(filename=filename, name='UCERF3-ETAS'))
 for u3catalog in u3catalogs:
+    if u3catalog.catalog_id % 500 == 0:
+        print('Loaded {} catalogs'.format(u3catalog.catalog_id))
     ucerf3_numbers.append(u3catalog.get_number_of_events())
 t1 = time.time()
 print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1, (t1-t0)))
@@ -33,7 +35,7 @@ for u3catalog_nf in u3catalogs_nf:
     nofaults_numbers.append(u3catalog_nf.get_number_of_events())
 t1 = time.time()
 print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog_nf.catalog_id+1, (t1-t0)))
-
+#
 # Comcat Synthetics
 epoch_time = 709732655000
 duration_in_years = 1.0
@@ -90,7 +92,11 @@ pyplot.ylabel('Frequency')
 pyplot.legend(loc='best')
 fig.savefig(os.path.join(project_root, 'u3nofaults_p_withfaults_hist-ntest_mw4.0.pdf'))
 pyplot.show()
-#
-plot_cumulative_events_versus_time(u3catalogs, comcat, show=True)
-plot_cumulative_events_versus_time(u3catalogs_nf, comcat, show=True)
-plot_magnitude_versus_time(u3catalog_nf, show=True)
+
+# Plot cumulative events
+plot_cumulative_events_versus_time(u3catalogs, comcat)
+plot_cumulative_events_versus_time(u3catalogs_nf, comcat)
+
+# Plot magnitude versus time
+plot_magnitude_versus_time(comcat)
+plot_magnitude_versus_time(u3catalog, show=True)

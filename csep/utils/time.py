@@ -15,8 +15,19 @@ def epoch_time_to_utc_datetime(epoch_time_milli):
     dt = datetime.datetime.fromtimestamp(epoch_time, datetime.timezone.utc)
     return dt
 
-def datetime_to_utc_epoch(datetime):
-    pass
+def datetime_to_utc_epoch(dt):
+    """
+    Converts python datetime.datetime into epoch_time in milliseconds.
+
+
+    Args:
+        dt (datetime.datetime): python datetime object, should be naive.
+    """
+    now = datetime.datetime.utcnow()
+    epoch = datetime.datetime(1970,1,1)
+    epoch_time_seconds = (dt - epoch).total_seconds()
+    return 1000.0 * epoch_time_seconds
+
 
 def timedelta_from_years(time_in_years):
     """

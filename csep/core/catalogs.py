@@ -4,7 +4,7 @@ import pandas
 import datetime
 
 # CSEP Imports
-from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years
+from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch
 
 
 class BaseCatalog:
@@ -14,14 +14,27 @@ class BaseCatalog:
     def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, lazy_load=True):
         self.filename = filename
         self.catalog_id = catalog_id
-        self.catalog = catalog
         self.format = format
         self.name = name
+        self.catalog = catalog
 
         # we might not want to defer loading of catalog until it is actually needed
         # by analysis routines as catalogs can be quite large
         if not lazy_load and self.catalog is None:
             self.load_catalog()
+
+
+
+    @property
+    def catalog(self):
+        return self._catalog
+
+    @catalog.setter
+    def catalog(self, val):
+        self._catalog = val
+        if self._catalog is not None:
+            if not isinstance(self._catalog, numpy.ndarray):
+                self._catalog = self._get_catalog_as_ndarray()
 
     def load_catalog(self, merged=False):
         """
@@ -53,13 +66,17 @@ class BaseCatalog:
 
     def get_dataframe(self):
         """
-        Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
+        Returns pandas Dataframe describing the catalog.
 
         Note:
             The dataframe will be in the format of the original catalog. If you require that the
             dataframe be in the CSEP ZMAP format, you must explicitly convert the catalog.
+
+        Returns:
+            (pandas.DataFrame): This function must return a pandas DataFrame
         """
         df = pandas.DataFrame(self.catalog)
+
         if 'catalog_id' not in df.keys():
             df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
         return df
@@ -80,7 +97,6 @@ class BaseCatalog:
         Returns the cumulative number of events in the catalog. Primarily used for plotting purposes.
         Defined in the base class because all catalogs should be iterable.
 
-        Note:
         Returns:
             numpy.array: numpy array of the cumulative number of events, empty array if catalog is empty.
         """
@@ -154,13 +170,29 @@ class CSEPCatalog(BaseCatalog):
         """
         raise NotImplementedError
 
-    def get_dataframe(self):
+    def _get_dataframe(self):
         """
         Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
 
-        # TODO: add datetime column to dataframe
+        Note:
+            The dataframe will be in the format of the original catalog. If you require that the
+            dataframe be in the CSEP ZMAP format, you must explicitly convert the catalog.
+
+        Returns:
+            (pandas.DataFrame): This function must return a pandas DataFrame
+
+        Raises:
+            ValueError: If self._catalog cannot be passed to pandas.DataFrame constructor, this function
+                        must be overridden in the child class.
         """
-        pass
+        df = pandas.DataFrame(self._catalog)
+        if 'catalog_id' not in df.keys():
+            df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
+
+        if 'datetime' not in df.keys():
+            df['datetime'] = self.get_datetimes()
+
+        return df
 
     def get_magnitudes(self):
         """
@@ -249,29 +281,44 @@ class UCERF3Catalog(BaseCatalog):
                 # read catalog
                 catalog = numpy.fromfile(catalog_file, dtype=cls.event_dtype, count=catalog_size)
 
-                # default format is numpy.array()
-                if as_dataframe:
-                    catalog = pandas.DataFrame(catalog)
-                    catalog['catalog_id'] = [catalog_id for catalog_id in range(catalog_size)]
-
                 # add column that stores catalog_id in case we want to store in database
                 u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
 
                 # generator function
                 yield(u3_catalog)
 
+    def get_dataframe(self):
+        """
+        Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
+
+        Note:
+            The dataframe will be in the format of the original catalog. If you require that the
+            dataframe be in the CSEP ZMAP format, you must explicitly convert the catalog.
+
+        Returns:
+            (pandas.DataFrame): This function must return a pandas DataFrame
+
+        Raises:
+            ValueError: If self._catalog cannot be passed to pandas.DataFrame constructor, this function
+                        must be overridden in the child class.
+        """
+        df = pandas.DataFrame(self.catalog)
+        if 'catalog_id' not in df.keys():
+            df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
+
+        if 'datetime' not in df.keys():
+            df['datetime'] = self.get_datetimes()
+
+        return df
+
     def convert_to_csep_format(self):
         """
         Function will convert native data frame format into CSEP ZMAP catalog format.
-        :returns: instance of CSEPCatalog
+
+        Returns:
+            (:class:`~csep.core.catalogs.CSEPCatalog): instance of CSEPCatalog
         """
         raise NotImplementedError("convert_to_csep_format not yet implemented")
-
-    def load_catalog(self):
-        """
-        Loads single catalog from UCERF3 stochastic event set.
-        """
-        raise NotImplementedError("load_catalog not yet implemented.")
 
     def get_datetimes(self):
         """
@@ -282,13 +329,13 @@ class UCERF3Catalog(BaseCatalog):
             ensure that datetime objects are not converted back to the local platform time.
 
         Returns:
-            numpy.array: list of python datetime objects in the UTC timezone. one for each event in the catalog
+            list: list of python datetime objects in the UTC timezone. one for each event in the catalog
         """
         datetimes = []
         for event in self.catalog:
             dt = epoch_time_to_utc_datetime(event['origin_time'])
             datetimes.append(dt)
-        return numpy.array(datetimes)
+        return datetimes
 
     def get_magnitudes(self):
         """
@@ -298,22 +345,6 @@ class UCERF3Catalog(BaseCatalog):
             numpy.array: magnitudes of observed events in the catalog
         """
         return self.catalog['magnitude']
-
-    def get_dataframe(self):
-        """
-        Converts catalog into dataframe with catalog_id column and datetime column added.
-
-        Returns:
-            (pandas.DataFrame): DataFrame representing the catalog
-        """
-        df = pandas.DataFrame(self.catalog)
-        if 'catalog_id' not in df.keys():
-            df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
-
-        if 'datetime' not in df.keys():
-            df['datetime'] = self.get_datetimes()
-
-        return df
 
 
 class ComcatCatalog(BaseCatalog):
@@ -393,21 +424,11 @@ class ComcatCatalog(BaseCatalog):
             minlongitude=self.min_longitude, maxlongitude=self.max_longitude,
             starttime=self.start_time, endtime=self.end_time, **kwargs)
 
-
+        # eventlist is converted to appropriate format in the setter
         self.catalog = eventlist
-        return self.catalog
 
-    def get_datetimes(self):
-        """
-        Retreives numpy.array of datetime objects from Comcat eventset.
-
-        Returns:
-            numpy.array: of datetime.dateimte instances
-        """
-        datetimes = []
-        for event in self.catalog:
-            datetimes.append(event.time)
-        return numpy.array(datetimes)
+        # returning instance for functional calls
+        return self
 
     def get_magnitudes(self):
         """
@@ -418,7 +439,7 @@ class ComcatCatalog(BaseCatalog):
         """
         magnitudes = []
         for event in self.catalog:
-            magnitudes.append(event.magnitude)
+            magnitudes.append(event['magnitude'])
         return numpy.array(magnitudes)
 
     def get_dataframe(self):
@@ -433,7 +454,7 @@ class ComcatCatalog(BaseCatalog):
             pandas.DataFrame: of select fields in eventlist
         """
         events = []
-        for event in self.catalog:
+        for event in self._catalog:
             events.append({'id': event.id,
                            'datetime': event.time,
                            'latitude': event.latitude,
@@ -443,3 +464,37 @@ class ComcatCatalog(BaseCatalog):
                            'catlog_id': self.catalog_id})
         df = pandas.DataFrame(events)
         return df
+
+    def _get_catalog_as_ndarray(self):
+        """
+        Converts libcomcat eventlist into structured array.
+
+        Note:
+            Be careful calling this function. Failure state exists if self._catalog is not bound
+            to instance explicity.
+        """
+        events = []
+        dtype = numpy.dtype([('id', 'S256'), ('epoch_time', '<f4'), ('latitude', '<f4'), ('longitude','<f4'),
+                            ('depth', '<f4'), ('magnitude','<f4')])
+        catalog_length = len(self.catalog)
+        catalog = numpy.zeros(catalog_length, dtype=dtype)
+
+        # pre-cleaned catalog is bound to self._catalog by the setter before calling this function.
+        # will cause failure state if this function is called manually without binding self._catalog
+        for i, event in enumerate(self.catalog):
+            catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
+                            event.latitude, event.longitude, event.depth, event.magnitude)
+
+        return catalog
+
+    def get_datetimes(self):
+        """
+        Returns datetime objects from catalog.
+
+        Returns:
+            (list): datetime.datetime objects
+        """
+        datetimes = []
+        for event in self.catalog:
+            datetimes.append(epoch_time_to_utc_datetime(event['epoch_time']))
+        return datetimes
