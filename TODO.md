@@ -4,9 +4,8 @@
  * spatial distribution of events
  * cell-averaged, cell-median plots
  * look at pygmt for maps
-3. magnitude frequency distribution
+ * magnitude frequency distribution
 4. write documentation for catalog api
-5. filtering routines for magnitude
 
 ### For workflow manager
 1. Implement runtime storage information using json files and/or SQLite database

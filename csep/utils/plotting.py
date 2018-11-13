@@ -87,6 +87,8 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False):
     """
     Plots magnitude versus linear time for an earthquake catalog.
 
+    Catalog class must implement get_magnitudes() and get_datetimes() in order for this function to work correctly.
+
     Args:
         catalog (:class:`~csep.core.catalogs.BaseCatalog`): catalog to visualize
 

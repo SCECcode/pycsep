@@ -40,7 +40,7 @@ print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog_nf.catalog_i
 epoch_time = 709732655000
 duration_in_years = 1.0
 t0 = time.time()
-comcat = ComcatCatalog(start_epoch=epoch_time, duration_in_years=1.0, name='Comcat', lazy_load=False)
+comcat = ComcatCatalog(start_epoch=epoch_time, duration_in_years=1.0, name='Comcat')
 t1 = time.time()
 print("Fetched Comcat catalog in {} seconds.\n".format(t1-t0))
 print("Downloaded Comcat Catalog with following parameters")
