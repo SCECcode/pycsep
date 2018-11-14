@@ -25,7 +25,7 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, fig=No
         show (bool): whether to making blocking call to display figure
 
     Returns:
-        tuple: (fig, ax) figure and axes handles
+        pyplot.Figure: fig
     """
     # set up figure
     chained = False
@@ -119,7 +119,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False):
 
     return fig
 
-def plot_histogram(simulated, observation, filename=None, show=False):
+def plot_histogram(simulated, observation, filename=None, show=False, **kwargs):
     """
     Plots histogram of simulated values and shows observation with vertical line.
 

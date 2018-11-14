@@ -5,10 +5,11 @@ import matplotlib.pyplot as pyplot
 
 from csep import load_stochastic_event_set, load_catalog
 from csep.utils.plotting import plot_cumulative_events_versus_time, plot_magnitude_versus_time
+from csep.utils.time import epoch_time_to_utc_datetime
 
 """
 Note:
-    This script requires about 12-14Gb of Ram because generators are not implemented for the plots.
+    This script requires about 12-14Gb of Ram because catalogs are loaded into memory.
 """
 
 # UCERF3 Synthetics
@@ -25,7 +26,7 @@ u3catalogs = list(load_stochastic_event_set(type='ucerf3', format='native', file
 for u3catalog in u3catalogs:
     if u3catalog.catalog_id % 500 == 0:
         print('Loaded {} catalogs'.format(u3catalog.catalog_id))
-    ucerf3_numbers.append(u3catalog.filter('magnitude > 4.95').get_number_of_events())
+    ucerf3_numbers.append(u3catalog.filter('magnitude > 3.95').get_number_of_events())
 t1 = time.time()
 print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1, (t1-t0)))
 
@@ -35,7 +36,7 @@ u3catalogs_nofaults = list(load_stochastic_event_set(type='ucerf3', format='nati
 for u3catalog_nofaults in u3catalogs_nofaults:
     if u3catalog_nofaults.catalog_id % 500 == 0:
         print('Loaded {} catalogs'.format(u3catalog_nofaults.catalog_id))
-    nofaults_numbers.append(u3catalog_nofaults.filter('magnitude > 4.95').get_number_of_events())
+    nofaults_numbers.append(u3catalog_nofaults.filter('magnitude > 3.95').get_number_of_events())
 t1 = time.time()
 print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1, (t1-t0)))
 
@@ -49,7 +50,8 @@ comcat = load_catalog(type='comcat', format='native',
                         min_latitude=31.50, max_latitude=43.00,
                         min_longitude=-125.40, max_longitude=-113.10,
                     name='Comcat')
-comcat_count = comcat.filter('magnitude > 4.95').get_number_of_events()
+comcat = comcat.filter('magnitude > 3.95')
+comcat_count = comcat.get_number_of_events()
 t1 = time.time()
 
 # Statements about Comcat Downloads
@@ -79,6 +81,7 @@ fig = pyplot.figure()
 pyplot.hist(ucerf3_numbers, bins=60, color='blue', edgecolor='black', alpha=0.7, label='UCERF3-ETAS')
 pyplot.hist(nofaults_numbers, bins=60, color='green', edgecolor='black', alpha=0.7, label='UCERF3-NoFaults')
 pyplot.axvline(x=comcat_count, linestyle='--', color='black', label='Comcat')
+pyplot.xlim([0, numpy.max(numpy.vstack((ucerf3_numbers, nofaults_numbers)))])
 pyplot.xlabel('Event Count')
 pyplot.ylabel('Frequency')
 pyplot.legend(loc='best')

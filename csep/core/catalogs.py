@@ -3,6 +3,7 @@ import numpy
 import pandas
 import datetime
 import operator
+import time
 
 # CSEP Imports
 from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch
@@ -34,13 +35,7 @@ class BaseCatalog:
         # this will prefer to set values from the catalog and not the inputs.
         try:
             if catalog is not None:
-                self.min_magnitude =  numpy.min(self.get_magnitudes())
-                self.min_latitude =  numpy.min(self.get_latitudes())
-                self.max_latitude =  numpy.max(self.get_latitudes())
-                self.min_longitude =  numpy.min(self.get_longitudes())
-                self.max_longitude =  numpy.max(self.get_longitudes())
-                self.start_time = numpy.min(self.get_epoch_times())
-                self.end_time = numpy.max(self.get_epoch_times())
+                self._update_catalog_stats()
             else:
                 self.min_magnitude = min_magnitude
                 self.min_latitude = min_latitude
@@ -52,6 +47,7 @@ class BaseCatalog:
         except AttributeError:
             raise AttributeError('get_magnitudes(), get_latitudes() and get_longitudes() must be implemented ' +
                                  'and bound to calling class!')
+
     @property
     def catalog(self):
         return self._catalog
@@ -71,6 +67,7 @@ class BaseCatalog:
         if self._catalog is not None:
             if not isinstance(self._catalog, numpy.ndarray):
                 self._catalog = self._get_catalog_as_ndarray()
+
 
     @classmethod
     def load_catalog(self):
@@ -195,6 +192,11 @@ class BaseCatalog:
         idx = numpy.where(operators[type](self.catalog[name], float(value)))
         filtered = self.catalog[idx]
         self.catalog = filtered
+
+        # update instance state before returning
+        self._update_catalog_stats()
+
+        # return self
         return self
 
     def _get_csep_format(self):
@@ -204,6 +206,16 @@ class BaseCatalog:
 
         """
         raise NotImplementedError('_get_as_csep_format not implemented.')
+
+    def _update_catalog_stats(self):
+        # update min and max values
+        self.min_magnitude =  numpy.min(self.get_magnitudes())
+        self.min_latitude =  numpy.min(self.get_latitudes())
+        self.max_latitude =  numpy.max(self.get_latitudes())
+        self.min_longitude =  numpy.min(self.get_longitudes())
+        self.max_longitude =  numpy.max(self.get_longitudes())
+        self.start_time = epoch_time_to_utc_datetime(numpy.min(self.get_epoch_times()))
+        self.end_time = epoch_time_to_utc_datetime(numpy.max(self.get_epoch_times()))
 
 
 class CSEPCatalog(BaseCatalog):
@@ -364,10 +376,7 @@ class UCERF3Catalog(BaseCatalog):
         """
         df = pandas.DataFrame(self.catalog)
         if 'catalog_id' not in df.keys():
-            df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
-
-        if 'datetime' not in df.keys():
-            df['datetime'] = self.get_datetimes()
+            df['catalog_id'] = self.catalog_id
 
         return df
 
@@ -526,7 +535,8 @@ class ComcatCatalog(BaseCatalog):
 
         Note:
             The dataframe will be in the format of the original catalog. If you require that the
-            dataframe be in the CSEP ZMAP format, you must explicitly convert the catalog.
+            dataframe be in the CSEP ZMAP format, you must explicitly convert the catalog. Preferentially,
+            using the load_stochastic_event_set or load_catalog function defined in the base package.
 
         Returns:
             (pandas.DataFrame): This function must return a pandas DataFrame
@@ -538,9 +548,6 @@ class ComcatCatalog(BaseCatalog):
         df = pandas.DataFrame(self.catalog)
         if 'catalog_id' not in df.keys():
             df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
-
-        if 'datetime' not in df.keys():
-            df['datetime'] = self.get_datetimes()
 
         return df
 
