@@ -21,7 +21,8 @@ filename = os.path.join(project_root, '10-23-2018_landers-pt1/results_complete.b
 filename_nofaults = os.path.join(project_root, '10-31-2018_landers-nofaults-pt1/results_complete.bin')
 
 t0 = time.time()
-for u3catalog in load_stochastic_event_set(type='ucerf3', format='native', filename=filename, name='UCERF3-ETAS'):
+u3catalogs = list(load_stochastic_event_set(type='ucerf3', format='native', filename=filename, name='UCERF3-ETAS'))
+for u3catalog in u3catalogs:
     if u3catalog.catalog_id % 500 == 0:
         print('Loaded {} catalogs'.format(u3catalog.catalog_id))
     ucerf3_numbers.append(u3catalog.filter('magnitude > 4.95').get_number_of_events())
@@ -29,7 +30,9 @@ t1 = time.time()
 print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1, (t1-t0)))
 
 t0 = time.time()
-for u3catalog_nofaults in load_stochastic_event_set(type='ucerf3', format='native', filename=filename_nofaults, name='UCERF3-NoFaults'):
+# grabs <generator> class
+u3catalogs_nofaults = list(load_stochastic_event_set(type='ucerf3', format='native', filename=filename_nofaults, name='UCERF3-NoFaults'))
+for u3catalog_nofaults in u3catalogs_nofaults:
     if u3catalog_nofaults.catalog_id % 500 == 0:
         print('Loaded {} catalogs'.format(u3catalog_nofaults.catalog_id))
     nofaults_numbers.append(u3catalog_nofaults.filter('magnitude > 4.95').get_number_of_events())
@@ -83,4 +86,8 @@ pyplot.legend(loc='best')
 # Plot magnitude versus time
 plot_magnitude_versus_time(comcat)
 plot_magnitude_versus_time(u3catalog_nofaults)
-plot_magnitude_versus_time(u3catalog, show=True)
+plot_magnitude_versus_time(u3catalog)
+
+# plot cumulative
+fig = plot_cumulative_events_versus_time(u3catalogs, comcat)
+fig = plot_cumulative_events_versus_time(u3catalogs_nofaults, comcat, fig=fig, show=True)

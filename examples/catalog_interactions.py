@@ -32,6 +32,8 @@ print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1
 t0 = time.time()
 u3catalogs_nf = list(UCERF3Catalog.load_catalogs(filename=filename_nofaults, name='UCERF3-NoFaultsETAS'))
 for u3catalog_nf in u3catalogs_nf:
+    if u3catalog_nf.catalog_id % 500 == 0:
+        print('Loaded {} catalogs'.format(u3catalog_nf.catalog_id))
     nofaults_numbers.append(u3catalog_nf.get_number_of_events())
 t1 = time.time()
 print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog_nf.catalog_id+1, (t1-t0)))
@@ -40,7 +42,10 @@ print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog_nf.catalog_i
 epoch_time = 709732655000
 duration_in_years = 1.0
 t0 = time.time()
-comcat = ComcatCatalog(start_epoch=epoch_time, duration_in_years=1.0, name='Comcat')
+comcat = ComcatCatalog(start_epoch=epoch_time, duration_in_years=1.0, name='Comcat',
+                            min_magnitude=2.55,
+                            min_latitude=31.50, max_latitude=43.00,
+                            min_longitude=-125.40, max_longitude=-113.10,)
 t1 = time.time()
 print("Fetched Comcat catalog in {} seconds.\n".format(t1-t0))
 print("Downloaded Comcat Catalog with following parameters")
@@ -65,22 +70,6 @@ print("In UCERF3-Nofaults the median events were {} and the mean events were {}.
       .format(numpy.median(nofaults_numbers),numpy.mean(nofaults_numbers)))
 
 # Plotting
-fig = pyplot.figure()
-pyplot.hist(ucerf3_numbers, bins=60, color='blue', edgecolor='black', alpha=0.7)
-pyplot.axvline(x=comcat_count, linestyle='--', color='black')
-pyplot.xlabel('Event Count')
-pyplot.ylabel('Frequency')
-pyplot.show()
-
-# Plotting
-fig = pyplot.figure()
-pyplot.hist(nofaults_numbers, bins=60, color='blue', edgecolor='black', alpha=0.7)
-pyplot.axvline(x=comcat_count, linestyle='--', color='black')
-pyplot.xlabel('Event Count')
-pyplot.ylabel('Frequency')
-pyplot.show()
-
-# Plotting
 ucerf3_numbers = numpy.array(ucerf3_numbers)
 nofaults_numbers = numpy.array(nofaults_numbers)
 fig = pyplot.figure()
@@ -89,13 +78,14 @@ pyplot.hist(nofaults_numbers, bins=60, color='green', edgecolor='black', alpha=0
 pyplot.axvline(x=comcat_count, linestyle='--', color='black', label='Comcat')
 pyplot.xlabel('Event Count')
 pyplot.ylabel('Frequency')
+pyplot.xlim([0, numpy.max(numpy.vstack((ucerf3_numbers, nofaults_numbers)))])
 pyplot.legend(loc='best')
-fig.savefig(os.path.join(project_root, 'u3nofaults_p_withfaults_hist-ntest_mw4.0.pdf'))
+# fig.savefig(os.path.join(project_root, 'u3nofaults_p_withfaults_hist-ntest_mw4.0.pdf'))
 pyplot.show()
 
 # Plot cumulative events
-plot_cumulative_events_versus_time(u3catalogs, comcat)
-plot_cumulative_events_versus_time(u3catalogs_nf, comcat)
+fig, ax = plot_cumulative_events_versus_time(u3catalogs, comcat)
+plot_cumulative_events_versus_time(u3catalogs_nf, comcat, fig=fig)
 
 # Plot magnitude versus time
 plot_magnitude_versus_time(comcat)
