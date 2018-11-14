@@ -40,7 +40,12 @@ print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1
 epoch_time = 709732655000
 duration_in_years = 1.0
 t0 = time.time()
-comcat = load_catalog(type='comcat', format='native', start_epoch=epoch_time, duration_in_years=1.0, name='Comcat')
+comcat = load_catalog(type='comcat', format='native',
+                        start_epoch=epoch_time, duration_in_years=1.0,
+                        min_magnitude=2.55,
+                        min_latitude=31.50, max_latitude=43.00,
+                        min_longitude=-125.40, max_longitude=-113.10,
+                    name='Comcat')
 comcat_count = comcat.filter('magnitude > 4.95').get_number_of_events()
 t1 = time.time()
 

@@ -13,10 +13,12 @@ def load_stochastic_event_set(type=None, format='csep', **kwargs):
         (generator): :class:`~csep.core.catalogs.CSEPCatalog`
 
     """
-    if type is None:
+    if type not in ('ucerf3', 'csep'):
         raise ValueError("type must be one of the following: (ucerf3, csep)")
 
-    # use mapping to dispatch to correct constructor function
+    # use mapping to dispatch to correct function
+    # in general, stochastic event sets are loaded with classmethods and single catalogs use the
+    # constuctor
     mapping = {'ucerf3': UCERF3Catalog.load_catalogs,
                'csep': CSEPCatalog.load_catalogs}
 
@@ -44,7 +46,7 @@ def load_catalog(type=None, format='csep', **kwargs):
         (:class:`~csep.core.catalogs.CSEPCatalog`)
     """
 
-    if type is None:
+    if type not in ('ucerf3', 'comcat', 'csep'):
         raise ValueError("type must be one of the following: ('ucerf3', 'comcat', 'csep')")
 
     # add entry point to load catalog here.
