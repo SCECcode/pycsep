@@ -23,9 +23,6 @@ class Mock(MagicMock):
     def __getattr__(cls, name):
         return MagicMock()
 
-MOCK_MODULES = ['libcomcat', 'docker']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
 # -- Project information -----------------------------------------------------
 
 project = 'CSEP'
@@ -40,6 +37,9 @@ release = 'v0.1-dev'
 
 
 # -- General configuration ---------------------------------------------------
+MOCK_MODULES = ['libcomcat', 'docker']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
