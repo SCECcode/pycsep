@@ -127,7 +127,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False):
     if show:
         pyplot.show()
 
-    return fig
+    return ax
 
 def plot_histogram(simulated, observation, filename=None, show=False, **kwargs):
     """
