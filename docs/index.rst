@@ -1,20 +1,22 @@
-.. csep documentation master file, created by
-   sphinx-quickstart on Thu Aug 16 14:33:10 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Collaboratory for the Study of Earthquake Predictability
+========================================================
 
-Welcome to csep's documentation!
-================================
+This package represents the collection of code required to conduct CSEP experiments within testing-centers. The code is model
+agnostic and represents a general framework that can be extended based on individual user requirements.
 
+The package will provide easy access to routines so that researchers do not need to implement their own versions of standard CSEP tests.
+
+Content
+=======
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
+   catalogs
+   plotting
+   glossary
 
-
-Indices and tables
-==================
-
+Search
+------
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
