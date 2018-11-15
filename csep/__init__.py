@@ -10,7 +10,7 @@ def load_stochastic_event_set(type=None, format='csep', **kwargs):
         **kwargs: see the documentation of that class corresponding to the type you selected
 
     Returns:
-        (generator): :class:`~csep.core.catalogs.CSEPCatalog`
+        (generator): :class:`~csep.core.catalogs.BaseCatalog`
 
     """
     if type not in ('ucerf3', 'csep'):
