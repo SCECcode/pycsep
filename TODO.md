@@ -16,3 +16,6 @@
 ### For Package
 1. Install CI and write unit tests for modules
 2. Clean up imports
+=======
+1. build prototype DAG using new UCERF3 codes
+2. Setup Travis CI for building 

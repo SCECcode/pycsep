@@ -22,6 +22,7 @@ filename_nofaults = os.path.join(project_root, '10-31-2018_landers-nofaults-pt1/
 
 t0 = time.time()
 u3catalogs = UCERF3Catalog.load_catalogs(filename=filename, name='UCERF3-ETAS')
+# Example of functional programming to apply function to stochastic event set
 u3catalogs_filt = list(map(lambda x: x.filter('magnitude > 3.95'), u3catalogs))
 t1 = time.time()
 print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(len(u3catalogs_filt), (t1-t0)))
@@ -75,6 +76,8 @@ print("In UCERF3-Nofaults the median events were {} and the mean events were {}.
       .format(numpy.median(nofaults_numbers),numpy.mean(nofaults_numbers)))
 
 # Plotting
+
+# Showing Raw plotting with matplotlib
 ucerf3_numbers = numpy.array(ucerf3_numbers)
 nofaults_numbers = numpy.array(nofaults_numbers)
 fig = pyplot.figure()
@@ -85,8 +88,6 @@ pyplot.xlabel('Event Count')
 pyplot.ylabel('Frequency')
 pyplot.xlim([0, numpy.max(numpy.vstack((ucerf3_numbers, nofaults_numbers)))])
 pyplot.legend(loc='best')
-# fig.savefig(os.path.join(project_root, 'u3nofaults_p_withfaults_hist-ntest_mw4.0.pdf'))
-pyplot.show()
 
 # Plot cumulative events
 ax = plot_cumulative_events_versus_time(u3catalogs_filt, comcat_filt)
@@ -94,4 +95,5 @@ ax = plot_cumulative_events_versus_time(u3catalogs_nf_filt, comcat_filt)
 
 # Plot magnitude versus time
 plot_magnitude_versus_time(comcat_filt)
+plot_magnitude_versus_time(u3catalogs_nf_filt[0], show=True)
 plot_magnitude_versus_time(u3catalogs_filt[0], show=True)

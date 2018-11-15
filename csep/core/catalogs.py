@@ -14,7 +14,8 @@ class BaseCatalog:
     Base class for CSEP2 catalogs.
 
     Todo:
-        Come up with idea on how to manage the region of a catalog. Would be used for filtering or binning. shapely, geopandas
+        Come up with idea on how to manage the region of a catalog.
+        Would be used for filtering or binning. shapely, geopandas for spatial and DataFrame for temporal.
     """
     def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None,
                     min_magnitude=None,
@@ -44,9 +45,9 @@ class BaseCatalog:
                 self.max_longitude = max_longitude
                 self.start_time = start_time
                 self.end_time = end_time
-        except AttributeError:
-            raise AttributeError('get_magnitudes(), get_latitudes() and get_longitudes() must be implemented ' +
-                                 'and bound to calling class!')
+        except (AttributeError, NotImplementedError):
+            print('Warning: could not parse catalog statistics! get_magnitudes(), get_latitudes() and get_longitudes() ' +
+                  'must be implemented and bound to calling class!')
 
     @property
     def catalog(self):
@@ -67,7 +68,10 @@ class BaseCatalog:
         if self._catalog is not None:
             if not isinstance(self._catalog, numpy.ndarray):
                 self._catalog = self._get_catalog_as_ndarray()
-
+                # ensure that people are behaving, somewhat non-pythonic but needed
+                if not isinstance(self._catalog, numpy.ndarray):
+                    raise ValueError("Error: Catalog must be numpy.ndarray! Ensure that self._get_catalog_as_ndarray()" +
+                                     " returns an ndarray")
 
     @classmethod
     def load_catalog(self):
@@ -216,6 +220,20 @@ class BaseCatalog:
         self.max_longitude =  numpy.max(self.get_longitudes())
         self.start_time = epoch_time_to_utc_datetime(numpy.min(self.get_epoch_times()))
         self.end_time = epoch_time_to_utc_datetime(numpy.max(self.get_epoch_times()))
+
+    def _get_catalog_as_ndarray(self):
+        """
+        This function must be implemented if the catalog is loaded in a bespoke format.
+        This function will be called anytime that a catalog is assigned
+        to self.catalog and is not of type ndarray.
+
+        The structure of the ndarray does not matter, so long as the getters can be
+        implemented correctly.
+
+        Additionally, advanced catalog operations will be carried out using GeoDataFrames and
+        DataFrames.
+        """
+        return self.catalog
 
 
 class CSEPCatalog(BaseCatalog):

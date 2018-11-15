@@ -43,7 +43,6 @@ def generate_local_airflow_environment_test(*args, **kwargs):
 
     run_id = kwargs.pop('run_id', '__'.join([experiment_name, runtime]))
 
-
     logging.info('Configuring local run-time environment for run_id: {}.'.format(run_id))
 
     # generate filepath for unique runtime
@@ -75,5 +74,5 @@ def generate_local_airflow_environment_test(*args, **kwargs):
     with open(os.path.join(config['runtime_dir'], 'run_config.txt'), 'w') as config_file:
         config_file.writelines(template.substitute(config))
 
-    # push information back to scheduler by returning
+    # push information back to airflow scheduler by returning
     return config

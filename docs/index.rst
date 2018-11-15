@@ -15,8 +15,9 @@ Content
    plotting
    glossary
 
-Search
-------
+
+Indices and tables
+==================
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
