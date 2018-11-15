@@ -1,6 +1,11 @@
-import matplotlib.pyplot as pyplot
+import time
 import numpy
+import pandas
+import matplotlib.pyplot as pyplot
+import matplotlib.dates as mdates
+
 from csep.utils.constants import SECONDS_PER_DAY
+from csep.utils.time import epoch_time_to_utc_datetime
 
 """
 This module contains plotting routines that generate figures for the stochastic event sets produced from
@@ -8,15 +13,13 @@ CSEP2 experiments.
 
 Example:
     TODO: Write example for the plotting functions.
-    TODO: Ensure this function works with generators using itertools.islice
 """
 
 
-def plot_cumulative_events_versus_time(stochastic_event_set, observation, fig=None,
-                                            filename=None, show=False):
+def plot_cumulative_events_versus_time(stochastic_event_set, observation, filename=None, show=False):
     """
     Plots cumulative number of events against time for both the observed catalog and a stochastic event set.
-    Plots the catalog with the median number of events.
+    Initially bins events by week and computes.
 
     Args:
         stochastic_event_set (iterable): iterable of :class:`~csep.core.catalogs.BaseCatalog` objects
@@ -27,54 +30,60 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, fig=No
     Returns:
         pyplot.Figure: fig
     """
-    # set up figure
-    chained = False
-    if fig is not None:
-        chained = True
+    print('Plotting cumulative event counts.')
+    fig, ax = pyplot.subplots()
 
-    fig = fig or pyplot.figure()
-    ax = fig.gca()
+    # date formatting
+    locator = mdates.MonthLocator()  # every month
+    fmt = mdates.DateFormatter('%b')
 
-    # need to get the index of the stochastc event sets to plot
-    ses_event_counts = []
-    for catalog in stochastic_event_set:
-        ses_event_counts.append(catalog.get_number_of_events())
-    ses_event_counts = numpy.array(ses_event_counts)
+    # get dataframe representation for all catalogs
+    f = lambda x: x.get_dataframe()
+    t0 = time.time()
+    df = pandas.concat(list(map(f, stochastic_event_set)))
+    t1 = time.time()
+    print('Converted {} ruptures from {} catalogs into a DataFrame in {} seconds.\n'
+          .format(len(df), len(stochastic_event_set), t1-t0))
 
-    # get index of median
-    ind_med = abs(ses_event_counts-numpy.percentile(ses_event_counts, 50, interpolation='nearest')).argmin()
+    # get counts, cumulative_counts, percentiles in weekly intervals
+    df_comcat = observation.get_dataframe()
 
-    # plot median index
-    cat_med = stochastic_event_set[ind_med]
+    # get statistics from stochastic event set
+    # IDEA: make this a function, might want to re-use this binning
+    df1 = df.groupby([df['catalog_id'], pandas.Grouper(freq='W')])['counts'].agg(['sum'])
+    df1['cum_sum'] = df1.groupby(level=0).cumsum()
+    df2 = df1.groupby('datetime').describe(percentiles=(0.05,0.5,0.95))
 
-    # plotting timestamps for now, until I can format dates on axis properly
-    f = lambda x: numpy.array(x.timestamp()) / SECONDS_PER_DAY
+    # remove tz information so pandas can plot
+    df2.index = df2.index.tz_localize(None)
 
-    days_med = numpy.array(list(map(f, cat_med.get_datetimes())))
-    days_med_zero = days_med - days_med[0]
+    # get statistics from catalog
+    df1_comcat = df_comcat.groupby(pandas.Grouper(freq='W'))['counts'].agg(['sum'])
+    df1_comcat['obs_cum_sum'] = df1_comcat['sum'].cumsum()
+    df1_comcat.index = df1_comcat.index.tz_localize(None)
 
-    days_obs = numpy.array(list(map(f, observation.get_datetimes())))
-    days_obs_zero = days_obs - days_obs[0]
+    df2.columns = ["_".join(x) for x in df2.columns.ravel()]
+    df3 = df2.merge(df1_comcat, left_index=True, right_on='datetime', left_on='datetime')
 
-    ax.plot(days_med_zero, cat_med.get_cumulative_number_of_events(), label=cat_med.name)
-
-    if not chained:
-        ax.plot(days_obs_zero, observation.get_cumulative_number_of_events(), '-k', label=observation.name)
-
-    # do some labeling
-    ax.set_title(cat_med.name, fontsize=16, color='black')
-    ax.set_xlabel('Days Elapsed')
-    ax.set_ylabel('Cumulative Number of Events')
-    ax.legend(loc='best')
+    # plotting
+    ax.plot(df3.index, df3['obs_cum_sum'], color='black', label=observation.name + ' (Obs)')
+    ax.plot(df3.index, df3['cum_sum_50%'], color='blue', label=stochastic_event_set[0].name)
+    ax.fill_between(df3.index, df3['cum_sum_5%'], df3['cum_sum_95%'], color='blue', alpha=0.2, label='5%-95%')
+    ax.legend(loc='lower right')
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(fmt)
+    ax.set_xlabel(df3.index.year.max())
+    ax.set_ylabel('Cumulative Event Count')
 
     # save figure
     if filename is not None:
         fig.savefig(filename)
 
+    # optionally show figure
     if show:
         pyplot.show()
 
-    return fig
+    return ax
 
 def plot_magnitude_versus_time(catalog, filename=None, show=False):
     """
@@ -88,6 +97,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False):
     Returns:
         (tuple): fig and axes handle
     """
+    print('Plotting magnitude versus time.')
     fig = pyplot.figure(figsize=(8,3))
     ax = fig.add_subplot(111)
 

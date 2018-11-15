@@ -375,9 +375,14 @@ class UCERF3Catalog(BaseCatalog):
                         must be overridden in the child class.
         """
         df = pandas.DataFrame(self.catalog)
+        # this is used for aggregrating counts
+        df['counts'] = 1
         if 'catalog_id' not in df.keys():
             df['catalog_id'] = self.catalog_id
-
+        if 'datetime' not in df.keys():
+            df['datetime'] = df['origin_time'].map(epoch_time_to_utc_datetime)
+        # set index as datetime
+        df.index = df['datetime']
         return df
 
     def convert_to_csep_format(self):
@@ -458,7 +463,7 @@ class ComcatCatalog(BaseCatalog):
     Class handling retrieval of Comcat Catalogs.
     """
     comcat_dtype = numpy.dtype([('id', 'S256'),
-                                ('epoch_time', '<f4'),
+                                ('origin_time', '<f4'),
                                 ('latitude', '<f4'),
                                 ('longitude','<f4'),
                                 ('depth', '<f4'),
@@ -546,9 +551,13 @@ class ComcatCatalog(BaseCatalog):
                         must be overridden in the child class.
         """
         df = pandas.DataFrame(self.catalog)
+        df['counts'] = 1
         if 'catalog_id' not in df.keys():
             df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
-
+        if 'datetime' not in df.keys():
+            df['datetime'] = df['origin_time'].map(epoch_time_to_utc_datetime)
+        # set index as datetime
+        df.index = df['datetime']
         return df
 
     def get_datetimes(self):
@@ -560,7 +569,7 @@ class ComcatCatalog(BaseCatalog):
         """
         datetimes = []
         for event in self.catalog:
-            datetimes.append(epoch_time_to_utc_datetime(event['epoch_time']))
+            datetimes.append(epoch_time_to_utc_datetime(event['origin_time']))
         return datetimes
 
     def get_longitudes(self):
@@ -570,7 +579,7 @@ class ComcatCatalog(BaseCatalog):
         return self.catalog['latitude']
 
     def get_epoch_times(self):
-        return self.catalog['epoch_time']
+        return self.catalog['origin_time']
 
     def _get_catalog_as_ndarray(self):
         """
@@ -597,7 +606,7 @@ class ComcatCatalog(BaseCatalog):
         csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.csep_dtype)
 
         for i, event in enumerate(self.catalog):
-            dt = epoch_time_to_utc_datetime(event['epoch_time'])
+            dt = epoch_time_to_utc_datetime(event['origin_time'])
             year = dt.year
             month = dt.month
             day = dt.day

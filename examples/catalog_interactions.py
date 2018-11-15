@@ -21,23 +21,25 @@ filename = os.path.join(project_root, '10-23-2018_landers-pt1/results_complete.b
 filename_nofaults = os.path.join(project_root, '10-31-2018_landers-nofaults-pt1/results_complete.bin')
 
 t0 = time.time()
-u3catalogs = list(UCERF3Catalog.load_catalogs(filename=filename, name='UCERF3-ETAS'))
-for u3catalog in u3catalogs:
-    if u3catalog.catalog_id % 500 == 0:
-        print('Loaded {} catalogs'.format(u3catalog.catalog_id))
-    ucerf3_numbers.append(u3catalog.get_number_of_events())
+u3catalogs = UCERF3Catalog.load_catalogs(filename=filename, name='UCERF3-ETAS')
+u3catalogs_filt = list(map(lambda x: x.filter('magnitude > 3.95'), u3catalogs))
 t1 = time.time()
-print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog.catalog_id+1, (t1-t0)))
+print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(len(u3catalogs_filt), (t1-t0)))
+
+# Get number of events
+ucerf3_numbers = []
+for u3catalog in u3catalogs_filt:
+    ucerf3_numbers.append(u3catalog.get_number_of_events())
 
 t0 = time.time()
-u3catalogs_nf = list(UCERF3Catalog.load_catalogs(filename=filename_nofaults, name='UCERF3-NoFaultsETAS'))
-for u3catalog_nf in u3catalogs_nf:
-    if u3catalog_nf.catalog_id % 500 == 0:
-        print('Loaded {} catalogs'.format(u3catalog_nf.catalog_id))
-    nofaults_numbers.append(u3catalog_nf.get_number_of_events())
+u3catalogs_nf = UCERF3Catalog.load_catalogs(filename=filename_nofaults, name='UCERF3-NoFaultsETAS')
+u3catalogs_nf_filt = list(map(lambda x: x.filter('magnitude > 3.95'), u3catalogs_nf))
 t1 = time.time()
-print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(u3catalog_nf.catalog_id+1, (t1-t0)))
-#
+print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(len(u3catalogs_nf_filt), (t1-t0)))
+
+# Number of events for ucerf3-nofaults, example as list-comprehension instead of for loop
+nofaults_numbers = [x.get_number_of_events() for x in u3catalogs_nf_filt]
+
 # Comcat Synthetics
 epoch_time = 709732655000
 duration_in_years = 1.0
@@ -46,6 +48,8 @@ comcat = ComcatCatalog(start_epoch=epoch_time, duration_in_years=1.0, name='Comc
                             min_magnitude=2.55,
                             min_latitude=31.50, max_latitude=43.00,
                             min_longitude=-125.40, max_longitude=-113.10,)
+
+comcat_filt = comcat.filter('magnitude > 3.95')
 t1 = time.time()
 print("Fetched Comcat catalog in {} seconds.\n".format(t1-t0))
 print("Downloaded Comcat Catalog with following parameters")
@@ -54,19 +58,20 @@ print("Min Latitude: {} and Max Latitude: {}".format(comcat.min_latitude, comcat
 print("Min Longitude: {} and Max Longitude: {}".format(comcat.min_longitude, comcat.max_longitude))
 print("Min Magnitude: {}\n".format(comcat.min_magnitude))
 
-comcat_count = comcat.get_number_of_events()
+comcat_count = comcat_filt.get_number_of_events()
 
-# Statements about Catalog Statistics
-print("Found {} events in the Comcat catalog.".format(comcat_count))
+
+print("Statements about Catalog Statistics")
+print("Found {} events in the Comcat catalog.\n".format(comcat_count))
 
 print("Found {} events in the UCERF3 catalog with lowest number of events.".format(numpy.min(ucerf3_numbers)))
 print("Found {} events in the UCERF3 catalog with max number of events.".format(numpy.max(ucerf3_numbers)))
-print("In UCERF3 the median events were {} and the mean events were {}."
+print("In UCERF3 the median events were {} and the mean events were {}.\n"
       .format(numpy.median(ucerf3_numbers),numpy.mean(ucerf3_numbers)))
 
 print("Found {} events in the UCERF3-NoFaults catalog with lowest number of events.".format(numpy.min(nofaults_numbers)))
 print("Found {} events in the UCERF3 catalog with max number of events.".format(numpy.max(nofaults_numbers)))
-print("In UCERF3-Nofaults the median events were {} and the mean events were {}."
+print("In UCERF3-Nofaults the median events were {} and the mean events were {}.\n"
       .format(numpy.median(nofaults_numbers),numpy.mean(nofaults_numbers)))
 
 # Plotting
@@ -84,9 +89,9 @@ pyplot.legend(loc='best')
 pyplot.show()
 
 # Plot cumulative events
-fig, ax = plot_cumulative_events_versus_time(u3catalogs, comcat)
-plot_cumulative_events_versus_time(u3catalogs_nf, comcat, fig=fig)
+ax = plot_cumulative_events_versus_time(u3catalogs_filt, comcat_filt)
+ax = plot_cumulative_events_versus_time(u3catalogs_nf_filt, comcat_filt)
 
 # Plot magnitude versus time
-plot_magnitude_versus_time(comcat)
-plot_magnitude_versus_time(u3catalog, show=True)
+plot_magnitude_versus_time(comcat_filt)
+plot_magnitude_versus_time(u3catalogs_filt[0], show=True)
