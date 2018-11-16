@@ -18,7 +18,7 @@ class BaseCatalog:
         Would be used for filtering or binning. shapely, geopandas for spatial and DataFrame for temporal.
     """
     def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None,
-                    min_magnitude=None,
+                    min_magnitude=None, max_magnitude=None,
                     min_latitude=None, max_latitude=None,
                     min_longitude=None, max_longitude=None,
                     start_time=None, end_time=None):
@@ -38,6 +38,7 @@ class BaseCatalog:
             if catalog is not None:
                 self._update_catalog_stats()
             else:
+                self.max_magnitude = max_magnitude
                 self.min_magnitude = min_magnitude
                 self.min_latitude = min_latitude
                 self.max_latitude = max_latitude
@@ -214,6 +215,7 @@ class BaseCatalog:
     def _update_catalog_stats(self):
         # update min and max values
         self.min_magnitude =  numpy.min(self.get_magnitudes())
+        self.max_magnitude =  numpy.max(self.get_magnitudes())
         self.min_latitude =  numpy.min(self.get_latitudes())
         self.max_latitude =  numpy.max(self.get_latitudes())
         self.min_longitude =  numpy.min(self.get_longitudes())
@@ -489,10 +491,12 @@ class ComcatCatalog(BaseCatalog):
 
     def __init__(self, catalog_id='Comcat', format='Comcat',
                  start_epoch=None, duration_in_years=None,
-                 limit=20000, extra_comcat_params={}, **kwargs):
+                 limit=20000, date_accessed=None, extra_comcat_params={}, **kwargs):
 
         # parent class constructor
         super().__init__(**kwargs)
+
+        self.date_accessed = date_accessed
 
         if self.start_time is None and start_epoch is None:
                 raise ValueError('Error: start_time or start_epoch must not be None.')
@@ -540,6 +544,10 @@ class ComcatCatalog(BaseCatalog):
 
         # eventlist is converted to ndarray in _get_catalog_as_ndarray called from setter
         self.catalog = eventlist
+
+        # update state because we just loaded a new catalog
+        self.date_accessed = datetime.datetime.utcnow()
+        self._update_catalog_stats()
 
         return self
 
