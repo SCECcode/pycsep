@@ -1,5 +1,6 @@
 import os
 import numpy
+import scipy
 import pandas
 import datetime
 import operator
@@ -30,6 +31,9 @@ class BaseCatalog:
 
         # cleans the catalog to set as ndarray, see setter.
         self.catalog = catalog
+
+        # class attributes that are not settable from constructor (adding here for readability)
+        self.mfd = None
 
         # set these parameters from inputs or catalog
         # if both, are None, these will be set to None
@@ -174,6 +178,74 @@ class BaseCatalog:
             (numpy.array): longitudes
         """
         raise NotImplementedError('get_longitudes not implemented!')
+
+    def get_mfd(self, delta_mw=0.3, p_value=0.05):
+        """
+        Computes magnitude frequency distribution for catalog. MFD is computed by creating magnitude bins
+        discretized by delta_mw.
+
+        Requires that self.get_dataframe() is implemented in order to compute MFD.
+
+        Args:
+            delta_mw (float): Magnitude spacing for magnitude binning
+            p_value (float): p_value for student's t-distribution
+
+        Returns:
+            (pandas.DataFrame): Magnitude Freq Distribution. Counts and regression statistics attached for plotting.
+        """
+        # getting comcat catalog as dataframe
+        dm = delta_mw
+        p_value = p_value
+        min_mw, max_mw = self.min_magnitude, self.max_magnitude
+        mw_inter = numpy.arange(min_mw, max_mw+dm, dm)
+
+        # switching into dataframe for easy manipulations
+        df = self.get_dataframe()
+
+        # bind to self catalog
+        self.mfd = pandas.DataFrame(df['counts'].groupby(pandas.cut(df['magnitude'], mw_inter)).sum())
+
+        # perform least-squares to get b-value
+        # log(N) = a-bM
+        # N = 10^a / 10^bM
+        idx = numpy.array(self.mfd.index.categories.mid)
+        G = numpy.vstack([numpy.ones(len(idx)), idx]).T
+        N = numpy.log10(numpy.squeeze(self.mfd.values))
+        a, b = numpy.linalg.lstsq(G, N, rcond=None)[0]
+
+        # generate line to plot
+        N_est = a + b*idx
+
+        # setup vars for plotting ci
+        err = N - N_est
+
+        # calculate regression statistics
+        t_stat = scipy.stats.t.ppf(1-p_value/2, len(idx)-2)
+        mean_x = numpy.mean(idx)
+        n = len(idx)
+        se_line = numpy.sqrt(numpy.sum(numpy.power(err,2))/(n-2))
+        se_xk = numpy.sqrt(1/n+numpy.power(idx-mean_x,2)/numpy.sum(numpy.power(idx-mean_x,2)))
+        confs = se_line * se_xk
+        lower = N_est-t_stat*confs
+        upper = N_est+t_stat*confs
+
+        # confidence interval of b-value
+        rms = numpy.sqrt(numpy.mean(numpy.power(err,2)))
+        denom = numpy.sum(numpy.power(idx-mean_x,2))
+        ci_b = t_stat*rms/denom
+
+        # bind new shit to dataframe
+        self.mfd['N'] = N
+        self.mfd['N_est'] = N_est
+        self.mfd['lower_ci'] = lower
+        self.mfd['upper_ci'] = upper
+        self.mfd['t_stat'] = t_stat
+        self.mfd['a'] = a
+        self.mfd['b'] = b
+        self.mfd['ci_b'] = ci_b
+
+        # return mfd
+        return self.mfd
 
     def filter(self, statement):
         """

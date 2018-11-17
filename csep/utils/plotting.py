@@ -140,3 +140,56 @@ def plot_histogram(simulated, observation, filename=None, show=False, **kwargs):
         (tuple): fig and axes handle
     """
     raise NotImplementedError('plot_histogram has not been implemented.')
+
+def plot_mfd(catalog, filename=None, show=False, **kwargs):
+    """
+    Plots MFD from pandas DataFrame.
+    In theory could plot from anything that is dict-like with plottable arrays in the correct fields.
+
+    Example usage would be:
+    >>> plot_mfd(catalog, show=True)
+
+    Args:
+        catalog (:class:`~csep.core.catalogs.BaseCatalog`): instance of catalog class
+        filename (str): filename to save figure
+        show (bool): render figure locally using matplotlib backend
+
+    Returns:
+        ax (Axis): matplotlib axis handle
+    """
+    fig, ax = pyplot.subplots()
+
+    mfd = catalog.mfd
+
+    # get other vals for plotting
+    a = mfd['a'].iloc[0]
+    b = mfd['b'].iloc[0]
+    ci_b = mfd['ci_b'].iloc[0]
+
+    # take mid point of magnitude bins for plotting
+    idx = numpy.array(mfd.index.categories.mid)
+    try:
+        ax.scatter(idx, mfd['counts'], color='black', label='{} (accessed: {})'
+                      .format(catalog.name, catalog.date_accessed.date()))
+    except:
+        ax.scatter(idx, mfd['counts'], color='black', label='{}'.format(catalog.name))
+    ax.plot(idx, 10**mfd['N_est'], label='$log(N)={}-{}\pm{}M$'.format(numpy.round(a,2),numpy.round(abs(b),2),numpy.round(numpy.abs(ci_b),2)))
+    ax.fill_between(idx, 10**mfd['lower_ci'], 10**mfd['upper_ci'], color='blue', alpha=0.2)
+
+    # annotations
+    ax.set_yscale('log')
+    ax.set_xlabel('Magnitude')
+    ax.set_ylabel('Frequency')
+    ax.set_title('Magnitude Frequency Distribution')
+    ax.annotate(s='Start Date: {}\nEnd Date: {}\n\nLatitude: ({:.2f}, {:.2f})\nLongitude: ({:.2f}, {:.2f})'
+                .format(catalog.start_time.date(), catalog.end_time.date(),
+                       catalog.min_latitude,catalog.max_latitude,
+                       catalog.min_longitude,catalog.max_longitude),
+                xycoords='axes fraction', xy=(0.5, 0.65), fontsize=10)
+    ax.legend(loc='lower left')
+
+    # handle saving
+    if filename:
+        pyplot.savefig(filename)
+    if show:
+        pyplot.show()
