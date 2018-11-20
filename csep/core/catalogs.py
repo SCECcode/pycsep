@@ -9,7 +9,6 @@ import time
 # CSEP Imports
 from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch
 
-
 class BaseCatalog:
     """
     Base class for CSEP2 catalogs.
@@ -53,6 +52,26 @@ class BaseCatalog:
         except (AttributeError, NotImplementedError):
             print('Warning: could not parse catalog statistics! get_magnitudes(), get_latitudes() and get_longitudes() ' +
                   'must be implemented and bound to calling class!')
+
+
+    def __str__(self):
+        s='''
+        Name: {}
+
+        Start Date: {}
+        End Date: {}
+
+        Latitude: ({:.2f}, {:.2f})
+        Longitude: ({:.2f}, {:.2f})
+
+        Min Mw: {:.2f}
+        Max Mw: {:.2f}
+        '''.format(self.name,
+        self.start_time.date(), self.end_time.date(),
+        self.min_latitude,self.max_latitude,
+        self.min_longitude,self.max_longitude,
+        self.min_magnitude,self.max_magnitude)
+        return s
 
     @property
     def catalog(self):
@@ -300,7 +319,7 @@ class BaseCatalog:
         those that do, this method will return the catalog as is.
 
         """
-        raise NotImplementedError('_get_as_csep_format not implemented.')
+        raise NotImplementedError('_get_csep_format() not implemented.')
 
     def _update_catalog_stats(self):
         # update min and max values
@@ -494,15 +513,6 @@ class UCERF3Catalog(BaseCatalog):
         # set index as datetime
         df.index = df['datetime']
         return df
-
-    def convert_to_csep_format(self):
-        """
-        Function will convert native data frame format into CSEP ZMAP catalog format.
-
-        Returns:
-            (:class:`~csep.core.catalogs.CSEPCatalog`): instance of CSEPCatalog
-        """
-        raise NotImplementedError("convert_to_csep_format not yet implemented")
 
     def get_datetimes(self):
         """

@@ -14,6 +14,7 @@ CSEP2 experiments.
 Right now functions dont have consistent signatures. That means that some functions might have more functionality than others
 while the routines are being developed.
 
+TODO: Add annotations for other two plots.
 """
 
 def plot_cumulative_events_versus_time(stochastic_event_set, observation, filename=None, show=False):
@@ -151,9 +152,10 @@ def plot_histogram(simulated, observation, filename=None, show=False, axes=None,
         show (bool): show interactive version of the figure
         ax (axis object): axis object with interface defined by matplotlib
         catalog (csep.BaseCatalog): used for annotating the figures
+        plot_args (dict): additional plotting commands. TODO: Documentation
 
     Returns:
-        axis: axis handle
+        axis: matplolib axes handle
     """
     # Plotting
     chained = True
@@ -168,6 +170,8 @@ def plot_histogram(simulated, observation, filename=None, show=False, axes=None,
     obs_label = plot_args.pop('obs_label', 'Observation')
     x_label = plot_args.pop('x_label', 'X')
     y_label = plot_args.pop('y_label', 'Frequency')
+    xycoords = plot_args.pop('xycoords', (1.00, 0.40))
+    legend_loc = plot_args.pop('legend_loc', 'best')
 
     # this could throw an error exposing bad implementation
     observation = numpy.array(observation)
@@ -182,15 +186,14 @@ def plot_histogram(simulated, observation, filename=None, show=False, axes=None,
     simulated = numpy.array(simulated)
     ax.hist(simulated, bins='fd', edgecolor='black', alpha=0.5, label=sim_label)
 
-        # annotate the figure with the simulation catalog.
-        # TODO
-        if catalog is not None:
-            pass
+    # annotate the plot with information from catalog
+    if catalog is not None:
+        ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
     # ax.set_xlim(left=0)
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
-    ax.legend(loc='best')
+    ax.legend(loc=legend_loc)
 
     if filename is not None:
         pyplot.savefig(filename)
@@ -202,8 +205,7 @@ def plot_histogram(simulated, observation, filename=None, show=False, axes=None,
 
 def plot_mfd(catalog, filename=None, show=False, **kwargs):
     """
-    Plots MFD from pandas DataFrame.
-    In theory could plot from anything that is dict-like with plottable arrays in the correct fields.
+    Plots MFD from CSEP Catalog.
 
     Example usage would be:
     >>> plot_mfd(catalog, show=True)
@@ -236,7 +238,8 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
     except:
         ax.scatter(x, mfd['counts'], color='black', label='{}'.format(catalog.name))
 
-    ax.plot(x, 10**mfd['N_est'], label='$log(N)={}-{}\pm{}M$'.format(numpy.round(a,2),numpy.round(abs(b),2),numpy.round(numpy.abs(ci_b),2)))
+    plt_label = '$log(N)={}-{}\pm{}M$'.format(numpy.round(a,2),numpy.round(abs(b),2),numpy.round(numpy.abs(ci_b),2))
+    ax.plot(x, 10**mfd['N_est'], label=plt_label)
     ax.fill_between(x, 10**mfd['lower_ci'], 10**mfd['upper_ci'], color='blue', alpha=0.2)
 
     # annotations
@@ -244,11 +247,7 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
     ax.set_xlabel('Magnitude')
     ax.set_ylabel('Frequency')
     ax.set_title('Magnitude Frequency Distribution')
-    ax.annotate(s='Start Date: {}\nEnd Date: {}\n\nLatitude: ({:.2f}, {:.2f})\nLongitude: ({:.2f}, {:.2f})'
-                .format(catalog.start_time.date(), catalog.end_time.date(),
-                       catalog.min_latitude,catalog.max_latitude,
-                       catalog.min_longitude,catalog.max_longitude),
-                xycoords='axes fraction', xy=(0.5, 0.65), fontsize=10)
+    ax.annotate(s=str(catalog), xycoords='axes fraction', xy=(0.5, 0.65), fontsize=10)
     ax.legend(loc='lower left')
 
     # handle saving
