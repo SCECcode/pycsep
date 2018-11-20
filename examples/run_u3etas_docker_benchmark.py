@@ -10,7 +10,7 @@ from csep.core.docker import build_run_image
 author: william wsavran
 date: 09.25.2018
 
-general script to execute u3etas benchmakr stored in docker images using csep2 modules arranged
+general script to execute u3etas benchmark stored in docker images using csep2 modules arranged
 as a script
 """
 
