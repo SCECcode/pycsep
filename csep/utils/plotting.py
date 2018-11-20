@@ -11,10 +11,10 @@ from csep.utils.time import epoch_time_to_utc_datetime
 This module contains plotting routines that generate figures for the stochastic event sets produced from
 CSEP2 experiments.
 
-Example:
-    TODO: Write example for the plotting functions.
-"""
+Right now functions dont have consistent signatures. That means that some functions might have more functionality than others
+while the routines are being developed.
 
+"""
 
 def plot_cumulative_events_versus_time(stochastic_event_set, observation, filename=None, show=False):
     """
@@ -129,17 +129,76 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False):
 
     return ax
 
-def plot_histogram(simulated, observation, filename=None, show=False, **kwargs):
+def plot_histogram(simulated, observation, filename=None, show=False, axes=None, catalog=None, plot_args = {}):
     """
-    Plots histogram of simulated values and shows observation with vertical line.
+    Plots histogram of single statistic for stochastic event sets and observations. The function will behave differently
+    depending on the inputs.
+
+    Simulated should always be either a list or numpy.array where there would be one value per catalog in the stochastic event
+    set. Observation could either be a scalar or a numpy.array/list. If observation is a scale a vertical line would be
+    plotted, if observation is iterable a second histogram would be plotted.
+
+    This allows for comparisons to be made against catalogs where there are multiple values e.g., magnitude, and single values
+    e.g., event count.
+
+    If an axis handle is included, additional function calls will only addition extra simulations, observations will not be
+    plotted. Since this function returns an axes handle, any extra modifications to the figure can be made using that.
 
     Args:
-        simulated (numpy.array): numpy.array like representation of statistics computed from catalogs.
+        simulated (numpy.arrays): numpy.array like representation of statistics computed from catalogs.
+        observation(numpy.array or scalar): observation to plot against stochastic event set
+        filename (str): filename to save figure
+        show (bool): show interactive version of the figure
+        ax (axis object): axis object with interface defined by matplotlib
+        catalog (csep.BaseCatalog): used for annotating the figures
 
     Returns:
-        (tuple): fig and axes handle
+        axis: axis handle
     """
-    raise NotImplementedError('plot_histogram has not been implemented.')
+    # Plotting
+    chained = True
+    if axes is not None:
+        ax = axes
+    else:
+        fig, ax = pyplot.subplots()
+        chained = False
+
+    # parse plotting arguments
+    sim_label = plot_args.pop('sim_label', 'Simulated')
+    obs_label = plot_args.pop('obs_label', 'Observation')
+    x_label = plot_args.pop('x_label', 'X')
+    y_label = plot_args.pop('y_label', 'Frequency')
+
+    # this could throw an error exposing bad implementation
+    observation = numpy.array(observation)
+
+    if not chained:
+        try:
+            n = len(observation)
+            ax.hist(observation, bins='fd', edgecolor='black', alpha=0.5, label=obs_label)
+        except TypeError:
+            ax.axvline(x=observation, color='black', linestyle='--', label=obs_label)
+
+    simulated = numpy.array(simulated)
+    ax.hist(simulated, bins='fd', edgecolor='black', alpha=0.5, label=sim_label)
+
+        # annotate the figure with the simulation catalog.
+        # TODO
+        if catalog is not None:
+            pass
+
+    # ax.set_xlim(left=0)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.legend(loc='best')
+
+    if filename is not None:
+        pyplot.savefig(filename)
+
+    if show:
+        pyplot.show()
+
+    return ax
 
 def plot_mfd(catalog, filename=None, show=False, **kwargs):
     """
@@ -160,21 +219,25 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
     fig, ax = pyplot.subplots()
 
     mfd = catalog.mfd
+    if mfd is None:
+        print('Computing MFD for catalog.')
+        catalog.get_mfd()
 
     # get other vals for plotting
-    a = mfd['a'].iloc[0]
-    b = mfd['b'].iloc[0]
-    ci_b = mfd['ci_b'].iloc[0]
+    a = mfd.loc[0,'a']
+    b = mfd.loc[0,'b']
+    ci_b = mfd.loc[0,'ci_b']
 
     # take mid point of magnitude bins for plotting
-    idx = numpy.array(mfd.index.categories.mid)
+    x = numpy.array(mfd.index.categories.mid)
     try:
-        ax.scatter(idx, mfd['counts'], color='black', label='{} (accessed: {})'
+        ax.scatter(x, mfd['counts'], color='black', label='{} (accessed: {})'
                       .format(catalog.name, catalog.date_accessed.date()))
     except:
-        ax.scatter(idx, mfd['counts'], color='black', label='{}'.format(catalog.name))
-    ax.plot(idx, 10**mfd['N_est'], label='$log(N)={}-{}\pm{}M$'.format(numpy.round(a,2),numpy.round(abs(b),2),numpy.round(numpy.abs(ci_b),2)))
-    ax.fill_between(idx, 10**mfd['lower_ci'], 10**mfd['upper_ci'], color='blue', alpha=0.2)
+        ax.scatter(x, mfd['counts'], color='black', label='{}'.format(catalog.name))
+
+    ax.plot(x, 10**mfd['N_est'], label='$log(N)={}-{}\pm{}M$'.format(numpy.round(a,2),numpy.round(abs(b),2),numpy.round(numpy.abs(ci_b),2)))
+    ax.fill_between(x, 10**mfd['lower_ci'], 10**mfd['upper_ci'], color='blue', alpha=0.2)
 
     # annotations
     ax.set_yscale('log')

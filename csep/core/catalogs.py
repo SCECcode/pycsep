@@ -205,44 +205,62 @@ class BaseCatalog:
         # bind to self catalog
         self.mfd = pandas.DataFrame(df['counts'].groupby(pandas.cut(df['magnitude'], mw_inter)).sum())
 
+        # get values from dataframe, might contain zeros
+        vals_all = numpy.squeeze(self.mfd.values)
+        x_all = numpy.array(self.mfd.index.categories.mid)
+
+        # remove zeros from data used to fit (naive solution to log10(0) problem)
+        id_nonzero = numpy.nonzero(vals_all)
+        vals = vals_all[id_nonzero]
+        x = x_all[id_nonzero]
+
+        # this could evaluate as false if there are zeros
+        N = numpy.log10(numpy.squeeze(vals))
+        G = numpy.vstack([numpy.ones(len(x)), x]).T
+
         # perform least-squares to get b-value
-        # log(N) = a-bM
-        # N = 10^a / 10^bM
-        idx = numpy.array(self.mfd.index.categories.mid)
-        G = numpy.vstack([numpy.ones(len(idx)), idx]).T
-        N = numpy.log10(numpy.squeeze(self.mfd.values))
+        # log(N) = a-bM or N = 10^a / 10^bM
         a, b = numpy.linalg.lstsq(G, N, rcond=None)[0]
 
         # generate line to plot
-        N_est = a + b*idx
+        N_est = a + b*x
 
         # setup vars for plotting ci
-        err = N - N_est
+        err = N - numpy.squeeze(N_est)
 
-        # calculate regression statistics
-        t_stat = scipy.stats.t.ppf(1-p_value/2, len(idx)-2)
-        mean_x = numpy.mean(idx)
-        n = len(idx)
+        t_stat = scipy.stats.t.ppf(1-p_value/2, len(x)-2)
+        mean_x = numpy.mean(x)
+        n = len(x)
         se_line = numpy.sqrt(numpy.sum(numpy.power(err,2))/(n-2))
-        se_xk = numpy.sqrt(1/n+numpy.power(idx-mean_x,2)/numpy.sum(numpy.power(idx-mean_x,2)))
+        se_xk = numpy.sqrt(1/n+numpy.power(x-mean_x,2)/numpy.sum(numpy.power(x-mean_x,2)))
         confs = se_line * se_xk
         lower = N_est-t_stat*confs
         upper = N_est+t_stat*confs
 
         # confidence interval of b-value
         rms = numpy.sqrt(numpy.mean(numpy.power(err,2)))
-        denom = numpy.sum(numpy.power(idx-mean_x,2))
+        denom = numpy.sum(numpy.power(x-mean_x,2))
         ci_b = t_stat*rms/denom
 
-        # bind new shit to dataframe
-        self.mfd['N'] = N
-        self.mfd['N_est'] = N_est
-        self.mfd['lower_ci'] = lower
-        self.mfd['upper_ci'] = upper
-        self.mfd['t_stat'] = t_stat
-        self.mfd['a'] = a
-        self.mfd['b'] = b
-        self.mfd['ci_b'] = ci_b
+        # wish this were functional
+        self.mfd['N'] = 0.0
+        self.mfd['N_est'] = 0.0
+        self.mfd['lower_ci'] = 0.0
+        self.mfd['upper_ci'] = 0.0
+        self.mfd['t_stat'] = 0.0
+        self.mfd['a'] = 0.0
+        self.mfd['b'] = 0.0
+        self.mfd['ci_b'] = 0.0
+
+        # add additional state to dataframe. use .loc() indexing to ensure the data is bound to dataframe
+        self.mfd.loc[self.mfd['counts'] != 0, 'N'] = N
+        self.mfd.loc[self.mfd['counts'] != 0, 'N_est'] = N_est
+        self.mfd.loc[self.mfd['counts'] != 0, 'lower_ci'] = lower
+        self.mfd.loc[self.mfd['counts'] != 0, 'upper_ci'] = upper
+        self.mfd.loc[self.mfd['counts'] != 0, 't_stat'] = t_stat
+        self.mfd.loc[self.mfd['counts'] != 0, 'a'] = a
+        self.mfd.loc[self.mfd['counts'] != 0, 'b'] = b
+        self.mfd.loc[self.mfd['counts'] != 0, 'ci_b'] = ci_b
 
         # return mfd
         return self.mfd
@@ -545,7 +563,6 @@ class UCERF3Catalog(BaseCatalog):
                                hour,
                                minute,
                                second)
-        print('took {} seconds to convert to csep format.'.format(t1-t0))
 
         return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 

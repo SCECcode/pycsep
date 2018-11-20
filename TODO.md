@@ -4,8 +4,7 @@
  * spatial distribution of events
  * cell-averaged, cell-median plots
  * look at pygmt for maps
- * magnitude frequency distribution
-4. write documentation for catalog api
+3. write documentation for catalog api
 
 ### For workflow manager
 1. Implement runtime storage information using json files and/or SQLite database
@@ -18,4 +17,4 @@
 2. Clean up imports
 =======
 1. build prototype DAG using new UCERF3 codes
-2. Setup Travis CI for building 
+2. Setup Travis CI for building
