@@ -247,7 +247,11 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
     ax.set_xlabel('Magnitude')
     ax.set_ylabel('Frequency')
     ax.set_title('Magnitude Frequency Distribution')
-    ax.annotate(s=str(catalog), xycoords='axes fraction', xy=(0.5, 0.65), fontsize=10)
+    ax.annotate(s='Start Date: {}\nEnd Date: {}\n\nLatitude: ({:.2f}, {:.2f})\nLongitude: ({:.2f}, {:.2f})'
+                .format(catalog.start_time.date(), catalog.end_time.date(),
+                       catalog.min_latitude,catalog.max_latitude,
+                       catalog.min_longitude,catalog.max_longitude),
+                xycoords='axes fraction', xy=(0.5, 0.65), fontsize=10)
     ax.legend(loc='lower left')
 
     # handle saving
