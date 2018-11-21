@@ -1,8 +1,9 @@
 from csep.core.catalogs import *
 
-def load_stochastic_event_set(type=None, format='csep', **kwargs):
+def load_stochastic_event_set(type=None, format='native', **kwargs):
     """
     Factory function to load stochastic event sets.
+    # IDEA: should this return a stochastic event set class with a consistent api to apply things to an event set?
 
     Args:
         type (str): either 'ucerf3' or 'csep' depending on the type of catalog to load
@@ -34,7 +35,7 @@ def load_stochastic_event_set(type=None, format='csep', **kwargs):
         else:
             raise ValueError('format must be either "native" or "csep!')
 
-def load_catalog(type=None, format='csep', **kwargs):
+def load_catalog(type=None, format='native', **kwargs):
     """
     Factory function to load single catalog. See corresponding class documentation for additional parameters.
 

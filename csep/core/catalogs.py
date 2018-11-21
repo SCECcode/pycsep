@@ -37,22 +37,20 @@ class BaseCatalog:
         # set these parameters from inputs or catalog
         # if both, are None, these will be set to None
         # this will prefer to set values from the catalog and not the inputs.
+        self.max_magnitude = max_magnitude
+        self.min_magnitude = min_magnitude
+        self.min_latitude = min_latitude
+        self.max_latitude = max_latitude
+        self.min_longitude = min_longitude
+        self.max_longitude = max_longitude
+        self.start_time = start_time
+        self.end_time = end_time
         try:
             if catalog is not None:
                 self._update_catalog_stats()
-            else:
-                self.max_magnitude = max_magnitude
-                self.min_magnitude = min_magnitude
-                self.min_latitude = min_latitude
-                self.max_latitude = max_latitude
-                self.min_longitude = min_longitude
-                self.max_longitude = max_longitude
-                self.start_time = start_time
-                self.end_time = end_time
         except (AttributeError, NotImplementedError):
-            print('Warning: could not parse catalog statistics! get_magnitudes(), get_latitudes() and get_longitudes() ' +
-                  'must be implemented and bound to calling class!')
-
+            print('Warning: could not parse catalog statistics by reading catalog! get_magnitudes(), get_latitudes() and get_longitudes() ' +
+                  'must be implemented and bound to calling class! Reverting to old values.')
 
     def __str__(self):
         s='''

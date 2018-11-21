@@ -15,6 +15,9 @@ Right now functions dont have consistent signatures. That means that some functi
 while the routines are being developed.
 
 TODO: Add annotations for other two plots.
+TODO: Add ability to plot annotations from multiple catalogs. Esp, for plot_histogram()
+IDEA: Same concept mentioned in evaluations might apply here. The plots could be a common class that might provide
+      more control to the end user.
 """
 
 def plot_cumulative_events_versus_time(stochastic_event_set, observation, filename=None, show=False):
@@ -168,8 +171,8 @@ def plot_histogram(simulated, observation, filename=None, show=False, axes=None,
     # parse plotting arguments
     sim_label = plot_args.pop('sim_label', 'Simulated')
     obs_label = plot_args.pop('obs_label', 'Observation')
-    x_label = plot_args.pop('x_label', 'X')
-    y_label = plot_args.pop('y_label', 'Frequency')
+    xlabel = plot_args.pop('xlabel', 'X')
+    ylabel = plot_args.pop('ylabel', 'Frequency')
     xycoords = plot_args.pop('xycoords', (1.00, 0.40))
     legend_loc = plot_args.pop('legend_loc', 'best')
 
@@ -191,8 +194,8 @@ def plot_histogram(simulated, observation, filename=None, show=False, axes=None,
         ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
     # ax.set_xlim(left=0)
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     ax.legend(loc=legend_loc)
 
     if filename is not None:
@@ -259,3 +262,34 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
         pyplot.savefig(filename)
     if show:
         pyplot.show()
+
+def plot_ecdf(x, ecdf, xv, catalog=None, filename=None, show=False, plot_args = {}):
+    """
+    Plots empirical cumulative distribution function.
+    """
+    # get values from plotting args
+    sim_label = plot_args.pop('sim_label', 'Simulated')
+    obs_label = plot_args.pop('obs_label', 'Observation')
+    xlabel = plot_args.pop('xlabel', 'X')
+    ylabel = plot_args.pop('ylabel', '$P(X \leq x)$')
+    xycoords = plot_args.pop('xycoords', (1.00, 0.40))
+    legend_loc = plot_args.pop('legend_loc', 'best')
+
+    # make figure
+    fig, ax = pyplot.subplots()
+    ax.plot(x, ecdf, label=sim_label)
+    ax.axvline(x=xv, color='black', linestyle='--', label=obs_label)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.legend(loc=legend_loc)
+
+    if catalog is not None:
+        ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+
+    if filename is not None:
+        pyplot.savefig(filename)
+
+    if show:
+        pyplot.show()
+
+    return ax
