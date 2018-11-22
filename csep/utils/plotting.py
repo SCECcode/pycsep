@@ -174,6 +174,7 @@ def plot_histogram(simulated, observation, filename=None, show=False, axes=None,
     xlabel = plot_args.pop('xlabel', 'X')
     ylabel = plot_args.pop('ylabel', 'Frequency')
     xycoords = plot_args.pop('xycoords', (1.00, 0.40))
+    title = plot_args.pop('title', None)
     legend_loc = plot_args.pop('legend_loc', 'best')
 
     # this could throw an error exposing bad implementation
@@ -194,6 +195,7 @@ def plot_histogram(simulated, observation, filename=None, show=False, axes=None,
         ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
     # ax.set_xlim(left=0)
+    ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.legend(loc=legend_loc)

@@ -9,7 +9,7 @@ from csep.utils.math import func_inverse
 # the decorated functions become members of. Similarly to the way that unittest behaves, but with decorators as opposed to
 # class definitions.
 
-def number_test(stochastic_event_set, observation, plot=False, plot_args={}):
+def number_test(stochastic_event_set, observation, plot=False, interp_kind='nearest', fill_value='extrapolate', plot_args={}):
     """
     Perform an N-Test on a stochastic event set and observation.
 
@@ -35,7 +35,7 @@ def number_test(stochastic_event_set, observation, plot=False, plot_args={}):
     x, cdf = ecdf(sim_counts)
 
     # p-value represents P(X <= x)
-    p_value = func_inverse(x, cdf, observation_count)
+    p_value = func_inverse(x, cdf, observation_count, kind=interp_kind, fill_value=fill_value)
 
     # handle plotting
     ax = None
