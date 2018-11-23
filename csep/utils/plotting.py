@@ -133,7 +133,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False):
 
     return ax
 
-def plot_histogram(simulated, observation, filename=None, show=False, axes=None, catalog=None, plot_args = {}):
+def plot_histogram(simulated, observation, bins='fd', filename=None, show=False, axes=None, catalog=None, plot_args = {}):
     """
     Plots histogram of single statistic for stochastic event sets and observations. The function will behave differently
     depending on the inputs.
@@ -183,12 +183,12 @@ def plot_histogram(simulated, observation, filename=None, show=False, axes=None,
     if not chained:
         try:
             n = len(observation)
-            ax.hist(observation, bins='fd', edgecolor='black', alpha=0.5, label=obs_label)
+            ax.hist(observation, bins=bins, edgecolor='black', alpha=0.5, label=obs_label)
         except TypeError:
             ax.axvline(x=observation, color='black', linestyle='--', label=obs_label)
 
     simulated = numpy.array(simulated)
-    ax.hist(simulated, bins='fd', edgecolor='black', alpha=0.5, label=sim_label)
+    ax.hist(simulated, bins=bins, edgecolor='black', alpha=0.5, label=sim_label)
 
     # annotate the plot with information from catalog
     if catalog is not None:
