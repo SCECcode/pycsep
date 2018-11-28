@@ -214,22 +214,28 @@ class BaseCatalog:
         dm = delta_mw
         p_value = p_value
         min_mw, max_mw = self.min_magnitude, self.max_magnitude
-        mw_inter = numpy.arange(min_mw, max_mw+dm, dm)
+
+        # pandas treats intervals as inclusive on top
+        mw_inter = numpy.arange(min_mw-dm/2, max_mw+dm, dm)
 
         # switching into dataframe for easy manipulations
         df = self.get_dataframe()
 
-        # bind to self catalog
+        # get the counts in each magnitude bin
         self.mfd = pandas.DataFrame(df['counts'].groupby(pandas.cut(df['magnitude'], mw_inter)).sum())
 
+
+        # cumulative counts contain the number of events greater than or equal to the magnitude
+        self.mfd['counts'] = self.mfd.loc[::-1, 'counts'].cumsum()
+
         # get values from dataframe, might contain zeros
-        vals_all = numpy.squeeze(self.mfd.values)
-        x_all = numpy.array(self.mfd.index.categories.mid)
+        vals = numpy.squeeze(self.mfd.values)
+        x = numpy.array(self.mfd.index.categories.mid)
 
         # remove zeros from data used to fit (naive solution to log10(0) problem)
-        id_nonzero = numpy.nonzero(vals_all)
-        vals = vals_all[id_nonzero]
-        x = x_all[id_nonzero]
+        # id_nonzero = numpy.nonzero(vals_all)
+        # vals = vals_all[id_nonzero]
+        # x = x_all[id_nonzero]
 
         # this could evaluate as false if there are zeros
         N = numpy.log10(numpy.squeeze(vals))

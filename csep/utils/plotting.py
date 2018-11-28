@@ -20,7 +20,7 @@ IDEA: Same concept mentioned in evaluations might apply here. The plots could be
       more control to the end user.
 """
 
-def plot_cumulative_events_versus_time(stochastic_event_set, observation, filename=None, show=False):
+def plot_cumulative_events_versus_time(stochastic_event_set, observation, filename=None, show=False, plot_args={}):
     """
     Plots cumulative number of events against time for both the observed catalog and a stochastic event set.
     Initially bins events by week and computes.
@@ -44,13 +44,14 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
     # get dataframe representation for all catalogs
     f = lambda x: x.get_dataframe()
     t0 = time.time()
-    df = pandas.concat(list(map(f, stochastic_event_set)))
+    cats = list(map(f, stochastic_event_set))
+    df = pandas.concat(cats)
     t1 = time.time()
     print('Converted {} ruptures from {} catalogs into a DataFrame in {} seconds.\n'
-          .format(len(df), len(stochastic_event_set), t1-t0))
+          .format(len(df), len(cats), t1-t0))
 
     # get counts, cumulative_counts, percentiles in weekly intervals
-    df_comcat = observation.get_dataframe()
+    df_obs = observation.get_dataframe()
 
     # get statistics from stochastic event set
     # IDEA: make this a function, might want to re-use this binning
@@ -62,22 +63,33 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
     df2.index = df2.index.tz_localize(None)
 
     # get statistics from catalog
-    df1_comcat = df_comcat.groupby(pandas.Grouper(freq='W'))['counts'].agg(['sum'])
+    df1_comcat = df_obs.groupby(pandas.Grouper(freq='W'))['counts'].agg(['sum'])
     df1_comcat['obs_cum_sum'] = df1_comcat['sum'].cumsum()
     df1_comcat.index = df1_comcat.index.tz_localize(None)
 
     df2.columns = ["_".join(x) for x in df2.columns.ravel()]
     df3 = df2.merge(df1_comcat, left_index=True, right_on='datetime', left_on='datetime')
 
+    # get values from plotting args
+    sim_label = plot_args.pop('sim_label', 'Simulated')
+    obs_label = plot_args.pop('obs_label', 'Observation')
+    xlabel = plot_args.pop('xlabel', 'X')
+    ylabel = plot_args.pop('ylabel', '$P(X \leq x)$')
+    xycoords = plot_args.pop('xycoords', (1.00, 0.40))
+    legend_loc = plot_args.pop('legend_loc', 'best')
+
     # plotting
-    ax.plot(df3.index, df3['obs_cum_sum'], color='black', label=observation.name + ' (Obs)')
-    ax.plot(df3.index, df3['cum_sum_50%'], color='blue', label=stochastic_event_set[0].name)
+    ax.plot(df3.index, df3['obs_cum_sum'], color='black', label=obs_label)
+    ax.plot(df3.index, df3['cum_sum_50%'], color='blue', label=sim_label)
     ax.fill_between(df3.index, df3['cum_sum_5%'], df3['cum_sum_95%'], color='blue', alpha=0.2, label='5%-95%')
-    ax.legend(loc='lower right')
+    ax.legend(loc=legend_loc)
     ax.xaxis.set_major_locator(locator)
     ax.xaxis.set_major_formatter(fmt)
     ax.set_xlabel(df3.index.year.max())
     ax.set_ylabel('Cumulative Event Count')
+
+    # annotate the plot with information from catalog
+    ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
     # save figure
     if filename is not None:
@@ -89,7 +101,7 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
 
     return ax
 
-def plot_magnitude_versus_time(catalog, filename=None, show=False):
+def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={}):
     """
     Plots magnitude versus linear time for an earthquake catalog.
 
@@ -101,6 +113,14 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False):
     Returns:
         (tuple): fig and axes handle
     """
+    # get values from plotting args
+    sim_label = plot_args.pop('sim_label', 'Simulated')
+    obs_label = plot_args.pop('obs_label', 'Observation')
+    xlabel = plot_args.pop('xlabel', 'X')
+    ylabel = plot_args.pop('ylabel', '$P(X \leq x)$')
+    xycoords = plot_args.pop('xycoords', (1.00, 0.40))
+    legend_loc = plot_args.pop('legend_loc', 'best')
+
     print('Plotting magnitude versus time.')
     fig = pyplot.figure(figsize=(8,3))
     ax = fig.add_subplot(111)
@@ -123,6 +143,10 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False):
     ax.set_xlabel('Days Elapsed')
     ax.set_ylabel('Magnitude')
     fig.tight_layout()
+
+    # annotate the plot with information from catalog
+    if catalog is not None:
+        ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
     # handle displaying of figures
     if filename is not None:
@@ -227,8 +251,8 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
 
     mfd = catalog.mfd
     if mfd is None:
-        print('Computing MFD for catalog.')
-        catalog.get_mfd()
+        print('Computing MFD for catalog {}.'.format(catalog.name))
+        mfd = catalog.get_mfd()
 
     # get other vals for plotting
     a = mfd.loc[0,'a']

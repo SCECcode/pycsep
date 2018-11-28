@@ -52,7 +52,7 @@ def number_test(stochastic_event_set, observation, plot=False, interp_kind='near
         ax = plot_ecdf(x, cdf, observation_count, catalog=observation, plot_args=plot_args, filename=filename)
 
         # annotate the plot with information from catalog
-        ax.annotate('$P(X \leq x) = {:.3f}$'.format(p_value), xycoords='axes fraction', xy=(0.65, 0.3), fontsize=14)
+        ax.annotate('$P(X \leq x) = {:.5f}$'.format(p_value), xycoords='axes fraction', xy=(0.6, 0.3), fontsize=14)
         ax.set_title("CSEP2 Number Test", fontsize=14)
 
         if show:
