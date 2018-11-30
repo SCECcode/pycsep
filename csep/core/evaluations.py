@@ -1,7 +1,7 @@
 import matplotlib.pyplot as pyplot
 
 from csep.utils.plotting import plot_ecdf
-from csep.utils.stats import ecdf
+from csep.utils.stats import less_equal_ecdf, greater_equal_ecdf, ecdf
 from csep.utils.math import func_inverse
 
 
@@ -9,7 +9,7 @@ from csep.utils.math import func_inverse
 # the decorated functions become members of. Similarly to the way that unittest behaves, but with decorators as opposed to
 # class definitions.
 
-def number_test(stochastic_event_set, observation, plot=False, interp_kind='nearest', fill_value='extrapolate', plot_args={}):
+def number_test(stochastic_event_set, observation, plot=False, plot_args={}):
     """
     Perform an N-Test on a stochastic event set and observation.
 
@@ -28,14 +28,13 @@ def number_test(stochastic_event_set, observation, plot=False, interp_kind='near
     sim_counts = []
     for catalog in stochastic_event_set:
         sim_counts.append(catalog.get_number_of_events())
-
     observation_count = observation.get_number_of_events()
 
-    # get function and interpolator based on empirical cdf
-    x, cdf = ecdf(sim_counts)
+    # delta 1 prob of observation at least n_obs events given the forecast
+    delta_1 = greater_equal_ecdf(sim_counts, observation_count)
 
-    # p-value represents P(X <= x)
-    p_value = func_inverse(x, cdf, observation_count, kind=interp_kind, fill_value=fill_value)
+    # delta 2 prob of observing at most n_obs events given the catalog
+    delta_2 = less_equal_ecdf(sim_counts, observation_count)
 
     # handle plotting
     ax = None
@@ -49,13 +48,14 @@ def number_test(stochastic_event_set, observation, plot=False, interp_kind='near
                            'obs_label': observation.name,
                            'sim_label': catalog.name}
         plot_args.update(fixed_plot_args)
-        ax = plot_ecdf(x, cdf, observation_count, catalog=observation, plot_args=plot_args, filename=filename)
+        ax = plot_ecdf(*ecdf(sim_counts), observation_count, catalog=observation, plot_args=plot_args, filename=filename)
 
         # annotate the plot with information from catalog
-        ax.annotate('$P(X \leq x) = {:.5f}$'.format(p_value), xycoords='axes fraction', xy=(0.6, 0.3), fontsize=14)
+        ax.annotate('$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
+                    .format(delta_1, delta_2), xycoords='axes fraction', xy=(0.5, 0.3), fontsize=14)
         ax.set_title("CSEP2 Number Test", fontsize=14)
 
         if show:
             pyplot.show()
 
-    return (p_value, ax)
+    return (delta_1, delta_2), ax
