@@ -18,8 +18,8 @@ class MockCatalog:
 class TestNTest:
     '''
     n-test returns two values, delta_1 and delta_2
-    delta 1 is prob of at most N_obs events given distribution from forecast
-    delta 2 is prob at least N_obs events given distribution from forecast
+    delta 1 is prob of at least N_obs events given distribution from forecast
+    delta 2 is prob at most N_obs events given distribution from forecast
     '''
     def test_greater_equal_side(self):
         n_obs = 0
