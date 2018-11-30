@@ -49,3 +49,33 @@ class TestNTest:
         # result = (delta_1, delta_2)... at least, at most
         assert numpy.isclose(result[0], 0.5)
         assert numpy.isclose(result[1], 1.0)
+
+    def test_obs_greater_than_all(self):
+        n_obs = 2
+        # have a vector with 50 values = 0 and 50 values = 1
+        ints=numpy.zeros(100)
+        ints[:50] = 1
+
+        sets = [MockCatalog(val) for val in ints]
+        obs = MockCatalog(n_obs, 'Mock Obs.')
+
+        result, ax = csep_number_test(sets, obs)
+
+        # result = (delta_1, delta_2)... at least, at most
+        assert numpy.isclose(result[0], 0.0)
+        assert numpy.isclose(result[1], 1.0)
+
+    def test_obs_less_than_all(self):
+        n_obs = -1
+        # have a vector with 50 values = 0 and 50 values = 1
+        ints=numpy.zeros(100)
+        ints[:50] = 1
+
+        sets = [MockCatalog(val) for val in ints]
+        obs = MockCatalog(n_obs, 'Mock Obs.')
+
+        result, ax = csep_number_test(sets, obs)
+
+        # result = (delta_1, delta_2)... at least, at most
+        assert numpy.isclose(result[0], 1.0)
+        assert numpy.isclose(result[1], 0.0)
