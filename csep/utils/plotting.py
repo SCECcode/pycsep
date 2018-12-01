@@ -204,14 +204,22 @@ def plot_histogram(simulated, observation, bins='fd', filename=None, show=False,
     # this could throw an error exposing bad implementation
     observation = numpy.array(observation)
 
+
     if not chained:
         try:
             n = len(observation)
-            ax.hist(observation, bins=bins, edgecolor='black', alpha=0.5, label=obs_label)
         except TypeError:
             ax.axvline(x=observation, color='black', linestyle='--', label=obs_label)
+        else:
+            # remove any nan values
+            observation = observation[~numpy.isnan(observation)]
+            ax.hist(observation, bins=bins, edgecolor='black', alpha=0.5, label=obs_label)
 
+
+    # remove any potential nans from arrays
     simulated = numpy.array(simulated)
+    simulated = simulated[~numpy.isnan(simulated)]
+    nsim_new = len(simulated)
     ax.hist(simulated, bins=bins, edgecolor='black', alpha=0.5, label=sim_label)
 
     # annotate the plot with information from catalog

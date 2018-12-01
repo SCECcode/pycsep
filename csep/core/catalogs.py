@@ -214,6 +214,8 @@ class BaseCatalog:
         dm = delta_mw
         p_value = p_value
         min_mw, max_mw = self.min_magnitude, self.max_magnitude
+        event_count = self.get_number_of_events()
+
 
         # pandas treats intervals as inclusive on top
         mw_inter = numpy.arange(min_mw-dm/2, max_mw+dm, dm)
@@ -224,7 +226,6 @@ class BaseCatalog:
         # get the counts in each magnitude bin
         self.mfd = pandas.DataFrame(df['counts'].groupby(pandas.cut(df['magnitude'], mw_inter)).sum())
 
-
         # cumulative counts contain the number of events greater than or equal to the magnitude
         self.mfd['counts'] = self.mfd.loc[::-1, 'counts'].cumsum()
 
@@ -232,13 +233,20 @@ class BaseCatalog:
         vals = numpy.squeeze(self.mfd.values)
         x = numpy.array(self.mfd.index.categories.mid)
 
-        # remove zeros from data used to fit (naive solution to log10(0) problem)
-        # id_nonzero = numpy.nonzero(vals_all)
-        # vals = vals_all[id_nonzero]
-        # x = x_all[id_nonzero]
+        # this is some what lenient
+        if len(x) < 3:
+            self.mfd['N'] = numpy.nan
+            self.mfd['N_est'] = numpy.nan
+            self.mfd['lower_ci'] = numpy.nan
+            self.mfd['upper_ci'] = numpy.nan
+            self.mfd['t_stat'] = numpy.nan
+            self.mfd['a'] = numpy.nan
+            self.mfd['b'] = numpy.nan
+            self.mfd['ci_b'] = numpy.nan
+            return self.mfd
 
         # this could evaluate as false if there are zeros
-        N = numpy.log10(numpy.squeeze(vals))
+        N = numpy.log10(vals)
         G = numpy.vstack([numpy.ones(len(x)), x]).T
 
         # perform least-squares to get b-value
@@ -251,9 +259,9 @@ class BaseCatalog:
         # setup vars for plotting ci
         err = N - numpy.squeeze(N_est)
 
-        t_stat = scipy.stats.t.ppf(1-p_value/2, len(x)-2)
-        mean_x = numpy.mean(x)
         n = len(x)
+        t_stat = scipy.stats.t.ppf(1-p_value/2, n-2)
+        mean_x = numpy.mean(x)
         se_line = numpy.sqrt(numpy.sum(numpy.power(err,2))/(n-2))
         se_xk = numpy.sqrt(1/n+numpy.power(x-mean_x,2)/numpy.sum(numpy.power(x-mean_x,2)))
         confs = se_line * se_xk
