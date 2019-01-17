@@ -3,7 +3,6 @@ import unittest
 from csep.utils.stats import *
 
 
-
 class TestEcdf:
     def test_ecdf_simple(self):
         """

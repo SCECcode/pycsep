@@ -57,7 +57,7 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
     # IDEA: make this a function, might want to re-use this binning
     df1 = df.groupby([df['catalog_id'], pandas.Grouper(freq='W')])['counts'].agg(['sum'])
     df1['cum_sum'] = df1.groupby(level=0).cumsum()
-    df2 = df1.groupby('datetime').describe(percentiles=(0.05,0.5,0.95))
+    df2 = df1.groupby('datetime').describe(percentiles=(0.05,0.25,0.5,0.75,0.95))
 
     # remove tz information so pandas can plot
     df2.index = df2.index.tz_localize(None)
@@ -82,6 +82,7 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
     ax.plot(df3.index, df3['obs_cum_sum'], color='black', label=obs_label)
     ax.plot(df3.index, df3['cum_sum_50%'], color='blue', label=sim_label)
     ax.fill_between(df3.index, df3['cum_sum_5%'], df3['cum_sum_95%'], color='blue', alpha=0.2, label='5%-95%')
+    ax.fill_between(df3.index, df3['cum_sum_25%'], df3['cum_sum_75%'], color='blue', alpha=0.5, label='25%-75%')
     ax.legend(loc=legend_loc)
     ax.xaxis.set_major_locator(locator)
     ax.xaxis.set_major_formatter(fmt)
@@ -101,7 +102,7 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
 
     return ax
 
-def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={}):
+def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={}, **kwargs):
     """
     Plots magnitude versus linear time for an earthquake catalog.
 
@@ -120,6 +121,9 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={})
     ylabel = plot_args.pop('ylabel', '$P(X \leq x)$')
     xycoords = plot_args.pop('xycoords', (1.00, 0.40))
     legend_loc = plot_args.pop('legend_loc', 'best')
+    title = plot_args.pop('title', '')
+    marker_size = plot_args.pop('marker_size', 10)
+    color = plot_args.pop('color', 'blue')
 
     print('Plotting magnitude versus time.')
     fig = pyplot.figure(figsize=(8,3))
@@ -136,10 +140,10 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={})
     magnitudes = catalog.get_magnitudes()
 
     # make plot
-    ax.scatter(days_elapsed, magnitudes, marker='.', s=10)
+    ax.scatter(days_elapsed, magnitudes, marker='.', s=marker_size, color=color)
 
     # do some labeling of the figure
-    ax.set_title(catalog.name, fontsize=16, color='black')
+    ax.set_title(title, fontsize=16, color='black')
     ax.set_xlabel('Days Elapsed')
     ax.set_ylabel('Magnitude')
     fig.tight_layout()
@@ -297,7 +301,7 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
     if show:
         pyplot.show()
 
-def plot_ecdf(x, ecdf, xv, catalog=None, filename=None, show=False, plot_args = {}):
+def plot_ecdf(x, ecdf, xv=None, catalog=None, filename=None, show=False, plot_args = {}):
     """
     Plots empirical cumulative distribution function.
     """
@@ -312,7 +316,8 @@ def plot_ecdf(x, ecdf, xv, catalog=None, filename=None, show=False, plot_args = 
     # make figure
     fig, ax = pyplot.subplots()
     ax.plot(x, ecdf, label=sim_label)
-    ax.axvline(x=xv, color='black', linestyle='--', label=obs_label)
+    if xv:
+        ax.axvline(x=xv, color='black', linestyle='--', label=obs_label)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.legend(loc=legend_loc)

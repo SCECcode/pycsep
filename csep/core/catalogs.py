@@ -9,6 +9,7 @@ import time
 # CSEP Imports
 from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch
 
+
 class BaseCatalog:
     """
     Base class for CSEP2 catalogs.
@@ -82,8 +83,7 @@ class BaseCatalog:
 
         Note:
             This requires that catalog classes implement the self._get_catalog_as_ndarray() function.
-            This function should structured numpy.ndarray.
-
+            This function should return structured numpy.ndarray.
             Catalog will remain None, if assigned that way in constructor.
         """
         self._catalog = val
