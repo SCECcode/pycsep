@@ -15,19 +15,24 @@ def ecdf(x):
     ys = numpy.arange(1, len(xs)+1)/float(len(xs))
     return xs, ys
 
-def greater_equal_ecdf(x, val):
+def greater_equal_ecdf(x, val, cdf=()):
     """
     Given val return P(x ≥ val).
 
     Args:
         x (numpy.array): set of values
         val (float): value
+        ecdf (tuple): ecdf of x, should be tuple (sorted(x), ecdf(x))
 
     Returns:
         (float): probability that x ≤ val
     """
     x = numpy.asarray(x)
-    ex, ey = ecdf(x)
+    if not cdf:
+        ex, ey = ecdf(x)
+    else:
+        ex, ey = cdf
+
     eyc = ey[::-1]
     # some short-circuit cases for discrete distributions
     if val > numpy.max(x):
@@ -36,7 +41,7 @@ def greater_equal_ecdf(x, val):
         return 1.0
     return eyc[numpy.searchsorted(ex, val)]
 
-def less_equal_ecdf(x, val):
+def less_equal_ecdf(x, val, cdf=()):
     """
     Given val return P(x ≤ val).
 
@@ -48,7 +53,10 @@ def less_equal_ecdf(x, val):
         (float): probability that x ≤ val
     """
     x = numpy.asarray(x)
-    ex, ey = ecdf(x)
+    if not cdf:
+        ex, ey = ecdf(x)
+    else:
+        ex, ey = cdf
 
     # some short-circuit cases for discrete distributions
     if val > numpy.max(x):

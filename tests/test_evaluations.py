@@ -59,7 +59,7 @@ class TestNTest:
         sets = [MockCatalog(val) for val in ints]
         obs = MockCatalog(n_obs, 'Mock Obs.')
 
-        result, ax = csep_number_test(sets, obs)
+        result, ax = number_test(sets, obs)
 
         # result = (delta_1, delta_2)... at least, at most
         assert numpy.isclose(result[0], 0.0)
@@ -74,7 +74,7 @@ class TestNTest:
         sets = [MockCatalog(val) for val in ints]
         obs = MockCatalog(n_obs, 'Mock Obs.')
 
-        result, ax = csep_number_test(sets, obs)
+        result, ax = number_test(sets, obs)
 
         # result = (delta_1, delta_2)... at least, at most
         assert numpy.isclose(result[0], 1.0)
