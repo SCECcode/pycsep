@@ -18,7 +18,10 @@ TODO: Add annotations for other two plots.
 TODO: Add ability to plot annotations from multiple catalogs. Esp, for plot_histogram()
 IDEA: Same concept mentioned in evaluations might apply here. The plots could be a common class that might provide
       more control to the end user.
+IDEA: Since plotting functions are usable by these classes only that don't implement iter routines, maybe make them a class
+      method. like catalog.plot_thing()
 """
+
 
 def plot_cumulative_events_versus_time(stochastic_event_set, observation, filename=None, show=False, plot_args={}):
     """
@@ -30,6 +33,7 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
         observation (:class:`~csep.core.catalogs.BaseCatalog`): single catalog, typically observation catalog
         filename (str): filename of file to save, if not None will save to that file
         show (bool): whether to making blocking call to display figure
+        plot_args (dict): args pass onto the plot function from matplotlib.
 
     Returns:
         pyplot.Figure: fig
@@ -102,6 +106,7 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
 
     return ax
 
+
 def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={}, **kwargs):
     """
     Plots magnitude versus linear time for an earthquake catalog.
@@ -161,7 +166,9 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
 
     return ax
 
-def plot_histogram(simulated, observation, bins='fd', filename=None, show=False, axes=None, catalog=None, plot_args = {}):
+
+def plot_histogram(simulated, observation, bins='fd', percentile=None,
+                   filename=None, show=False, axes=None, catalog=None, plot_args={}):
     """
     Plots histogram of single statistic for stochastic event sets and observations. The function will behave differently
     depending on the inputs.
@@ -204,10 +211,10 @@ def plot_histogram(simulated, observation, bins='fd', filename=None, show=False,
     xycoords = plot_args.pop('xycoords', (1.00, 0.40))
     title = plot_args.pop('title', None)
     legend_loc = plot_args.pop('legend_loc', 'best')
+    legend = plot_args.pop('legend', True)
 
     # this could throw an error exposing bad implementation
     observation = numpy.array(observation)
-
 
     if not chained:
         try:
@@ -219,30 +226,46 @@ def plot_histogram(simulated, observation, bins='fd', filename=None, show=False,
             observation = observation[~numpy.isnan(observation)]
             ax.hist(observation, bins=bins, edgecolor='black', alpha=0.5, label=obs_label)
 
-
     # remove any potential nans from arrays
     simulated = numpy.array(simulated)
     simulated = simulated[~numpy.isnan(simulated)]
-    nsim_new = len(simulated)
-    ax.hist(simulated, bins=bins, edgecolor='black', alpha=0.5, label=sim_label)
+    n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', alpha=0.5, label=sim_label)
+    # color bars for rejection area
+    if percentile is not None:
+        inc = (100 - percentile) / 2
+        inc_high = 100 - inc
+        inc_low = inc
+        p_high = numpy.percentile(simulated, inc_high)
+        idx_high = numpy.digitize(p_high, bin_edges)
+        p_low = numpy.percentile(simulated, inc_low)
+        idx_low = numpy.digitize(p_low, bin_edges)
 
     # annotate the plot with information from catalog
     if catalog is not None:
         ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
-    # ax.set_xlim(left=0)
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.legend(loc=legend_loc)
+    if legend:
+        ax.legend(loc=legend_loc)
 
-    if filename is not None:
-        pyplot.savefig(filename)
+    # hacky workaround for coloring legend, by calling after legend.
+    if percentile is not None:
+        for idx in range(idx_low):
+            patches[idx].set_fc('red')
+
+        for idx in range(idx_high, len(patches)):
+            patches[idx].set_fc('red')
+
+        if filename is not None:
+            pyplot.savefig(filename)
 
     if show:
         pyplot.show()
 
     return ax
+
 
 def plot_mfd(catalog, filename=None, show=False, **kwargs):
     """
@@ -300,6 +323,7 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
         pyplot.savefig(filename)
     if show:
         pyplot.show()
+
 
 def plot_ecdf(x, ecdf, xv=None, catalog=None, filename=None, show=False, plot_args = {}):
     """
