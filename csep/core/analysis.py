@@ -1,6 +1,7 @@
 import docker
 import os
 
+
 def run_u3etas_calculation(**kwargs):
     """
     run u3etas with new user interface. 
@@ -30,6 +31,7 @@ def run_u3etas_calculation(**kwargs):
     # stream output to stdout
     for line in container.logs(stream=True):
         print(line.decode('utf-8'))
+
 
 def run_u3etas_post_processing(**kwargs):
     """
