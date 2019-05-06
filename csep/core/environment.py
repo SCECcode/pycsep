@@ -76,7 +76,7 @@ def generate_local_airflow_environment_test(*args, **kwargs):
     return config
 
 
-class Simulation:
+class SimulationConfiguration:
 
     def __init__(self, run_id, experiment_name, experiment_dir, machine_name,
                  execution_runtime, runtime_dir, job_script, model_dir, output_dir, config_filename,
@@ -127,7 +127,7 @@ class Simulation:
             adict: dictionary of parameters
 
         Returns:
-            sim (Simulation): object of type Simulation
+            sim (SimulationConfiguration): object of type SimulationConfiguration
 
         """
         return cls(

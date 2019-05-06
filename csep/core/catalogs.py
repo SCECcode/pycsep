@@ -365,7 +365,7 @@ class CSEPCatalog(BaseCatalog):
     Catalog stored in CSEP2 format. This catalog be used when operating within the CSEP2 software ecosystem.
     """
     # define representation for each event in catalog
-    dtype = numpy.dtype[('longitude', numpy.float32),
+    dtype = numpy.dtype([('longitude', numpy.float32),
                         ('latitude', numpy.float32),
                         ('year', numpy.int32),
                         ('month', numpy.int32),
@@ -374,7 +374,7 @@ class CSEPCatalog(BaseCatalog):
                         ('depth', numpy.float32),
                         ('hour', numpy.int32),
                         ('minute', numpy.int32),
-                        ('second', numpy.int32)]
+                        ('second', numpy.int32)])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
