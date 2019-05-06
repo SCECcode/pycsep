@@ -1,4 +1,5 @@
-from csep.utils.math import *
+from csep.utils.cmath import *
+
 
 class TestNearestIndex:
     """
@@ -48,3 +49,5 @@ class TestNearestIndex:
         # should return 3
         test_result = nearest_index(test_data, test_val)
         assert test_result == 3
+
+

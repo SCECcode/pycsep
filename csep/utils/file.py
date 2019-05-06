@@ -23,7 +23,7 @@ def TemporaryDirectory(suffix='', prefix=None, dir=None):
             shutil.rmtree(dir_name)
         except OSError as e:
             # ENOENT - no such file or directory
-            if e.errno != errno.ENOENT:
+            if e.errno != e.errno.ENOENT:
                 raise e
 
 

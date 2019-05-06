@@ -1,13 +1,12 @@
-import os
 import numpy
 import scipy
 import pandas
 import datetime
 import operator
-import time
 
 # CSEP Imports
 from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch
+from csep.utils.stats import min_or_none, max_or_none
 
 
 class BaseCatalog:
@@ -18,16 +17,18 @@ class BaseCatalog:
         Come up with idea on how to manage the region of a catalog.
         Would be used for filtering or binning. shapely, geopandas for spatial and DataFrame for temporal.
     """
-    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None,
-                    min_magnitude=None, max_magnitude=None,
-                    min_latitude=None, max_latitude=None,
-                    min_longitude=None, max_longitude=None,
-                    start_time=None, end_time=None):
+    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=False,
+                 min_magnitude=None, max_magnitude=None,
+                 min_latitude=None, max_latitude=None,
+                 min_longitude=None, max_longitude=None,
+                 start_time=None, end_time=None):
 
         self.filename = filename
         self.catalog_id = catalog_id
         self.format = format
         self.name = name
+        self.region = region
+        self.compute_stats = compute_stats
 
         # cleans the catalog to set as ndarray, see setter.
         self.catalog = catalog
@@ -35,9 +36,8 @@ class BaseCatalog:
         # class attributes that are not settable from constructor (adding here for readability)
         self.mfd = None
 
-        # set these parameters from inputs or catalog
-        # if both, are None, these will be set to None
-        # this will prefer to set values from the catalog and not the inputs.
+        # set these values from initially
+        self.event_count = self.get_number_of_events()
         self.max_magnitude = max_magnitude
         self.min_magnitude = min_magnitude
         self.min_latitude = min_latitude
@@ -46,8 +46,9 @@ class BaseCatalog:
         self.max_longitude = max_longitude
         self.start_time = start_time
         self.end_time = end_time
+
         try:
-            if catalog is not None:
+            if catalog is not None and self.compute_stats:
                 self._update_catalog_stats()
         except (AttributeError, NotImplementedError):
             print('Warning: could not parse catalog statistics by reading catalog! get_magnitudes(), get_latitudes() and get_longitudes() ' +
@@ -88,12 +89,11 @@ class BaseCatalog:
         """
         self._catalog = val
         if self._catalog is not None:
+            self._catalog = self._get_catalog_as_ndarray()
+            # ensure that people are behaving, somewhat non-pythonic but needed
             if not isinstance(self._catalog, numpy.ndarray):
-                self._catalog = self._get_catalog_as_ndarray()
-                # ensure that people are behaving, somewhat non-pythonic but needed
-                if not isinstance(self._catalog, numpy.ndarray):
-                    raise ValueError("Error: Catalog must be numpy.ndarray! Ensure that self._get_catalog_as_ndarray()" +
-                                     " returns an ndarray")
+                raise ValueError("Error: Catalog must be numpy.ndarray! Ensure that self._get_catalog_as_ndarray()" +
+                                 " returns an ndarray")
 
     @classmethod
     def load_catalog(self):
@@ -111,7 +111,7 @@ class BaseCatalog:
         """
         raise NotImplementedError('load_catalogs must be overwritten in child classes')
 
-    def write_catalog(self, binary = True):
+    def write_catalog(self, binary=True):
         """
         Write catalog in bespoke format. For interoperability, CSEPCatalog classes should be used.
         But we don't want to force the user to use a CSEP catalog if they are working with their own format.
@@ -133,7 +133,6 @@ class BaseCatalog:
             (pandas.DataFrame): This function must return a pandas DataFrame
         """
         df = pandas.DataFrame(self.catalog)
-
         if 'catalog_id' not in df.keys():
             df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
         return df
@@ -145,7 +144,7 @@ class BaseCatalog:
         :returns: number of events in catalog, zero if catalog is None
         """
         if self.catalog is not None:
-            return len(self.catalog)
+            return self.catalog.shape[0]
         else:
             return 0
 
@@ -163,8 +162,7 @@ class BaseCatalog:
         Returns:
             numpy.array: numpy array of the cumulative number of events, empty array if catalog is empty.
         """
-        num_events = self.get_number_of_events()
-        return numpy.cumsum(numpy.ones(num_events))
+        return numpy.cumsum(numpy.ones(self.event_count))
 
     def get_magnitudes(self):
         """
@@ -180,24 +178,26 @@ class BaseCatalog:
 
         :returns: list of timestamps from events in catalog.
         """
-        raise NotImplementedError('get_datetimes not implemented!')
+        raise NotImplementedError('get_datetimes() not implemented!')
 
     def get_latitudes(self):
         """
         Returns:
             (numpy.array): latitude
         """
-        raise NotImplementedError('get_latitudes not implemented!')
+        raise NotImplementedError('get_latitudes() not implemented!')
 
     def get_longitudes(self):
         """
         Returns:
             (numpy.array): longitudes
         """
-        raise NotImplementedError('get_longitudes not implemented!')
+        raise NotImplementedError('get_longitudes() not implemented!')
 
     def get_mfd(self, delta_mw=0.3, p_value=0.05):
         """
+        TODO: Implement this using maximum-likelihood statistics
+
         Computes magnitude frequency distribution for catalog. MFD is computed by creating magnitude bins
         discretized by delta_mw.
 
@@ -215,7 +215,6 @@ class BaseCatalog:
         p_value = p_value
         min_mw, max_mw = self.min_magnitude, self.max_magnitude
         event_count = self.get_number_of_events()
-
 
         # pandas treats intervals as inclusive on top
         mw_inter = numpy.arange(min_mw-dm/2, max_mw+dm, dm)
@@ -251,6 +250,7 @@ class BaseCatalog:
 
         # perform least-squares to get b-value
         # log(N) = a-bM or N = 10^a / 10^bM
+        # Note: this should be maximum likelihood estimation
         a, b = numpy.linalg.lstsq(G, N, rcond=None)[0]
 
         # generate line to plot
@@ -262,15 +262,15 @@ class BaseCatalog:
         n = len(x)
         t_stat = scipy.stats.t.ppf(1-p_value/2, n-2)
         mean_x = numpy.mean(x)
-        se_line = numpy.sqrt(numpy.sum(numpy.power(err,2))/(n-2))
-        se_xk = numpy.sqrt(1/n+numpy.power(x-mean_x,2)/numpy.sum(numpy.power(x-mean_x,2)))
+        se_line = numpy.sqrt(numpy.sum(numpy.power(err, 2))/(n-2))
+        se_xk = numpy.sqrt(1/n+numpy.power(x-mean_x, 2)/numpy.sum(numpy.power(x-mean_x, 2)))
         confs = se_line * se_xk
         lower = N_est-t_stat*confs
         upper = N_est+t_stat*confs
 
         # confidence interval of b-value
-        rms = numpy.sqrt(numpy.mean(numpy.power(err,2)))
-        denom = numpy.sum(numpy.power(x-mean_x,2))
+        rms = numpy.sqrt(numpy.mean(numpy.power(err, 2)))
+        denom = numpy.sum(numpy.power(x-mean_x, 2))
         ci_b = t_stat*rms/denom
 
         # wish this were functional
@@ -335,14 +335,15 @@ class BaseCatalog:
 
     def _update_catalog_stats(self):
         # update min and max values
-        self.min_magnitude =  numpy.min(self.get_magnitudes())
-        self.max_magnitude =  numpy.max(self.get_magnitudes())
-        self.min_latitude =  numpy.min(self.get_latitudes())
-        self.max_latitude =  numpy.max(self.get_latitudes())
-        self.min_longitude =  numpy.min(self.get_longitudes())
-        self.max_longitude =  numpy.max(self.get_longitudes())
-        self.start_time = epoch_time_to_utc_datetime(numpy.min(self.get_epoch_times()))
-        self.end_time = epoch_time_to_utc_datetime(numpy.max(self.get_epoch_times()))
+        self.event_count = self.get_number_of_events()
+        self.min_magnitude = min_or_none(self.get_magnitudes())
+        self.max_magnitude = max_or_none(self.get_magnitudes())
+        self.min_latitude = min_or_none(self.get_latitudes())
+        self.max_latitude = max_or_none(self.get_latitudes())
+        self.min_longitude = min_or_none(self.get_longitudes())
+        self.max_longitude = max_or_none(self.get_longitudes())
+        self.start_time = epoch_time_to_utc_datetime(min_or_none(self.get_epoch_times()))
+        self.end_time = epoch_time_to_utc_datetime(max_or_none(self.get_epoch_times()))
 
     def _get_catalog_as_ndarray(self):
         """
@@ -353,7 +354,7 @@ class BaseCatalog:
         The structure of the ndarray does not matter, so long as the getters can be
         implemented correctly.
 
-        Additionally, advanced catalog operations will be carried out using GeoDataFrames and
+        Additionally, advanced catalog operations could be carried out using GeoDataFrames and
         DataFrames.
         """
         return self.catalog
@@ -364,16 +365,16 @@ class CSEPCatalog(BaseCatalog):
     Catalog stored in CSEP2 format. This catalog be used when operating within the CSEP2 software ecosystem.
     """
     # define representation for each event in catalog
-    csep_dtype = [('longitude', numpy.float32),
-                  ('latitude', numpy.float32),
-                  ('year', numpy.int32),
-                  ('month', numpy.int32),
-                  ('day', numpy.int32),
-                  ('magnitude', numpy.float32),
-                  ('depth', numpy.float32),
-                  ('hour', numpy.int32),
-                  ('minute', numpy.int32),
-                  ('second', numpy.int32)]
+    dtype = numpy.dtype[('longitude', numpy.float32),
+                        ('latitude', numpy.float32),
+                        ('year', numpy.int32),
+                        ('month', numpy.int32),
+                        ('day', numpy.int32),
+                        ('magnitude', numpy.float32),
+                        ('depth', numpy.float32),
+                        ('hour', numpy.int32),
+                        ('minute', numpy.int32),
+                        ('second', numpy.int32)]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -448,20 +449,18 @@ class UCERF3Catalog(BaseCatalog):
     """
     # binary format of UCERF3 catalog
     header_dtype = numpy.dtype([("file_version", ">i2"), ("catalog_size", ">i4")])
-    event_dtype = numpy.dtype([
-        ("rupture_id", ">i4"),
-        ("parent_id", ">i4"),
-        ("generation", ">i2"),
-        ("origin_time", ">i8"),
-        ("latitude", ">f8"),
-        ("longitude", ">f8"),
-        ("depth", ">f8"),
-        ("magnitude", ">f8"),
-        ("dist_to_parent", ">f8"),
-        ("erf_index", ">i4"),
-        ("fss_index", ">i4"),
-        ("grid_node_index", ">i4")
-    ])
+    dtype = numpy.dtype([("rupture_id", ">i4"),
+                         ("parent_id", ">i4"),
+                         ("generation", ">i2"),
+                         ("origin_time", ">i8"),
+                         ("latitude", ">f8"),
+                         ("longitude", ">f8"),
+                         ("depth", ">f8"),
+                         ("magnitude", ">f8"),
+                         ("dist_to_parent", ">f8"),
+                         ("erf_index", ">i4"),
+                         ("fss_index", ">i4"),
+                         ("grid_node_index", ">i4")])
 
     def __init__(self, **kwargs):
         # initialize parent constructor
@@ -480,7 +479,6 @@ class UCERF3Catalog(BaseCatalog):
         :type filename: string
         :returns: list of catalogs of type UCERF3Catalog
         """
-        catalogs = []
         with open(filename, 'rb') as catalog_file:
             # parse 4byte header from merged file
             number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
@@ -492,7 +490,7 @@ class UCERF3Catalog(BaseCatalog):
                 catalog_size = header['catalog_size'][0]
 
                 # read catalog
-                catalog = numpy.fromfile(catalog_file, dtype=cls.event_dtype, count=catalog_size)
+                catalog = numpy.fromfile(catalog_file, dtype=cls.dtype, count=catalog_size)
 
                 # add column that stores catalog_id in case we want to store in database
                 u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
@@ -565,7 +563,7 @@ class UCERF3Catalog(BaseCatalog):
         # TODO: possibly modify this routine to happen faster. the byteswapping is expensive.
         n = len(self.catalog)
         # allocate array for csep catalog
-        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.csep_dtype)
+        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
 
         for i, event in enumerate(self.catalog):
             dt = epoch_time_to_utc_datetime(event['origin_time'])
@@ -593,35 +591,42 @@ class ComcatCatalog(BaseCatalog):
     """
     Class handling retrieval of Comcat Catalogs.
     """
-    comcat_dtype = numpy.dtype([('id', 'S256'),
-                                ('origin_time', '<f4'),
-                                ('latitude', '<f4'),
-                                ('longitude','<f4'),
-                                ('depth', '<f4'),
-                                ('magnitude','<f4')])
+    dtype = numpy.dtype([('id', 'S256'),
+                         ('origin_time', '<f4'),
+                         ('latitude', '<f4'),
+                         ('longitude','<f4'),
+                         ('depth', '<f4'),
+                         ('magnitude','<f4')])
 
-    def __init__(self, catalog_id='Comcat', format='Comcat',
-                 start_epoch=None, duration_in_years=None,
-                 limit=20000, date_accessed=None, extra_comcat_params={}, **kwargs):
+    def __init__(self, catalog_id='Comcat', format='comcat',
+                       start_epoch=None, duration_in_years=None,
+                       date_accessed=None,
+                       extra_comcat_params={},
+                       **kwargs):
 
         # parent class constructor
-        super().__init__(**kwargs)
+        super().__init__(catalog_id=catalog_id, format=format, **kwargs)
 
         self.date_accessed = date_accessed
 
-        if self.start_time is None and start_epoch is None:
-                raise ValueError('Error: start_time or start_epoch must not be None.')
+        # if made with no catalog object, load catalog on object creation
+        # TODO: Eventually, this should allow you to obtain the catalog
+        #       from multiple sources. For example, the official Comcat server
+        #       or from local CSEP databases.
+        if self.catalog is None:
+            self.start_time = self.start_time or epoch_time_to_utc_datetime(start_epoch)
+            self.end_time = self.end_time or self.start_time + timedelta_from_years(duration_in_years)
 
-        if self.end_time is None and duration_in_years is None:
-            raise ValueError('Error: end_time or time_delta must not be None.')
+            if self.start_time > self.end_time:
+                raise ValueError('Error: start_time must be greater than end_time.')
 
-        self.start_time = self.start_time or epoch_time_to_utc_datetime(start_epoch)
-        self.end_time = self.end_time or self.start_time + timedelta_from_years(duration_in_years)
-        if self.start_time > self.end_time:
-            raise ValueError('Error: start_time must be greater than end_time.')
+            if self.start_time is None and start_epoch is None:
+                    raise ValueError('Error: start_time or start_epoch must not be None.')
 
-        # load catalog on object creation
-        self.load_catalog(extra_comcat_params)
+            if self.end_time is None and duration_in_years is None:
+                raise ValueError('Error: end_time or time_delta must not be None.')
+
+            self.load_catalog(extra_comcat_params)
 
     def load_catalog(self, extra_comcat_params):
         """
@@ -723,16 +728,20 @@ class ComcatCatalog(BaseCatalog):
         Converts libcomcat eventlist into structured array.
 
         Note:
-            Be careful calling this function. Failure state exists if self.catalog is not bound
+         Failure state exists if self.catalog is not bound
             to instance explicity.
         """
-        events = []
+        # short-circuit
+        if isinstance(self.catalog, numpy.ndarray):
+            return self.catalog
+
         catalog_length = len(self.catalog)
-        catalog = numpy.zeros(catalog_length, dtype=self.comcat_dtype)
+        catalog = numpy.zeros(catalog_length, dtype=self.dtype)
 
         # pre-cleaned catalog is bound to self._catalog by the setter before calling this function.
         # will cause failure state if this function is called manually without binding self._catalog
         for i, event in enumerate(self.catalog):
+            # debugging remove after
             catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
                             event.latitude, event.longitude, event.depth, event.magnitude)
 
@@ -740,7 +749,7 @@ class ComcatCatalog(BaseCatalog):
 
     def _get_csep_format(self):
         n = len(self.catalog)
-        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.csep_dtype)
+        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
 
         for i, event in enumerate(self.catalog):
             dt = epoch_time_to_utc_datetime(event['origin_time'])

@@ -11,6 +11,8 @@ def epoch_time_to_utc_datetime(epoch_time_milli):
     :param epoch_time: epoch_time in UTC timezone in milliseconds
     :type epoch_time: float
     """
+    if epoch_time_milli is None:
+        return epoch_time_milli
     epoch_time = epoch_time_milli / 1000
     dt = datetime.datetime.fromtimestamp(epoch_time, datetime.timezone.utc)
     return dt
@@ -23,6 +25,8 @@ def datetime_to_utc_epoch(dt):
     Args:
         dt (datetime.datetime): python datetime object, should be naive.
     """
+    if dt is None:
+        return dt
     now = datetime.datetime.utcnow()
     epoch = datetime.datetime(1970,1,1)
     epoch_time_seconds = (dt - epoch).total_seconds()

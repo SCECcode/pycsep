@@ -1,5 +1,6 @@
 import numpy
 
+
 def ecdf(x):
     """
     Compute the ecdf of vector x. This does not contain zero, should be equal to 1 in the last value
@@ -12,8 +13,9 @@ def ecdf(x):
         xs (numpy.array), ys (numpy.array)
     """
     xs = numpy.sort(x)
-    ys = numpy.arange(1, len(xs)+1)/float(len(xs))
+    ys = numpy.arange(1, len(x) + 1) / float(len(x))
     return xs, ys
+
 
 def greater_equal_ecdf(x, val, cdf=()):
     """
@@ -34,12 +36,13 @@ def greater_equal_ecdf(x, val, cdf=()):
         ex, ey = cdf
 
     eyc = ey[::-1]
-    # some short-circuit cases for discrete distributions
-    if val > numpy.max(x):
+    # some short-circuit cases for discrete distributions; x is sorted, but reversed.
+    if val > ex[-1]:
         return 0.0
-    if val < numpy.min(x):
+    if val < ex[0]:
         return 1.0
     return eyc[numpy.searchsorted(ex, val)]
+
 
 def less_equal_ecdf(x, val, cdf=()):
     """
@@ -59,8 +62,28 @@ def less_equal_ecdf(x, val, cdf=()):
         ex, ey = cdf
 
     # some short-circuit cases for discrete distributions
-    if val > numpy.max(x):
+    if val > ex[-1]:
         return 1.0
-    if val < numpy.min(x):
+    if val < ex[0]:
         return 0.0
-    return ey[numpy.searchsorted(ex,val,side='right')-1]
+    return ey[numpy.searchsorted(ex, val, side='right') - 1]
+
+
+def min_or_none(x):
+    """
+    Given an array x, returns the min value. If x = [], returns None.
+    """
+    if len(x) == 0:
+        return None
+    else:
+        return numpy.min(x)
+
+
+def max_or_none(x):
+    """
+    Given an array x, returns the max value. If x = [], returns None.
+    """
+    if len(x) == 0:
+        return None
+    else:
+        return numpy.max(x)
