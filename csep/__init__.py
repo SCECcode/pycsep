@@ -1,5 +1,6 @@
 from csep.core.catalogs import *
 
+
 def load_stochastic_event_set(type=None, format='native', **kwargs):
     """
     Factory function to load stochastic event sets.
@@ -14,14 +15,13 @@ def load_stochastic_event_set(type=None, format='native', **kwargs):
         (generator): :class:`~csep.core.catalogs.BaseCatalog`
 
     """
-    if type not in ('ucerf3', 'csep'):
-        raise ValueError("type must be one of the following: (ucerf3, csep)")
+    if type not in ('ucerf3'):
+        raise ValueError("type must be one of the following: (ucerf3)")
 
     # use mapping to dispatch to correct function
     # in general, stochastic event sets are loaded with classmethods and single catalogs use the
-    # constuctor
-    mapping = {'ucerf3': UCERF3Catalog.load_catalogs,
-               'csep': CSEPCatalog.load_catalogs}
+    # constructor
+    mapping = {'ucerf3': UCERF3Catalog.load_catalogs}
 
     # dispatch to proper loading function
     result = mapping[type](**kwargs)
@@ -34,6 +34,7 @@ def load_stochastic_event_set(type=None, format='native', **kwargs):
             yield(catalog._get_csep_format())
         else:
             raise ValueError('format must be either "native" or "csep!')
+
 
 def load_catalog(type=None, format='native', **kwargs):
     """
@@ -52,8 +53,8 @@ def load_catalog(type=None, format='native', **kwargs):
 
     # add entry point to load catalog here.
     mapping = {'ucerf3': UCERF3Catalog,
-               'comcat': ComcatCatalog,
-               'csep': CSEPCatalog}
+               'csep': CSEPCatalog,
+               'comcat': ComcatCatalog}
 
     # load catalog in native format
     catalog = mapping[type](**kwargs)
