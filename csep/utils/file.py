@@ -2,6 +2,7 @@ import os
 import shutil
 from tempfile import mkdtemp
 from contextlib import contextmanager
+from string import Template
 
 @contextmanager
 def TemporaryDirectory(suffix='', prefix=None, dir=None):
@@ -26,7 +27,6 @@ def TemporaryDirectory(suffix='', prefix=None, dir=None):
             if e.errno != e.errno.ENOENT:
                 raise e
 
-
 def mkdirs(path, mode):
     """
     Creates the directory specified by path, creating intermediate directories
@@ -45,3 +45,18 @@ def mkdirs(path, mode):
             raise
     finally:
         os.umask(o_umask)
+
+def copy_file(src, dest):
+    """
+    Copies a file on the system.
+
+    Args:
+        src (str): absolute path to file object
+        dest (str):
+
+    Returns:
+
+    """
+    new_path = shutil.copy(src, dest)
+    return new_path
+

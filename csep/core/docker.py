@@ -4,6 +4,7 @@ import shutil
 import docker
 import json
 
+
 def build_run_image(config, updated_inputs=None):
     """
     builds a docker image that will be used for experiments. this function needs

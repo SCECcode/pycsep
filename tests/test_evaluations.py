@@ -1,6 +1,7 @@
 import numpy
 from csep.core.evaluations import *
 
+
 class MockCatalog:
     """
     Mock catalog class for testing purposes.
@@ -8,12 +9,14 @@ class MockCatalog:
     def __init__(self, val, name='Mock Catalog'):
         self.val = val
         self.name = name
+        self.event_count = self.get_number_of_events()
 
     def __str__(self):
         return ''
 
     def get_number_of_events(self):
         return self.val
+
 
 class TestNTest:
     '''
@@ -30,7 +33,7 @@ class TestNTest:
         sets = [MockCatalog(val) for val in ints]
         obs = MockCatalog(n_obs, 'Mock Obs.')
 
-        result, ax = number_test(sets, obs)
+        result = number_test(sets, obs)
 
         assert numpy.isclose(result[0], 1.0)
         assert numpy.isclose(result[1], 0.5)
@@ -38,13 +41,13 @@ class TestNTest:
     def test_less_equal_side(self):
         n_obs = 1
         # have a vector with 50 values = 0 and 50 values = 1
-        ints=numpy.zeros(100)
+        ints = numpy.zeros(100)
         ints[:50] = 1
 
         sets = [MockCatalog(val) for val in ints]
         obs = MockCatalog(n_obs, 'Mock Obs.')
 
-        result, ax = number_test(sets, obs)
+        result = number_test(sets, obs)
 
         # result = (delta_1, delta_2)... at least, at most
         assert numpy.isclose(result[0], 0.5)
@@ -53,13 +56,13 @@ class TestNTest:
     def test_obs_greater_than_all(self):
         n_obs = 2
         # have a vector with 50 values = 0 and 50 values = 1
-        ints=numpy.zeros(100)
+        ints = numpy.zeros(100)
         ints[:50] = 1
 
         sets = [MockCatalog(val) for val in ints]
         obs = MockCatalog(n_obs, 'Mock Obs.')
 
-        result, ax = number_test(sets, obs)
+        result = number_test(sets, obs)
 
         # result = (delta_1, delta_2)... at least, at most
         assert numpy.isclose(result[0], 0.0)
@@ -68,13 +71,13 @@ class TestNTest:
     def test_obs_less_than_all(self):
         n_obs = -1
         # have a vector with 50 values = 0 and 50 values = 1
-        ints=numpy.zeros(100)
+        ints = numpy.zeros(100)
         ints[:50] = 1
 
         sets = [MockCatalog(val) for val in ints]
         obs = MockCatalog(n_obs, 'Mock Obs.')
 
-        result, ax = number_test(sets, obs)
+        result = number_test(sets, obs)
 
         # result = (delta_1, delta_2)... at least, at most
         assert numpy.isclose(result[0], 1.0)

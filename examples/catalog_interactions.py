@@ -48,7 +48,7 @@ t0 = time.time()
 comcat = ComcatCatalog(start_epoch=epoch_time, duration_in_years=1.0, name='Comcat',
                             min_magnitude=2.55,
                             min_latitude=31.50, max_latitude=43.00,
-                            min_longitude=-125.40, max_longitude=-113.10,)
+                            min_longitude=-125.40, max_longitude=-113.10)
 
 comcat_filt = comcat.filter('magnitude > 3.95')
 t1 = time.time()
@@ -74,8 +74,6 @@ print("Found {} events in the UCERF3-NoFaults catalog with lowest number of even
 print("Found {} events in the UCERF3 catalog with max number of events.".format(numpy.max(nofaults_numbers)))
 print("In UCERF3-Nofaults the median events were {} and the mean events were {}.\n"
       .format(numpy.median(nofaults_numbers),numpy.mean(nofaults_numbers)))
-
-# Plotting
 
 # Showing Raw plotting with matplotlib
 ucerf3_numbers = numpy.array(ucerf3_numbers)

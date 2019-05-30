@@ -47,6 +47,7 @@ class BaseCatalog:
         self.start_time = start_time
         self.end_time = end_time
 
+        # use user defined stats if entered into catalog
         try:
             if catalog is not None and self.compute_stats:
                 self._update_catalog_stats()
@@ -94,15 +95,6 @@ class BaseCatalog:
             if not isinstance(self._catalog, numpy.ndarray):
                 raise ValueError("Error: Catalog must be numpy.ndarray! Ensure that self._get_catalog_as_ndarray()" +
                                  " returns an ndarray")
-
-    @classmethod
-    def load_catalog(self):
-        # TODO: Make classmethod and remove from constructor. Classes should be loaded through factory function.
-        """
-        Must be implemented for each model that gets used within CSEP.
-        Base class assumes that catalogs are stored in default format which is defined.
-        """
-        raise NotImplementedError('load_catalog not implemented.')
 
     @classmethod
     def load_catalogs(cls, filename=None, **kwargs):
@@ -168,6 +160,7 @@ class BaseCatalog:
         """
         Extend getters to implement conversion from specific catalog type to CSEP catalog.
 
+# use user defined stats if entered into catalog
         :returns: list of magnitudes from catalog
         """
         raise NotImplementedError('get_magnitudes must be implemented by subclasses of BaseCatalog')
@@ -598,11 +591,8 @@ class ComcatCatalog(BaseCatalog):
                          ('depth', '<f4'),
                          ('magnitude','<f4')])
 
-    def __init__(self, catalog_id='Comcat', format='comcat',
-                       start_epoch=None, duration_in_years=None,
-                       date_accessed=None,
-                       extra_comcat_params={},
-                       **kwargs):
+    def __init__(self, catalog_id='Comcat', format='comcat', start_epoch=None, duration_in_years=None,
+                 date_accessed=None, extra_comcat_params={}, **kwargs):
 
         # parent class constructor
         super().__init__(catalog_id=catalog_id, format=format, **kwargs)
