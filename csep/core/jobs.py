@@ -110,6 +110,7 @@ class BaseTask:
         """
 
     def to_dict(self):
+        """ Returns class state as JSON serializable dict. """
         excluded = ['inputs','outputs']
         out = {}
         for k, v in self.__dict__.items():
@@ -123,14 +124,14 @@ class BaseTask:
                     out[k[1:]] = new_v
                 else:
                     out[k] = new_v
-
         # custom serializing for inputs and outputs
         out['inputs'] = []
         for inp in self._inputs:
             out['inputs'].append(os.path.expandvars(os.path.expanduser(inp)))
         out['outputs'] = []
         for outf in self._outputs:
-            out['outputs'].append(os.path.join(self.work_dir,str(outf)))
+            if not os.path.isabs(outf):
+                out['outputs'].append(os.path.join(self.work_dir,str(outf)))
         return out
 
     @classmethod
@@ -323,7 +324,6 @@ class UCERF3Forecast(BaseTask):
             out['mpj_home'] = self._system.mpj_home
         return out
 
-# TODO: Implement evaluation task. Inputs will require catalog and previous forecast results.
 class Evaluation(BaseTask):
     pass
 
