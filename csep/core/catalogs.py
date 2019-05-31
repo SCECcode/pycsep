@@ -6,6 +6,7 @@ import operator
 
 # CSEP Imports
 from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch
+from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
 
 
@@ -640,7 +641,7 @@ class ComcatCatalog(BaseCatalog):
         Args:
             extra_comcat_params (dict): pass additional parameters to libcomcat
         """
-        from libcomcat.search import search
+
 
         # get eventlist from Comcat
         eventlist = search(minmagnitude=self.min_magnitude,
