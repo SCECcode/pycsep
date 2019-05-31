@@ -75,6 +75,31 @@ class BaseCatalog:
         self.min_magnitude,self.max_magnitude)
         return s
 
+    def to_dict(self):
+        """
+        Serializes class to zmap format
+
+        Returns:
+            catalog as dict
+
+        """
+        excluded = ['mfd', 'catalog']
+        out = {}
+        for k, v in self.__dict__.items():
+            if not callable(v) and v not in excluded:
+                if hasattr(v, 'to_dict'):
+                    new_v = v.to_dict()
+                else:
+                    new_v = str(v)
+
+                if k.startswith('_'):
+                    out[k[1:]] = new_v
+                else:
+                    out[k] = new_v
+        # self.catalog is numpy array
+        out['catalog'] = self.catalog.to_list()
+        return out
+
     @property
     def catalog(self):
         return self._catalog
@@ -654,7 +679,9 @@ class ComcatCatalog(BaseCatalog):
 
         # update state because we just loaded a new catalog
         self.date_accessed = datetime.datetime.utcnow()
-        self._update_catalog_stats()
+
+        if self.compute_stats:
+            self._update_catalog_stats()
 
         return self
 
@@ -762,3 +789,5 @@ class ComcatCatalog(BaseCatalog):
                                second)
 
         return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
+
+
