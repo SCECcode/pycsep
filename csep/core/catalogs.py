@@ -83,6 +83,7 @@ class BaseCatalog:
             catalog as dict
 
         """
+        # TODO: Add from_dict method as well.
         excluded = ['mfd', 'catalog']
         out = {}
         for k, v in self.__dict__.items():
@@ -97,7 +98,7 @@ class BaseCatalog:
                 else:
                     out[k] = new_v
         # self.catalog is numpy array
-        out['catalog'] = self.catalog.to_list()
+        out['catalog'] = self.catalog.tolist()
         return out
 
     @property
