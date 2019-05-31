@@ -77,29 +77,35 @@ class BaseCatalog:
 
     def to_dict(self):
         """
-        Serializes class to zmap format
+        Serializes class to dictionary.
 
         Returns:
             catalog as dict
 
         """
-        # TODO: Add from_dict method as well.
-        excluded = ['mfd', '_catalog', 'catalog']
+        excluded = ['mfd', '_catalog']
         out = {}
         for k, v in self.__dict__.items():
-
-            if not callable(v) and v not in excluded:
+            if not callable(v) and k not in excluded:
                 if hasattr(v, 'to_dict'):
                     new_v = v.to_dict()
                 else:
                     new_v = str(v)
-
                 if k.startswith('_'):
                     out[k[1:]] = new_v
                 else:
                     out[k] = new_v
-        # self.catalog is numpy array
-        out['catalog'] = self.catalog.tolist()
+        out['catalog'] = []
+        for line in self.catalog.tolist():
+            new_line=[]
+            for item in line:
+                try:
+                    item = item.decode('utf-8')
+                except:
+                    pass
+                finally:
+                    new_line.append(item)        
+            out['catalog'].append(new_line)
         return out
 
     @property
@@ -628,9 +634,6 @@ class ComcatCatalog(BaseCatalog):
         self.date_accessed = date_accessed
 
         # if made with no catalog object, load catalog on object creation
-        # TODO: Eventually, this should allow you to obtain the catalog
-        #       from multiple sources. For example, the official Comcat server
-        #       or from local CSEP databases.
         if self.catalog is None:
             self.start_time = self.start_time or epoch_time_to_utc_datetime(start_epoch)
             self.end_time = self.end_time or self.start_time + timedelta_from_years(duration_in_years)
@@ -648,9 +651,6 @@ class ComcatCatalog(BaseCatalog):
 
     def load_catalog(self, extra_comcat_params):
         """
-        Uses the libcomcat api (https://github.com/usgs/libcomcat) to parse the ComCat database for event information for
-        California.
-
         The default parameters are given from the California testing region defined by the CSEP1 template files. starttime
         and endtime are exepcted to be datetime objects with the UTC timezone.
         Enough information needs to be provided in order to calculate a start date and end date.
@@ -767,7 +767,7 @@ class ComcatCatalog(BaseCatalog):
 
         return catalog
 
-    def _get_csep_format(self):
+    def get_csep_format(self):
         n = len(self.catalog)
         csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
 
