@@ -84,9 +84,10 @@ class BaseCatalog:
 
         """
         # TODO: Add from_dict method as well.
-        excluded = ['mfd', 'catalog']
+        excluded = ['mfd', '_catalog', 'catalog']
         out = {}
         for k, v in self.__dict__.items():
+
             if not callable(v) and v not in excluded:
                 if hasattr(v, 'to_dict'):
                     new_v = v.to_dict()
