@@ -86,7 +86,7 @@ class BaseTask:
         """
         self._prepared = True
 
-    def run(self):
+    def run(self, print_stdout=True):
         """
         This function executes the job on the system specified by the scheduler.
 
@@ -96,7 +96,9 @@ class BaseTask:
         Returns:
             rc: Return code from running process.
         """
-        raise NotImplementedError
+        out = self._system.execute(cmnd=self.command, args=self.args)
+        if print_stdout:
+            print(out.stdout.decode("utf-8"))
 
     def archive(self):
         """
@@ -130,8 +132,8 @@ class BaseTask:
             out['inputs'].append(os.path.expandvars(os.path.expanduser(inp)))
         out['outputs'] = []
         for outf in self._outputs:
-            if not os.path.isabs(outf):
-                out['outputs'].append(os.path.join(self.work_dir,str(outf)))
+            if not os.path.isabs(outf.path):
+                out['outputs'].append(os.path.join(self.work_dir, str(outf.path)))
         return out
 
     @classmethod
@@ -210,6 +212,12 @@ class UCERF3Forecast(BaseTask):
         self._script_templ = script_templ
         self._force = force
 
+        # gets set if submitting an HPC Job
+        self.job_id = None
+
+        # Has
+        self._staged = False
+
         # these variables could be used for archiving purposes.
         # we could write the config or the run_script to a db or file
         # to rerun model as it existed.
@@ -220,7 +228,10 @@ class UCERF3Forecast(BaseTask):
         # runtime output directory
         self.output_dir = output_dir
 
-    def prepare(self):
+        # handle to config template
+        self._config_templ_file = None
+
+    def prepare(self, dry_run=False):
         """
         Create necessary environment for running the job.
 
@@ -228,7 +239,27 @@ class UCERF3Forecast(BaseTask):
 
         """
         print(f"Preparing UCERF3-ETAS forecast {self.name} in dir {self.work_dir}.")
-        # make sure it can be prepared
+        if self._staged:
+            print(f"UCERF3-ETAS forecast {self.name} in dir {self.work_dir} already staged. Skipping.")
+        else:
+            self._load_config_state()
+            self._staged = True
+
+        #
+        if not dry_run and not self._prepared:
+            print(f'Creating run-time environment for {self.name}. This action modifies state on the system.')
+            self._create_environment()
+            self._config.write(self.config_file)
+            self._run_script.write(self.run_script)
+            self._stage_inputs()
+            self._prepared = True
+            self.status = JobStatus.PREPARED
+
+
+    def _load_config_state(self):
+        """ Loads all information necessary to prepare the workflow. But does not alter state in
+        repository. """
+
         if self._config_templ is None:
             raise CSEPSchedulerException("Cannot create forecast without configuration.")
 
@@ -238,37 +269,37 @@ class UCERF3Forecast(BaseTask):
         if self._system is None:
             raise CSEPSchedulerException("Cannot create forecast without system information.")
 
-        # creates working directory
-        self._create_environment()
+        # if user didn't specific a configuration, will run with values in config_templ
+        if self._config_templ_file is None:
+            self.update_configuration()
 
-        # write configuration file to working directory
+        # template configuration parameters.
+        # this operation is read-only, and stores templated values in mem.
         new = self._config_templ_file.config
         self._config=self._config_templ_file.template(new)
-        self._config.write(os.path.join(self.work_dir, self.run_id + "-config.json"))
         self._inputs.append(self.config_file)
+        self._config.path = os.path.join(self.work_dir, self.run_id + "-config.json")
 
-        # generate run-script, system dependent
+        # same for the run-script
         runtime_config = self._system_runtime_config()
         self._update_run_script(runtime_config)
+        self._run_script.path = os.path.join(self.work_dir, self.run_id + ".run")
 
-        # write run-script to working directory
-        self._run_script.write(os.path.join(self.work_dir, self.run_id + ".run"))
-        self._inputs.append(self.run_script)
-
-        # update command, so job can actually run.
-        self.command = self.run_script
-
-        # stage input files
-        self._stage_inputs()
-        self._prepared = True
-        self.status = JobStatus.PREPARED
+        # command would be bash or sbatch, etc.
+        # args would be the script
+        self.args = self.run_script
 
     def run(self):
         if not self._prepared:
-            self.prepare()
+            self.prepare(archive=True)
         print(f"Executing {self.command} with arguments {self.args}")
-        rc = self._system.execute(' '.join([self.command, self.args]))
-        return rc
+        out = self._system.execute(args=self.args)
+        if out['returncode'] == 0:
+            self.status = JobStatus.SUBMITTED
+            self.job_id = out['jobid']
+        else:
+            self.status = JobStatus.FAILED
+        return out['returncode']
 
     @property
     def run_script(self):
@@ -305,11 +336,11 @@ class UCERF3Forecast(BaseTask):
 
     def _system_runtime_config(self):
         """
-    Returns dict of configuration parameters necessary to update run-script.
+        Returns dict of configuration parameters necessary to update run-script.
 
-    Returns:
-        new (dict): new params that are needed to run UCERF3 on particular system
-    """
+        Returns:
+            new (dict): new params that are needed to run UCERF3 on particular system
+        """
 
         if self._system is None:
             raise CSEPSchedulerException("Cannot generate configuration information for system"

@@ -54,7 +54,7 @@ class System:
     def __str__(self):
         return self.name
 
-    def execute(self, cmnd):
+    def execute(self, cmnd=None, args=None):
         """
         Executes a process on the system
 
@@ -65,15 +65,14 @@ class System:
         Returns:
             process (subprocess.CompletedProcess):
         """
-        process = subprocess.Popen(shlex.split(cmnd), stdout=subprocess.PIPE)
-        while True:
-            output = process.stdout.readline()
-            if not output and process.poll() is not None:
-                break
-            if output:
-                print(output.strip())
-        rc = process.poll()
-        return rc
+        command = [cmnd, *args.split(' ')]
+        out = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # capture return code
+        stderr = out.stderr.decode("utf-8")
+        rc = out.returncode
+        if rc != 0:
+            print(f"Error executing command {' '.join(command)}.\n{stderr}")
+        return out
 
 class SlurmSystem(System):
     def __init__(self, *args, **kwargs):
@@ -81,6 +80,62 @@ class SlurmSystem(System):
         self.mpj_home = kwargs.pop('mpj_home')
         self.partition = kwargs.pop('partition')
         super().__init__(*args, **kwargs)
+
+    def execute(self, cmnd='sbatch', args=None):
+        """
+        Execute a batch job on a Slurm system. This job adds some addition output than the base machine.
+        The job_id can be use by the monitor to determine the status of various jobs.
+
+        Example:
+            $$$ sbatch my_slurm_job.slurm
+
+            slurm.execute(args='my_slurm_job.slurm', cmnd='sbatch')
+
+        Args:
+            args (str): command args, ie the name of the script'
+            cmnd (str): program to run ie, 'sbatch'
+
+        Returns:
+            (dict) with additional slurm parameters
+        """
+
+        cmnd = 'sbatch'
+        out = subprocess.run([cmnd, args],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        # capture return code
+        stdout = out.stdout.decode("utf-8")
+        stderr = out.stderr.decode("utf-8")
+        if out.returncode == 0:
+            print(f'Successfully submitted job to slurm Scheduler with job_id: {stdout}')
+            status = self._parse_sbatch_output(stdout)
+            status['returncode'] = out.returncode
+        else:
+            status = {'returncode': out.returncode,
+                      'status': 'Failed',
+                      'job_id': None,
+                      'type': 'batch'}
+            print(f"Error with batch submission.\n{stderr}")
+        return status
+
+    @staticmethod
+    def _parse_sbatch_output(output):
+        """
+        Function parses the output of the srun command. This information is used to
+        populate additional metadata for the simulation.
+
+        Returns:
+            dict of successful sbatch outputs
+
+        """
+        split = output.split()
+        out = {'status': split[0],
+               'type': split[1],
+               'job_id': split[2]}
+        return out
+
+
+
 
 
 class File:
@@ -134,8 +189,9 @@ class TextFile(File):
         self._contents = self._handle.read()
         self.close()
 
-    def write(self, path):
-        self.path=path
+    def write(self, new_path=None):
+        if new_path:
+            self.path=new_path
         self.open(mode='w')
         self._handle.writelines(self._contents)
         self.close()
@@ -164,8 +220,9 @@ class JsonFile(TextFile):
         self._contents = json.load(self._handle)
         self.close()
 
-    def write(self, path):
-        self.path=path
+    def write(self, new_path=None):
+        if new_path:
+            self.path=new_path
         self.open(mode='w')
         json.dump(self._contents, self._handle,
                   indent=4, separators=(',', ': '))

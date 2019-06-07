@@ -17,19 +17,19 @@ from csep.core.repositories import repo_builder
 from csep.core.exceptions import CSEPSchedulerException
 
 class Workflow:
+    """
+    Top-level class for a computational workflow. This class is responsible for managing the state of the entire workflow.
+    """
 
-    def __init__(self, config):
-        self.name = config['name']
+    def __init__(self, name='Unnamed', base_dir=None, default_system=None, default_repository=None, owner=None):
+        self.name = name
         self._defaults = {
-            "system": None,
-            "repository": None
+            "system": default_system,
+            "repository": default_repository
         }
         self._jobs = []
-        self._base_dir = config['base_dir']
-
-    @property
-    def base_dir(self):
-        return self._base_dir
+        self.base_dir = base_dir
+        self.owner = owner
 
     def add_job(self, name, config):
         """
@@ -49,7 +49,7 @@ class Workflow:
         self._jobs.append(job)
         return job
 
-    def prepare(self):
+    def prepare(self, archive=False, dry_run=False):
         """
         Creates computing environments for each job in workflow.
 
@@ -60,7 +60,10 @@ class Workflow:
             OSError
         """
         for job in self._jobs:
-            job.prepare()
+            job.prepare(dry_run=dry_run)
+
+        if archive:
+            self.archive()
 
     def default_resource(self, name):
         """
@@ -87,7 +90,7 @@ class Workflow:
 
         self._defaults['resource'] = system
 
-    def default_repository(self, name, url=None):
+    def default_repository(self, name):
         """
         Default repository for all Files in the workflow.
 
@@ -103,12 +106,12 @@ class Workflow:
             print('Error. Repository not registered with the program.')
 
         try:
-            repository = repo_builder.create(name)
+            repository = repo_builder.create(name, **config)
+            self._repo = repository
         except ValueError:
-            print('Unable to build repository object.')
+            raise CSEPSchedulerException("Unable to build repository object.")
             sys.exit(-1)
-
-        self._defaults['repository'] = repository
+        self._defaults['repository'] = name
 
     def to_dict(self):
         exclude = ['_jobs']
@@ -123,25 +126,52 @@ class Workflow:
                     out[k[1:]] = new_v
                 else:
                     out[k] = new_v
-
-            # custom serializaing for jobs
+            # custom implementation for jobs
             out["jobs"] = {}
             for job in self._jobs:
                 out["jobs"][job.run_id]=job.to_dict()
         return out
 
     def archive(self):
-        # this rolls through the repository layer
-        pass
+        """
+        Will store the state of an experiment to the repository defined using the default_repository.
+
+
+        The repository layer is only used for storing the state of an object. For example, files generated during
+        a job will not be saved using the repository layer. These files are typically written out by 3rd party
+        programs.
+
+        Returns:
+            None
+
+        """
+        if self._repo is None:
+            print("Unable to archive simulation manifest. Repository must not be None.")
+            return
+
+        if not self._repo:
+            print("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
+            repo = repo_builder.create("filesystem", url=self.work_dir)
+
+        else:
+            repo = self._repo
+            print(f"Found repository. Using {repo.name} to store class state.")
+
+        # access storage through the repository layer
+        # for sqlalchemy, this would create the Base objects to insert into the database.
+        repo.save(self.to_dict())
+
+    def run(self):
+        for job in self._jobs:
+            job.run()
 
 
 class ForecastExperiment(Workflow):
     """
     CSEP Specfic implementation for earthquake forecasting research.
     """
-    def __init__(self, config, *args, **kwargs):
-        super().__init__(config, *args, **kwargs)
-        self.name = config['name']
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def add_forecast(self, config, force=False):
         """
@@ -160,11 +190,11 @@ class ForecastExperiment(Workflow):
             wd = cfg['work_dir']
         except KeyError:
             wd = None
-            if self._base_dir is None:
+            if self.base_dir is None:
                 raise CSEPSchedulerException("Either need work_dir or base_dir set to add forecast to experiment.")
         if not wd:
             run_id = uuid.uuid4().hex
-            work_dir = os.path.join(self._base_dir, run_id)
+            work_dir = os.path.join(self.base_dir, run_id)
             cfg.update({'run_id': run_id, 'work_dir': work_dir})
         cfg.update({'force': force})
         job = self.add_job(name, cfg)

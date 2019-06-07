@@ -11,7 +11,7 @@ machine_config = {
         "url": "hpc.usc.edu",
         "hostname": "hpc-login",
         "email": "wsavran@usc.edu",
-        "type": 'slurm',
+        "type": "slurm",
         "mpj_home": "/home/scec-00/kmilner/mpj-current",
         "partition": "scec",
         "max_cores": 20,
@@ -39,8 +39,8 @@ machine_config = {
 
 repository_config = {
     "filesystem": {
-        "not_sure": "just_in_case",
-        "login_info": "might_go_here"
+        "name": "FileSystem",
+        "url": "~/Desktop/test-manifest.json"
     }
 }
 

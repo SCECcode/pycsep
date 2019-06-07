@@ -12,6 +12,8 @@ SECONDS_PER_MONTH = SECONDS_PER_WEEK*4
 
 class JobStatus(Enum):
     FAILED = -1
-    PREPARED = 2
-    COMPLETE = 1
     UNPREPARED = 0
+    COMPLETE = 1
+    PREPARED = 2
+    SUBMITTED = 3
+    RUNNING = 4
