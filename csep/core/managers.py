@@ -30,6 +30,8 @@ class Workflow:
         self._jobs = []
         self.base_dir = base_dir
         self.owner = owner
+        self._repo = None
+        self._system = None
 
     def add_job(self, name, config):
         """
@@ -84,11 +86,12 @@ class Workflow:
 
         try:
             system = system_builder.create(config['name'], config)
+            self._system = system
         except ValueError:
             print('Unable to build system configuration object.')
             sys.exit(-1)
 
-        self._defaults['resource'] = system
+        self._defaults['system'] = name
 
     def default_repository(self, name):
         """
