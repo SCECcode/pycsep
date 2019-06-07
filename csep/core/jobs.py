@@ -205,30 +205,32 @@ class UCERF3Forecast(BaseTask):
 
         super().__init__(**kwargs)
 
-        self.name = name
-        self.model_dir =model_dir
-        self.nnodes = nnodes
-        self._config_templ = config_templ
-        self._script_templ = script_templ
+        self.model_dir = os.path.expanduser(os.path.expandvars(model_dir))
+        self._config_templ = os.path.expanduser(os.path.expandvars(config_templ))
+        self._script_templ = os.path.expanduser(os.path.expandvars(script_templ))
         self._force = force
 
         # gets set if submitting an HPC Job
         self.job_id = None
+        self.name = name
+        self.nnodes = nnodes
 
-        # Has
+        # has the user called prepare() before. distinguishes for dry-run
         self._staged = False
 
         # these variables could be used for archiving purposes.
         # we could write the config or the run_script to a db or file
         # to rerun model as it existed.
         self._config = None
+
+        # stores the text of the run-script.
         self._run_script = None
-        self.archive_dir = archive_dir
+        self.archive_dir = os.path.expanduser(os.path.expandvars(archive_dir))
 
         # runtime output directory
-        self.output_dir = output_dir
+        self.output_dir = os.path.expanduser(os.path.expandvars(output_dir))
 
-        # handle to config template
+        # handle to config template file
         self._config_templ_file = None
 
     def prepare(self, dry_run=False):
@@ -245,7 +247,7 @@ class UCERF3Forecast(BaseTask):
             self._load_config_state()
             self._staged = True
 
-        #
+        # state modifying action.
         if not dry_run and not self._prepared:
             print(f'Creating run-time environment for {self.name}. This action modifies state on the system.')
             self._create_environment()
@@ -357,7 +359,6 @@ class UCERF3Forecast(BaseTask):
 
 class Evaluation(BaseTask):
     pass
-
 
 job_builder = ObjectFactory()
 job_builder.register_builder('base', BaseTask.from_dict)
