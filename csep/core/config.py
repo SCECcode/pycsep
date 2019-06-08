@@ -37,12 +37,6 @@ machine_config = {
     }
 }
 
-repository_config = {
-    "filesystem": {
-        "name": "FileSystem",
-        "url": "~/Desktop/test-manifest.json"
-    }
-}
 
 forecast_config = {
     "ucerf3-etas":

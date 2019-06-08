@@ -10,7 +10,7 @@ import os
 import sys
 import uuid
 from copy import deepcopy
-from csep.core.config import machine_config, repository_config
+from csep.core.config import machine_config
 from csep.core.jobs import job_builder
 from csep.core.system import system_builder
 from csep.core.repositories import repo_builder
@@ -21,17 +21,19 @@ class Workflow:
     Top-level class for a computational workflow. This class is responsible for managing the state of the entire workflow.
     """
 
-    def __init__(self, name='Unnamed', base_dir=None, default_system=None, default_repository=None, owner=None):
+    def __init__(self, name='Unnamed', base_dir=None, default_system=None, default_repository=None, owner=None,
+                       description=None):
         self.name = name
         self._defaults = {
             "system": default_system,
             "repository": default_repository
         }
-        self._jobs = []
         self.base_dir = base_dir
         self.owner = owner
+        self.description=description
         self._repo = None
         self._system = None
+        self._jobs = []
 
     def add_job(self, name, config):
         """
@@ -93,7 +95,7 @@ class Workflow:
 
         self._defaults['system'] = name
 
-    def default_repository(self, name):
+    def add_repository(self, config):
         """
         Default repository for all Files in the workflow.
 
@@ -104,11 +106,7 @@ class Workflow:
 
         """
         try:
-            config = repository_config[name]
-        except KeyError:
-            print('Error. Repository not registered with the program.')
-
-        try:
+            name = config['name']
             repository = repo_builder.create(name, **config)
             self._repo = repository
         except ValueError:

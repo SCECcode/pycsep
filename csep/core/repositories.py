@@ -29,7 +29,6 @@ class FileSystem:
         except (FileNotFoundError, IOError):
             print(f'Error: Unable to load manifest.\nAttempted url {self.url}')
 
-
     def save(self, data):
         """
         Saves file to location in repository. Changes state on the system, should be careful

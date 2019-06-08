@@ -1,14 +1,12 @@
-import os
-import json
 from csep.core.managers import ForecastExperiment
 from csep.utils.constants import SECONDS_PER_WEEK
 
 experiment_config = {
     "name": "UCERF3-ETAS Aftershock Study",
     "description": "Example study using UCERF3-ETAS and UCERF3-NoFaults immediately following major earthquakes in California.",
-    "system": "hpc-usc",
+    "default_system": "hpc-usc",
     "base_dir": '/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/runs',
-    "responsible_scientist": ["bill", "max"]
+    "owner": ["bill", "max"]
 }
 
 ucerf3job_config = {
@@ -30,6 +28,11 @@ ucerf3job_config = {
     'max_run_time': '12:00:00'
 }
 
+repository_config = {
+    "name": "filesystem",
+    "url": "~/Desktop/test-manifest.json"
+}
+
 # start time in milisecons for Landers rupture
 epoch_time = 709732655000
 
@@ -38,7 +41,10 @@ origin_times = [epoch_time + i * SECONDS_PER_WEEK for i in range(4)]
 
 # start with experiment shell
 # serializable so we can load experiment back into memory (or on database)
-exp1 = ForecastExperiment(experiment_config)
+exp1 = ForecastExperiment(**experiment_config)
+
+# add repository to save experiment information
+exp1.add_repository(repository_config)
 
 # iterate through variable parameters in experiment
 for origin_time in origin_times:
@@ -66,7 +72,5 @@ for origin_time in origin_times:
     fore.add_output("results_complete.bin", "binary")
 
 # manage all computing environments needed to run the job
-exp1.prepare(archive=True)
+exp1.prepare(archive=True, dry_run=True)
 
-# submit all jobs to compute nodes
-exp1.run()
