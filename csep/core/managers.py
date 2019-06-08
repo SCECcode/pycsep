@@ -165,6 +165,9 @@ class Workflow:
         repo.save(self.to_dict())
 
     def run(self):
+        # for now jobs should be responsible for running themselves
+        # this represents a convenience wrapper. the manager should be uses for
+        # monitoring jobs.
         for job in self._jobs:
             job.run()
 

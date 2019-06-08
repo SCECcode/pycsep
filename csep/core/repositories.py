@@ -6,42 +6,35 @@ as file names.
 """
 import os
 import json
-from abc import ABC, abstractmethod
 from csep.core.factories import ObjectFactory
 
-
-class Repository(ABC):
-    @abstractmethod
-    def list(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def save(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def update(self):
-        raise NotImplementedError
-
-
-class FileSystem(Repository):
+class FileSystem:
     def __init__(self, url="", name=None):
         expand_url = os.path.expandvars(os.path.expanduser(url))
         self.url = expand_url
         self.name = name
 
-    def list(self):
+    def list_experiment(self):
         """
-        Will list all experiments stored in JSON files.
+        Will list all experiments stored in JSON files. Method returns an experiment class
+        with identical state to the JSON manifest file.
 
         Returns:
+            csep.core.managers.experiment
 
         """
-        raise NotImplementedError
+        try:
+            with open(self.url, 'r') as f:
+                manifest=json.load(f)
+        except (FileNotFoundError, IOError):
+            print(f'Error: Unable to load manifest.\nAttempted url {self.url}')
+
 
     def save(self, data):
         """
-        Saves file to location in repository.
+        Saves file to location in repository. Changes state on the system, should be careful
+        about how to approach having multiple monitor classes. Maybe use singleton if there
+        isn't a database server backend.
 
         Args:
             data (dict-like): data to store to file-system. must be JSON serializable

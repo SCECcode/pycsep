@@ -204,7 +204,6 @@ class UCERF3Forecast(BaseTask):
                        **kwargs):
 
         super().__init__(**kwargs)
-
         self.model_dir = os.path.expanduser(os.path.expandvars(model_dir))
         self._config_templ = os.path.expanduser(os.path.expandvars(config_templ))
         self._script_templ = os.path.expanduser(os.path.expandvars(script_templ))
@@ -256,40 +255,6 @@ class UCERF3Forecast(BaseTask):
             self._prepared = True
             self.status = JobStatus.PREPARED
 
-
-    def _load_config_state(self):
-        """ Loads all information necessary to prepare the workflow. But does not alter state in
-        repository. """
-
-        if self._config_templ is None:
-            raise CSEPSchedulerException("Cannot create forecast without configuration.")
-
-        if self._script_templ is None:
-            raise CSEPSchedulerException("Cannot create forecast without run-script.")
-
-        if self._system is None:
-            raise CSEPSchedulerException("Cannot create forecast without system information.")
-
-        # if user didn't specific a configuration, will run with values in config_templ
-        if self._config_templ_file is None:
-            self.update_configuration()
-
-        # template configuration parameters.
-        # this operation is read-only, and stores templated values in mem.
-        new = self._config_templ_file.config
-        self._config=self._config_templ_file.template(new)
-        self._inputs.append(self.config_file)
-        self._config.path = os.path.join(self.work_dir, self.run_id + "-config.json")
-
-        # same for the run-script
-        runtime_config = self._system_runtime_config()
-        self._update_run_script(runtime_config)
-        self._run_script.path = os.path.join(self.work_dir, self.run_id + ".run")
-
-        # command would be bash or sbatch, etc.
-        # args would be the script
-        self.args = self.run_script
-
     def run(self):
         if not self._prepared:
             self.prepare(archive=True)
@@ -334,6 +299,39 @@ class UCERF3Forecast(BaseTask):
                                          " of the template.")
         run_script = TextFile(self._script_templ)
         self._run_script = run_script.template(adict)
+
+    def _load_config_state(self):
+        """ Loads all information necessary to prepare the workflow. But does not alter state in
+        repository. """
+
+        if self._config_templ is None:
+            raise CSEPSchedulerException("Cannot create forecast without configuration.")
+
+        if self._script_templ is None:
+            raise CSEPSchedulerException("Cannot create forecast without run-script.")
+
+        if self._system is None:
+            raise CSEPSchedulerException("Cannot create forecast without system information.")
+
+        # if user didn't specific a configuration, will run with values in config_templ
+        if self._config_templ_file is None:
+            self.update_configuration()
+
+        # template configuration parameters.
+        # this operation is read-only, and stores templated values in mem.
+        new = self._config_templ_file.config
+        self._config=self._config_templ_file.template(new)
+        self._inputs.append(self.config_file)
+        self._config.path = os.path.join(self.work_dir, self.run_id + "-config.json")
+
+        # same for the run-script
+        runtime_config = self._system_runtime_config()
+        self._update_run_script(runtime_config)
+        self._run_script.path = os.path.join(self.work_dir, self.run_id + ".run")
+
+        # command would be bash or sbatch, etc.
+        # args would be the script
+        self.args = self.run_script
 
     def _system_runtime_config(self):
         """

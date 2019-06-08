@@ -66,18 +66,7 @@ for origin_time in origin_times:
     fore.add_output("results_complete.bin", "binary")
 
 # manage all computing environments needed to run the job
-exp1.prepare()
-mfile = os.path.join(exp1.base_dir, 'trial_u3etas_aftershock_manifest.json')
-with open(mfile, 'w') as f:
-    print(f'Writing archive file to {mfile}.')
-    json.dump(exp1.to_dict(), f, indent=4, separators=(',', ': '))
+exp1.prepare(archive=True)
 
 # submit all jobs to compute nodes
 exp1.run()
-
-# write new state.
-mfile = os.path.join(exp1.base_dir, 'trial_u3etas_aftershock_manifest.json')
-with open(mfile, 'w') as f:
-    print(f'Writing archive file to {mfile}.')
-    json.dump(exp1.to_dict(), f, indent=4, separators=(',', ': '))
-

@@ -30,8 +30,6 @@ class System:
                     out[k] = str(v)
         return out
 
-
-
     def check_environment(self, env):
         """
         Checks that environment variables of system are set and consistent with configuration
@@ -74,6 +72,7 @@ class System:
             print(f"Error executing command {' '.join(command)}.\n{stderr}")
         return out
 
+
 class SlurmSystem(System):
     def __init__(self, *args, **kwargs):
         # get args here first then pass to parent
@@ -98,7 +97,6 @@ class SlurmSystem(System):
         Returns:
             (dict) with additional slurm parameters
         """
-
         cmnd = 'sbatch'
         out = subprocess.run([cmnd, args],
                              stdout=subprocess.PIPE,
@@ -133,9 +131,6 @@ class SlurmSystem(System):
                'type': split[1],
                'job_id': split[2]}
         return out
-
-
-
 
 
 class File:
