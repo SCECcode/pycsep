@@ -262,7 +262,7 @@ class UCERF3Forecast(BaseTask):
         out = self._system.execute(args=self.args)
         if out['returncode'] == 0:
             self.status = JobStatus.SUBMITTED
-            self.job_id = out['jobid']
+            self.job_id = out['job_id']
         else:
             self.status = JobStatus.FAILED
         return out['returncode']
