@@ -200,7 +200,7 @@ class BaseTask:
 
 class UCERF3Forecast(BaseTask):
     def __init__(self, name=None, model_dir=None, config_templ=None,
-                       script_templ=None, output_dir=None, archive_dir=None, nnodes=None, force=False,
+                       script_templ=None, output_dir=None, nnodes=None, force=False,
                        **kwargs):
 
         super().__init__(**kwargs)
@@ -225,7 +225,6 @@ class UCERF3Forecast(BaseTask):
 
         # stores the text of the run-script.
         self._run_script = None
-        self.archive_dir = os.path.expanduser(os.path.expandvars(archive_dir))
 
         # runtime output directory
         self.output_dir = os.path.expanduser(os.path.expandvars(output_dir))
