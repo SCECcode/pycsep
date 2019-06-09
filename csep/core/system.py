@@ -99,7 +99,7 @@ class SlurmSystem(System):
         """
         cmnd = 'sbatch'
         if run_dir is not None:
-            dir_args = ['--chdir', run_dir]
+            dir_args = ['-D', run_dir]
         else:
             dir_args = []
 
