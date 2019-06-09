@@ -105,7 +105,7 @@ class SlurmSystem(System):
 
         # cmnd is a single string command
         # args should be an iterable
-        full_cmnd = [cmnd] + args + dir_args
+        full_cmnd = [cmnd] + dir_args + args
         print(f"Executing {' '.join(full_cmnd)}.")
         out = subprocess.run(full_cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # capture return code
