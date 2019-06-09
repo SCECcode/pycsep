@@ -285,6 +285,7 @@ class UCERF3Forecast(BaseTask):
 
         # just bind adict to template file object for now,
         # want to perform this lazily in case there is an error
+        adict['outputDir'] = self.work_dir
         self._config_templ_file.config = adict
 
     def _update_run_script(self, adict={}):
