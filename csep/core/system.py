@@ -80,7 +80,7 @@ class SlurmSystem(System):
         self.partition = kwargs.pop('partition')
         super().__init__(*args, **kwargs)
 
-    def execute(self, cmnd='sbatch', args=None):
+    def execute(self, cmnd='sbatch', args=(), run_dir=None):
         """
         Execute a batch job on a Slurm system. This job adds some addition output than the base machine.
         The job_id can be use by the monitor to determine the status of various jobs.
@@ -91,16 +91,23 @@ class SlurmSystem(System):
             slurm.execute(args='my_slurm_job.slurm', cmnd='sbatch')
 
         Args:
-            args (str): command args, ie the name of the script'
+            args (List(str): command args, ie the name of the script'
             cmnd (str): program to run ie, 'sbatch'
 
         Returns:
             (dict) with additional slurm parameters
         """
         cmnd = 'sbatch'
-        out = subprocess.run([cmnd, args],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        if run_dir is not None:
+            dir_args = ['--chdir', run_dir]
+        else:
+            dir_args = []
+
+        # cmnd is a single string command
+        # args should be an iterable
+        full_cmnd = [cmnd] + args + dir_args
+
+        out = subprocess.run(full_cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # capture return code
         stdout = out.stdout.decode("utf-8")
         stderr = out.stderr.decode("utf-8")

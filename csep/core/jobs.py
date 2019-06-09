@@ -258,8 +258,9 @@ class UCERF3Forecast(BaseTask):
     def run(self):
         if not self._prepared:
             self.prepare(archive=True)
+
         print(f"Executing {self.command} with arguments {self.args}")
-        out = self._system.execute(args=self.args)
+        out = self._system.execute(args=[self.args], run_dir=self.work_dir)
         if out['returncode'] == 0:
             self.status = JobStatus.SUBMITTED
             self.job_id = out['job_id']
