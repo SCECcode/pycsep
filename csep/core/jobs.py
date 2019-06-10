@@ -281,14 +281,14 @@ class UCERF3Forecast(BaseTask):
             self.prepare(archive=True)
         # does not pass command, that is handled by the system.
         out = self._system.execute(args=[self.args], run_dir=self.work_dir)
-        if out['returncode'] == 0:
+        if out.returncode == 0:
             self.status = JobStatus.SUBMITTED
             self.job_id = out['job_id']
         else:
             self.status = JobStatus.FAILED
         # update archive to reflect current state
         self.archive()
-        return out['returncode']
+        return out.returncode
 
     def update_configuration(self, adict={}):
         """ Updates UCERF3 configuration file with correct inputs. """
