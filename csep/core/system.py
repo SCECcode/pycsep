@@ -117,7 +117,7 @@ class SlurmSystem(System):
         if out.returncode == 0:
             print(f'Successfully submitted job to slurm Scheduler with job_id: {stdout}')
             status = self._parse_sbatch_output(stdout)
-            status = SlurmJobStatus(returncode=status['returncode'],
+            status = SlurmJobStatus(returncode=out.returncode,
                                     status=status['status'],
                                     job_id=status['job_id'],
                                     type=status['type'],
