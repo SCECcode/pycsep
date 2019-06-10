@@ -16,6 +16,7 @@ class TestGenerateRuntimeEnvironment(unittest.TestCase):
         self.execution_runtime = '2018-01-01'
         self.experiment_name = 'test-experiment'
         os.environ['CSEP_DEV'] = 'test'
+        os.environ['CSEP_MODELS'] = 'test'
 
     def test_configuration_template(self):
         """ Verifies configuration template generated properly. """
