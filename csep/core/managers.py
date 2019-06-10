@@ -21,8 +21,8 @@ class Workflow:
     Top-level class for a computational workflow. This class is responsible for managing the state of the entire workflow.
     """
 
-    def __init__(self, name='Unnamed', base_dir=None, default_system=None, default_repository=None, owner=None,
-                       description=None):
+    def __init__(self, name='Unnamed', base_dir=None, default_system=None,
+                 default_repository=None, owner=None, description=None):
         self.name = name
         self._defaults = {
             "system": default_system,

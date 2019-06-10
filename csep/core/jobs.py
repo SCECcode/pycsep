@@ -9,6 +9,7 @@ from csep.core.config import machine_config
 from csep.core.system import system_builder, file_builder, JsonFile, TextFile
 from csep.core.exceptions import CSEPSchedulerException
 from csep.core.factories import ObjectFactory
+from csep.core.repositories import repo_builder, Repository
 
 class BaseTask:
 
@@ -17,8 +18,9 @@ class BaseTask:
 
     """
 
-    def __init__(self, run_id=None, system='default', max_run_time=None, command=None, args=(), status=None,
-                       inputs=(), outputs=(), work_dir=None):
+    def __init__(self, run_id=None, system='default', max_run_time=None, repository=None,
+                       command=None, args=(), status=None, inputs=(), outputs=(),
+                       work_dir=None):
 
         # primary index for simulation components
         self.run_id = run_id or uuid.uuid4().hex
@@ -35,6 +37,12 @@ class BaseTask:
         self._prepared = False
         # flag to warn user if trying to run in existing directory.
         self._force = False
+        # defaults to file system repository in work dir
+        self._repo = repository or 'filesystem'
+        # if its not a repo object assume to be string and trying to create object
+        if not isinstance(self._repo, Repository):
+            self._repo = repo_builder.create(self._repo, {'name': self.run_id,
+                                            'url': self.work_dir})
 
     def __str__(self):
         return self.to_dict()
@@ -97,19 +105,35 @@ class BaseTask:
             rc: Return code from running process.
         """
         out = self._system.execute(cmnd=self.command, args=self.args)
-        if print_stdout:
+        if print_stdout and out.returncode == 0:
             print(out.stdout.decode("utf-8"))
 
     def archive(self):
         """
-        Archive results to storage directory (or db) that allows for easy rerunning of
-        a model as it existed in the past.
+        Will store the state of an experiment to the repository defined using the default_repository.
 
-        Utilizes the repository layer.
+
+        The repository layer is only used for storing the state of an object. For example, files generated during
+        a job will not be saved using the repository layer. These files are typically written out by 3rd party
+        programs.
 
         Returns:
-
+            None
         """
+        if self._repo is None:
+            print("Unable to archive simulation manifest. Repository must not be None.")
+            return
+
+        if not self._repo:
+            print("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
+            repo = repo_builder.create("filesystem", url=self.work_dir)
+
+        else:
+            repo = self._repo
+            print(f"Found repository. Using {repo.name} to store class state.")
+
+        # access storage through the repository layer
+        repo.save(self.to_dict())
 
     def to_dict(self):
         """ Returns class state as JSON serializable dict. """
@@ -258,14 +282,25 @@ class UCERF3Forecast(BaseTask):
     def run(self):
         if not self._prepared:
             self.prepare(archive=True)
-
+        # does not pass command, that is handled by the system.
         out = self._system.execute(args=[self.args], run_dir=self.work_dir)
         if out['returncode'] == 0:
             self.status = JobStatus.SUBMITTED
             self.job_id = out['job_id']
         else:
             self.status = JobStatus.FAILED
+        # update archive to reflect current state
+        self.archive()
         return out['returncode']
+
+    def update_configuration(self, adict={}):
+        """ Updates UCERF3 configuration file with correct inputs. """
+        self._config_templ_file = JsonFile(self._config_templ)
+
+        # just bind adict to template file object for now,
+        # want to perform this lazily in case there is an error
+        adict['outputDir'] = self.work_dir
+        self._config_templ_file.config = adict
 
     @property
     def run_script(self):
@@ -278,15 +313,6 @@ class UCERF3Forecast(BaseTask):
         if self._config is None:
             return None
         return self._config.path
-
-    def update_configuration(self, adict={}):
-        """ Updates UCERF3 configuration file with correct inputs. """
-        self._config_templ_file = JsonFile(self._config_templ)
-
-        # just bind adict to template file object for now,
-        # want to perform this lazily in case there is an error
-        adict['outputDir'] = self.work_dir
-        self._config_templ_file.config = adict
 
     def _update_run_script(self, adict={}):
         """

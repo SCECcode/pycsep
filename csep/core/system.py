@@ -1,9 +1,12 @@
 import os
 import subprocess
-import shlex
 import string
 import json
+from collections import namedtuple
+
 from csep.core.factories import ObjectFactory
+
+SlurmJobStatus = namedtuple('JobStatus', ['returncode', 'status', 'job_id', 'type', 'stdout', 'stderr'])
 
 class System:
     def __init__(self, name=None, url=None, hostname=None,
@@ -73,6 +76,7 @@ class System:
         return out
 
 
+
 class SlurmSystem(System):
     def __init__(self, *args, **kwargs):
         # get args here first then pass to parent
@@ -98,13 +102,12 @@ class SlurmSystem(System):
             (dict) with additional slurm parameters
         """
         cmnd = 'sbatch'
+        # do not need to be in the directory to launch the script
         if run_dir is not None:
             dir_args = ['-D', run_dir]
         else:
             dir_args = []
-
-        # cmnd is a single string command
-        # args should be an iterable
+        # cmnd is a single string command (e.g., 'sbatch'), args should be an iterable
         full_cmnd = [cmnd] + dir_args + args
         print(f"Executing {' '.join(full_cmnd)}.")
         out = subprocess.run(full_cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -114,12 +117,19 @@ class SlurmSystem(System):
         if out.returncode == 0:
             print(f'Successfully submitted job to slurm Scheduler with job_id: {stdout}')
             status = self._parse_sbatch_output(stdout)
-            status['returncode'] = out.returncode
+            status = SlurmJobStatus(returncode=status['returncode'],
+                                    status=status['status'],
+                                    job_id=status['job_id'],
+                                    type=status['type'],
+                                    stdout=stdout,
+                                    stderr=stderr)
         else:
-            status = {'returncode': out.returncode,
-                      'status': 'Failed',
-                      'job_id': None,
-                      'type': 'batch'}
+            status = SlurmJobStatus(returncode=out.returncode,
+                                    status='Failed',
+                                    job_id=None,
+                                    type='batch',
+                                    stdout=None,
+                                    stderr=None)
             print(f"Error with batch submission.\n{stderr}")
         return status
 

@@ -37,7 +37,6 @@ machine_config = {
     }
 }
 
-
 forecast_config = {
     "ucerf3-etas":
         {

@@ -6,9 +6,13 @@ as file names.
 """
 import os
 import json
+
 from csep.core.factories import ObjectFactory
 
-class FileSystem:
+class Repository:
+    pass
+
+class FileSystem(Repository):
     def __init__(self, url="", name=None):
         expand_url = os.path.expandvars(os.path.expanduser(url))
         self.url = expand_url
