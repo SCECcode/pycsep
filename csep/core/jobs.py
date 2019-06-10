@@ -38,7 +38,7 @@ class BaseTask:
         # flag to warn user if trying to run in existing directory.
         self._force = False
         # defaults to file system repository in work dir
-        self._repo = repository or 'filesystem'
+        self._repo = repository
 
 
     def __str__(self):
