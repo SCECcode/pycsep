@@ -29,11 +29,20 @@ def datetime_to_utc_epoch(dt):
     """
     if dt is None:
         return dt
-    now = datetime.datetime.utcnow()
-    epoch = datetime.datetime(1970,1,1)
+
+    if dt.tzinfo is None:
+        dt=dt.replace(tzinfo=datetime.timezone.utc)
+
+    if str(dt.tzinfo) != 'UTC':
+        raise ValueError(f"Timezone info must be UTC. tzinfo={dt.tzinfo}")
+
+    epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, 0).replace(tzinfo=datetime.timezone.utc)
     epoch_time_seconds = (dt - epoch).total_seconds()
     return 1000.0 * epoch_time_seconds
 
+def utc_epoch_time_from_strptime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
+    dt=strptime_to_utc_datetime(time_string, format)
+    return datetime_to_utc_epoch(dt)
 
 def timedelta_from_years(time_in_years):
     """
@@ -49,17 +58,7 @@ def timedelta_from_years(time_in_years):
     time_delta = datetime.timedelta(seconds=seconds)
     return time_delta
 
-def zmap_time_to_datetime(year=None, month=None, day=None,
-                          hour=None, minute=None, second=None):
-    """
-    Converts time in ZMAP format into python datetime object
-
-    Returns:
-        datetime object
-    """
-    pass
-
-def strptime_to_utc_datetime(time_string, format):
+def strptime_to_utc_datetime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     """
     Converts time_string with format into time-zone aware datetime object in the UTC timezone.
 

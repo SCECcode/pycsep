@@ -26,7 +26,9 @@ class TestUCERF3Forecast(TestCase):
             'nnodes': 18,
             'max_run_time': '12:00:00'
         }
+
         test_obj = UCERF3Forecast(**ucerf3test_config)
+
         assert test_obj.name == ucerf3test_config['name']
         assert test_obj.run_id == ucerf3test_config['run_id']
         assert test_obj._system.name == ucerf3test_config['system']

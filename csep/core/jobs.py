@@ -39,10 +39,7 @@ class BaseTask:
         self._force = False
         # defaults to file system repository in work dir
         self._repo = repository or 'filesystem'
-        # if its not a repo object assume to be string and trying to create object
-        if not isinstance(self._repo, Repository):
-            self._repo = repo_builder.create(self._repo, {'name': self.run_id,
-                                            'url': self.work_dir})
+
 
     def __str__(self):
         return self.to_dict()
