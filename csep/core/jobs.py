@@ -276,7 +276,7 @@ class UCERF3Forecast(BaseTask):
 
     def run(self):
         if not self._prepared:
-            self.prepare(archive=True)
+            self.prepare()
         # does not pass command, that is handled by the system.
         out = self._system.execute(args=[self.args], run_dir=self.work_dir)
         if out.returncode == 0:
