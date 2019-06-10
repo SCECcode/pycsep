@@ -13,7 +13,7 @@ class Repository:
     pass
 
 class FileSystem(Repository):
-    def __init__(self, url="", name=None):
+    def __init__(self, url="", name='filesystem'):
         expand_url = os.path.expandvars(os.path.expanduser(url))
         self.url = expand_url
         self.name = name
