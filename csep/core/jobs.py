@@ -241,10 +241,14 @@ class UCERF3Forecast(BaseTask):
         self._run_script = None
 
         # runtime output directory
-        self.output_dir = os.path.expanduser(os.path.expandvars(output_dir))
+        if output_dir:
+            self.output_dir = os.path.expanduser(os.path.expandvars(output_dir))
+        else:
+            self.output_dir = self.work_dir
 
         # handle to config template file
         self._config_templ_file = None
+
 
     def prepare(self, dry_run=False):
         """

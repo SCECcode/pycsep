@@ -23,7 +23,6 @@ ucerf3job_config = {
     'model_dir': '/Users/wsavran/Projects/Code/ucerf3-etas-launcher',
     'config_templ': '/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/template_files/ucerf3-defaults.json',
     'script_templ': '/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/template_files/hpc-usc.slurm',
-    'output_dir': '/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/runs',
     'nnodes': 18,
     'max_run_time': '12:00:00'
 }
