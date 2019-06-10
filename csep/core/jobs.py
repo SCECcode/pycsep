@@ -283,7 +283,7 @@ class UCERF3Forecast(BaseTask):
         out = self._system.execute(args=[self.args], run_dir=self.work_dir)
         if out.returncode == 0:
             self.status = JobStatus.SUBMITTED
-            self.job_id = out['job_id']
+            self.job_id = out.job_id
         else:
             self.status = JobStatus.FAILED
         # update archive to reflect current state
