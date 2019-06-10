@@ -115,10 +115,10 @@ class SlurmSystem(System):
         stdout = out.stdout.decode("utf-8")
         stderr = out.stderr.decode("utf-8")
         if out.returncode == 0:
-            print(f'Successfully submitted job to slurm Scheduler with job_id: {stdout[-1]}')
+            print(f'Successfully submitted job to slurm Scheduler with job_id: {stdout.split()[-1]}')
             status = SlurmJobStatus(returncode=out.returncode,
                                     status='Success',
-                                    job_id=stdout[-1],
+                                    job_id=stdout.split()[-1],
                                     type='batch',
                                     stdout=stdout,
                                     stderr=stderr)

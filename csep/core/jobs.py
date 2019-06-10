@@ -119,13 +119,12 @@ class BaseTask:
         """
         if not self._repo:
             print("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
-            repo = repo_builder.create("filesystem", url=os.path.join(self.work_dir, self.run_id + "-manifest.json"))
+            self._repo = repo_builder.create("filesystem", url=os.path.join(self.work_dir, self.run_id + "-manifest.json"))
         else:
-            repo = self._repo
-            print(f"Found repository. Using {repo.name} to store class state.")
+            print(f"Found repository. Using {self._repo.name} to store class state.")
 
         # access storage through the repository layer
-        repo.save(self.to_dict())
+        self._repo.save(self.to_dict())
 
     def to_dict(self):
         """ Returns class state as JSON serializable dict. """
