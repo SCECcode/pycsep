@@ -27,11 +27,12 @@ class FileSystem(Repository):
             csep.core.managers.experiment
 
         """
-        try:
-            with open(self.url, 'r') as f:
-                manifest=json.load(f)
-        except (FileNotFoundError, IOError):
-            print(f'Error: Unable to load manifest.\nAttempted url {self.url}')
+        # try:
+        #     with open(self.url, 'r') as f:
+        #         manifest=json.load(f)
+        # except (FileNotFoundError, IOError):
+        #     print(f'Error: Unable to load manifest.\nAttempted url {self.url}')
+        raise NotImplementedError
 
     def save(self, data):
         """
