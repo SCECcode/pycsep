@@ -38,7 +38,7 @@ def datetime_to_utc_epoch(dt):
 
     epoch = datetime.datetime(1970, 1, 1, 0, 0, 0, 0).replace(tzinfo=datetime.timezone.utc)
     epoch_time_seconds = (dt - epoch).total_seconds()
-    return 1000.0 * epoch_time_seconds
+    return int(1000.0 * epoch_time_seconds)
 
 def utc_epoch_time_from_strptime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     dt=strptime_to_utc_datetime(time_string, format)
