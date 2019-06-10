@@ -168,6 +168,8 @@ class Workflow:
         # monitoring jobs.
         for job in self._jobs:
             job.run()
+        # archive after all jobs have run.
+        self.archive()
 
 
 class ForecastExperiment(Workflow):
