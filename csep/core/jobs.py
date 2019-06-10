@@ -117,14 +117,9 @@ class BaseTask:
         Returns:
             None
         """
-        if self._repo is None:
-            print("Unable to archive simulation manifest. Repository must not be None.")
-            return
-
         if not self._repo:
             print("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
             repo = repo_builder.create("filesystem", url=os.path.join(self.work_dir, self.run_id + "-manifest.json"))
-
         else:
             repo = self._repo
             print(f"Found repository. Using {repo.name} to store class state.")

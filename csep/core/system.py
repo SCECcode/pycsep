@@ -115,12 +115,11 @@ class SlurmSystem(System):
         stdout = out.stdout.decode("utf-8")
         stderr = out.stderr.decode("utf-8")
         if out.returncode == 0:
-            print(f'Successfully submitted job to slurm Scheduler with job_id: {stdout}')
-            status = self._parse_sbatch_output(stdout)
+            print(f'Successfully submitted job to slurm Scheduler with job_id: {stdout[-1]}')
             status = SlurmJobStatus(returncode=out.returncode,
-                                    status=status['status'],
-                                    job_id=status['job_id'],
-                                    type=status['type'],
+                                    status='Success',
+                                    job_id=stdout[-1],
+                                    type='batch',
                                     stdout=stdout,
                                     stderr=stderr)
         else:
@@ -132,22 +131,6 @@ class SlurmSystem(System):
                                     stderr=None)
             print(f"Error with batch submission.\n{stderr}")
         return status
-
-    @staticmethod
-    def _parse_sbatch_output(output):
-        """
-        Function parses the output of the srun command. This information is used to
-        populate additional metadata for the simulation.
-
-        Returns:
-            dict of successful sbatch outputs
-
-        """
-        split = output.split()
-        out = {'status': split[0],
-               'type': split[1],
-               'job_id': split[2]}
-        return out
 
 
 class File:
