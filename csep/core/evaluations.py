@@ -1,10 +1,10 @@
 import matplotlib.pyplot as pyplot
 
-from csep.utils.plotting import plot_ecdf
+from csep.utils.plotting import plot_ecdf, plot_histogram
 from csep.utils.stats import less_equal_ecdf, greater_equal_ecdf, ecdf
 
 
-# we might want to consider removing the return axis functionality from this function.
+# TODO: Use namedtuple for return arguments of all Evaluations if classes aren't developed
 def number_test(stochastic_event_set, observation, plot=False, show=False, plot_args={}):
     """
     Perform an N-Test on a stochastic event set and observation.
@@ -13,6 +13,7 @@ def number_test(stochastic_event_set, observation, plot=False, show=False, plot_
         stochastic_event_set (list of :class:`~csep.core.catalogs.BaseCatalog`)
         observation (:class:`~csep.core.catalogs.BaseCatalog`)
         plot (bool): visualize: yes or no
+        show (bool): show the plot using pyplot.show()
 
     Note:
         Catalogs must implement get_number_of_events() method for this function to work.
@@ -20,7 +21,7 @@ def number_test(stochastic_event_set, observation, plot=False, show=False, plot_
     Returns:
         (p_value, ax): axes is None if plot=False
     """
-
+    show_plot = show
     # get number of events for observations and simulations
     sim_counts = []
     for catalog in stochastic_event_set:
@@ -43,20 +44,25 @@ def number_test(stochastic_event_set, observation, plot=False, show=False, plot_
                            # explicitly assumes that all catalogs in list are of the same type
                            'sim_label': stochastic_event_set[0].name}
         plot_args.update(fixed_plot_args)
-        ax = plot_ecdf(*ecdf(sim_counts), observation_count, catalog=observation, plot_args=plot_args, filename=filename)
+        ax = plot_histogram(sim_counts, observation_count, catalog=observation, plot_args=plot_args,
+                            percentile=95)
 
         # annotate the plot with information from catalog
-        ax.annotate(r'$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
+        ax.annotate('$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
                     .format(delta_1, delta_2), xycoords='axes fraction', xy=(0.5, 0.3), fontsize=14)
         ax.set_title("CSEP2 Number Test", fontsize=14)
+
+        if filename is not None:
+            pyplot.savefig(filename)
 
         # func has different return types, before release refactor and remove plotting from evaluation.
         # plotting should be separated from evaluation.
         # evaluation should return some object that can be plotted maybe with verbose option.
+        if show_plot:
+            pyplot.show()
+
         return (delta_1, delta_2), ax
 
-    if show:
-        pyplot.show()
 
     return delta_1, delta_2
 

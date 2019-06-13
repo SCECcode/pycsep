@@ -39,7 +39,7 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
         pyplot.Figure: fig
     """
     print('Plotting cumulative event counts.')
-    fig, ax = pyplot.subplots()
+    fig, ax = pyplot.subplots(figsize=(12,9))
 
     # date formatting
     locator = mdates.MonthLocator()  # every month
@@ -92,6 +92,8 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
     ax.xaxis.set_major_formatter(fmt)
     ax.set_xlabel(df3.index.year.max())
     ax.set_ylabel('Cumulative Event Count')
+
+    pyplot.subplots_adjust(right=0.75)
 
     # annotate the plot with information from catalog
     ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
@@ -200,7 +202,10 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     if axes is not None:
         ax = axes
     else:
-        fig, ax = pyplot.subplots()
+        if catalog:
+            fig, ax = pyplot.subplots(figsize=(12,9))
+        else:
+            fig, ax = pyplot.subplots()
         chained = False
 
     # parse plotting arguments
@@ -243,12 +248,19 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     # annotate the plot with information from catalog
     if catalog is not None:
         ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+        pyplot.subplots_adjust(right=0.75)
+
+    # show 99.9% of data
+    upper_xlim = numpy.percentile(simulated, 99.5)
+    ax.set_xlim([0, upper_xlim])
 
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if legend:
         ax.legend(loc=legend_loc)
+
+
 
     # hacky workaround for coloring legend, by calling after legend.
     if percentile is not None:

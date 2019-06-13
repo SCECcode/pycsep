@@ -53,7 +53,7 @@ class BaseCatalog:
             if catalog is not None and self.compute_stats:
                 self._update_catalog_stats()
         except (AttributeError, NotImplementedError):
-            print('Warning: could not parse catalog statistics by reading catalog! get_magnitudes(), get_latitudes() and get_longitudes() ' +
+            print('Warning: could not parse catalog statistics by reading catalog. get_magnitudes(), get_latitudes() and get_longitudes() ' +
                   'must be implemented and bound to calling class! Reverting to old values.')
 
     def __str__(self):
@@ -237,91 +237,92 @@ class BaseCatalog:
         Returns:
             (pandas.DataFrame): Magnitude Freq Distribution. Counts and regression statistics attached for plotting.
         """
-        # getting comcat catalog as dataframe
-        dm = delta_mw
-        p_value = p_value
-        min_mw, max_mw = self.min_magnitude, self.max_magnitude
-        event_count = self.get_number_of_events()
-
-        # pandas treats intervals as inclusive on top
-        mw_inter = numpy.arange(min_mw-dm/2, max_mw+dm, dm)
-
-        # switching into dataframe for easy manipulations
-        df = self.get_dataframe()
-
-        # get the counts in each magnitude bin
-        self.mfd = pandas.DataFrame(df['counts'].groupby(pandas.cut(df['magnitude'], mw_inter)).sum())
-
-        # cumulative counts contain the number of events greater than or equal to the magnitude
-        self.mfd['counts'] = self.mfd.loc[::-1, 'counts'].cumsum()
-
-        # get values from dataframe, might contain zeros
-        vals = numpy.squeeze(self.mfd.values)
-        x = numpy.array(self.mfd.index.categories.mid)
-
-        # this is some what lenient
-        if len(x) < 3:
-            self.mfd['N'] = numpy.nan
-            self.mfd['N_est'] = numpy.nan
-            self.mfd['lower_ci'] = numpy.nan
-            self.mfd['upper_ci'] = numpy.nan
-            self.mfd['t_stat'] = numpy.nan
-            self.mfd['a'] = numpy.nan
-            self.mfd['b'] = numpy.nan
-            self.mfd['ci_b'] = numpy.nan
-            return self.mfd
-
-        # this could evaluate as false if there are zeros
-        N = numpy.log10(vals)
-        G = numpy.vstack([numpy.ones(len(x)), x]).T
-
-        # perform least-squares to get b-value
-        # log(N) = a-bM or N = 10^a / 10^bM
-        # Note: this should be maximum likelihood estimation
-        a, b = numpy.linalg.lstsq(G, N, rcond=None)[0]
-
-        # generate line to plot
-        N_est = a + b*x
-
-        # setup vars for plotting ci
-        err = N - numpy.squeeze(N_est)
-
-        n = len(x)
-        t_stat = scipy.stats.t.ppf(1-p_value/2, n-2)
-        mean_x = numpy.mean(x)
-        se_line = numpy.sqrt(numpy.sum(numpy.power(err, 2))/(n-2))
-        se_xk = numpy.sqrt(1/n+numpy.power(x-mean_x, 2)/numpy.sum(numpy.power(x-mean_x, 2)))
-        confs = se_line * se_xk
-        lower = N_est-t_stat*confs
-        upper = N_est+t_stat*confs
-
-        # confidence interval of b-value
-        rms = numpy.sqrt(numpy.mean(numpy.power(err, 2)))
-        denom = numpy.sum(numpy.power(x-mean_x, 2))
-        ci_b = t_stat*rms/denom
-
-        # wish this were functional
-        self.mfd['N'] = 0.0
-        self.mfd['N_est'] = 0.0
-        self.mfd['lower_ci'] = 0.0
-        self.mfd['upper_ci'] = 0.0
-        self.mfd['t_stat'] = 0.0
-        self.mfd['a'] = 0.0
-        self.mfd['b'] = 0.0
-        self.mfd['ci_b'] = 0.0
-
-        # add additional state to dataframe. use .loc() indexing to ensure the data is bound to dataframe
-        self.mfd.loc[self.mfd['counts'] != 0, 'N'] = N
-        self.mfd.loc[self.mfd['counts'] != 0, 'N_est'] = N_est
-        self.mfd.loc[self.mfd['counts'] != 0, 'lower_ci'] = lower
-        self.mfd.loc[self.mfd['counts'] != 0, 'upper_ci'] = upper
-        self.mfd.loc[self.mfd['counts'] != 0, 't_stat'] = t_stat
-        self.mfd.loc[self.mfd['counts'] != 0, 'a'] = a
-        self.mfd.loc[self.mfd['counts'] != 0, 'b'] = b
-        self.mfd.loc[self.mfd['counts'] != 0, 'ci_b'] = ci_b
-
-        # return mfd
-        return self.mfd
+        raise PendingDeprecationWarning
+        # # getting comcat catalog as dataframe
+        # dm = delta_mw
+        # p_value = p_value
+        # min_mw, max_mw = self.min_magnitude, self.max_magnitude
+        # event_count = self.get_number_of_events()
+        #
+        # # pandas treats intervals as inclusive on top
+        # mw_inter = numpy.arange(min_mw-dm/2, max_mw+dm, dm)
+        #
+        # # switching into dataframe for easy manipulations
+        # df = self.get_dataframe()
+        #
+        # # get the counts in each magnitude bin
+        # self.mfd = pandas.DataFrame(df['counts'].groupby(pandas.cut(df['magnitude'], mw_inter)).sum())
+        #
+        # # cumulative counts contain the number of events greater than or equal to the magnitude
+        # self.mfd['counts'] = self.mfd.loc[::-1, 'counts'].cumsum()
+        #
+        # # get values from dataframe, might contain zeros
+        # vals = numpy.squeeze(self.mfd.values)
+        # x = numpy.array(self.mfd.index.categories.mid)
+        #
+        # # this is some what lenient
+        # if len(x) < 3:
+        #     self.mfd['N'] = numpy.nan
+        #     self.mfd['N_est'] = numpy.nan
+        #     self.mfd['lower_ci'] = numpy.nan
+        #     self.mfd['upper_ci'] = numpy.nan
+        #     self.mfd['t_stat'] = numpy.nan
+        #     self.mfd['a'] = numpy.nan
+        #     self.mfd['b'] = numpy.nan
+        #     self.mfd['ci_b'] = numpy.nan
+        #     return self.mfd
+        #
+        # # this could evaluate as false if there are zeros
+        # N = numpy.log10(vals)
+        # G = numpy.vstack([numpy.ones(len(x)), x]).T
+        #
+        # # perform least-squares to get b-value
+        # # log(N) = a-bM or N = 10^a / 10^bM
+        # # Note: this should be maximum likelihood estimation
+        # a, b = numpy.linalg.lstsq(G, N, rcond=None)[0]
+        #
+        # # generate line to plot
+        # N_est = a + b*x
+        #
+        # # setup vars for plotting ci
+        # err = N - numpy.squeeze(N_est)
+        #
+        # n = len(x)
+        # t_stat = scipy.stats.t.ppf(1-p_value/2, n-2)
+        # mean_x = numpy.mean(x)
+        # se_line = numpy.sqrt(numpy.sum(numpy.power(err, 2))/(n-2))
+        # se_xk = numpy.sqrt(1/n+numpy.power(x-mean_x, 2)/numpy.sum(numpy.power(x-mean_x, 2)))
+        # confs = se_line * se_xk
+        # lower = N_est-t_stat*confs
+        # upper = N_est+t_stat*confs
+        #
+        # # confidence interval of b-value
+        # rms = numpy.sqrt(numpy.mean(numpy.power(err, 2)))
+        # denom = numpy.sum(numpy.power(x-mean_x, 2))
+        # ci_b = t_stat*rms/denom
+        #
+        # # wish this were functional
+        # self.mfd['N'] = 0.0
+        # self.mfd['N_est'] = 0.0
+        # self.mfd['lower_ci'] = 0.0
+        # self.mfd['upper_ci'] = 0.0
+        # self.mfd['t_stat'] = 0.0
+        # self.mfd['a'] = 0.0
+        # self.mfd['b'] = 0.0
+        # self.mfd['ci_b'] = 0.0
+        #
+        # # add additional state to dataframe. use .loc() indexing to ensure the data is bound to dataframe
+        # self.mfd.loc[self.mfd['counts'] != 0, 'N'] = N
+        # self.mfd.loc[self.mfd['counts'] != 0, 'N_est'] = N_est
+        # self.mfd.loc[self.mfd['counts'] != 0, 'lower_ci'] = lower
+        # self.mfd.loc[self.mfd['counts'] != 0, 'upper_ci'] = upper
+        # self.mfd.loc[self.mfd['counts'] != 0, 't_stat'] = t_stat
+        # self.mfd.loc[self.mfd['counts'] != 0, 'a'] = a
+        # self.mfd.loc[self.mfd['counts'] != 0, 'b'] = b
+        # self.mfd.loc[self.mfd['counts'] != 0, 'ci_b'] = ci_b
+        #
+        # # return mfd
+        # return self.mfd
 
     def filter(self, statement):
         """
@@ -619,7 +620,7 @@ class ComcatCatalog(BaseCatalog):
     Class handling retrieval of Comcat Catalogs.
     """
     dtype = numpy.dtype([('id', 'S256'),
-                         ('origin_time', '<f4'),
+                         ('origin_time', '<i8'),
                          ('latitude', '<f4'),
                          ('longitude','<f4'),
                          ('depth', '<f4'),
