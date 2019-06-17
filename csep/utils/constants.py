@@ -10,10 +10,10 @@ SECONDS_PER_WEEK = SECONDS_PER_DAY*7
 SECONDS_PER_MONTH = SECONDS_PER_WEEK*4
 
 
-class JobStatus(Enum):
-    FAILED = -1
-    UNPREPARED = 0
-    COMPLETE = 1
-    PREPARED = 2
-    SUBMITTED = 3
-    RUNNING = 4
+class JobStatus(str, Enum):
+    FAILED = 'failed'
+    UNPREPARED = 'unprepared'
+    COMPLETE = 'complete'
+    PREPARED = 'prepared'
+    SUBMITTED = 'submitted'
+    RUNNING = 'running'

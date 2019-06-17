@@ -10,6 +10,7 @@ import os
 import sys
 import uuid
 from copy import deepcopy
+
 from csep.core.config import machine_config
 from csep.core.jobs import job_builder
 from csep.core.system import system_builder
@@ -21,19 +22,16 @@ class Workflow:
     Top-level class for a computational workflow. This class is responsible for managing the state of the entire workflow.
     """
 
-    def __init__(self, name='Unnamed', base_dir=None, default_system=None,
-                 default_repository=None, owner=None, description=None):
+    def __init__(self, name='Unnamed', base_dir='', owner=(), description='', repository=None):
         self.name = name
-        self._defaults = {
-            "system": default_system,
-            "repository": default_repository
-        }
         self.base_dir = base_dir
         self.owner = owner
-        self.description=description
-        self._repo = None
-        self._system = None
-        self._jobs = []
+        self.description = description
+        self.repo = repository
+        self.jobs = []
+
+    def __eq__(self, other):
+        return self.to_dict() == other.to_dict()
 
     def add_job(self, name, config):
         """
@@ -50,7 +48,7 @@ class Workflow:
         except ValueError:
             print('Unable to build forecast job object.')
             sys.exit(-1)
-        self._jobs.append(job)
+        self.jobs.append(job)
         return job
 
     def prepare(self, archive=False, dry_run=False):
@@ -63,13 +61,13 @@ class Workflow:
         Throws:
             OSError
         """
-        for job in self._jobs:
+        for job in self.jobs:
             job.prepare(dry_run=dry_run)
 
         if archive:
             self.archive()
 
-    def default_resource(self, name):
+    def add_system(self, name):
         """
         Resources corresponding to keys in the system configuration dictionary.
 
@@ -85,15 +83,9 @@ class Workflow:
         except KeyError:
             print('Error. Machine configuration not registered with the program.')
             sys.exit(-1)
-
-        try:
-            system = system_builder.create(config['name'], config)
-            self._system = system
-        except ValueError:
-            print('Unable to build system configuration object.')
-            sys.exit(-1)
-
-        self._defaults['system'] = name
+        self.system = system_builder.create(config['type'], config)
+        print(f"Created {name} system to use as default system.")
+        self.default_system = name
 
     def add_repository(self, config):
         """
@@ -108,29 +100,48 @@ class Workflow:
         try:
             name = config['name']
             repository = repo_builder.create(name, **config)
-            self._repo = repository
+            self.repo = repository
         except ValueError:
             raise CSEPSchedulerException("Unable to build repository object.")
             sys.exit(-1)
-        self._defaults['repository'] = name
+        return self
 
     def to_dict(self):
-        exclude = ['_jobs']
+        exclude = ['jobs']
         out = {}
         for k, v in self.__dict__.items():
-            if not callable(v) and v not in exclude:
+            if not callable(v) and k not in exclude:
                 if hasattr(v, 'to_dict'):
                     new_v = v.to_dict()
                 else:
-                    new_v = str(v)
-                if k.startswith('_'):
-                    out[k[1:]] = new_v
-                else:
-                    out[k] = new_v
-            # custom implementation for jobs
-            out["jobs"] = {}
-            for job in self._jobs:
-                out["jobs"][job.run_id]=job.to_dict()
+                    new_v = v
+                out[k] = new_v
+        # custom implementation for jobs
+        out["jobs"] = {}
+        for job in self.jobs:
+            out["jobs"][job.run_id]=job.to_dict()
+        return out
+
+    @classmethod
+    def from_dict(cls, adict):
+        exclude = ['jobs']
+        out = cls()
+        for k,v in out.__dict__.items():
+            if k not in exclude:
+                try:
+                    if hasattr(v, 'from_dict'):
+                        new_v = v.from_dict(adict[k])
+                    else:
+                        new_v = adict[k]
+                    setattr(out, k, new_v)
+                except KeyError:
+                    # use default values from constructor
+                    pass
+        # right now adding jobs through the setter method, not constructor
+        for key in adict['jobs']:
+            job_state = adict['jobs'][key]
+            name = job_state['name']
+            out.add_job(name, job_state)
         return out
 
     def archive(self):
@@ -146,27 +157,37 @@ class Workflow:
             None
 
         """
-        if self._repo is None:
+        if self.repo is None:
             print("Unable to archive simulation manifest. Repository must not be None.")
             return
-
-        if not self._repo:
+        if not self.repo:
             print("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
             repo = repo_builder.create("filesystem", url=self.work_dir)
-
         else:
-            repo = self._repo
+            repo = self.repo
             print(f"Found repository. Using {repo.name} to store class state.")
 
         # access storage through the repository layer
         # for sqlalchemy, this would create the Base objects to insert into the database.
         repo.save(self.to_dict())
 
+    def load_state(self):
+        """
+        Returns new class object using the repository stored with the class. Maybe this should be a class
+        method.
+
+        """
+        if not self.repo:
+            print("Unable to load state. Repository must not be None.")
+            sys.exit(-1)
+        # calls .from_dict() on calling class
+        return self.repo.load_json(self)
+
     def run(self):
         # for now jobs should be responsible for running themselves
-        # this represents a convenience wrapper. the manager should be uses for
+        # this represents a convenience wrapper. the manager should be used for
         # monitoring jobs.
-        for job in self._jobs:
+        for job in self.jobs:
             job.run()
         # archive after all jobs have run.
         self.archive()

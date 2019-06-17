@@ -198,15 +198,16 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         axis: matplolib axes handle
     """
     # Plotting
-    chained = True
+
+    chained = False
     if axes is not None:
+        chained = True
         ax = axes
     else:
         if catalog:
             fig, ax = pyplot.subplots(figsize=(12,9))
         else:
             fig, ax = pyplot.subplots()
-        chained = False
 
     # parse plotting arguments
     sim_label = plot_args.pop('sim_label', 'Simulated')
@@ -217,24 +218,30 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     title = plot_args.pop('title', None)
     legend_loc = plot_args.pop('legend_loc', 'best')
     legend = plot_args.pop('legend', True)
+    bins = plot_args.pop('bins', bins)
+    color = plot_args.pop('color', '')
 
     # this could throw an error exposing bad implementation
     observation = numpy.array(observation)
 
-    if not chained:
-        try:
-            n = len(observation)
-        except TypeError:
-            ax.axvline(x=observation, color='black', linestyle='--', label=obs_label)
-        else:
-            # remove any nan values
-            observation = observation[~numpy.isnan(observation)]
-            ax.hist(observation, bins=bins, edgecolor='black', alpha=0.5, label=obs_label)
+    try:
+        n = len(observation)
+    except TypeError:
+        ax.axvline(x=observation, color='black', linestyle='--', label=obs_label)
+    else:
+        # remove any nan values
+        observation = observation[~numpy.isnan(observation)]
+        ax.hist(observation, bins=bins, edgecolor='black', alpha=0.5, label=obs_label)
 
     # remove any potential nans from arrays
     simulated = numpy.array(simulated)
     simulated = simulated[~numpy.isnan(simulated)]
-    n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', alpha=0.5, label=sim_label)
+    if color:
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', alpha=0.5, label=sim_label,
+                                        color=color)
+    else:
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', alpha=0.5, label=sim_label)
+
     # color bars for rejection area
     if percentile is not None:
         inc = (100 - percentile) / 2
@@ -246,7 +253,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         idx_low = numpy.digitize(p_low, bin_edges)
 
     # annotate the plot with information from catalog
-    if catalog is not None:
+    if catalog is not None and not chained:
         ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
         pyplot.subplots_adjust(right=0.75)
 

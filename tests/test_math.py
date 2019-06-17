@@ -1,3 +1,4 @@
+import unittest
 from csep.utils.cmath import *
 
 
@@ -51,3 +52,25 @@ class TestNearestIndex:
         assert test_result == 3
 
 
+# class TestDigitize(unittest.TestCase):
+#
+#     def setUp(self):
+#         self.bin_edges = [0, 1, 2, 3, 4]
+#
+#     def test_lower_bound(self):
+#         data = [-0.1, 0.2, 1.2, 2.2, 3.2]
+#         test = discretize(data, self.bin_edges)
+#         expected = [0, 1, 2, 3, 4]
+#         self.assertListEqual(test.tolist(), expected)
+#
+#     def test_upper_bound(self):
+#         data = [-0.1, 0.2, 1.2, 2.2, 4.1]
+#         test = discretize(data, self.bin_edges)
+#         expected = [0, 1, 2, 3, 4]
+#         self.assertListEqual(test.tolist(), expected)
+#
+#     def test_value_on_bin_edge(self):
+#         data = [0, 0.2, 1.2, 2.2, 3.2]
+#         test = discretize(data, self.bin_edges)
+#         expected = [0, 1, 2, 3, 4]
+#         self.assertListEqual(test.tolist(), expected)

@@ -18,7 +18,13 @@ class FileSystem(Repository):
         self.url = expand_url
         self.name = name
 
-    def list_experiment(self):
+    def __eq__(self, other):
+        try:
+            return self.to_dict() == other.to_dict()
+        except:
+            return False
+
+    def load_json(self, object):
         """
         Will list all experiments stored in JSON files. Method returns an experiment class
         with identical state to the JSON manifest file.
@@ -27,12 +33,10 @@ class FileSystem(Repository):
             csep.core.managers.experiment
 
         """
-        # try:
-        #     with open(self.url, 'r') as f:
-        #         manifest=json.load(f)
-        # except (FileNotFoundError, IOError):
-        #     print(f'Error: Unable to load manifest.\nAttempted url {self.url}')
-        raise NotImplementedError
+        with open(self.url, 'r') as f:
+            manifest=json.load(f)
+        return object.from_dict(manifest)
+
 
     def save(self, data):
         """
@@ -61,6 +65,10 @@ class FileSystem(Repository):
     def to_dict(self):
         return {'name': self.name,
                 'url': self.url}
+
+    @classmethod
+    def from_dict(cls, adict):
+        return cls(**adict)
 
     def update(self):
         raise NotImplementedError

@@ -5,7 +5,7 @@ from csep.utils.stats import less_equal_ecdf, greater_equal_ecdf, ecdf
 
 
 # TODO: Use namedtuple for return arguments of all Evaluations if classes aren't developed
-def number_test(stochastic_event_set, observation, plot=False, show=False, plot_args={}):
+def number_test(stochastic_event_set, observation, plot=False, show=False, axes=None, plot_args={}):
     """
     Perform an N-Test on a stochastic event set and observation.
 
@@ -33,10 +33,12 @@ def number_test(stochastic_event_set, observation, plot=False, show=False, plot_
 
     # handle plotting
     if plot:
-        ax = None
+        if axes:
+            chained = True
+        else:
+            chained = False
         # supply fixed arguments to plots
         # might want to add other defaults here
-        show = plot_args.pop('show', 'False')
         filename = plot_args.pop('filename', None)
         fixed_plot_args = {'xlabel': 'Event Count',
                            'ylabel': 'Cumulative Probability',
@@ -44,12 +46,15 @@ def number_test(stochastic_event_set, observation, plot=False, show=False, plot_
                            # explicitly assumes that all catalogs in list are of the same type
                            'sim_label': stochastic_event_set[0].name}
         plot_args.update(fixed_plot_args)
-        ax = plot_histogram(sim_counts, observation_count, catalog=observation, plot_args=plot_args,
-                            percentile=95)
+        percentile = plot_args.pop('percentile', 95)
+        ax = plot_histogram(sim_counts, observation_count, catalog=observation, plot_args=plot_args, axes=axes,
+                            percentile=percentile)
 
-        # annotate the plot with information from catalog
-        ax.annotate('$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
+        # annotate plot with p-values
+        if not chained:
+            ax.annotate('$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
                     .format(delta_1, delta_2), xycoords='axes fraction', xy=(0.5, 0.3), fontsize=14)
+
         ax.set_title("CSEP2 Number Test", fontsize=14)
 
         if filename is not None:

@@ -18,6 +18,15 @@ class System:
         self.max_cores = max_cores
         self.mem_per_node = mem_per_node
 
+    def __eq__(self, other):
+        try:
+            return self.to_dict() == other.to_dict()
+        except:
+            return False
+
+    def __str__(self):
+        return self.to_dict()
+
     @classmethod
     def from_dict(cls, adict):
         return cls(**adict)
@@ -30,7 +39,7 @@ class System:
                 if hasattr(v, 'to_dict'):
                     out[k] = v.to_dict()
                 else:
-                    out[k] = str(v)
+                    out[k] = v
         return out
 
     def check_environment(self, env):
@@ -52,9 +61,6 @@ class System:
                 res=False
         return res
 
-    def __str__(self):
-        return self.name
-
     def execute(self, cmnd=None, args=None):
         """
         Executes a process on the system
@@ -74,7 +80,6 @@ class System:
         if rc != 0:
             print(f"Error executing command {' '.join(command)}.\n{stderr}")
         return out
-
 
 
 class SlurmSystem(System):
@@ -135,15 +140,20 @@ class SlurmSystem(System):
 
 class File:
     def __init__(self, path):
-        self.path = path
+        self.type='base'
+        self.path = os.path.expanduser(os.path.expandvars(str(path)))
         self._handle = None
 
     def __del__(self):
         if self._handle:
             self._handle.close()
 
-    def __str__(self):
-        return self.path
+    def to_dict(self):
+        return {'path': self.path, 'type': self.type}
+
+    @classmethod
+    def from_dict(cls, adict):
+        return cls(**adict)
 
     def template(self, data):
         raise NotImplementedError
@@ -164,6 +174,7 @@ class File:
 class TextFile(File):
     def __init__(self, path):
         super().__init__(path)
+        self.type = 'text'
         self._contents = None
 
     def open(self, mode='r'):
@@ -194,6 +205,7 @@ class TextFile(File):
 class BinaryFile(File):
     def __init__(self, path):
         super().__init__(path)
+        self.type='binary'
 
     def open(self, mode='rb'):
         self._handle = open(self.path, mode)
@@ -201,6 +213,7 @@ class BinaryFile(File):
 class JsonFile(TextFile):
     def __init__(self, path):
         super().__init__(path)
+        self.type='json'
 
     def template(self, adict):
         if self._contents is None:
@@ -226,8 +239,9 @@ class JsonFile(TextFile):
 
 # Register System builders
 system_builder = ObjectFactory()
-system_builder.register_builder('direct', System.from_dict)
+system_builder.register_builder('default', System.from_dict)
 system_builder.register_builder('slurm', SlurmSystem.from_dict)
+system_builder.register_builder('hpc-usc', SlurmSystem.from_dict)
 
 # File Builder Objects
 file_builder = ObjectFactory()
