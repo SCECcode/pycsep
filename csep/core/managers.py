@@ -14,7 +14,7 @@ from copy import deepcopy
 from csep.core.config import machine_config
 from csep.core.jobs import job_builder
 from csep.core.system import system_builder
-from csep.core.repositories import repo_builder
+from csep.core.repositories import repo_builder, Repository
 from csep.core.exceptions import CSEPSchedulerException
 
 class Workflow:
@@ -27,7 +27,10 @@ class Workflow:
         self.base_dir = base_dir
         self.owner = owner
         self.description = description
-        self.repo = repository
+        self.repository = repository
+        if not isinstance(self.repository, Repository):
+            if type(self.repository) is dict:
+                self.repository = repo_builder.create(repository['name'], repository)
         self.jobs = []
 
     def __eq__(self, other):
@@ -83,9 +86,10 @@ class Workflow:
         except KeyError:
             print('Error. Machine configuration not registered with the program.')
             sys.exit(-1)
-        self.system = system_builder.create(config['type'], config)
         print(f"Created {name} system to use as default system.")
+        self.system = system_builder.create(config['type'], config)
         self.default_system = name
+        return
 
     def add_repository(self, config):
         """
@@ -99,12 +103,12 @@ class Workflow:
         """
         try:
             name = config['name']
-            repository = repo_builder.create(name, **config)
-            self.repo = repository
+            repository = repo_builder.create(name, config)
+            self.repository = repository
         except ValueError:
             raise CSEPSchedulerException("Unable to build repository object.")
             sys.exit(-1)
-        return self
+        return
 
     def to_dict(self):
         exclude = ['jobs']
@@ -124,8 +128,12 @@ class Workflow:
 
     @classmethod
     def from_dict(cls, adict):
-        exclude = ['jobs']
-        out = cls()
+        exclude = ['jobs','repository']
+        try:
+            repo = adict['repository']
+        except KeyError:
+            repo = None
+        out = cls(repository=repo)
         for k,v in out.__dict__.items():
             if k not in exclude:
                 try:
@@ -157,31 +165,31 @@ class Workflow:
             None
 
         """
-        if self.repo is None:
+        if self.repository is None:
             print("Unable to archive simulation manifest. Repository must not be None.")
             return
-        if not self.repo:
+        if not self.repository:
             print("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
             repo = repo_builder.create("filesystem", url=self.work_dir)
         else:
-            repo = self.repo
+            repo = self.repository
             print(f"Found repository. Using {repo.name} to store class state.")
 
         # access storage through the repository layer
         # for sqlalchemy, this would create the Base objects to insert into the database.
         repo.save(self.to_dict())
 
-    def load_state(self):
+    def load(self):
         """
         Returns new class object using the repository stored with the class. Maybe this should be a class
         method.
 
         """
-        if not self.repo:
+        if not self.repository:
             print("Unable to load state. Repository must not be None.")
             sys.exit(-1)
         # calls .from_dict() on calling class
-        return self.repo.load_json(self)
+        return self.repository.load_json(self)
 
     def run(self):
         # for now jobs should be responsible for running themselves

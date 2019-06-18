@@ -67,3 +67,18 @@ def load_catalog(type=None, format='native', **kwargs):
     else:
         raise ValueError('format must be either "native" or "csep!')
     return return_val
+
+
+class CSEPObject:
+    """
+    All Domain object should inherit this class.
+
+    Implementing the to_dict() and from_dict() methods allows the class to be
+    handled by the repository layer.
+    """
+    def to_dict(self):
+        return self.__dict__
+
+    @classmethod
+    def from_dict(cls, adict):
+        return cls(**adict)

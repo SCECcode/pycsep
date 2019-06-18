@@ -43,6 +43,14 @@ class BaseTask:
 
         # should set all attributes in constructor
         self.repository = repository
+        if not isinstance(self.repository, Repository):
+            if type(repository) is dict:
+                self.repository = repo_builder.create(repository['name'], repository)
+            elif repository is None:
+                # let repo be none, will use work_dir
+                pass
+            else:
+                raise TypeError("Repository must be a dict, Repository, or None (default)")
 
         # system works differently, because for now we are storing system information in the package.
         self.system = system
@@ -56,6 +64,8 @@ class BaseTask:
             # if dict, create object from dict
             elif type(system) is dict:
                 self.system = system_builder.create(system['name'], system)
+            else:
+                raise TypeError("system must be None (use default), string, or dict.")
 
     def __str__(self):
         return self.to_dict()
@@ -133,7 +143,9 @@ class BaseTask:
         """
         if not self.repository:
             print("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
-            self.repository = repo_builder.create("filesystem", url=os.path.join(self.work_dir, self.run_id + "-manifest.json"))
+            repo = {'name': 'filesystem',
+                    'url': os.path.join(self.work_dir, self.run_id + "-manifest.json")}
+            self.repository = repo_builder.create("filesystem", repo)
         else:
             print(f"Found repository. Using {self.repository.name} to store class state.")
 
@@ -154,12 +166,16 @@ class BaseTask:
 
     @classmethod
     def from_dict(cls, adict):
-        exclude = ['system']
+        exclude = ['system', 'repository']
         try:
             system = adict['system']
         except KeyError:
-            pass
-        out = cls(system=system)
+            system = None
+        try:
+            repo = adict['repository']
+        except KeyError:
+            repo = None
+        out = cls(system=system, repository=repo)
         for k,v in out.__dict__.items():
             if k not in exclude:
                 try:

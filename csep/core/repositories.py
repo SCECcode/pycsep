@@ -76,5 +76,5 @@ class FileSystem(Repository):
 
 # Register repository builders
 repo_builder = ObjectFactory()
-repo_builder.register_builder('filesystem', FileSystem)
+repo_builder.register_builder('filesystem', FileSystem.from_dict)
 
