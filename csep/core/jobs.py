@@ -3,10 +3,10 @@ Job classes represent computational units.
 """
 import os
 import uuid
+import datetime
 
 from csep import CSEPObject
 from csep.utils.file import mkdirs, copy_file
-from csep.utils.constants import JobStatus
 from csep.core.config import machine_config
 from csep.core.system import system_builder, JsonFile, TextFile, System
 from csep.core.exceptions import CSEPSchedulerException
@@ -37,6 +37,8 @@ class BaseTask:
         self.inputs = inputs or []
         self.outputs = outputs or []
         self.prepared = False
+        self.run_datetime = None
+        self.last_modified_datetime = None
 
         # flag to warn user if trying to run in existing directory.
         self.force = False
@@ -71,7 +73,10 @@ class BaseTask:
         return self.to_dict()
 
     def __eq__(self, other):
-        return self.to_dict() == other.to_dict()
+        try:
+            return self.to_dict() == other.to_dict()
+        except:
+            return False
 
     def add_output(self, path):
         """
@@ -128,6 +133,7 @@ class BaseTask:
         out = self.system.execute(cmnd=self.command, args=self.args)
         if print_stdout and out.returncode == 0:
             print(out.stdout.decode("utf-8"))
+            self.run_datetime = datetime.datetime.now()
 
     def archive(self):
         """
@@ -149,6 +155,9 @@ class BaseTask:
         else:
             print(f"Found repository. Using {self.repository.name} to store class state.")
 
+        # stored in local time-zone
+        self.last_modified_datetime = datetime.datetime.now()
+
         # access storage through the repository layer
         self.repository.save(self.to_dict())
 
@@ -167,14 +176,17 @@ class BaseTask:
     @classmethod
     def from_dict(cls, adict):
         exclude = ['system', 'repository']
-        try:
-            system = adict['system']
-        except KeyError:
-            system = None
-        try:
-            repo = adict['repository']
-        except KeyError:
-            repo = None
+        # handle special attributes
+        system = adict.get('system', None)
+        repo = adict.get('repository', None)
+        # get datetime string as datetime.datetime
+        lmd = adict.get('last_modified_datetime', None)
+        if lmd:
+            adict['last_modified_datetime'] = datetime.datetime.strptime(lmd, '%y-%m-%d %H:%M:%S.%f')
+        # get datetime string as datetime.datetime
+        rd = adict.get('run_datetime', None)
+        if rd:
+            adict['run_datetime'] = datetime.datetime.strptime(rd, '%y-%m-%d %H:%M:%S.%f')
         out = cls(system=system, repository=repo)
         for k,v in out.__dict__.items():
             if k not in exclude:
@@ -185,7 +197,7 @@ class BaseTask:
                         new_v = adict[k]
                     setattr(out, k, new_v)
                 except KeyError:
-                    # use default values from constructor
+                    # ignore default values from constructor
                     pass
         return out
 

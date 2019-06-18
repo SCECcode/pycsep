@@ -33,8 +33,11 @@ class FileSystem(Repository):
             csep.core.managers.experiment
 
         """
-        with open(self.url, 'r') as f:
-            manifest=json.load(f)
+        try:
+            with open(self.url, 'r') as f:
+                manifest=json.load(f)
+        except IOError:
+            raise IOError(f"Unable to access file at {self.url}.")
         return object.from_dict(manifest)
 
 
@@ -55,10 +58,9 @@ class FileSystem(Repository):
         try:
             with open(self.url, 'w') as f:
                 print(f'Writing archive file to {self.url}.')
-                json.dump(data, f, indent=4, separators=(',', ': '))
+                json.dump(data, f, indent=4, separators=(',', ': '), default=str)
         except IOError:
-            raise
-            print(f'Error saving file to {self.url}')
+            raise IOError(f"Error saving file to {self.url}")
             success = False
         return success
 

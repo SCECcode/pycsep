@@ -6,6 +6,7 @@ The user specifies all machines and runtime configurations.
 
 Experiment configurations are serialized into JSON to load for further processing.
 """
+import datetime
 import os
 import sys
 import uuid
@@ -175,6 +176,10 @@ class Workflow:
             repo = self.repository
             print(f"Found repository. Using {repo.name} to store class state.")
 
+        # need to set here, bc archive is not explicitly called from jobs.
+        for job in self.jobs:
+            job.last_modified_datetime = datetime.datetime.now()
+
         # access storage through the repository layer
         # for sqlalchemy, this would create the Base objects to insert into the database.
         repo.save(self.to_dict())
@@ -196,7 +201,11 @@ class Workflow:
         # this represents a convenience wrapper. the manager should be used for
         # monitoring jobs.
         for job in self.jobs:
-            job.run()
+            status = job.status
+            if status == 'submitted' or status == 'complete':
+                print(f'{job.run_id} complete or submitted. skipping.')
+            else:
+                job.run()
         # archive after all jobs have run.
         self.archive()
 

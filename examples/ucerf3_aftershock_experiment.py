@@ -119,6 +119,8 @@ exp1.prepare(archive=True, dry_run=True)
 exp2 = ForecastExperiment()
 
 # load the experiment in from the command-line
-exp2 = exp2.add_repository(repository_config).load_state()
+exp2.add_repository(repository_config)
+exp2 = exp2.load()
 
 assert exp1 == exp2
+
