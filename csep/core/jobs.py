@@ -12,9 +12,10 @@ from csep.core.system import system_builder, JsonFile, TextFile, System
 from csep.core.exceptions import CSEPSchedulerException
 from csep.core.factories import ObjectFactory
 from csep.core.repositories import repo_builder, Repository
+from csep.utils.log import LoggingMixin
 
 
-class BaseTask:
+class BaseTask(LoggingMixin):
     """
     Represents the base class for any job needed to run on the system.
 
@@ -132,7 +133,7 @@ class BaseTask:
         """
         out = self.system.execute(cmnd=self.command, args=self.args)
         if print_stdout and out.returncode == 0:
-            print(out.stdout.decode("utf-8"))
+            self.log.info(out.stdout.decode("utf-8"))
             self.run_datetime = datetime.datetime.now()
 
     def archive(self):
@@ -148,12 +149,12 @@ class BaseTask:
             None
         """
         if not self.repository:
-            print("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
+            self.log.warning("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
             repo = {'name': 'filesystem',
                     'url': os.path.join(self.work_dir, self.run_id + "-manifest.json")}
             self.repository = repo_builder.create("filesystem", repo)
         else:
-            print(f"Found repository. Using {self.repository.name} to store class state.")
+            self.log.info(f"Found repository. Using {self.repository.name} to store class state.")
 
         # stored in local time-zone
         self.last_modified_datetime = datetime.datetime.now()
@@ -163,9 +164,10 @@ class BaseTask:
 
     def to_dict(self):
         """ Returns class state as JSON serializable dict. """
+        exclude = ['_log']
         out = {}
         for k, v in self.__dict__.items():
-            if not callable(v):
+            if not callable(v) and k not in exclude:
                 if hasattr(v, 'to_dict'):
                     new_v=v.to_dict()
                 else:
@@ -175,18 +177,18 @@ class BaseTask:
 
     @classmethod
     def from_dict(cls, adict):
-        exclude = ['system', 'repository']
+        exclude = ['system', 'repository','_log']
         # handle special attributes
         system = adict.get('system', None)
         repo = adict.get('repository', None)
         # get datetime string as datetime.datetime
         lmd = adict.get('last_modified_datetime', None)
         if lmd:
-            adict['last_modified_datetime'] = datetime.datetime.strptime(lmd, '%y-%m-%d %H:%M:%S.%f')
+            adict['last_modified_datetime'] = datetime.datetime.strptime(lmd, '%Y-%m-%d %H:%M:%S.%f')
         # get datetime string as datetime.datetime
         rd = adict.get('run_datetime', None)
         if rd:
-            adict['run_datetime'] = datetime.datetime.strptime(rd, '%y-%m-%d %H:%M:%S.%f')
+            adict['run_datetime'] = datetime.datetime.strptime(rd, '%Y-%m-%d %H:%M:%S.%f')
         out = cls(system=system, repository=repo)
         for k,v in out.__dict__.items():
             if k not in exclude:
@@ -222,12 +224,12 @@ class BaseTask:
         """
         n_inputs = len(self.inputs)
         if copy:
-            print(f"Staging {n_inputs} inputs to {self.work_dir}.")
+            self.log.info(f"Staging {n_inputs} inputs to {self.work_dir}.")
             for inp in self.inputs:
-                print(f"Copying {inp} to {self.work_dir}.")
+                self.log.info(f"Copying {inp} to {self.work_dir}.")
                 copy_file(inp, self.work_dir)
         else:
-            print(f"Found {n_inputs} listed, but not copying. Maintaining for archival.")
+            self.log.info(f"Found {n_inputs} listed, but not copying. Maintaining for archival.")
 
     def _create_environment(self):
         """
@@ -250,13 +252,13 @@ class BaseTask:
         """
         if os.path.isdir(self.work_dir):
             if self.force:
-                print(f'Warning: Found directory at {self.work_dir}. Forcing overwrite.')
+                self.log.warning(f'Warning: Found directory at {self.work_dir}. Forcing overwrite.')
             else:
                 raise CSEPSchedulerException("Working directory already exists. Set force = True to overwrite.")
         try:
             mkdirs(self.work_dir, 0o0755)
-        except OSError:
-            print(f'Unable to create working directory at {self.work_dir}. Ignoring forecast.')
+        except Exception as e:
+            self.log.exception(e)
 
 
 class UCERF3Forecast(BaseTask):
@@ -302,16 +304,16 @@ class UCERF3Forecast(BaseTask):
         Returns:
 
         """
-        print(f"Preparing UCERF3-ETAS forecast {self.name} in dir {self.work_dir}.")
+        self.log.info(f"Preparing UCERF3-ETAS forecast {self.name} in dir {self.work_dir}.")
         if self.staged:
-            print(f"UCERF3-ETAS forecast {self.name} in dir {self.work_dir} already staged. Skipping.")
+            self.log.info(f"UCERF3-ETAS forecast {self.name} in dir {self.work_dir} already staged. Skipping.")
         else:
             self._load_config_state()
             self.staged = True
 
         # state modifying action.
         if not dry_run and not self.prepared:
-            print(f'Creating run-time environment for {self.name}. This action modifies state on the system.')
+            self.log.info(f'Creating run-time environment for {self.name}. This action modifies state on the system.')
             self._create_environment()
             self.config.write(new_path=self.config.path)
             self.run_script.write(new_path=self.run_script.path)

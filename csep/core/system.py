@@ -5,10 +5,11 @@ import json
 from collections import namedtuple
 
 from csep.core.factories import ObjectFactory
+from csep.utils.log import LoggingMixin
 
 SlurmJobStatus = namedtuple('JobStatus', ['returncode', 'status', 'job_id', 'type', 'stdout', 'stderr'])
 
-class System:
+class System(LoggingMixin):
     def __init__(self, name=None, url=None, hostname=None,
                  email=None, max_cores=None, mem_per_node=None, **kwargs):
         self.name = name
@@ -32,7 +33,7 @@ class System:
         return cls(**adict)
 
     def to_dict(self):
-        exclude = []
+        exclude = ['_log']
         out = {}
         for k, v in self.__dict__.items():
             if not callable(v) and v not in exclude:
@@ -78,7 +79,7 @@ class System:
         stderr = out.stderr.decode("utf-8")
         rc = out.returncode
         if rc != 0:
-            print(f"Error executing command {' '.join(command)}.\n{stderr}")
+            self.log.error(f"Could not executing command {' '.join(command)}.\n{stderr}")
         return out
 
 
@@ -114,13 +115,13 @@ class SlurmSystem(System):
             dir_args = []
         # cmnd is a single string command (e.g., 'sbatch'), args should be an iterable
         full_cmnd = [cmnd] + dir_args + args
-        print(f"Executing {' '.join(full_cmnd)}.")
+        self.log.info(f"Executing {' '.join(full_cmnd)}.")
         out = subprocess.run(full_cmnd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # capture return code
         stdout = out.stdout.decode("utf-8")
         stderr = out.stderr.decode("utf-8")
         if out.returncode == 0:
-            print(f'Successfully submitted job to slurm Scheduler with job_id: {stdout.split()[-1]}')
+            self.log.info(f'Successfully submitted job to slurm Scheduler with job_id: {stdout.split()[-1]}')
             status = SlurmJobStatus(returncode=out.returncode,
                                     status='Success',
                                     job_id=stdout.split()[-1],
@@ -134,11 +135,11 @@ class SlurmSystem(System):
                                     type='batch',
                                     stdout=None,
                                     stderr=None)
-            print(f"Error with batch submission.\n{stderr}")
+            self.log.error(f"Error with batch submission.\n{stderr}")
         return status
 
 
-class File:
+class File(LoggingMixin):
     def __init__(self, path):
         self.type='base'
         self.path = os.path.expanduser(os.path.expandvars(str(path)))
@@ -149,7 +150,8 @@ class File:
             self._handle.close()
 
     def to_dict(self):
-        return {'path': self.path, 'type': self.type}
+        return {'path': self.path,
+                'type': self.type}
 
     @classmethod
     def from_dict(cls, adict):
@@ -178,7 +180,7 @@ class TextFile(File):
         self._contents = None
 
     def open(self, mode='r'):
-        print(f"Opening file at {self.path}.")
+        self.log.info(f"Opening file at {self.path}.")
         self._handle = open(self.path, mode)
 
     def template(self, adict):

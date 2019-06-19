@@ -7,6 +7,7 @@ The user specifies all machines and runtime configurations.
 Experiment configurations are serialized into JSON to load for further processing.
 """
 import datetime
+import logging
 import os
 import sys
 import uuid
@@ -17,8 +18,9 @@ from csep.core.jobs import job_builder
 from csep.core.system import system_builder
 from csep.core.repositories import repo_builder, Repository
 from csep.core.exceptions import CSEPSchedulerException
+from csep.utils.log import LoggingMixin
 
-class Workflow:
+class Workflow(LoggingMixin):
     """
     Top-level class for a computational workflow. This class is responsible for managing the state of the entire workflow.
     """
@@ -50,8 +52,7 @@ class Workflow:
         try:
             job = job_builder.create(name, config)
         except ValueError:
-            print('Unable to build forecast job object.')
-            sys.exit(-1)
+            raise CSEPSchedulerException('Unable to build forecast job object.')
         self.jobs.append(job)
         return job
 
@@ -84,10 +85,10 @@ class Workflow:
         """
         try:
             config = machine_config[name]
-        except KeyError:
-            print('Error. Machine configuration not registered with the program.')
-            sys.exit(-1)
-        print(f"Created {name} system to use as default system.")
+        except Exception as e:
+            self.log.exception(e)
+            raise
+        self.log.info(f"Created {name} system to use as default system.")
         self.system = system_builder.create(config['type'], config)
         self.default_system = name
         return
@@ -106,13 +107,13 @@ class Workflow:
             name = config['name']
             repository = repo_builder.create(name, config)
             self.repository = repository
-        except ValueError:
-            raise CSEPSchedulerException("Unable to build repository object.")
-            sys.exit(-1)
+        except Exception as e:
+            self.log.exception(e)
+            raise
         return
 
     def to_dict(self):
-        exclude = ['jobs']
+        exclude = ['jobs','_log']
         out = {}
         for k, v in self.__dict__.items():
             if not callable(v) and k not in exclude:
@@ -129,7 +130,7 @@ class Workflow:
 
     @classmethod
     def from_dict(cls, adict):
-        exclude = ['jobs','repository']
+        exclude = ['jobs','repository','_log']
         try:
             repo = adict['repository']
         except KeyError:
@@ -146,6 +147,7 @@ class Workflow:
                 except KeyError:
                     # use default values from constructor
                     pass
+
         # right now adding jobs through the setter method, not constructor
         for key in adict['jobs']:
             job_state = adict['jobs'][key]
@@ -167,14 +169,14 @@ class Workflow:
 
         """
         if self.repository is None:
-            print("Unable to archive simulation manifest. Repository must not be None.")
+            self.log.warning("Unable to archive simulation manifest. Repository must not be None.")
             return
         if not self.repository:
-            print("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
+            self.log.info("Unable to access repository. Defaulting to FileSystem repository and storing in the experiment directory.")
             repo = repo_builder.create("filesystem", url=self.work_dir)
         else:
             repo = self.repository
-            print(f"Found repository. Using {repo.name} to store class state.")
+            self.log.info(f"Found repository. Using {repo.name} to store class state.")
 
         # need to set here, bc archive is not explicitly called from jobs.
         for job in self.jobs:
@@ -191,10 +193,9 @@ class Workflow:
 
         """
         if not self.repository:
-            print("Unable to load state. Repository must not be None.")
-            sys.exit(-1)
+            raise CSEPSchedulerException("Unable to load state. Repository must not be None.")
         # calls .from_dict() on calling class
-        return self.repository.load_json(self)
+        return self.repository.load(self)
 
     def run(self):
         # for now jobs should be responsible for running themselves
@@ -203,7 +204,7 @@ class Workflow:
         for job in self.jobs:
             status = job.status
             if status == 'submitted' or status == 'complete':
-                print(f'{job.run_id} complete or submitted. skipping.')
+                self.log.info(f'{job.run_id} complete or submitted. skipping.')
             else:
                 job.run()
         # archive after all jobs have run.
@@ -228,7 +229,7 @@ class ForecastExperiment(Workflow):
         # need deepcopy to work on fresh copy of config file
         cfg=deepcopy(config)
         name=cfg['name']
-        print(f'Adding {name} forecast to experiment.')
+        self.log.info(f'Adding {name} forecast to experiment.')
         # add unique working dir if not specified
         try:
             wd = cfg['work_dir']

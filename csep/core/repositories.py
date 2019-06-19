@@ -8,8 +8,10 @@ import os
 import json
 
 from csep.core.factories import ObjectFactory
+from csep.utils.log import LoggingMixin
 
-class Repository:
+
+class Repository(LoggingMixin):
     pass
 
 class FileSystem(Repository):
@@ -24,7 +26,7 @@ class FileSystem(Repository):
         except:
             return False
 
-    def load_json(self, object):
+    def load(self, object):
         """
         Will list all experiments stored in JSON files. Method returns an experiment class
         with identical state to the JSON manifest file.
@@ -57,7 +59,7 @@ class FileSystem(Repository):
         success = True
         try:
             with open(self.url, 'w') as f:
-                print(f'Writing archive file to {self.url}.')
+                self.log.info(f'Writing archive file to {self.url}.')
                 json.dump(data, f, indent=4, separators=(',', ': '), default=str)
         except IOError:
             raise IOError(f"Error saving file to {self.url}")

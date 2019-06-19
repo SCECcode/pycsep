@@ -1,7 +1,11 @@
-import json
+import logging
 
 from csep.core.managers import ForecastExperiment
 from csep.utils.constants import SECONDS_PER_WEEK
+
+# Configure only in your main program clause
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(name)s %(levelname)s %(message)s')
 
 experiment_config = {
     "name": "UCERF3-ETAS Aftershock Study",
@@ -9,7 +13,6 @@ experiment_config = {
     "base_dir": '/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/runs',
     "owner": ["bill", "max"]
 }
-
 
 repository_config = {
     "name": "filesystem",
@@ -50,7 +53,7 @@ machine_config = {
 ucerf3job_config = {
     'name': 'ucerf3-etas',
     'system': machine_config['hpc-usc'],
-    'command': None,
+    'command': 'sbatch',
     'args': None,
     'inputs': [
         '$ETAS_LAUNCHER/inputs/u3_historical_catalog.txt',
@@ -118,9 +121,8 @@ for origin_time in origin_times:
 exp1.prepare(archive=True, dry_run=True)
 exp2 = ForecastExperiment()
 
-# load the experiment in from the command-line
+# # load the experiment in from the command-line
 exp2.add_repository(repository_config)
 exp2 = exp2.load()
 
 assert exp1 == exp2
-
