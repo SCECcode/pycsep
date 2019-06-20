@@ -1,6 +1,4 @@
 import os
-import json
-import logging
 import time
 from csep.core.analysis import run_u3etas_calculation
 from csep.core.environment import generate_local_airflow_environment_test

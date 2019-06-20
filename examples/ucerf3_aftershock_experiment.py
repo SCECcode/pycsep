@@ -3,10 +3,6 @@ import logging
 from csep.core.managers import ForecastExperiment
 from csep.utils.constants import SECONDS_PER_WEEK
 
-# Configure only in your main program clause
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(name)s %(levelname)s %(message)s')
-
 experiment_config = {
     "name": "UCERF3-ETAS Aftershock Study",
     "description": "Example study using UCERF3-ETAS and UCERF3-NoFaults immediately following major earthquakes in California.",
@@ -83,7 +79,7 @@ forecast_config = {
 epoch_time = 709732655000
 
 # generate start times every 1 week
-origin_times = [epoch_time + i * SECONDS_PER_WEEK for i in range(1)]
+origin_times = [epoch_time + i * SECONDS_PER_WEEK for i in range(10)]
 
 # start with experiment shell
 # serializable so we can load experiment back into memory (or on database)
