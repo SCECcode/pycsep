@@ -122,3 +122,7 @@ exp2.add_repository(repository_config)
 exp2 = exp2.load()
 
 assert exp1 == exp2
+
+fore=exp1.add_forecast(ucerf3job_config, force=True)
+fore=exp1.add_forecast(ucerf3job_config, force=True)
+fore=exp1.add_forecast(ucerf3job_config, force=True)

@@ -1,5 +1,4 @@
 import numpy
-import scipy
 import pandas
 import datetime
 import operator
@@ -8,6 +7,7 @@ import operator
 from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch
 from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
+from csep.utils.cmath import discretize
 
 
 class BaseCatalog:
@@ -220,6 +220,24 @@ class BaseCatalog:
             (numpy.array): longitudes
         """
         raise NotImplementedError('get_longitudes() not implemented!')
+
+    def get_bvalue(self, dmw):
+        """
+        Estimates the b-value of a catalog using Eq. 3.10 from Marzocchi and Sandri (2003)
+
+        Args:
+            dmw: Discretization of magnitudes
+
+        Returns:
+
+        """
+        mws = discretize(self.get_magnitudes())
+        # compute the p term from eq 3.10 in marzocchi and sandri [2003]
+        def p():
+            top = dmw
+            # assuming that the magnitudes are truncated above Mc (ask about this).
+            bottom = numpy.mean(mws) - numpy.min(mws)
+            return 1 + top / bottom
 
     def get_mfd(self, delta_mw=0.3, p_value=0.05):
         """
@@ -762,9 +780,9 @@ class ComcatCatalog(BaseCatalog):
         # pre-cleaned catalog is bound to self._catalog by the setter before calling this function.
         # will cause failure state if this function is called manually without binding self._catalog
         for i, event in enumerate(self.catalog):
-            # debugging remove after
             catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
                             event.latitude, event.longitude, event.depth, event.magnitude)
+
 
         return catalog
 
