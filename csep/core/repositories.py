@@ -16,6 +16,7 @@ from csep.utils.file import copy_file
 class Repository(LoggingMixin):
     pass
 
+
 class FileSystem(Repository):
     def __init__(self, url="", name='filesystem'):
         expand_url = os.path.expandvars(os.path.expanduser(url))
@@ -39,10 +40,10 @@ class FileSystem(Repository):
         """
         try:
             with open(self.url, 'r') as f:
-                manifest=json.load(f)
+                adict=json.load(f)
         except IOError:
             raise IOError(f"Unable to access file at {self.url}.")
-        return object.from_dict(manifest)
+        return object.from_dict(adict)
 
 
     def save(self, data, backup=False):
