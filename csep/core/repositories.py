@@ -4,11 +4,13 @@ data models. Job specific files and other associated items probably should not b
 as file names.
 
 """
+import datetime
 import os
 import json
 
 from csep.core.factories import ObjectFactory
 from csep.utils.log import LoggingMixin
+from csep.utils.file import copy_file
 
 
 class Repository(LoggingMixin):
@@ -43,7 +45,7 @@ class FileSystem(Repository):
         return object.from_dict(manifest)
 
 
-    def save(self, data):
+    def save(self, data, backup=False):
         """
         Saves file to location in repository. Changes state on the system, should be careful
         about how to approach having multiple monitor classes. Maybe use singleton if there
@@ -57,6 +59,16 @@ class FileSystem(Repository):
             success (bool)
         """
         success = True
+        if backup:
+            if os.path.isfile(self.url):
+                time_fmt = '%Y-%m-%dT%H:%M:%S:%f'
+                time_str = str(datetime.datetime.now().strftime(time_fmt))
+                fname = os.path.splitext(self.url)[0] + '_backup_' + time_str + '.json'
+                try:
+                    copy_file(self.url, fname)
+                    self.log.info(f'Found file at {self.url} backing up to {fname}.')
+                except Exception as e:
+                    self.log.exception(e)
         try:
             with open(self.url, 'w') as f:
                 self.log.info(f'Writing archive file to {self.url}.')

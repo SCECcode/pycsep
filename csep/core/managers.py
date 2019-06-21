@@ -186,7 +186,7 @@ class Workflow(LoggingMixin):
 
         # access storage through the repository layer
         # for sqlalchemy, this would create the Base objects to insert into the database.
-        repo.save(self.to_dict())
+        repo.save(self.to_dict(), backup=True)
 
     def load(self):
         """
