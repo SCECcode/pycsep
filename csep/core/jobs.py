@@ -341,7 +341,8 @@ class UCERF3Forecast(BaseTask):
         # ucerf3 specific configuration parameter
         if not 'outputDir' in adict.keys():
             adict['outputDir'] = self.work_dir
-        adict['simulationName'] = self.run_id
+        if not 'simulationName' in adict.keys():
+            adict['simulationName'] = self.run_id
         # just bind adict to template file object for now, want to perform this lazily in case there is an error
         self.config.new_params = adict
 

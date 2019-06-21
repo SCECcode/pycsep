@@ -4,10 +4,13 @@ import datetime
 import operator
 
 # CSEP Imports
-from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch
+from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime
 from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.cmath import discretize
+from csep.utils.comcat import SummaryEvent
+from csep.core.repositories import Repository, repo_builder
+from csep.core.exceptions import CSEPSchedulerException
 
 
 class BaseCatalog:
@@ -18,6 +21,8 @@ class BaseCatalog:
         Come up with idea on how to manage the region of a catalog.
         Would be used for filtering or binning. shapely, geopandas for spatial and DataFrame for temporal.
     """
+    dtype = numpy.dtype([])
+
     def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=False,
                  min_magnitude=None, max_magnitude=None,
                  min_latitude=None, max_latitude=None,
@@ -33,12 +38,13 @@ class BaseCatalog:
 
         # cleans the catalog to set as ndarray, see setter.
         self.catalog = catalog
+        if self.catalog is not None:
+            self.event_count = self.get_number_of_events()
 
         # class attributes that are not settable from constructor (adding here for readability)
         self.mfd = None
 
         # set these values from initially
-        self.event_count = self.get_number_of_events()
         self.max_magnitude = max_magnitude
         self.min_magnitude = min_magnitude
         self.min_latitude = min_latitude
@@ -90,7 +96,7 @@ class BaseCatalog:
                 if hasattr(v, 'to_dict'):
                     new_v = v.to_dict()
                 else:
-                    new_v = str(v)
+                    new_v = v
                 if k.startswith('_'):
                     out[k[1:]] = new_v
                 else:
@@ -107,6 +113,10 @@ class BaseCatalog:
                     new_line.append(item)        
             out['catalog'].append(new_line)
         return out
+
+    @classmethod
+    def from_dict(cls, adict):
+        raise NotImplementedError
 
     @property
     def catalog(self):
@@ -403,7 +413,13 @@ class BaseCatalog:
         Additionally, advanced catalog operations could be carried out using GeoDataFrames and
         DataFrames.
         """
-        return self.catalog
+        if isinstance(self.catalog, numpy.ndarray):
+            return self.catalog
+        n = len(self.catalog)
+        catalog = numpy.array(n, dtype=self.dtype)
+        for i, event in self.catalog:
+            catalog[i] = tuple(event)
+        return catalog
 
 
 class CSEPCatalog(BaseCatalog):
@@ -645,30 +661,63 @@ class ComcatCatalog(BaseCatalog):
                          ('magnitude','<f4')])
 
     def __init__(self, catalog_id='Comcat', format='comcat', start_epoch=None, duration_in_years=None,
-                 date_accessed=None, extra_comcat_params={}, **kwargs):
+                 date_accessed=None, query=False, extra_comcat_params={}, **kwargs):
 
         # parent class constructor
         super().__init__(catalog_id=catalog_id, format=format, **kwargs)
 
         self.date_accessed = date_accessed
-
         # if made with no catalog object, load catalog on object creation
-        if self.catalog is None:
-            self.start_time = self.start_time or epoch_time_to_utc_datetime(start_epoch)
-            self.end_time = self.end_time or self.start_time + timedelta_from_years(duration_in_years)
-
-            if self.start_time > self.end_time:
-                raise ValueError('Error: start_time must be greater than end_time.')
-
+        if self.catalog is None and query:
             if self.start_time is None and start_epoch is None:
-                    raise ValueError('Error: start_time or start_epoch must not be None.')
+                self.log.warning("start_time and start_epoch must not be none to query comcat.")
+                query = False
+            else:
+                self.start_time = self.start_time or epoch_time_to_utc_datetime(start_epoch)
 
             if self.end_time is None and duration_in_years is None:
-                raise ValueError('Error: end_time or time_delta must not be None.')
+                self.log.warning("and_time and duration_in_years must not be none.")
+                query = False
+            else:
+                self.end_time = self.end_time or self.start_time + timedelta_from_years(duration_in_years)
 
-            self.load_catalog(extra_comcat_params)
+            if query:
+                if self.start_time < self.end_time:
+                    self.query_comcat(extra_comcat_params)
+                else:
+                    self.log.warning("start_time must be less than end_time in order to query comcat servers.")
 
-    def load_catalog(self, extra_comcat_params):
+    @classmethod
+    def from_dict(cls, adict):
+        exclude = ['catalog', 'start_time', 'end_time', 'date_accessed']
+
+        catalog = adict.get('catalog', None)
+        start_time = adict.get('start_time', None)
+        end_time = adict.get('end_time', None)
+        date_accessed = adict.get('date_accessed', None)
+
+        if start_time is not None:
+            start_time=strptime_to_utc_datetime(start_time)
+
+        if end_time is not None:
+            end_time = strptime_to_utc_datetime(end_time)
+
+        if date_accessed is not None:
+            date_accessed = strptime_to_utc_datetime(date_accessed)
+
+        out = cls(catalog=catalog,
+                  start_time=start_time, end_time=end_time,
+                  date_accessed=date_accessed)
+
+        for k,v in out.__dict__.items():
+            if k not in exclude:
+                try:
+                    setattr(out, k, adict[k])
+                except Exception:
+                    pass
+        return out
+
+    def query_comcat(self, extra_comcat_params={}):
         """
         The default parameters are given from the California testing region defined by the CSEP1 template files. starttime
         and endtime are exepcted to be datetime objects with the UTC timezone.
@@ -685,9 +734,9 @@ class ComcatCatalog(BaseCatalog):
         This requires an internet connection and will fail if the script has no access to the server.
 
         Args:
+            repo (Repository): repository object to load catalogs.
             extra_comcat_params (dict): pass additional parameters to libcomcat
         """
-
 
         # get eventlist from Comcat
         eventlist = search(minmagnitude=self.min_magnitude,
@@ -705,6 +754,23 @@ class ComcatCatalog(BaseCatalog):
             self._update_catalog_stats()
 
         return self
+
+    @classmethod
+    def load(cls, repo):
+        """
+        Returns new class object using the repository stored with the class. Maybe this should be a class
+        method.
+
+        """
+        if isinstance(repo, Repository):
+            out=repo.load(cls())
+        elif type(repo) == dict:
+            repo = repo_builder.create(repo['name'], repo)
+            out=repo.load(cls())
+        else:
+            raise CSEPSchedulerException("Unable to load state. Repository must not be None.")
+        return out
+
 
     def get_magnitudes(self):
         """
@@ -773,17 +839,19 @@ class ComcatCatalog(BaseCatalog):
         # short-circuit
         if isinstance(self.catalog, numpy.ndarray):
             return self.catalog
-
         catalog_length = len(self.catalog)
         catalog = numpy.zeros(catalog_length, dtype=self.dtype)
-
-        # pre-cleaned catalog is bound to self._catalog by the setter before calling this function.
         # will cause failure state if this function is called manually without binding self._catalog
-        for i, event in enumerate(self.catalog):
-            catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
-                            event.latitude, event.longitude, event.depth, event.magnitude)
-
-
+        if isinstance(self.catalog, SummaryEvent):
+            for i, event in enumerate(self.catalog):
+                catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
+                                event.latitude, event.longitude, event.depth, event.magnitude)
+        elif type(self.catalog) == list:
+            for i, event in enumerate(self.catalog):
+                catalog[i] = tuple(event)
+        else:
+            raise TypeError("comcat catalog must be list of events with order:\n"
+                            "id, epoch_time, latitude, longtiude, depth, magnitude.")
         return catalog
 
     def get_csep_format(self):
