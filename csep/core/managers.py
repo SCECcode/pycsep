@@ -229,6 +229,10 @@ class ForecastExperiment(Workflow):
         # need deepcopy to work on fresh copy of config file
         cfg=deepcopy(config)
         name=cfg['name']
+        run_ids = [j.run_id for j in self.jobs]
+        if cfg['run_id'] in run_ids:
+            self.log.warning(f'Job {name} found with run_id: {cfg["run_id"]}. Skipping.')
+            return None
         self.log.info(f'Adding {name} forecast to experiment.')
         # add unique working dir if not specified
         try:
