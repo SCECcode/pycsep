@@ -111,3 +111,7 @@ class AcceptanceTests(unittest.TestCase):
         # # load the experiment in from the command-line
 
         assert exp1 == exp2
+        exp2.archive()
+
+        exp3 = ForecastExperiment.load(repository_config)
+        assert exp2 == exp3

@@ -196,10 +196,10 @@ class Workflow(LoggingMixin):
 
         """
         if isinstance(repo, Repository):
-            out=repo.load(cls())
+            out=repo.load(cls(repository=repo))
         elif type(repo) == dict:
             repo = repo_builder.create(repo['name'], repo)
-            out=repo.load(cls())
+            out=repo.load(cls(repository=repo))
         else:
             raise CSEPSchedulerException("Unable to load state. Repository must not be None.")
         # calls .from_dict() on calling class

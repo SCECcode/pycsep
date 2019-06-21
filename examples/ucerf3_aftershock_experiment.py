@@ -100,26 +100,11 @@ for origin_time in origin_times:
                                "numSimulations": 10000})
     fore.add_output("results_complete.bin")
 
-    # add UCERF3-ETAS NoFaults Forecast
-    # run_id = f'ot_{origin_time}_nf'
-    # ucerf3job_config.update({'work_dir': f'/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/runs/{run_id}',
-    #                          'run_id': run_id})
-    # fore=exp1.add_forecast(ucerf3job_config, force=True)
-    # fore.update_configuration({"startTimeMillis": origin_time,
-    #                            "duration": 1.0,
-    #                            "numSimulations": 10000,
-    #                            "griddedOnly": True,
-    #                            "totRateScaleFactor": 1.0,
-    #                            "gridSeisCorr": False})
-    # fore.add_output("results_complete.bin", "binary")
-
 # manage all computing environments needed to run the job
 exp1.prepare(archive=True, dry_run=True)
-exp2 = ForecastExperiment()
+exp2 = ForecastExperiment.load(repository_config)
 
 # # load the experiment in from the command-line
-exp2.add_repository(repository_config)
-exp2 = exp2.load()
 
 assert exp1 == exp2
 
