@@ -188,16 +188,22 @@ class Workflow(LoggingMixin):
         # for sqlalchemy, this would create the Base objects to insert into the database.
         repo.save(self.to_dict(), backup=True)
 
-    def load(self):
+    @classmethod
+    def load(cls, repo):
         """
         Returns new class object using the repository stored with the class. Maybe this should be a class
         method.
 
         """
-        if not self.repository:
+        if isinstance(repo, Repository):
+            out=repo.load(cls())
+        elif type(repo) == dict:
+            repo = repo_builder.create(repo['name'], repo)
+            out=repo.load(cls())
+        else:
             raise CSEPSchedulerException("Unable to load state. Repository must not be None.")
         # calls .from_dict() on calling class
-        return self.repository.load(self)
+        return out
 
     def run(self):
         # for now jobs should be responsible for running themselves
