@@ -7,9 +7,7 @@ The user specifies all machines and runtime configurations.
 Experiment configurations are serialized into JSON to load for further processing.
 """
 import datetime
-import logging
 import os
-import sys
 import uuid
 from copy import deepcopy
 
