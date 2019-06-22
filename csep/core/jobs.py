@@ -303,6 +303,7 @@ class UCERF3Forecast(BaseTask):
         Returns:
 
         """
+        self.work_dir = os.path.expanduser(os.path.expandvars(self.work_dir))
         self.log.info(f"Preparing UCERF3-ETAS forecast {self.name} in dir {self.work_dir}.")
         if self.staged:
             self.log.info(f"UCERF3-ETAS forecast {self.name} in dir {self.work_dir} already staged. Skipping.")
