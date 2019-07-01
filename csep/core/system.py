@@ -36,7 +36,7 @@ class System(LoggingMixin):
         exclude = ['_log']
         out = {}
         for k, v in self.__dict__.items():
-            if not callable(v) and v not in exclude:
+            if not callable(v) and k not in exclude:
                 if hasattr(v, 'to_dict'):
                     out[k] = v.to_dict()
                 else:

@@ -661,7 +661,7 @@ class ComcatCatalog(BaseCatalog):
                          ('magnitude','<f4')])
 
     def __init__(self, catalog_id='Comcat', format='comcat', start_epoch=None, duration_in_years=None,
-                 date_accessed=None, query=False, extra_comcat_params={}, **kwargs):
+                 date_accessed=None, query=True, extra_comcat_params={}, **kwargs):
 
         # parent class constructor
         super().__init__(catalog_id=catalog_id, format=format, **kwargs)
@@ -841,17 +841,17 @@ class ComcatCatalog(BaseCatalog):
             return self.catalog
         catalog_length = len(self.catalog)
         catalog = numpy.zeros(catalog_length, dtype=self.dtype)
-        # will cause failure state if this function is called manually without binding self._catalog
-        if isinstance(self.catalog, SummaryEvent):
-            for i, event in enumerate(self.catalog):
-                catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
-                                event.latitude, event.longitude, event.depth, event.magnitude)
-        elif type(self.catalog) == list:
+        if isinstance(self.catalog[0], dict):
             for i, event in enumerate(self.catalog):
                 catalog[i] = tuple(event)
+        elif isinstance(self.catalog[0], SummaryEvent):
+            for i, event in enumerate(self.catalog):
+                catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
+                              event.latitude, event.longitude, event.depth, event.magnitude)
         else:
             raise TypeError("comcat catalog must be list of events with order:\n"
-                            "id, epoch_time, latitude, longtiude, depth, magnitude.")
+                            "id, epoch_time, latitude, longtiude, depth, magnitude. or \n"
+                            "list of SummaryEvent type.")
         return catalog
 
     def get_csep_format(self):

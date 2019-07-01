@@ -180,11 +180,9 @@ class BaseTask(LoggingMixin):
         # handle special attributes
         system = adict.get('system', None)
         repo = adict.get('repository', None)
-        # get datetime string as datetime.datetime
         lmd = adict.get('last_modified_datetime', None)
         if lmd:
             adict['last_modified_datetime'] = datetime.datetime.strptime(lmd, '%Y-%m-%d %H:%M:%S.%f')
-        # get datetime string as datetime.datetime
         rd = adict.get('run_datetime', None)
         if rd:
             adict['run_datetime'] = datetime.datetime.strptime(rd, '%Y-%m-%d %H:%M:%S.%f')
@@ -198,7 +196,7 @@ class BaseTask(LoggingMixin):
                         new_v = adict[k]
                     setattr(out, k, new_v)
                 except KeyError:
-                    # ignore default values from constructor
+                    # ignore and use default values from constructor
                     pass
         return out
 
@@ -296,7 +294,7 @@ class UCERF3Forecast(BaseTask):
         else:
             self.output_dir = self.work_dir
 
-    def prepare(self, dry_run=False):
+    def prepare(self, dry_run=False, force=True):
         """
         Create necessary environment for running the job.
 
@@ -305,7 +303,7 @@ class UCERF3Forecast(BaseTask):
         """
         self.work_dir = os.path.expanduser(os.path.expandvars(self.work_dir))
         self.log.info(f"Preparing UCERF3-ETAS forecast {self.name} in dir {self.work_dir}.")
-        if self.staged:
+        if self.staged and not force:
             self.log.info(f"UCERF3-ETAS forecast {self.name} in dir {self.work_dir} already staged. Skipping.")
         else:
             self._load_config_state()
@@ -327,6 +325,7 @@ class UCERF3Forecast(BaseTask):
         # does not pass command, that is handled by the system.
         out = self.system.execute(args=[self.args], run_dir=self.work_dir)
         if out.returncode == 0:
+            self.run_datetime = datetime.datetime.now()
             self.status = 'submitted'
             self.job_id = out.job_id
         else:
