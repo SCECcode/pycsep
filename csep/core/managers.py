@@ -58,7 +58,7 @@ class Workflow(LoggingMixin):
         self.jobs.append(job)
         return job
 
-    def prepare(self, archive=False, dry_run=False):
+    def prepare(self, archive=False, dry_run=False, force=False):
         """
         Creates computing environments for each job in workflow.
 
@@ -69,7 +69,7 @@ class Workflow(LoggingMixin):
             OSError
         """
         for job in self.jobs:
-            job.prepare(dry_run=dry_run)
+            job.prepare(dry_run=dry_run, force=force)
 
         if archive:
             self.archive()
