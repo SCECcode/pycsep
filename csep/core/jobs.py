@@ -254,7 +254,7 @@ class BaseTask(LoggingMixin):
 
 class UCERF3Forecast(BaseTask):
     def __init__(self, model_dir='', config_templ='',
-                       script_templ='', output_dir='', nnodes=None, force=False, run_script=None,
+                       script_templ='', output_dir='', nnodes=None, run_script=None,
                        **kwargs):
 
         super().__init__(**kwargs)
@@ -278,8 +278,7 @@ class UCERF3Forecast(BaseTask):
         self.run_script = run_script
         if self.run_script is not None:
             self.run_script = TextFile(run_script)
-        # handle to config template file
-        self.config = None
+
 
         # runtime output directory
         if output_dir:

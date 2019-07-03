@@ -204,7 +204,7 @@ class Workflow(LoggingMixin):
             raise CSEPSchedulerException("Unable to load state. Repository must not be None.")
         return out
 
-    def run(self, force=True):
+    def run(self, force=False):
         # for now jobs should be responsible for running themselves
         # this represents a convenience wrapper. the manager should be used for
         # monitoring jobs.
