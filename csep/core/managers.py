@@ -204,14 +204,18 @@ class Workflow(LoggingMixin):
             raise CSEPSchedulerException("Unable to load state. Repository must not be None.")
         return out
 
-    def run(self):
+    def run(self, force=True):
         # for now jobs should be responsible for running themselves
         # this represents a convenience wrapper. the manager should be used for
         # monitoring jobs.
         for job in self.jobs:
             status = job.status
             if status == 'submitted' or status == 'complete':
-                self.log.info(f'{job.run_id} complete or submitted. skipping.')
+                if not force:
+                    self.log.info(f'{job.run_id} complete or submitted. skipping.')
+                else:
+                    self.log.info(f"forcing execution of {job.run_id}. data will be overwritten.")
+                    job.run()
             else:
                 job.run()
         # archive after all jobs have run.
