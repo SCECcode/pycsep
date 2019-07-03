@@ -37,7 +37,7 @@ class Workflow(LoggingMixin):
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
 
-    def add_job(self, name, config):
+    def add_job(self, name, config, force=False):
         """
         Add computational job to the workflow.
 
@@ -48,7 +48,7 @@ class Workflow(LoggingMixin):
 
         """
         run_ids = [j.run_id for j in self.jobs]
-        if config['run_id'] in run_ids:
+        if config['run_id'] in run_ids and not force:
             self.log.warning(f'Job {name} found with run_id: {config["run_id"]}. Skipping.')
             return None
         try:
@@ -253,5 +253,5 @@ class ForecastExperiment(Workflow):
             work_dir = os.path.join(self.base_dir, run_id)
             cfg.update({'run_id': run_id, 'work_dir': work_dir})
         cfg.update({'force': force})
-        job = self.add_job(name, cfg)
+        job = self.add_job(name, cfg, force)
         return job
