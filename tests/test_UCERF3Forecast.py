@@ -66,7 +66,6 @@ class TestUCERF3Forecast(TestCase):
         assert test_obj.outputs == []
         assert test_obj.work_dir == ''
         assert test_obj.model_dir == ''
-        assert test_obj.force == False
         assert test_obj.config_templ == ''
         assert test_obj.script_templ == ''
         assert test_obj.output_dir == ''

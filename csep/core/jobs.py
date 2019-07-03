@@ -40,9 +40,6 @@ class BaseTask(LoggingMixin):
         self.run_datetime = None
         self.last_modified_datetime = None
 
-        # flag to warn user if trying to run in existing directory.
-        self.force = False
-
         # should set all attributes in constructor
         self.repository = repository
         if not isinstance(self.repository, Repository):
@@ -248,10 +245,7 @@ class BaseTask(LoggingMixin):
 
         """
         if os.path.isdir(self.work_dir):
-            if self.force:
-                self.log.warning(f'Warning: Found directory at {self.work_dir}. Forcing overwrite.')
-            else:
-                raise CSEPSchedulerException("Working directory already exists. Set force = True to overwrite.")
+            self.log.warning(f'Warning: Found directory at {self.work_dir}. Forcing overwrite.')
         try:
             mkdirs(self.work_dir, 0o0755)
         except Exception as e:
@@ -269,7 +263,6 @@ class UCERF3Forecast(BaseTask):
         self.model_dir = os.path.expanduser(os.path.expandvars(model_dir))
         self.config_templ = os.path.expanduser(os.path.expandvars(config_templ))
         self.script_templ = os.path.expanduser(os.path.expandvars(script_templ))
-        self.force = force
 
         # gets set if submitting an HPC Job
         self.job_id = None
@@ -294,7 +287,7 @@ class UCERF3Forecast(BaseTask):
         else:
             self.output_dir = self.work_dir
 
-    def prepare(self, dry_run=False, force=True):
+    def prepare(self, dry_run=False, force=False):
         """
         Create necessary environment for running the job.
 
@@ -302,15 +295,15 @@ class UCERF3Forecast(BaseTask):
 
         """
         self.work_dir = os.path.expanduser(os.path.expandvars(self.work_dir))
-        self.log.info(f"Preparing UCERF3-ETAS forecast {self.name} in dir {self.work_dir}.")
         if self.staged and not force:
             self.log.info(f"UCERF3-ETAS forecast {self.name} in dir {self.work_dir} already staged. Skipping.")
         else:
+            self.log.info(f"Preparing UCERF3-ETAS forecast {self.name} in dir {self.work_dir} with run_id {self.run_id}.")
             self._load_config_state()
             self.staged = True
 
         # state modifying action.
-        if not dry_run and not self.prepared:
+        if not dry_run and not self.prepared and not force:
             self.log.info(f'Creating run-time environment for {self.name}. This action modifies state on the system.')
             self._create_environment()
             self.config.write(new_path=self.config.path)

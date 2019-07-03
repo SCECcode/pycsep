@@ -252,6 +252,5 @@ class ForecastExperiment(Workflow):
             run_id = uuid.uuid4().hex
             work_dir = os.path.join(self.base_dir, run_id)
             cfg.update({'run_id': run_id, 'work_dir': work_dir})
-        cfg.update({'force': force})
         job = self.add_job(name, cfg, force)
         return job
