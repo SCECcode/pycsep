@@ -1,5 +1,5 @@
 from unittest import TestCase
-from csep.utils.basic_types import keys_in_dict
+from csep.utils import keys_in_dict
 
 
 class TestBasicTypes(TestCase):

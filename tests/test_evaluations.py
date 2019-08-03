@@ -35,8 +35,8 @@ class TestNTest:
 
         result = number_test(sets, obs)
 
-        assert numpy.isclose(result[0], 1.0)
-        assert numpy.isclose(result[1], 0.5)
+        assert numpy.isclose(result.quantile[0], 1.0)
+        assert numpy.isclose(result.quantile[1], 0.5)
 
     def test_less_equal_side(self):
         n_obs = 1
@@ -50,8 +50,8 @@ class TestNTest:
         result = number_test(sets, obs)
 
         # result = (delta_1, delta_2)... at least, at most
-        assert numpy.isclose(result[0], 0.5)
-        assert numpy.isclose(result[1], 1.0)
+        assert numpy.isclose(result.quantile[0], 0.5)
+        assert numpy.isclose(result.quantile[1], 1.0)
 
     def test_obs_greater_than_all(self):
         n_obs = 2
@@ -65,8 +65,8 @@ class TestNTest:
         result = number_test(sets, obs)
 
         # result = (delta_1, delta_2)... at least, at most
-        assert numpy.isclose(result[0], 0.0)
-        assert numpy.isclose(result[1], 1.0)
+        assert numpy.isclose(result.quantile[0], 0.0)
+        assert numpy.isclose(result.quantile[1], 1.0)
 
     def test_obs_less_than_all(self):
         n_obs = -1
@@ -80,5 +80,5 @@ class TestNTest:
         result = number_test(sets, obs)
 
         # result = (delta_1, delta_2)... at least, at most
-        assert numpy.isclose(result[0], 1.0)
-        assert numpy.isclose(result[1], 0.0)
+        assert numpy.isclose(result.quantile[0], 1.0)
+        assert numpy.isclose(result.quantile[1], 0.0)

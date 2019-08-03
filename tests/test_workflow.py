@@ -4,7 +4,6 @@ from csep.core.repositories import Repository, FileSystem
 
 
 class TestWorkflow(TestCase):
-
     def test_create_repo_with_dict(self):
         repo = {'name': 'filesystem',
                 'url': 'testing'}

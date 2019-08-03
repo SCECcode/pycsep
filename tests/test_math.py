@@ -1,5 +1,7 @@
 import unittest
+import pytest
 from csep.utils.cmath import *
+from csep.core.exceptions import CSEPException
 
 
 class TestNearestIndex:
@@ -52,25 +54,64 @@ class TestNearestIndex:
         assert test_result == 3
 
 
-# class TestDigitize(unittest.TestCase):
-#
-#     def setUp(self):
-#         self.bin_edges = [0, 1, 2, 3, 4]
-#
-#     def test_lower_bound(self):
-#         data = [-0.1, 0.2, 1.2, 2.2, 3.2]
-#         test = discretize(data, self.bin_edges)
-#         expected = [0, 1, 2, 3, 4]
-#         self.assertListEqual(test.tolist(), expected)
-#
-#     def test_upper_bound(self):
-#         data = [-0.1, 0.2, 1.2, 2.2, 4.1]
-#         test = discretize(data, self.bin_edges)
-#         expected = [0, 1, 2, 3, 4]
-#         self.assertListEqual(test.tolist(), expected)
-#
-#     def test_value_on_bin_edge(self):
-#         data = [0, 0.2, 1.2, 2.2, 3.2]
-#         test = discretize(data, self.bin_edges)
-#         expected = [0, 1, 2, 3, 4]
-#         self.assertListEqual(test.tolist(), expected)
+class TestDigitize(unittest.TestCase):
+
+    """
+    edge cases:
+        -
+    """
+
+    def setUp(self):
+        self.bin_edges = [0, 1, 2, 3, 4]
+
+    def test_lower_bound(self):
+        data = [-0.1, 0.2, 1.2, 2.2, 3.2]
+        with pytest.raises(CSEPException):
+            discretize(data, self.bin_edges)
+
+    def test_upper_bound(self):
+        data = [-0.1, 0.2, 1.2, 2.2, 4.1]
+        with pytest.raises(CSEPException):
+            discretize(data, self.bin_edges)
+
+    def test_value_on_lower_bin_edge(self):
+        data = [0, 0.2, 1.2, 2.2, 3.2]
+        test = discretize(data, self.bin_edges)
+        expected = [0, 0, 1, 2, 3]
+        self.assertListEqual(test.tolist(), expected)
+
+    def test_value_on_upper_bin_edge(self):
+        data = [0.2, 1.0, 0.9, 3.4, 3.9]
+        test = discretize(data, self.bin_edges)
+        expected = [0, 1, 0, 3, 3]
+        self.assertListEqual(test.tolist(), expected)
+
+    def test_upper_bound_equal(self):
+        data = [4.0]
+        with pytest.raises(CSEPException):
+            discretize(data, self.bin_edges)
+
+    def test_unsorted_bins(self):
+        data = [4.0]
+        with pytest.raises(ValueError):
+            discretize(data, self.bin_edges[::-1])
+
+    def test_empty_data(self):
+        data = []
+        test = discretize(data, self.bin_edges)
+        expected = []
+        self.assertListEqual(test.tolist(), expected)
+
+    def test_empty_bin_edges(self):
+        data = [4.0]
+        with pytest.raises(ValueError):
+            discretize(data, [])
+
+    def test_noninteger_bins(self):
+        data = [2.24, 2.64, 2.99, 3.00]
+        bin_edges = [2, 2.25, 2.5, 2.75, 3.00, 3.25]
+        test = discretize(data, bin_edges)
+        expected = [2, 2.5, 2.75, 3.00]
+        self.assertListEqual(test.tolist(), expected)
+
+

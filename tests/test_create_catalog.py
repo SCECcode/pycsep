@@ -1,6 +1,5 @@
 import unittest
 import numpy
-import pandas
 from csep.core.catalogs import BaseCatalog
 
 

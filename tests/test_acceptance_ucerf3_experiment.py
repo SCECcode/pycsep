@@ -1,4 +1,6 @@
 import logging
+import os
+import tempfile
 
 import unittest
 from csep.core.managers import ForecastExperiment
@@ -7,16 +9,18 @@ from csep.utils.constants import SECONDS_PER_WEEK
 class AcceptanceTests(unittest.TestCase):
 
     def test_create_and_load_experiment(self):
+
+        tmp_dir = tempfile.TemporaryDirectory()
         experiment_config = {
-            "name": "UCERF3-ETAS Aftershock Study",
-            "description": "Example study using UCERF3-ETAS and UCERF3-NoFaults immediately following major earthquakes in California.",
-            "base_dir": '/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/runs',
-            "owner": ["bill", "max"]
+            "name": "Test Study",
+            "description": "Tests are good ",
+            "base_dir": '',
+            "owner": ["csep tester"]
         }
 
         repository_config = {
             "name": "filesystem",
-            "url": "~/Desktop/test-manifest.json"
+            "url": os.path.join(tmp_dir.name, "test-manifest.json")
         }
 
         machine_config = {
@@ -24,20 +28,11 @@ class AcceptanceTests(unittest.TestCase):
                 "name": "hpc-usc",
                 "url": "hpc.usc.edu",
                 "hostname": "hpc-login",
-                "email": "wsavran@usc.edu",
-                "mpj_home": "/home/scec-00/kmilner/mpj-current",
+                "email": "noemail@scec.org",
+                "mpj_home": "test",
                 "partition": "scec",
                 "max_cores": 20,
                 "mem_per_node": 64
-            },
-            "csep-cert": {
-                "name": "csep-cert",
-                "url": "certification.usc.edu",
-                "hostname": "csep2.localhost",
-                "email": "wsavran@usc.edu",
-                "type": "direct",
-                "max_cores": 32,
-                "mem_per_node": 192,
             },
             "default": {
                 "name": "default",
@@ -50,32 +45,28 @@ class AcceptanceTests(unittest.TestCase):
             }
         }
 
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        data_dir = os.path.join(root_dir, '../csep/artifacts/Configurations')
         ucerf3job_config = {
             'name': 'ucerf3-etas',
             'system': machine_config['hpc-usc'],
             'command': 'sbatch',
             'args': None,
-            'inputs': [
-                '$ETAS_LAUNCHER/inputs/u3_historical_catalog.txt',
-                '$ETAS_LAUNCHER/inputs/u3_historical_catalog_finite_fault_mappings.xml',
-                '$ETAS_LAUNCHER/inputs/cache_fm3p1_ba',
-                '$ETAS_LAUNCHER/inputs/2013_05_10-ucerf3p3-production-10runs_COMPOUND_SOL_FM3_1_SpatSeisU3_MEAN_BRANCH_AVG_SOL.zip'
-            ],
-            'model_dir': '/Users/wsavran/Projects/Code/ucerf3-etas-launcher',
-            'config_templ': '/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/template_files/ucerf3-defaults.json',
-            'script_templ': '/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/template_files/hpc-usc.slurm',
-            'output_dir': '/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/runs',
+            'inputs': [],
+            'model_dir': 'test',
+            'config_templ': os.path.join(data_dir, 'ucerf3-defaults.json'),
+            'script_templ': os.path.join(data_dir, 'hpc-usc.slurm'),
+            'output_dir': os.path.join(tmp_dir.name, 'runs'),
             'nnodes': 18,
             'max_run_time': '12:00:00'
         }
 
-
         forecast_config = {
             "ucerf3-etas":
                 {
-                    "config_templ": "$ETAS_SIMS/ucerf3-defaults.json",
-                    "script_templ": "$ETAS_SIMS/template_files/hpc-usc.slurm",
-                    "env": {"ETAS_LAUNCHER": "/home/scec-00/wsavran/git/ucerf3-etas-launcher"}
+                    "config_templ": os.path.join(data_dir, 'ucerf3-defaults.json'),
+                    "script_templ": os.path.join(data_dir, 'hpc-usc.slurm'),
+                    "env": {"ETAS_LAUNCHER": "testing"}
                 }
         }
 
@@ -98,7 +89,7 @@ class AcceptanceTests(unittest.TestCase):
             run_id = f'ot_{origin_time}'
             ucerf3job_config.update({'work_dir': f'/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/runs/{run_id}',
                                      'run_id': run_id})
-            fore=exp1.add_forecast(ucerf3job_config, force=True)
+            fore=exp1.add_forecast(ucerf3job_config)
             fore.update_configuration({"startTimeMillis": origin_time,
                                        "duration": 1.0,
                                        "numSimulations": 10000})
