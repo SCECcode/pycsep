@@ -1,10 +1,6 @@
 import logging
 from csep.core.catalogs import UCERF3Catalog, CSEPCatalog, ComcatCatalog
 
-# Configure only in your main program clause
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(name)s %(levelname)s %(message)s')
-
 
 def load_stochastic_event_set(type=None, format='native', **kwargs):
     """

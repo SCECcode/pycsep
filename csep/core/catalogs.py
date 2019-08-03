@@ -2,8 +2,10 @@ import numpy
 import pandas
 import datetime
 import operator
+import time
 
 # CSEP Imports
+import csep
 from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime
 from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
@@ -11,6 +13,8 @@ from csep.utils.cmath import discretize
 from csep.utils.comcat import SummaryEvent
 from csep.core.repositories import Repository, repo_builder
 from csep.core.exceptions import CSEPSchedulerException
+from csep.utils.spatial import bin_catalog_spatial_counts, bin1d_vec
+from csep.utils.constants import CSEP_MW_BINS
 
 
 class BaseCatalog:
@@ -157,9 +161,9 @@ class BaseCatalog:
         """
         raise NotImplementedError('write_catalog not implemented.')
 
-    def get_dataframe(self):
+    def get_dataframe(self, with_datetime=False):
         """
-        Returns pandas Dataframe describing the catalog.
+        Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
 
         Note:
             The dataframe will be in the format of the original catalog. If you require that the
@@ -167,11 +171,27 @@ class BaseCatalog:
 
         Returns:
             (pandas.DataFrame): This function must return a pandas DataFrame
+
+        Raises:
+            ValueError: If self._catalog cannot be passed to pandas.DataFrame constructor, this function
+                        must be overridden in the child class.
         """
         df = pandas.DataFrame(self.catalog)
-        if 'catalog_id' not in df.keys():
-            df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
+        df['counts'] = 1
+        df['catalog_id'] = self.catalog_id
+        if with_datetime:
+            df['datetime'] = df['origin_time'].map(epoch_time_to_utc_datetime)
+            df.index = df['datetime']
+        # queries the region for the index of each event
+        if self.region is not None:
+            df['region_id'] = self.region.get_index_of(self.get_longitudes(), self.get_latitudes())
+        # bin magnitudes
+        df['mag_id'] = self.get_mag_id(CSEP_MW_BINS)
+        # set index as datetime
         return df
+
+    def get_mag_id(self, mag_bins):
+        return bin1d_vec(self.get_magnitudes(), mag_bins)
 
     def get_number_of_events(self):
         """
@@ -266,91 +286,6 @@ class BaseCatalog:
             (pandas.DataFrame): Magnitude Freq Distribution. Counts and regression statistics attached for plotting.
         """
         raise PendingDeprecationWarning
-        # # getting comcat catalog as dataframe
-        # dm = delta_mw
-        # p_value = p_value
-        # min_mw, max_mw = self.min_magnitude, self.max_magnitude
-        # event_count = self.get_number_of_events()
-        #
-        # # pandas treats intervals as inclusive on top
-        # mw_inter = numpy.arange(min_mw-dm/2, max_mw+dm, dm)
-        #
-        # # switching into dataframe for easy manipulations
-        # df = self.get_dataframe()
-        #
-        # # get the counts in each magnitude bin
-        # self.mfd = pandas.DataFrame(df['counts'].groupby(pandas.cut(df['magnitude'], mw_inter)).sum())
-        #
-        # # cumulative counts contain the number of events greater than or equal to the magnitude
-        # self.mfd['counts'] = self.mfd.loc[::-1, 'counts'].cumsum()
-        #
-        # # get values from dataframe, might contain zeros
-        # vals = numpy.squeeze(self.mfd.values)
-        # x = numpy.array(self.mfd.index.categories.mid)
-        #
-        # # this is some what lenient
-        # if len(x) < 3:
-        #     self.mfd['N'] = numpy.nan
-        #     self.mfd['N_est'] = numpy.nan
-        #     self.mfd['lower_ci'] = numpy.nan
-        #     self.mfd['upper_ci'] = numpy.nan
-        #     self.mfd['t_stat'] = numpy.nan
-        #     self.mfd['a'] = numpy.nan
-        #     self.mfd['b'] = numpy.nan
-        #     self.mfd['ci_b'] = numpy.nan
-        #     return self.mfd
-        #
-        # # this could evaluate as false if there are zeros
-        # N = numpy.log10(vals)
-        # G = numpy.vstack([numpy.ones(len(x)), x]).T
-        #
-        # # perform least-squares to get b-value
-        # # log(N) = a-bM or N = 10^a / 10^bM
-        # # Note: this should be maximum likelihood estimation
-        # a, b = numpy.linalg.lstsq(G, N, rcond=None)[0]
-        #
-        # # generate line to plot
-        # N_est = a + b*x
-        #
-        # # setup vars for plotting ci
-        # err = N - numpy.squeeze(N_est)
-        #
-        # n = len(x)
-        # t_stat = scipy.stats.t.ppf(1-p_value/2, n-2)
-        # mean_x = numpy.mean(x)
-        # se_line = numpy.sqrt(numpy.sum(numpy.power(err, 2))/(n-2))
-        # se_xk = numpy.sqrt(1/n+numpy.power(x-mean_x, 2)/numpy.sum(numpy.power(x-mean_x, 2)))
-        # confs = se_line * se_xk
-        # lower = N_est-t_stat*confs
-        # upper = N_est+t_stat*confs
-        #
-        # # confidence interval of b-value
-        # rms = numpy.sqrt(numpy.mean(numpy.power(err, 2)))
-        # denom = numpy.sum(numpy.power(x-mean_x, 2))
-        # ci_b = t_stat*rms/denom
-        #
-        # # wish this were functional
-        # self.mfd['N'] = 0.0
-        # self.mfd['N_est'] = 0.0
-        # self.mfd['lower_ci'] = 0.0
-        # self.mfd['upper_ci'] = 0.0
-        # self.mfd['t_stat'] = 0.0
-        # self.mfd['a'] = 0.0
-        # self.mfd['b'] = 0.0
-        # self.mfd['ci_b'] = 0.0
-        #
-        # # add additional state to dataframe. use .loc() indexing to ensure the data is bound to dataframe
-        # self.mfd.loc[self.mfd['counts'] != 0, 'N'] = N
-        # self.mfd.loc[self.mfd['counts'] != 0, 'N_est'] = N_est
-        # self.mfd.loc[self.mfd['counts'] != 0, 'lower_ci'] = lower
-        # self.mfd.loc[self.mfd['counts'] != 0, 'upper_ci'] = upper
-        # self.mfd.loc[self.mfd['counts'] != 0, 't_stat'] = t_stat
-        # self.mfd.loc[self.mfd['counts'] != 0, 'a'] = a
-        # self.mfd.loc[self.mfd['counts'] != 0, 'b'] = b
-        # self.mfd.loc[self.mfd['counts'] != 0, 'ci_b'] = ci_b
-        #
-        # # return mfd
-        # return self.mfd
 
     def filter(self, statement):
         """
@@ -379,6 +314,28 @@ class BaseCatalog:
         self._update_catalog_stats()
 
         # return self
+        return self
+
+    def filter_spatial(self, region):
+        """
+        Removes events outside of the region. This is slow and should be used once. Typically for isoloate a region
+        near the mainshock. This should not be used to create gridded style data sets.
+
+        Args:
+            region: interface (implements obj.contains())
+
+        Returns:
+            self
+
+        """
+        if not hasattr(region, 'contains'):
+            raise CSEPSchedulerException("region must implement 'contains' method.")
+
+        coords = self.get_longitudes(), self.get_latitudes()
+        idx = numpy.where(region.contains(coords) == True)
+        filtered = self.catalog[idx]
+        self.catalog = filtered
+        self._update_catalog_stats()
         return self
 
     def _get_csep_format(self):
@@ -420,6 +377,69 @@ class BaseCatalog:
         for i, event in self.catalog:
             catalog[i] = tuple(event)
         return catalog
+
+    def gridded_event_counts(self):
+        """
+        This function is bad and should be broken up into multiple parts. In general, it works by circumscribing the
+        polygons with a bounding box. Inside the bounding box is assumed to follow a regular Cartesian grid.
+
+        We figure out the index of the polygons and create a map that relates the spatial coordinate in the
+        Cartesian grid with with the polygon in region.
+
+        Args:
+            region: list of polygons
+
+        Returns:
+            outout: unnormalized event count in each bin, 1d ndarray where index corresponds to midpoints
+            midpoints: midpoints of polygons in region
+            cartesian: data embedded into a 2d map. can be used for quick plotting in python
+        """
+        # make sure region is specified with catalog
+        if self.region is None:
+            raise CSEPSchedulerException("Cannot create binned rates without region information.")
+        output = csep.utils.spatial.bin_catalog_spatial_counts(self.get_longitudes(),
+                                                               self.get_latitudes(),
+                                                               len(self.region.polygons),
+                                                               self.region.bitmask,
+                                                               self.region.xs,
+                                                               self.region.ys)
+        return output
+
+    def gridded_space_mag_counts(self):
+        """
+        This function is bad and should be broken up into multiple parts. In general, it works by circumscribing the
+        polygons with a bounding box. Inside the bounding box is assumed to follow a regular Cartesian grid.
+
+        We figure out the index of the polygons and create a map that relates the spatial coordinate in the
+        Cartesian grid with with the polygon in region.
+
+        Args:
+            region: list of polygons
+
+        Returns:
+            outout: unnormalized event count in each bin, 1d ndarray where index corresponds to midpoints
+            midpoints: midpoints of polygons in region
+            cartesian: data embedded into a 2d map. can be used for quick plotting in python
+        """
+
+        # make sure region is specified with catalog
+        if self.region is None:
+            raise CSEPSchedulerException("Cannot create binned rates without region information.")
+        output = csep.utils.spatial.bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
+                                                                        self.get_latitudes(),
+                                                                        self.get_magnitudes(),
+                                                                        len(self.region.polygons),
+                                                                        self.region.bitmask,
+                                                                        self.region.xs,
+                                                                        self.region.ys)
+        return output
+
+    def binned_magnitude_counts(self, bins=CSEP_MW_BINS):
+        out = numpy.zeros(len(bins))
+        idx = bin1d_vec(self.get_magnitudes(), bins)
+        for i in idx:
+            out[i] += 1
+        return out
 
 
 class CSEPCatalog(BaseCatalog):
@@ -529,7 +549,7 @@ class UCERF3Catalog(BaseCatalog):
         super().__init__(**kwargs)
 
     @classmethod
-    def load_catalogs(cls, filename=None, **kwargs):
+    def load_catalogs(cls, filename=None, filters = [], **kwargs):
         """
         Loads catalogs based on the merged binary file format of UCERF3. File format is described at
         https://scec.usc.edu/scecpedia/CSEP2_Storing_Stochastic_Event_Sets#Introduction.
@@ -559,32 +579,6 @@ class UCERF3Catalog(BaseCatalog):
 
                 # generator function
                 yield(u3_catalog)
-
-    def get_dataframe(self):
-        """
-        Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
-
-        Note:
-            The dataframe will be in the format of the original catalog. If you require that the
-            dataframe be in the CSEP ZMAP format, you must explicitly convert the catalog.
-
-        Returns:
-            (pandas.DataFrame): This function must return a pandas DataFrame
-
-        Raises:
-            ValueError: If self._catalog cannot be passed to pandas.DataFrame constructor, this function
-                        must be overridden in the child class.
-        """
-        df = pandas.DataFrame(self.catalog)
-        # this is used for aggregrating counts
-        df['counts'] = 1
-        if 'catalog_id' not in df.keys():
-            df['catalog_id'] = self.catalog_id
-        if 'datetime' not in df.keys():
-            df['datetime'] = df['origin_time'].map(epoch_time_to_utc_datetime)
-        # set index as datetime
-        df.index = df['datetime']
-        return df
 
     def get_datetimes(self):
         """
@@ -622,7 +616,6 @@ class UCERF3Catalog(BaseCatalog):
         return self.catalog['latitude']
 
     def _get_csep_format(self):
-        # TODO: possibly modify this routine to happen faster. the byteswapping is expensive.
         n = len(self.catalog)
         # allocate array for csep catalog
         csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
@@ -770,7 +763,6 @@ class ComcatCatalog(BaseCatalog):
         else:
             raise CSEPSchedulerException("Unable to load state. Repository must not be None.")
         return out
-
 
     def get_magnitudes(self):
         """
