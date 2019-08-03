@@ -1,6 +1,23 @@
 import numpy
 
 
+def cumulative_square_dist(cdf1, cdf2):
+    """
+    given two cumulative distribution functions, compute the cumulative sq. diff of the set of distances.
+
+    note:
+        this function does not check that the ecdfs are ordered or balanced. beware!
+
+    Args:
+        cdf1: ndarray
+        cdf2: ndarray
+
+    Returns:
+        cum_dist: scalar distance metric for the histograms
+
+    """
+    return numpy.sum((cdf2 - cdf1)**2)
+
 def ecdf(x):
     """
     Compute the ecdf of vector x. This does not contain zero, should be equal to 1 in the last value
@@ -36,6 +53,7 @@ def greater_equal_ecdf(x, val, cdf=()):
         ex, ey = cdf
 
     eyc = ey[::-1]
+
     # some short-circuit cases for discrete distributions; x is sorted, but reversed.
     if val > ex[-1]:
         return 0.0
@@ -87,3 +105,14 @@ def max_or_none(x):
         return None
     else:
         return numpy.max(x)
+
+
+def _get_quantiles(sim_counts, obs_count):
+    """
+    Direct call using ndarray. Useful for optimizing calls to multiprocessing pools.
+    """
+    # delta 1 prob of observation at least n_obs events given the forecast
+    delta_1 = greater_equal_ecdf(sim_counts, obs_count)
+    # delta 2 prob of observing at most n_obs events given the catalog
+    delta_2 = less_equal_ecdf(sim_counts, obs_count)
+    return delta_1, delta_2

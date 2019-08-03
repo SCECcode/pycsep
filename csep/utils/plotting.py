@@ -1,10 +1,17 @@
+import matplotlib
+from matplotlib import pyplot as pyplot
+from matplotlib.collections import PatchCollection
+
 import time
 import numpy
 import pandas
 import matplotlib.pyplot as pyplot
 import matplotlib.dates as mdates
+import cartopy
+import cartopy.crs as ccrs
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
-from csep.utils.constants import SECONDS_PER_DAY
+from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.time import epoch_time_to_utc_datetime
 
 """
@@ -23,7 +30,8 @@ IDEA: Since plotting functions are usable by these classes only that don't imple
 """
 
 
-def plot_cumulative_events_versus_time(stochastic_event_set, observation, filename=None, show=False, plot_args={}):
+# TODO: Fix this to work with shorter interval catalogs, grouping defaults to week. should default to nchunks.
+def plot_cumulative_events_versus_time(stochastic_event_set, observation, show=False, plot_args={}):
     """
     Plots cumulative number of events against time for both the observed catalog and a stochastic event set.
     Initially bins events by week and computes.
@@ -99,6 +107,7 @@ def plot_cumulative_events_versus_time(stochastic_event_set, observation, filena
     ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
     # save figure
+    filename = plot_args.get('filename', None)
     if filename is not None:
         fig.savefig(filename)
 
@@ -173,7 +182,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
                    filename=None, show=False, axes=None, catalog=None, plot_args={}):
     """
     Plots histogram of single statistic for stochastic event sets and observations. The function will behave differently
-    depending on the inputs.
+    depending on the inumpyuts.
 
     Simulated should always be either a list or numpy.array where there would be one value per catalog in the stochastic event
     set. Observation could either be a scalar or a numpy.array/list. If observation is a scale a vertical line would be
@@ -210,16 +219,16 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
             fig, ax = pyplot.subplots()
 
     # parse plotting arguments
-    sim_label = plot_args.pop('sim_label', 'Simulated')
-    obs_label = plot_args.pop('obs_label', 'Observation')
-    xlabel = plot_args.pop('xlabel', 'X')
-    ylabel = plot_args.pop('ylabel', 'Frequency')
-    xycoords = plot_args.pop('xycoords', (1.00, 0.40))
-    title = plot_args.pop('title', None)
-    legend_loc = plot_args.pop('legend_loc', 'best')
-    legend = plot_args.pop('legend', True)
-    bins = plot_args.pop('bins', bins)
-    color = plot_args.pop('color', '')
+    sim_label = plot_args.get('sim_label', 'Simulated')
+    obs_label = plot_args.get('obs_label', 'Observation')
+    xlabel = plot_args.get('xlabel', 'X')
+    ylabel = plot_args.get('ylabel', 'Frequency')
+    xycoords = plot_args.get('xycoords', (1.00, 0.40))
+    title = plot_args.get('title', None)
+    legend_loc = plot_args.get('legend_loc', 'best')
+    legend = plot_args.get('legend', True)
+    bins = plot_args.get('bins', bins)
+    color = plot_args.get('color', '')
 
     # this could throw an error exposing bad implementation
     observation = numpy.array(observation)
@@ -231,16 +240,16 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     else:
         # remove any nan values
         observation = observation[~numpy.isnan(observation)]
-        ax.hist(observation, bins=bins, edgecolor='black', alpha=0.5, label=obs_label)
+        ax.hist(observation, bins=bins, edgecolor='black', alpha=0.5, rwidth=0.75, label=obs_label)
 
     # remove any potential nans from arrays
     simulated = numpy.array(simulated)
     simulated = simulated[~numpy.isnan(simulated)]
     if color:
-        n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', alpha=0.5, label=sim_label,
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', rwidth=0.75, alpha=0.5, label=sim_label,
                                         color=color)
     else:
-        n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', alpha=0.5, label=sim_label)
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', rwidth=0.75, alpha=0.5, label=sim_label)
 
     # color bars for rejection area
     if percentile is not None:
@@ -258,16 +267,22 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         pyplot.subplots_adjust(right=0.75)
 
     # show 99.9% of data
-    upper_xlim = numpy.percentile(simulated, 99.5)
-    ax.set_xlim([0, upper_xlim])
+    upper_xlim = numpy.percentile(simulated, 99.95)
+    upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
+    d_bin = bin_edges[1] - bin_edges[0]
+    upper_xlim = upper_xlim + 2*d_bin
+
+    lower_xlim = numpy.percentile(simulated, 0.05)
+    lower_xlim = numpy.min([0, lower_xlim, numpy.min(observation)])
+    lower_xlim = lower_xlim - 2*d_bin
+
+    ax.set_xlim([lower_xlim, upper_xlim])
 
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if legend:
         ax.legend(loc=legend_loc)
-
-
 
     # hacky workaround for coloring legend, by calling after legend.
     if percentile is not None:
@@ -371,6 +386,341 @@ def plot_ecdf(x, ecdf, xv=None, catalog=None, filename=None, show=False, plot_ar
     if filename is not None:
         pyplot.savefig(filename)
 
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
+    # get list of magnitudes list of ndarray
+    u3etas_mws = list(map(lambda x: x.get_magnitudes(), u3catalogs))
+    obs_mw = comcat.get_magnitudes()
+    n_obs = comcat.get_number_of_events()
+
+    # get ecdf at arbitrary values
+    mws = CSEP_MW_BINS
+    dmw = mws[1] - mws[0]
+
+
+    def get_hist(x, mws, normed=True):
+        n_temp = len(x)
+        temp_scale = n_obs / n_temp
+        if normed:
+            hist = numpy.histogram(x, bins=mws)[0] * temp_scale
+        else:
+            hist = numpy.histogram(x, bins=mws)[0]
+        return hist
+
+    # get hist values
+    u3etas_hist = numpy.array(list(map(lambda x: get_hist(x, mws), u3etas_mws)))
+    obs_hist, bin_edges = numpy.histogram(obs_mw, bins=mws)
+    bin_edges_plot = (bin_edges[1:] + bin_edges[:-1]) / 2
+
+    fig = pyplot.figure(figsize=(12,9))
+    ax = fig.gca()
+    u3etas_median = numpy.median(u3etas_hist, axis=0)
+    u3etas_low = numpy.percentile(u3etas_hist, 2.5, axis=0)
+    u3etas_high = numpy.percentile(u3etas_hist, 97.5, axis=0)
+    u3etas_min = numpy.min(u3etas_hist, axis=0)
+    u3etas_max = numpy.max(u3etas_hist, axis=0)
+    u3etas_emax = u3etas_max - u3etas_median
+    u3etas_emin = u3etas_median - u3etas_min
+
+    # u3etas_emax = u3etas_max
+    # plot 95% range as rectangles
+    rectangles = []
+    for i in range(len(mws) - 1):
+        width = dmw / 2
+        height = u3etas_high[i] - u3etas_low[i]
+        xi = mws[i] + width / 2
+        yi = u3etas_low[i]
+        rect = matplotlib.patches.Rectangle((xi, yi), width, height)
+        rectangles.append(rect)
+    pc = matplotlib.collections.PatchCollection(rectangles, facecolor='blue', alpha=0.3, edgecolor='blue')
+    ax.add_collection(pc)
+    # plot whiskers
+    sim_label = plot_args.get('sim_label', 'Simulated Catalogs')
+    pyplot.errorbar(bin_edges_plot, u3etas_median, yerr=[u3etas_emin, u3etas_emax], xerr=0.8 * dmw / 2, fmt=' ',
+                    label=sim_label, color='blue', alpha=0.7)
+    pyplot.plot(bin_edges_plot, obs_hist, '.k', markersize=10, label='Comcat')
+    pyplot.legend(loc='upper right')
+    xlim = plot_args.get('xlim', None)
+    pyplot.xlim(xlim)
+    pyplot.xlabel('Mw')
+    pyplot.ylabel('Count')
+    pyplot.title("UCERF3-ETAS Histogram")
+    xycoords = plot_args.get('xycoords', (1.00, 0.40))
+    ax.annotate(str(comcat), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    pyplot.subplots_adjust(right=0.75)
+    if show:
+        pyplot.show()
+
+
+def plot_spatial_dataset(gridded, region, plot_args={}):
+    """
+    plots spatial dataset associated with region
+
+    Args:
+        gridded: 1d numpy array with vals according to region
+        region: Region class
+        plot_args: arguments to various matplotlib functions.
+
+    Returns:
+
+    """
+    # get spatial information for plotting
+    extent = region.get_bbox()
+    # plot using cartopy
+    figsize = plot_args.get('figsize', (16,9))
+    fig = pyplot.figure(figsize=figsize)
+    ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
+    lons, lats = numpy.meshgrid(region.xs, region.ys)
+    im = ax.pcolormesh(lons, lats, gridded)
+    ax.set_extent(extent)
+    ax.coastlines(color='black', resolution='110m', linewidth=1)
+    ax.add_feature(cartopy.feature.STATES)
+    clim = plot_args.get('clim', None)
+    im.set_clim(clim)
+    # colorbar options
+    cbar = fig.colorbar(im, ax=ax)
+    clabel = plot_args.get('clabel', '')
+    cbar.set_label(clabel)
+    # matplotlib.cm.get_cmap().set_bad(color='white')
+    # matplotlib.cm.get_cmap().set_under(color='gray')
+    # gridlines options
+    gl = ax.gridlines(draw_labels=True, alpha=0.5)
+    gl.xlines = False
+    gl.ylines = False
+    gl.ylabels_right = False
+    gl.xformatter = LONGITUDE_FORMATTER
+    gl.yformatter = LATITUDE_FORMATTER
+    # this is a cartopy.GeoAxes
+    return ax
+
+
+def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
+    """
+    Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
+    for the n-test.
+
+
+    Args:
+        evaluation_result: object-like var that implements the interface of the above EvaluationResult
+
+    Returns:
+        ax (matplotlib.axes.Axes): can be used to modify the figure
+
+    """
+    # handle plotting
+    if axes:
+        chained = True
+    else:
+        chained = False
+    # supply fixed arguments to plots
+    # might want to add other defaults here
+    filename = plot_args.pop('filename', None)
+    fixed_plot_args = {'xlabel': 'Event Counts per Catalog',
+                       'ylabel': 'Number of Catalogs',
+                       'obs_label': evaluation_result.obs_name,
+                       'sim_label': evaluation_result.sim_name}
+    plot_args.update(fixed_plot_args)
+    bins = plot_args.get('bins', 'auto')
+    percentile = plot_args.pop('percentile', 95)
+    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+                        catalog=evaluation_result.obs_catalog_repr,
+                        plot_args=plot_args,
+                        bins=bins,
+                        axes=axes,
+                        percentile=percentile)
+
+    # annotate plot with p-values
+    if not chained:
+        ax.annotate('$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
+                    .format(*evaluation_result.quantile),
+                    xycoords='axes fraction',
+                    xy=(0.5, 0.3),
+                    fontsize=14)
+
+    title = plot_args.get('title', 'CSEP2 Number Test')
+    ax.set_title(title, fontsize=14)
+
+    if filename is not None:
+        pyplot.savefig(filename)
+
+    # func has different return types, before release refactor and remove plotting from evaluation.
+    # plotting should be separated from evaluation.
+    # evaluation should return some object that can be plotted maybe with verbose option.
+    if show:
+        pyplot.show()
+
+    return ax
+
+def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
+    """
+    Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
+    for the M-test.
+
+
+    Args:
+        evaluation_result: object-like var that implements the interface of the above EvaluationResult
+
+    Returns:
+        ax (matplotlib.axes.Axes): can be used to modify the figure
+
+    """
+    # handle plotting
+    if axes:
+        chained = True
+    else:
+        chained = False
+    # supply fixed arguments to plots
+    # might want to add other defaults here
+    filename = plot_args.pop('filename', None)
+    fixed_plot_args = {'xlabel': 'D* Statistic',
+                       'ylabel': 'Number of Catalogs',
+                       'obs_label': evaluation_result.obs_name,
+                       'sim_label': evaluation_result.sim_name}
+    plot_args.update(fixed_plot_args)
+    bins = plot_args.get('bins', 'auto')
+    percentile = plot_args.pop('percentile', 95)
+    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+                        catalog=evaluation_result.obs_catalog_repr,
+                        plot_args=plot_args,
+                        bins=bins,
+                        axes=axes,
+                        percentile=percentile)
+
+    # annotate plot with p-values
+    if not chained:
+        ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
+                    .format(evaluation_result.quantile),
+                    xycoords='axes fraction',
+                    xy=(0.5, 0.3),
+                    fontsize=14)
+
+    title = plot_args.get('title', 'CSEP2 Magnitude Test')
+    ax.set_title(title, fontsize=14)
+
+    if filename is not None:
+        pyplot.savefig(filename)
+
+    # func has different return types, before release refactor and remove plotting from evaluation.
+    # plotting should be separated from evaluation.
+    # evaluation should return some object that can be plotted maybe with verbose option.
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
+    """
+    Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
+    for the L-test.
+
+
+    Args:
+        evaluation_result: object-like var that implements the interface of the above EvaluationResult
+
+    Returns:
+        ax (matplotlib.axes.Axes): can be used to modify the figure
+
+    """
+    # handle plotting
+    if axes:
+        chained = True
+    else:
+        chained = False
+    # supply fixed arguments to plots
+    # might want to add other defaults here
+    filename = plot_args.pop('filename', None)
+    fixed_plot_args = {'xlabel': 'Pseudo Likelihood',
+                       'ylabel': 'Number of Catalogs',
+                       'obs_label': evaluation_result.obs_name,
+                       'sim_label': evaluation_result.sim_name}
+    plot_args.update(fixed_plot_args)
+    bins = plot_args.get('bins', 'auto')
+    percentile = plot_args.pop('percentile', 95)
+    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+                        catalog=evaluation_result.obs_catalog_repr,
+                        plot_args=plot_args,
+                        bins=bins,
+                        axes=axes,
+                        percentile=percentile)
+
+    # annotate plot with p-values
+    if not chained:
+        ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
+                    .format(evaluation_result.quantile),
+                    xycoords='axes fraction',
+                    xy=(0.5, 0.3),
+                    fontsize=14)
+
+    title = plot_args.get('title', 'CSEP2 Pseudo Likelihood Test')
+    ax.set_title(title, fontsize=14)
+
+    if filename is not None:
+        pyplot.savefig(filename)
+
+    # func has different return types, before release refactor and remove plotting from evaluation.
+    # plotting should be separated from evaluation.
+    # evaluation should return some object that can be plotted maybe with verbose option.
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def plot_spatial_test(evaluation_result, axes=None, plot_args={}, show=True):
+    """
+
+
+    Args:
+        evaluation_result:
+
+    Returns:
+
+    """
+    # handle plotting
+    if axes:
+        chained = True
+    else:
+        chained = False
+    # supply fixed arguments to plots
+    # might want to add other defaults here
+    filename = plot_args.pop('filename', None)
+    fixed_plot_args = {'xlabel': 'Normalized Pseudo Likelihood',
+                       'ylabel': 'Number of Catalogs',
+                       'obs_label': evaluation_result.obs_name,
+                       'sim_label': evaluation_result.sim_name}
+    plot_args.update(fixed_plot_args)
+    bins = plot_args.get('bins', 'auto')
+    percentile = plot_args.pop('percentile', 95)
+    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+                        catalog=evaluation_result.obs_catalog_repr,
+                        plot_args=plot_args,
+                        bins=bins,
+                        axes=axes,
+                        percentile=percentile)
+
+    # annotate plot with p-values
+    if not chained:
+        ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
+                    .format(evaluation_result.quantile),
+                    xycoords='axes fraction',
+                    xy=(0.2, 0.7),
+                    fontsize=14)
+
+    title = plot_args.get('title', 'CSEP2 Spatial Test')
+    ax.set_title(title, fontsize=14)
+
+    if filename is not None:
+        pyplot.savefig(filename)
+
+    # func has different return types, before release refactor and remove plotting from evaluation.
+    # plotting should be separated from evaluation.
+    # evaluation should return some object that can be plotted maybe with verbose option.
     if show:
         pyplot.show()
 

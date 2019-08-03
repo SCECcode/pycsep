@@ -37,7 +37,7 @@ class Workflow(LoggingMixin):
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
 
-    def add_job(self, name, config, force=False):
+    def add_job(self, name, config):
         """
         Add computational job to the workflow.
 
@@ -48,9 +48,8 @@ class Workflow(LoggingMixin):
 
         """
         run_ids = [j.run_id for j in self.jobs]
-        if config['run_id'] in run_ids and not force:
-            self.log.warning(f'Job {name} found with run_id: {config["run_id"]}. Skipping.')
-            return None
+        if config['run_id'] in run_ids:
+            raise CSEPSchedulerException("Cannot add job with same run_id.")
         try:
             job = job_builder.create(name, config)
         except ValueError:
@@ -252,5 +251,5 @@ class ForecastExperiment(Workflow):
             run_id = uuid.uuid4().hex
             work_dir = os.path.join(self.base_dir, run_id)
             cfg.update({'run_id': run_id, 'work_dir': work_dir})
-        job = self.add_job(name, cfg, force)
+        job = self.add_job(name, cfg)
         return job

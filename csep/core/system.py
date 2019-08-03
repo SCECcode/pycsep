@@ -75,11 +75,14 @@ class System(LoggingMixin):
         """
         command = [cmnd, *args.split(' ')]
         out = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
         # capture return code
         stderr = out.stderr.decode("utf-8")
         rc = out.returncode
         if rc != 0:
             self.log.error(f"Could not executing command {' '.join(command)}.\n{stderr}")
+        else:
+            print(out.stdout.decode('utf-8'))
         return out
 
 

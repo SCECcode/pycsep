@@ -4,3 +4,5 @@ class CSEPSchedulerException(Exception):
 class CSEPEvaluationException(Exception):
     pass
 
+class CSEPException(Exception):
+    pass

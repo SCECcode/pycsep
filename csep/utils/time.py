@@ -98,7 +98,6 @@ class Specifier(str):
                 return m.group(0)  # leave unchanged
         return self._regex.sub(repl, format)
 
-
 class HistoricTime(datetime.datetime):
 
     def strftime(self, format):

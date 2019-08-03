@@ -4,10 +4,14 @@
 from enum import Enum
 
 # Time Constants
+import numpy
+
 SECONDS_PER_ASTRONOMICAL_YEAR = 31557600
 SECONDS_PER_DAY = 60*60*24
 SECONDS_PER_WEEK = SECONDS_PER_DAY*7
 SECONDS_PER_MONTH = SECONDS_PER_WEEK*4
+
+MW_5_EQS_PER_YEAR = 10
 
 
 class JobStatus(str, Enum):
@@ -17,3 +21,9 @@ class JobStatus(str, Enum):
     PREPARED = 'prepared'
     SUBMITTED = 'submitted'
     RUNNING = 'running'
+
+# Magnitude Bins
+min_mw = 2.5
+max_mw = 8.5
+dmw = 0.1
+CSEP_MW_BINS = numpy.arange(min_mw, max_mw, dmw)

@@ -45,7 +45,6 @@ class FileSystem(Repository):
             raise IOError(f"Unable to access file at {self.url}.")
         return object.from_dict(adict)
 
-
     def save(self, data, backup=False):
         """
         Saves file to location in repository. Changes state on the system, should be careful
@@ -76,7 +75,6 @@ class FileSystem(Repository):
                 json.dump(data, f, indent=4, separators=(',', ': '), default=str)
         except IOError:
             raise IOError(f"Error saving file to {self.url}")
-            success = False
         return success
 
     def to_dict(self):

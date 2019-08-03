@@ -2,6 +2,8 @@
 Taken from www.github.com/usgs/libcomcat and extract relevant portions of code for CSEP.
 Removes dependencies on libcomcat to make installation of CSEP package easier. USGS code
 is public domain. Credit for this code goes to mhearne at usgs dot gov.
+
+Since the API is the same, we will port to the USGS version
 """
 
 # python imports
@@ -21,6 +23,7 @@ from csep.utils.time import HistoricTime
 import numpy as np
 import pandas as pd
 import dateutil
+from obspy.core.event import read_events
 
 # constants
 # url template for counting events
@@ -651,6 +654,7 @@ class DetailEvent(object):
     def toDict(self, catalog=None,
                get_tensors='preferred',
                get_moment_supplement=False,
+               get_all_magnitudes=False,
                get_focals='preferred'):
         """Return origin, focal mechanism, and tensor information for a DetailEvent.
         Args:
@@ -743,6 +747,18 @@ class DetailEvent(object):
             if self.hasProduct('focal-mechanism'):
                 focal = self.getProducts('focal-mechanism')[0]
                 edict.update(_get_focal_mechanism_info(focal))
+
+        if get_all_magnitudes:
+            phase_data = self.getProducts('phase-data')[0]
+            phase_url = phase_data.getContentURL('quakeml.xml')
+            catalog = read_events(phase_url)
+            event = catalog.events[0]
+            imag = 1
+            for magnitude in event.magnitudes:
+                edict['magnitude%i' % imag] = magnitude.mag
+                edict['magtype%i' %
+                      imag] = magnitude.magnitude_type
+                imag += 1
 
         return edict
 
@@ -1210,3 +1226,40 @@ def _get_focal_mechanism_info(focal):
         edict['%s_np2_rake' % msource] = focal['nodal-plane-2-slip']
     return edict
 
+def get_event_by_id(eventid, catalog=None,
+                    includedeleted=False,
+                    includesuperseded=False,
+                    host=None):
+    """Search the ComCat database for an event matching the input event id.
+    This search function is a wrapper around the ComCat Web API described here:
+    https://earthquake.usgs.gov/fdsnws/event/1/
+    Some of the search parameters described there are NOT implemented here, usually because they do not
+    apply to GeoJSON search results, which we are getting here and parsing into Python data structures.
+    This function returns a DetailEvent object, described elsewhere in this package.
+    Usage:
+      TODO
+    Args:
+        eventid (str): Select a specific event by ID; event identifiers are data center specific.
+        includesuperseded (bool):
+            Specify if superseded products should be included. This also includes all
+            deleted products, and is mutually exclusive to the includedeleted parameter.
+        includedeleted (bool): Specify if deleted products should be incuded.
+        host (str): Replace default ComCat host (earthquake.usgs.gov) with a custom host.
+    Returns: DetailEvent object.
+    """
+    # getting the inputargs must be the first line of the method!
+    inputargs = locals().copy()
+    newargs = {}
+    for key, value in inputargs.items():
+        if value is True:
+            newargs[key] = 'true'
+            continue
+        if value is False:
+            newargs[key] = 'false'
+            continue
+        if value is None:
+            continue
+        newargs[key] = value
+
+    event = _search(**newargs)  # this should be a DetailEvent
+    return event
