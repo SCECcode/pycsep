@@ -1,0 +1,57 @@
+{
+  "experiment": "u3etas_benchmark",
+  "description": "u3etas bencmark run m1.xxlarge, nsim=500, threads=20, gb=100gb",
+  "author": "william savran",
+  "date": 10-17-2016,
+  "environment": {
+    "csep_home": "/home/wsavran/csep",
+    "csep_models": "/home/wsavran/csep/models"
+  },
+  "runtime": {
+    "run_id": "u3etas_benchmark_pt1",
+    "execution_runtime": "01-01-2018T10:30:00.0000",
+    "model_directory": "/home/wsavran/csep/models/csep2-models/ucerf3-etas",
+    "runtime_directory": "/home/wsavran/csep/u3etas_benchmark/runs/u3etas_benchmark_pt1"
+  },
+  "tasks": [
+    {
+      "name": "generate_local_airflow_environment_test",
+      "output_files": "",
+      "type": "python-callable",
+      "machine": "JetStream",
+      "version": "v0.1-dev"
+    },
+    {
+      "name": "build_run_image",
+      "output_files": "",
+      "type": "python-callable",
+      "machine": "JetStream",
+      "version": "v0.1-dev"
+    },
+    {
+      "name": "run_u3etas_calculation",
+      "output_files": "/home/wsavran/csep/u3etas_benchmark/runs/u3etas_benchmark_pt1/output_dir/results_complete.bin",
+      "type": "python-callable",
+      "machine": "JetStream",
+      "version": "v0.1-dev"
+    }
+  ],
+  "models": [
+    {
+      "name": "u3etas",
+      "output_format": "u3etas_binary_catalog",
+      "docker_image_tag": "wsavran/csep:u3etas-latest",
+      "runtime_configfile_path": "/home/wsavran/csep/u3etas_benchmark",
+      "authors": [
+        {
+          "name": "Ned Field",
+          "email": "field@usgs.gov"
+        },
+        {
+          "name": "Kevin Milner",
+          "email": "kmilner@usgs.gov"
+        }
+      ]
+    }
+  ]
+}
