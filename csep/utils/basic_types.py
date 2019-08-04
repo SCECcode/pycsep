@@ -4,6 +4,7 @@ import pickle
 from multiprocessing import Queue, Array
 import numpy as np
 from queue import Empty, Full
+import pyproj
 import time
 
 
@@ -13,7 +14,7 @@ class Polygon:
 
     This polygon is assumed to be 2d, but could contain an arbitrary number of vertices.
     """
-    def __init__(self, points, tri=False):
+    def __init__(self, points):
         # instance members
         self.points = points
         self.origin = self.points[0]
@@ -33,6 +34,29 @@ class Polygon:
             c0 = c0 + p[0]
             c1 = c1 + p[1]
         return c0 / k, c1 / k
+
+    @classmethod
+    def from_great_circle_radius(cls, centroid, radius, num_points=10):
+        """
+        Generates a polygon object from a given radius and centroid location.
+
+        Args:
+            centroid: (lon, lat)
+            radius: should be in (meters)
+            num_points: more points is higher resolution polygon
+
+        Returns:
+            polygon
+        """
+        geod = pyproj.Geod(ellps='WGS84')
+        azim = np.linspace(0, 360, num_points)
+        # create vectors with same length as azim for computations
+        center_lons = np.ones(num_points) * centroid[0]
+        center_lats = np.ones(num_points) * centroid[1]
+        radius = np.ones(num_points) * radius
+        # get new lons and lats
+        endlon, endlat, backaz = geod.fwd(center_lons, center_lats, azim, radius)
+        return cls(np.column_stack([endlon,endlat]))
 
 
 class ArrayView:

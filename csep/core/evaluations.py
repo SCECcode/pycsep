@@ -342,3 +342,29 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
                                       obs_name=observation.name)
     return (result_likelihood, result_spatial)
 
+def interevent_time_test(stochastic_event_sets, observation):
+    """
+    These compare the inter-event time distribution of the forecasts with the observation. It works similarly to
+    the magnitude test. First, we build the union distribution
+
+    Args:
+        stochastic_event_sets:
+        observation:
+
+    Returns:
+
+    """
+    pass
+
+def inter_event_distribution_test(stochastic_event_sets, observation):
+    pass
+
+def total_event_rate_distribution_test(stochastic_event_sets, observation):
+    pass
+
+def depth_distribution_test(stohastic_event_sets, observation):
+    pass
+
+def bvalue_distribution_test(stochastic_event_sets, observation):
+    pass
+

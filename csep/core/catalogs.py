@@ -87,7 +87,7 @@ class BaseCatalog:
 
     def to_dict(self):
         """
-        Serializes class to dictionary.
+        Serializes class to json dictionary.
 
         Returns:
             catalog as dict
@@ -328,13 +328,12 @@ class BaseCatalog:
             self
 
         """
-        if not hasattr(region, 'contains'):
-            raise CSEPSchedulerException("region must implement 'contains' method.")
-
-        coords = self.get_longitudes(), self.get_latitudes()
-        idx = numpy.where(region.contains(coords) == True)
-        filtered = self.catalog[idx]
+        mask = region.get_masked(self.get_longitudes(), self.get_latitudes())
+        # logical index uses opposite boolean values than masked arrays, confusing i know.
+        filtered = self.catalog[~mask]
         self.catalog = filtered
+        # update the region to the new region
+        self.region = region
         self._update_catalog_stats()
         return self
 

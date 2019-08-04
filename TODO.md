@@ -1,12 +1,11 @@
 **news tests / features**
 * total event rate distribution.
 * inter-event time/distance distribution.
-* add wc filtering around source region for ses and comcat.
 
 **producing results**
 * compile results into jupyter notebook.
 * output statistics for multiple mag ranges.
-* setup simulation daily. 
+* setup automated evaluations, and reproducible. 
 
 **repo love**
 * full test for spatial region.

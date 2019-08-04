@@ -1,5 +1,7 @@
 import os
 import xml.etree.ElementTree as ET
+from itertools import compress
+
 import numpy
 
 from csep.utils.basic_types import Polygon
@@ -22,9 +24,33 @@ class Region:
         return len(self.polygons)
 
     def get_index_of(self, lons, lats):
+        """
+        Returns the index of lons, lats in self.polygons
+        Args:
+            lons: ndarray-like
+            lats: ndarray-like
+
+        Returns:
+            idx: ndarray-like
+        """
         idx = self._bin1d_vec(lons, self.xs)
         idy = self._bin1d_vec(lats, self.ys)
         return self.bitmask[idy, idx, 1]
+
+    def get_masked(self, lons, lats):
+        """
+        Returns bool array if masked
+
+        Args:
+            lons: ndarray-like
+            lats: ndarray-like
+
+        Returns:
+            idx: ndarray-like
+        """
+        idx = self._bin1d_vec(lons, self.xs)
+        idy = self._bin1d_vec(lats, self.ys)
+        return self.bitmask[idy, idx, 0].astype(bool)
 
     def get_location_of(self, idx):
         """
@@ -40,7 +66,6 @@ class Region:
         idx = list(idx)
         midpoints = numpy.array([self.polygons[int(ix)].centroid() for ix in idx])
         return midpoints[:,0], midpoints[:,1]
-
 
     def get_cartesian(self, data):
         # this is usually used for plotting, so nan lets us get around things
@@ -348,3 +373,19 @@ def bin_catalog_spatial_counts(lons, lats, n_poly, bitmask, binx, biny):
             # update event counts in that polygon
             event_counts[hash_idx] += 1
     return event_counts
+
+def masked_region(region, polygon):
+    """
+    build a new region based off the coordinates in the polygon.
+    light weight and no error checking. have fun.
+
+    Args:
+        region: Region object
+        polygon: Polygon object
+
+    Returns:
+        new_region: Region object
+    """
+    contains = polygon.contains(region.midpoints())
+    new_polygons = list(compress(region.polygons, contains))
+    return Region(new_polygons, region.dh)

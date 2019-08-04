@@ -15,11 +15,11 @@ def build_run_image(config, updated_inputs=None):
     # IDEA: add this functionality into the setup environment step
     # grab useful information from config
     model_dir = config['model_dir']
-    base_config_file = os.path.join(model_dir, config['config_filename'])
     runtime_dir = config['runtime_dir']
+    run_id = config['run_id']
+    base_config_file = os.path.join(model_dir, config['config_filename'])
     run_config_file = os.path.join(runtime_dir, config['config_filename'])
     run_dockerfile = os.path.join(model_dir, 'dockerfile')
-    run_id = config['run_id']
 
     # copy input file from model directory to runtime directory
     shutil.copy(base_config_file, runtime_dir)

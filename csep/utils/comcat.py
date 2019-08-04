@@ -1237,7 +1237,7 @@ def get_event_by_id(eventid, catalog=None,
     apply to GeoJSON search results, which we are getting here and parsing into Python data structures.
     This function returns a DetailEvent object, described elsewhere in this package.
     Usage:
-      TODO
+
     Args:
         eventid (str): Select a specific event by ID; event identifiers are data center specific.
         includesuperseded (bool):

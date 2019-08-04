@@ -372,7 +372,7 @@ class UCERF3Forecast(BaseTask):
             self.update_configuration()
 
         # template configuration parameters.
-        # this operation is read-only, and stores templated values in mem.
+        # this operation is read-only, and stores templated values in memory.
         new = self.config.new_params
         self.config=self.config.template(new)
         self.config.path = os.path.join(self.work_dir, self.run_id + "-config.json")
