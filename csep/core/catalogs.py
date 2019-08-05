@@ -9,7 +9,7 @@ import csep
 from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime
 from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
-from csep.utils.cmath import discretize
+from csep.utils.calc import discretize
 from csep.utils.comcat import SummaryEvent
 from csep.core.repositories import Repository, repo_builder
 from csep.core.exceptions import CSEPSchedulerException
@@ -17,7 +17,7 @@ from csep.utils.spatial import bin_catalog_spatial_counts, bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 
 
-class BaseCatalog:
+class AbstractBaseCatalog:
     """
     Base class for CSEP2 catalogs.
 
@@ -227,7 +227,7 @@ class BaseCatalog:
 # use user defined stats if entered into catalog
         :returns: list of magnitudes from catalog
         """
-        raise NotImplementedError('get_magnitudes must be implemented by subclasses of BaseCatalog')
+        raise NotImplementedError('get_magnitudes must be implemented by subclasses of AbstractBaseCatalog')
 
     def get_datetimes(self):
         """
@@ -297,7 +297,7 @@ class BaseCatalog:
             statement (str): logical statement to evaluate, e.g., 'magnitude > 4.0'
 
         Returns:
-            self: instance of BaseCatalog, so that this function can be chained.
+            self: instance of AbstractBaseCatalog, so that this function can be chained.
 
         """
         operators = {'>': operator.gt,
@@ -307,12 +307,11 @@ class BaseCatalog:
                      '==': operator.eq}
         name, type, value = statement.split(' ')
         idx = numpy.where(operators[type](self.catalog[name], float(value)))
+        # returns a copy of the array
         filtered = self.catalog[idx]
         self.catalog = filtered
-
         # update instance state before returning
         self._update_catalog_stats()
-
         # return self
         return self
 
@@ -441,7 +440,7 @@ class BaseCatalog:
         return out
 
 
-class CSEPCatalog(BaseCatalog):
+class CSEPCatalog(AbstractBaseCatalog):
     """
     Catalog stored in CSEP2 format. This catalog be used when operating within the CSEP2 software ecosystem.
     """
@@ -459,30 +458,6 @@ class CSEPCatalog(BaseCatalog):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-    def get_dataframe(self):
-        """
-        Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
-
-        Note:
-            The dataframe will be in the format of the original catalog. If you require that the
-            dataframe be in the CSEP ZMAP format, you must explicitly convert the catalog.
-
-        Returns:
-            (pandas.DataFrame): This function must return a pandas DataFrame
-
-        Raises:
-            ValueError: If self._catalog cannot be passed to pandas.DataFrame constructor, this function
-                        must be overridden in the child class.
-        """
-        df = pandas.DataFrame(self._catalog)
-        if 'catalog_id' not in df.keys():
-            df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
-
-        if 'datetime' not in df.keys():
-            df['datetime'] = self.get_datetimes()
-
-        return df
 
     def get_longitudes(self):
         return self.catalog['longitude']
@@ -521,7 +496,7 @@ class CSEPCatalog(BaseCatalog):
         return self
 
 
-class UCERF3Catalog(BaseCatalog):
+class UCERF3Catalog(AbstractBaseCatalog):
     """
     Handles catalog type for stochastic event sets produced by UCERF3.
 
@@ -641,7 +616,7 @@ class UCERF3Catalog(BaseCatalog):
         return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 
 
-class ComcatCatalog(BaseCatalog):
+class ComcatCatalog(AbstractBaseCatalog):
     """
     Class handling retrieval of Comcat Catalogs.
     """
@@ -771,32 +746,6 @@ class ComcatCatalog(BaseCatalog):
             numpy.array: of magnitudes
         """
         return self.catalog['magnitude']
-
-    def get_dataframe(self):
-        """
-        Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
-
-        Note:
-            The dataframe will be in the format of the original catalog. If you require that the
-            dataframe be in the CSEP ZMAP format, you must explicitly convert the catalog. Preferentially,
-            using the load_stochastic_event_set or load_catalog function defined in the base package.
-
-        Returns:
-            (pandas.DataFrame): This function must return a pandas DataFrame
-
-        Raises:
-            ValueError: If self._catalog cannot be passed to pandas.DataFrame constructor, this function
-                        must be overridden in the child class.
-        """
-        df = pandas.DataFrame(self.catalog)
-        df['counts'] = 1
-        if 'catalog_id' not in df.keys():
-            df['catalog_id'] = [self.catalog_id for _ in range(len(self.catalog))]
-        if 'datetime' not in df.keys():
-            df['datetime'] = df['origin_time'].map(epoch_time_to_utc_datetime)
-        # set index as datetime
-        df.index = df['datetime']
-        return df
 
     def get_datetimes(self):
         """

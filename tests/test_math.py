@@ -1,6 +1,6 @@
 import unittest
 import pytest
-from csep.utils.cmath import *
+from csep.utils.calc import *
 from csep.core.exceptions import CSEPException
 
 

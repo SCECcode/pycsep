@@ -2,6 +2,7 @@ from collections import namedtuple
 
 import numpy
 import tqdm
+from numba import jit
 
 import time
 from csep.utils.stats import cumulative_square_dist
@@ -252,57 +253,50 @@ def magnitude_test(stochastic_event_sets, observation, mag_bins=CSEP_MW_BINS):
 
     return result
 
+def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, time_interval, n_obs, n_gridded):
+    gridded_cat_ma = numpy.ma.masked_where(gridded_data == 0, gridded_data)
+    apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_cat_ma.mask)
+    likelihood = numpy.ma.sum(gridded_cat_ma * numpy.ma.log10(apprx_rate_density_ma)) - expected_cond_count
+    # compute spatial 'likelihood'
+    gridded_rate_cat = gridded_data / time_interval
+    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio
+    normalizing_factor = n_obs / n_gridded
+    gridded_rate_cat_norm = normalizing_factor * gridded_rate_cat
+    # compute likelihood for each event, ignoring areas with 0 expectation
+    gridded_rate_cat_norm_ma = numpy.ma.masked_where(gridded_rate_cat_norm == 0, gridded_rate_cat_norm)
+    apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_rate_cat_norm_ma.mask)
+    likelihood_norm = numpy.ma.sum(gridded_rate_cat_norm_ma * numpy.ma.log10(apprx_rate_density_ma))
+    return(likelihood, likelihood_norm)
+
 def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_rate_density, time_interval=1.0):
     # integrating, assuming that all cats in ses have same region
     region = stochastic_event_sets[0].region
+    n_cat = len(stochastic_event_sets)
     expected_cond_count = numpy.sum(apprx_rate_density) * region.dh * region.dh * time_interval
     gridded_obs = observation.gridded_event_counts()
-    name = 'L-Test'
+    n_obs = observation.get_number_of_events()
 
     # build likelihood distribution from ses
-    test_distribution_likelihood = []
-    test_distribution_spatial = []
+    test_distribution_likelihood = numpy.empty(n_cat)
+    test_distribution_spatial = numpy.empty(n_cat)
     t0 = time.time()
     for i, catalog in enumerate(stochastic_event_sets):
         gridded_cat = catalog.gridded_event_counts()
-
-
-        # compute likelihood for each event, ignoring areas with 0 expectation
-        gridded_cat_ma = numpy.ma.masked_where(gridded_cat == 0, gridded_cat)
-        apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_cat_ma.mask)
-        likelihood = numpy.ma.sum(gridded_cat_ma * numpy.ma.log10(apprx_rate_density_ma)) - expected_cond_count
-        test_distribution_likelihood.append(likelihood)
-
-        # compute spatial 'likelihood'
-        gridded_rate_cat = gridded_cat / time_interval
-        # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio
-        normalizing_factor = observation.event_count / catalog.event_count
-        gridded_rate_cat_norm = normalizing_factor * gridded_rate_cat
-        # compute likelihood for each event, ignoring areas with 0 expectation
-        gridded_rate_cat_norm_ma = numpy.ma.masked_where(gridded_rate_cat_norm == 0, gridded_rate_cat_norm)
-        apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_rate_cat_norm_ma.mask)
-        likelihood = numpy.ma.sum(gridded_rate_cat_norm_ma * numpy.ma.log10(apprx_rate_density_ma))
-        test_distribution_spatial.append(likelihood)
-
-        # report real-time stats
+        n_ses = catalog.get_number_of_events()
+        # compute likelihood for each event, ignoring areas with 0 expectation,
+        lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density, expected_cond_count, time_interval, n_obs, n_obs)
+        # store results
+        test_distribution_likelihood[i] = lh
+        test_distribution_spatial[i] = lh_norm
         if (i+1) % 5000 == 0:
             t1 = time.time()
             print(f"Processed {i+1} catalogs in {t1-t0} seconds.")
 
-    # compute psuedo-likelihood for comcat
-    gridded_obs_ma = numpy.ma.masked_where(gridded_obs == 0, gridded_obs)
-    apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_obs_ma.mask)
-    comcat_likelihood = numpy.ma.sum(gridded_obs_ma * numpy.ma.log10(apprx_rate_density_ma)) - expected_cond_count
-
-    # compute spatial stuff for comcat
-    gridded_obs_rate = gridded_obs / time_interval
-    gridded_obs_rate_ma = numpy.ma.masked_where(gridded_obs_rate == 0, gridded_obs_rate)
-    apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_obs_rate_ma.mask)
-    comcat_spatial = numpy.ma.sum(gridded_obs_rate_ma * numpy.ma.log10(apprx_rate_density_ma))
+    obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density, expected_cond_count, time_interval, n_obs, n_ses)
 
     # determine outcome of evaluation, check for infinity
-    _, quantile_likelihood = _get_quantiles(test_distribution_likelihood, comcat_likelihood)
-    _, quantile_spatial = _get_quantiles(test_distribution_spatial, comcat_spatial)
+    _, quantile_likelihood = _get_quantiles(test_distribution_likelihood, obs_lh)
+    _, quantile_spatial = _get_quantiles(test_distribution_spatial, obs_lh_norm)
 
     # Signals outcome of test
     message = "Normal"
@@ -310,13 +304,13 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     # either normal and wrong or udetermined (undersampled)
     if numpy.isclose(quantile_likelihood, 0.0) or numpy.isclose(quantile_likelihood, 1.0):
         # undetermined failure of the test
-        if numpy.isinf(comcat_likelihood):
+        if numpy.isinf(obs_lh):
             # Build message
             message = f"undetermined. Infinite likelihood scores found."
     # build evaluation result
     result_likelihood = EvaluationResult(test_distribution=test_distribution_likelihood,
                                          name='L-Test',
-                                         observed_statistic=comcat_likelihood,
+                                         observed_statistic=obs_lh,
                                          quantile=quantile_likelihood,
                                          status=message,
                                          sim_catalog_repr=str(stochastic_event_sets[0]),
@@ -326,14 +320,14 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     # find out if there are issues with the test
     if numpy.isclose(quantile_spatial, 0.0) or numpy.isclose(quantile_spatial, 1.0):
         # undetermined failure of the test
-        if numpy.isinf(comcat_spatial):
+        if numpy.isinf(obs_lh_norm):
             # Build message
             message = f"undetermined. Infinite likelihood scores found."
 
     # build evaluation result
     result_spatial = EvaluationResult(test_distribution=test_distribution_spatial,
                                       name='S-Test',
-                                      observed_statistic=comcat_spatial,
+                                      observed_statistic=obs_lh_norm,
                                       quantile=quantile_spatial,
                                       status=message,
                                       sim_catalog_repr=str(stochastic_event_sets[0]),

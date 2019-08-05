@@ -46,9 +46,9 @@ epoch_time = 709732655000
 duration_in_years = 1.0
 t0 = time.time()
 comcat = ComcatCatalog(start_epoch=epoch_time, duration_in_years=1.0, name='Comcat',
-                            min_magnitude=2.55,
-                            min_latitude=31.50, max_latitude=43.00,
-                            min_longitude=-125.40, max_longitude=-113.10)
+                       min_magnitude=2.55,
+                       min_latitude=31.50, max_latitude=43.00,
+                       min_longitude=-125.40, max_longitude=-113.10)
 
 comcat_filt = comcat.filter('magnitude > 3.95')
 t1 = time.time()

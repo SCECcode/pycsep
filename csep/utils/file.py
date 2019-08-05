@@ -27,7 +27,7 @@ def TemporaryDirectory(suffix='', prefix=None, dir=None):
             if e.errno != e.errno.ENOENT:
                 raise e
 
-def mkdirs(path, mode):
+def mkdirs(path, mode=0o755):
     """
     Creates the directory specified by path, creating intermediate directories
     as necessary. If directory already exists, this is a no-op.

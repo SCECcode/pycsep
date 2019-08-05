@@ -1,9 +1,12 @@
+from collections import defaultdict
+
 import matplotlib
 from matplotlib import pyplot as pyplot
 from matplotlib.collections import PatchCollection
 
 import time
 import numpy
+from numpy.lib.recfunctions import append_fields
 import pandas
 import matplotlib.pyplot as pyplot
 import matplotlib.dates as mdates
@@ -12,7 +15,9 @@ import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
-from csep.utils.time import epoch_time_to_utc_datetime
+from csep.utils import flat_map_to_ndarray, join_struct_arrays
+from csep.utils.spatial import bin1d_vec
+from csep.utils.time import epoch_time_to_utc_datetime, datetime_to_utc_epoch
 
 """
 This module contains plotting routines that generate figures for the stochastic event sets produced from
@@ -30,87 +35,93 @@ IDEA: Since plotting functions are usable by these classes only that don't imple
 """
 
 
-# TODO: Fix this to work with shorter interval catalogs, grouping defaults to week. should default to nchunks.
-def plot_cumulative_events_versus_time(stochastic_event_set, observation, show=False, plot_args={}):
+def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=False, plot_args={}):
     """
-    Plots cumulative number of events against time for both the observed catalog and a stochastic event set.
-    Initially bins events by week and computes.
+    Same as below but performs the statistics on numpy arrays without using pandas data frames.
 
     Args:
-        stochastic_event_set (iterable): iterable of :class:`~csep.core.catalogs.BaseCatalog` objects
-        observation (:class:`~csep.core.catalogs.BaseCatalog`): single catalog, typically observation catalog
-        filename (str): filename of file to save, if not None will save to that file
-        show (bool): whether to making blocking call to display figure
-        plot_args (dict): args pass onto the plot function from matplotlib.
+        stochastic_event_sets:
+        observation:
+        show:
+        plot_args:
 
     Returns:
-        pyplot.Figure: fig
+        ax: matplotlib.Axes
     """
     print('Plotting cumulative event counts.')
     fig, ax = pyplot.subplots(figsize=(12,9))
-
-    # date formatting
-    locator = mdates.MonthLocator()  # every month
-    fmt = mdates.DateFormatter('%b')
-
-    # get dataframe representation for all catalogs
-    f = lambda x: x.get_dataframe()
+    # get global information from stochastic event set
     t0 = time.time()
-    cats = list(map(f, stochastic_event_set))
-    df = pandas.concat(cats)
+    n_cat = len(stochastic_event_sets)
+
+    # these values might contain nans
+    extreme_times = numpy.array([(datetime_to_utc_epoch(ses.start_time), datetime_to_utc_epoch(ses.end_time)) for ses in stochastic_event_sets])
+    extreme_times = extreme_times[extreme_times != numpy.array(None)]
+
+    # offsets to start at 0 time and converts from millis to hours
+    time_bins, dt = numpy.linspace(numpy.min(extreme_times), numpy.max(extreme_times), 100, endpoint=True, retstep=True)
+    n_bins = time_bins.shape[0]
+    binned_counts = numpy.zeros((n_cat, n_bins))
+    for i, ses in enumerate(stochastic_event_sets):
+        n_events = ses.catalog.shape[0]
+        ses_origin_time = ses.get_epoch_times()
+        inds = bin1d_vec(ses_origin_time, time_bins)
+        for j in range(n_events):
+            binned_counts[i, inds[j]] += 1
+        if (i+1) % 5000 == 0:
+            t1 = time.time()
+            print(f"Processed {i+1} catalogs in {t1-t0} seconds.")
     t1 = time.time()
-    print('Converted {} ruptures from {} catalogs into a DataFrame in {} seconds.\n'
-          .format(len(df), len(cats), t1-t0))
+    print(f'Collected binned counts in {t1-t0} seconds.')
+    summed_counts = numpy.cumsum(binned_counts, axis=1)
 
-    # get counts, cumulative_counts, percentiles in weekly intervals
-    df_obs = observation.get_dataframe()
+    # compute summary statistics for plotting
+    fifth_per = numpy.percentile(summed_counts, 5, axis=0)
+    first_quar = numpy.percentile(summed_counts, 25, axis=0)
+    med_counts = numpy.percentile(summed_counts, 50, axis=0)
+    second_quar = numpy.percentile(summed_counts, 75, axis=0)
+    nine_fifth = numpy.percentile(summed_counts, 95, axis=0)
+    # compute median for comcat catalog
+    obs_binned_counts = numpy.zeros(n_bins)
+    inds = bin1d_vec(observation.get_epoch_times(), time_bins)
+    for j in range(observation.event_count):
+        obs_binned_counts[inds[j]] += 1
+    obs_summed_counts = numpy.cumsum(obs_binned_counts)
 
-    # get statistics from stochastic event set
-    # IDEA: make this a function, might want to re-use this binning
-    df1 = df.groupby([df['catalog_id'], pandas.Grouper(freq='W')])['counts'].agg(['sum'])
-    df1['cum_sum'] = df1.groupby(level=0).cumsum()
-    df2 = df1.groupby('datetime').describe(percentiles=(0.05,0.25,0.5,0.75,0.95))
-
-    # remove tz information so pandas can plot
-    df2.index = df2.index.tz_localize(None)
-
-    # get statistics from catalog
-    df1_comcat = df_obs.groupby(pandas.Grouper(freq='W'))['counts'].agg(['sum'])
-    df1_comcat['obs_cum_sum'] = df1_comcat['sum'].cumsum()
-    df1_comcat.index = df1_comcat.index.tz_localize(None)
-
-    df2.columns = ["_".join(x) for x in df2.columns.ravel()]
-    df3 = df2.merge(df1_comcat, left_index=True, right_on='datetime', left_on='datetime')
+    # update time_bins for plotting
+    millis_to_hours = 60*60*1000*24
+    time_bins = (time_bins - time_bins[0])/millis_to_hours
+    time_bins = time_bins + (dt/millis_to_hours)
+    # make all arrays start at zero
+    time_bins = numpy.insert(time_bins, 0, 0)
+    fifth_per = numpy.insert(fifth_per, 0, 0)
+    first_quar = numpy.insert(first_quar, 0, 0)
+    med_counts = numpy.insert(med_counts, 0, 0)
+    second_quar = numpy.insert(second_quar, 0, 0)
+    nine_fifth = numpy.insert(nine_fifth, 0, 0)
+    obs_summed_counts = numpy.insert(obs_summed_counts, 0, 0)
 
     # get values from plotting args
-    sim_label = plot_args.pop('sim_label', 'Simulated')
-    obs_label = plot_args.pop('obs_label', 'Observation')
-    xlabel = plot_args.pop('xlabel', 'X')
-    ylabel = plot_args.pop('ylabel', '$P(X \leq x)$')
-    xycoords = plot_args.pop('xycoords', (1.00, 0.40))
-    legend_loc = plot_args.pop('legend_loc', 'best')
-
+    sim_label = plot_args.get('sim_label', 'Simulated')
+    obs_label = plot_args.get('obs_label', 'Observation')
+    xycoords = plot_args.get('xycoords', (1.00, 0.40))
+    legend_loc = plot_args.get('legend_loc', 'best')
+    title = plot_args.get('title', 'Cumulative Event Counts')
     # plotting
-    ax.plot(df3.index, df3['obs_cum_sum'], color='black', label=obs_label)
-    ax.plot(df3.index, df3['cum_sum_50%'], color='blue', label=sim_label)
-    ax.fill_between(df3.index, df3['cum_sum_5%'], df3['cum_sum_95%'], color='blue', alpha=0.2, label='5%-95%')
-    ax.fill_between(df3.index, df3['cum_sum_25%'], df3['cum_sum_75%'], color='blue', alpha=0.5, label='25%-75%')
+    ax.plot(time_bins, obs_summed_counts, color='black', label=obs_label)
+    ax.plot(time_bins, med_counts, color='red', label=sim_label)
+    ax.fill_between(time_bins, fifth_per, nine_fifth, color='red', alpha=0.2, label='5%-95%')
+    ax.fill_between(time_bins, first_quar, second_quar, color='red', alpha=0.5, label='25%-75%')
     ax.legend(loc=legend_loc)
-    ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(fmt)
-    ax.set_xlabel(df3.index.year.max())
+    ax.set_xlabel('Days since Mainshock')
     ax.set_ylabel('Cumulative Event Count')
-
     pyplot.subplots_adjust(right=0.75)
-
     # annotate the plot with information from catalog
     ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
-
     # save figure
     filename = plot_args.get('filename', None)
     if filename is not None:
         fig.savefig(filename)
-
     # optionally show figure
     if show:
         pyplot.show()
@@ -125,7 +136,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
     Catalog class must implement get_magnitudes() and get_datetimes() in order for this function to work correctly.
 
     Args:
-        catalog (:class:`~csep.core.catalogs.BaseCatalog`): catalog to visualize
+        catalog (:class:`~csep.core.catalogs.AbstractBaseCatalog`): catalog to visualize
 
     Returns:
         (tuple): fig and axes handle
@@ -200,7 +211,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         filename (str): filename to save figure
         show (bool): show interactive version of the figure
         ax (axis object): axis object with interface defined by matplotlib
-        catalog (csep.BaseCatalog): used for annotating the figures
+        catalog (csep.AbstractBaseCatalog): used for annotating the figures
         plot_args (dict): additional plotting commands. TODO: Documentation
 
     Returns:
@@ -398,13 +409,14 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
     obs_mw = comcat.get_magnitudes()
     n_obs = comcat.get_number_of_events()
 
-    # get ecdf at arbitrary values
+    # get histogram at arbitrary values
     mws = CSEP_MW_BINS
     dmw = mws[1] - mws[0]
 
-
     def get_hist(x, mws, normed=True):
         n_temp = len(x)
+        if n_temp == 0:
+            return []
         temp_scale = n_obs / n_temp
         if normed:
             hist = numpy.histogram(x, bins=mws)[0] * temp_scale
@@ -459,7 +471,6 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
 
 def plot_spatial_dataset(gridded, region, plot_args={}):
     """
-    plots spatial dataset associated with region
 
     Args:
         gridded: 1d numpy array with vals according to region
@@ -473,6 +484,7 @@ def plot_spatial_dataset(gridded, region, plot_args={}):
     extent = region.get_bbox()
     # plot using cartopy
     figsize = plot_args.get('figsize', (16,9))
+    title = plot_args.get('title', 'Spatial Dataset')
     fig = pyplot.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
     lons, lats = numpy.meshgrid(region.xs, region.ys)
@@ -495,6 +507,7 @@ def plot_spatial_dataset(gridded, region, plot_args={}):
     gl.ylabels_right = False
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
+    ax.set_title(title, y=1.04)
     # this is a cartopy.GeoAxes
     return ax
 
@@ -519,14 +532,14 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
         chained = False
     # supply fixed arguments to plots
     # might want to add other defaults here
-    filename = plot_args.pop('filename', None)
+    filename = plot_args.get('filename', None)
     fixed_plot_args = {'xlabel': 'Event Counts per Catalog',
                        'ylabel': 'Number of Catalogs',
                        'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
     bins = plot_args.get('bins', 'auto')
-    percentile = plot_args.pop('percentile', 95)
+    percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
@@ -555,6 +568,7 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
         pyplot.show()
 
     return ax
+
 
 def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
     """
@@ -668,7 +682,6 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
     # evaluation should return some object that can be plotted maybe with verbose option.
     if show:
         pyplot.show()
-
     return ax
 
 
@@ -709,7 +722,7 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args={}, show=True):
         ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
                     .format(evaluation_result.quantile),
                     xycoords='axes fraction',
-                    xy=(0.2, 0.7),
+                    xy=(0.6, 0.8),
                     fontsize=14)
 
     title = plot_args.get('title', 'CSEP2 Spatial Test')

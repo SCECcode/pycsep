@@ -1,6 +1,8 @@
 **news tests / features**
-* total event rate distribution.
-* inter-event time/distance distribution.
+* total event rate distribution
+* inter-event time/distance distribution
+* depth distribution test
+* b-value distribution test
 
 **producing results**
 * compile results into jupyter notebook.

@@ -25,3 +25,22 @@ def flat_map_to_ndarray(l):
     out = numpy.array(functools.reduce(operator.iconcat, l, []))
     return out
 
+def join_struct_arrays(arrays):
+    """
+    Joins structured numpy arrays. Thanks: https://stackoverflow.com/questions/5355744/numpy-joining-structured-arrays
+
+    Args:
+        arrays:
+
+    Returns:
+
+    """
+    sizes = numpy.array([a.itemsize for a in arrays])
+    offsets = numpy.r_[0, sizes.cumsum()]
+    n = len(arrays[0])
+    joint = numpy.empty((n, offsets[-1]), dtype=numpy.uint8)
+    for a, size, offset in zip(arrays, sizes, offsets):
+        joint[:,offset:offset+size] = a.view(numpy.uint8).reshape(n,size)
+    dtype = sum((a.dtype.descr for a in arrays), [])
+    return joint.ravel().view(dtype)
+
