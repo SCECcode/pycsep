@@ -79,7 +79,7 @@ class AbstractBaseCatalog:
         Min Mw: {:.2f}
         Max Mw: {:.2f}
         '''.format(self.name,
-        self.start_time.date(), self.end_time.date(),
+        self.start_time, self.end_time,
         self.min_latitude,self.max_latitude,
         self.min_longitude,self.max_longitude,
         self.min_magnitude,self.max_magnitude)

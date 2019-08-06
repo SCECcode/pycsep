@@ -258,9 +258,12 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, t
     apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_cat_ma.mask)
     likelihood = numpy.ma.sum(gridded_cat_ma * numpy.ma.log10(apprx_rate_density_ma)) - expected_cond_count
     # compute spatial 'likelihood'
-    gridded_rate_cat = gridded_data / time_interval
+    gridded_rate_cat = gridded_data
     # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio
-    normalizing_factor = n_obs / n_gridded
+    if n_gridded != 0:
+        normalizing_factor = n_obs / n_gridded
+    else:
+        normalizing_factor = 1
     gridded_rate_cat_norm = normalizing_factor * gridded_rate_cat
     # compute likelihood for each event, ignoring areas with 0 expectation
     gridded_rate_cat_norm_ma = numpy.ma.masked_where(gridded_rate_cat_norm == 0, gridded_rate_cat_norm)
@@ -354,9 +357,6 @@ def inter_event_distribution_test(stochastic_event_sets, observation):
     pass
 
 def total_event_rate_distribution_test(stochastic_event_sets, observation):
-    pass
-
-def depth_distribution_test(stohastic_event_sets, observation):
     pass
 
 def bvalue_distribution_test(stochastic_event_sets, observation):

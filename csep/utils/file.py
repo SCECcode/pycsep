@@ -71,3 +71,17 @@ def file_exists(path):
 
     """
 
+
+def get_relative_path(abs_path):
+    """
+    Given an absolute path return the
+
+    Args:
+        abs_path:
+
+    Returns:
+
+    """
+    basename = os.path.basename(abs_path)
+    dir_name = os.path.basename(os.path.dirname(abs_path))
+    return os.path.join(dir_name, basename)

@@ -49,7 +49,8 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
         ax: matplotlib.Axes
     """
     print('Plotting cumulative event counts.')
-    fig, ax = pyplot.subplots(figsize=(12,9))
+    figsize = plot_args.get('figsize', None)
+    fig, ax = pyplot.subplots(figsize=figsize)
     # get global information from stochastic event set
     t0 = time.time()
     n_cat = len(stochastic_event_sets)
@@ -115,9 +116,10 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
     ax.legend(loc=legend_loc)
     ax.set_xlabel('Days since Mainshock')
     ax.set_ylabel('Cumulative Event Count')
+    ax.set_title(title)
     pyplot.subplots_adjust(right=0.75)
     # annotate the plot with information from catalog
-    ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    # ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     # save figure
     filename = plot_args.get('filename', None)
     if filename is not None:
@@ -175,9 +177,12 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
     ax.set_ylabel('Magnitude')
     fig.tight_layout()
 
-    # annotate the plot with information from catalog
-    if catalog is not None:
-        ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    # # annotate the plot with information from catalog
+    # if catalog is not None:
+    #     try:
+    #         ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    #     except:
+    #         pass
 
     # handle displaying of figures
     if filename is not None:
@@ -220,12 +225,13 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     # Plotting
 
     chained = False
+    figsize = plot_args.get('figsize', None)
     if axes is not None:
         chained = True
         ax = axes
     else:
         if catalog:
-            fig, ax = pyplot.subplots(figsize=(12,9))
+            fig, ax = pyplot.subplots(figsize=figsize)
         else:
             fig, ax = pyplot.subplots()
 
@@ -251,16 +257,15 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     else:
         # remove any nan values
         observation = observation[~numpy.isnan(observation)]
-        ax.hist(observation, bins=bins, edgecolor='black', alpha=0.5, rwidth=0.75, label=obs_label)
+        ax.hist(observation, bins=bins, label=obs_label)
 
     # remove any potential nans from arrays
     simulated = numpy.array(simulated)
     simulated = simulated[~numpy.isnan(simulated)]
     if color:
-        n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', rwidth=0.75, alpha=0.5, label=sim_label,
-                                        color=color)
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label, color=color)
     else:
-        n, bin_edges, patches = ax.hist(simulated, bins=bins, edgecolor='black', rwidth=0.75, alpha=0.5, label=sim_label)
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label)
 
     # color bars for rejection area
     if percentile is not None:
@@ -272,10 +277,10 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         p_low = numpy.percentile(simulated, inc_low)
         idx_low = numpy.digitize(p_low, bin_edges)
 
-    # annotate the plot with information from catalog
-    if catalog is not None and not chained:
-        ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
-        pyplot.subplots_adjust(right=0.75)
+    # # annotate the plot with information from catalog
+    # if catalog is not None and not chained:
+    #     ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    #     pyplot.subplots_adjust(right=0.75)
 
     # show 99.9% of data
     upper_xlim = numpy.percentile(simulated, 99.95)
@@ -299,23 +304,19 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     if percentile is not None:
         for idx in range(idx_low):
             patches[idx].set_fc('red')
-
         for idx in range(idx_high, len(patches)):
             patches[idx].set_fc('red')
-
         if filename is not None:
             pyplot.savefig(filename)
-
     if show:
         pyplot.show()
-
     return ax
 
 
 def plot_mfd(catalog, filename=None, show=False, **kwargs):
     """
     Plots MFD from CSEP Catalog.
-
+    ### todo: needs redone with maximum likelihood estimation
     Example usage would be:
     >>> plot_mfd(catalog, show=True)
 
@@ -327,47 +328,48 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
     Returns:
         ax (Axis): matplotlib axis handle
     """
-    fig, ax = pyplot.subplots()
-
-    mfd = catalog.mfd
-    if mfd is None:
-        print('Computing MFD for catalog {}.'.format(catalog.name))
-        mfd = catalog.get_mfd()
-
-    # get other vals for plotting
-    a = mfd.loc[0,'a']
-    b = mfd.loc[0,'b']
-    ci_b = mfd.loc[0,'ci_b']
-
-    # take mid point of magnitude bins for plotting
-    x = numpy.array(mfd.index.categories.mid)
-    try:
-        ax.scatter(x, mfd['counts'], color='black', label='{} (accessed: {})'
-                      .format(catalog.name, catalog.date_accessed.date()))
-    except:
-        ax.scatter(x, mfd['counts'], color='black', label='{}'.format(catalog.name))
-
-    plt_label = '$log(N)={}-{}\pm{}M$'.format(numpy.round(a,2),numpy.round(abs(b),2),numpy.round(numpy.abs(ci_b),2))
-    ax.plot(x, 10**mfd['N_est'], label=plt_label)
-    ax.fill_between(x, 10**mfd['lower_ci'], 10**mfd['upper_ci'], color='blue', alpha=0.2)
-
-    # annotations
-    ax.set_yscale('log')
-    ax.set_xlabel('Magnitude')
-    ax.set_ylabel('Frequency')
-    ax.set_title('Magnitude Frequency Distribution')
-    ax.annotate(s='Start Date: {}\nEnd Date: {}\n\nLatitude: ({:.2f}, {:.2f})\nLongitude: ({:.2f}, {:.2f})'
-                .format(catalog.start_time.date(), catalog.end_time.date(),
-                       catalog.min_latitude,catalog.max_latitude,
-                       catalog.min_longitude,catalog.max_longitude),
-                xycoords='axes fraction', xy=(0.5, 0.65), fontsize=10)
-    ax.legend(loc='lower left')
-
-    # handle saving
-    if filename:
-        pyplot.savefig(filename)
-    if show:
-        pyplot.show()
+    # fig, ax = pyplot.subplots()
+    #
+    # mfd = catalog.mfd
+    # if mfd is None:
+    #     print('Computing MFD for catalog {}.'.format(catalog.name))
+    #     mfd = catalog.get_mfd()
+    #
+    # # get other vals for plotting
+    # a = mfd.loc[0,'a']
+    # b = mfd.loc[0,'b']
+    # ci_b = mfd.loc[0,'ci_b']
+    #
+    # # take mid point of magnitude bins for plotting
+    # x = numpy.array(mfd.index.categories.mid)
+    # try:
+    #     ax.scatter(x, mfd['counts'], color='black', label='{} (accessed: {})'
+    #                   .format(catalog.name, catalog.date_accessed.date()))
+    # except:
+    #     ax.scatter(x, mfd['counts'], color='black', label='{}'.format(catalog.name))
+    #
+    # plt_label = '$log(N)={}-{}\pm{}M$'.format(numpy.round(a,2),numpy.round(abs(b),2),numpy.round(numpy.abs(ci_b),2))
+    # ax.plot(x, 10**mfd['N_est'], label=plt_label)
+    # ax.fill_between(x, 10**mfd['lower_ci'], 10**mfd['upper_ci'], color='blue', alpha=0.2)
+    #
+    # # annotations
+    # ax.set_yscale('log')
+    # ax.set_xlabel('Magnitude')
+    # ax.set_ylabel('Frequency')
+    # ax.set_title('Magnitude Frequency Distribution')
+    # ax.annotate(s='Start Date: {}\nEnd Date: {}\n\nLatitude: ({:.2f}, {:.2f})\nLongitude: ({:.2f}, {:.2f})'
+    #             .format(catalog.start_time.date(), catalog.end_time.date(),
+    #                    catalog.min_latitude,catalog.max_latitude,
+    #                    catalog.min_longitude,catalog.max_longitude),
+    #             xycoords='axes fraction', xy=(0.5, 0.65), fontsize=10)
+    # ax.legend(loc='lower left')
+    #
+    # # handle saving
+    # if filename:
+    #     pyplot.savefig(filename)
+    # if show:
+    #     pyplot.show()
+    raise NotImplementedError
 
 
 def plot_ecdf(x, ecdf, xv=None, catalog=None, filename=None, show=False, plot_args = {}):
@@ -391,8 +393,8 @@ def plot_ecdf(x, ecdf, xv=None, catalog=None, filename=None, show=False, plot_ar
     ax.set_ylabel(ylabel)
     ax.legend(loc=legend_loc)
 
-    if catalog is not None:
-        ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    # if catalog is not None:
+    #     ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
     if filename is not None:
         pyplot.savefig(filename)
@@ -415,10 +417,8 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
 
     def get_hist(x, mws, normed=True):
         n_temp = len(x)
-        if n_temp == 0:
-            return []
-        temp_scale = n_obs / n_temp
-        if normed:
+        if normed and n_temp != 0:
+            temp_scale = n_obs / n_temp
             hist = numpy.histogram(x, bins=mws)[0] * temp_scale
         else:
             hist = numpy.histogram(x, bins=mws)[0]
@@ -429,7 +429,8 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
     obs_hist, bin_edges = numpy.histogram(obs_mw, bins=mws)
     bin_edges_plot = (bin_edges[1:] + bin_edges[:-1]) / 2
 
-    fig = pyplot.figure(figsize=(12,9))
+    figsize = plot_args.get('figsize', None)
+    fig = pyplot.figure(figsize=figsize)
     ax = fig.gca()
     u3etas_median = numpy.median(u3etas_hist, axis=0)
     u3etas_low = numpy.percentile(u3etas_hist, 2.5, axis=0)
@@ -461,15 +462,19 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
     pyplot.xlim(xlim)
     pyplot.xlabel('Mw')
     pyplot.ylabel('Count')
-    pyplot.title("UCERF3-ETAS Histogram")
+    title=plot_args.get('title', "UCERF3-ETAS Histogram")
+    pyplot.title(title)
     xycoords = plot_args.get('xycoords', (1.00, 0.40))
-    ax.annotate(str(comcat), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    # ax.annotate(str(comcat), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     pyplot.subplots_adjust(right=0.75)
+    filename = plot_args.get('filename', None)
+    if filename is not None:
+        fig.savefig(filename)
     if show:
         pyplot.show()
 
 
-def plot_spatial_dataset(gridded, region, plot_args={}):
+def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     """
 
     Args:
@@ -483,7 +488,7 @@ def plot_spatial_dataset(gridded, region, plot_args={}):
     # get spatial information for plotting
     extent = region.get_bbox()
     # plot using cartopy
-    figsize = plot_args.get('figsize', (16,9))
+    figsize = plot_args.get('figsize', None)
     title = plot_args.get('title', 'Spatial Dataset')
     fig = pyplot.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
@@ -509,6 +514,12 @@ def plot_spatial_dataset(gridded, region, plot_args={}):
     gl.yformatter = LATITUDE_FORMATTER
     ax.set_title(title, y=1.04)
     # this is a cartopy.GeoAxes
+    filename = plot_args.get('filename', None)
+    if filename is not None:
+        fig.savefig(filename)
+
+    if show:
+        pyplot.show()
     return ax
 
 
