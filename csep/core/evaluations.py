@@ -2,15 +2,14 @@ from collections import namedtuple
 
 import numpy
 import tqdm
-from numba import jit
 
 import time
-from csep.utils.stats import cumulative_square_dist
-from csep.utils.constants import CSEP_MW_BINS
+from csep.utils.stats import cumulative_square_dist, binned_ecdf, sup_dist
+from csep.utils.constants import CSEP_MW_BINS, dmw
 from csep.utils import flat_map_to_ndarray
 
 # implementing plotting routines as functions
-from stats import _get_quantiles
+from stats import get_quantiles
 
 EvaluationResult = namedtuple('EvaluationResult', ['test_distribution',
                                                    'name',
@@ -32,7 +31,7 @@ def number_test(stochastic_event_sets, observation, event_counts=None):
         sim_counts = event_counts
     observation_count = observation.event_count
     # get delta_1 and delta_2 values
-    delta_1, delta_2 = _get_quantiles(sim_counts, observation_count)
+    delta_1, delta_2 = get_quantiles(sim_counts, observation_count)
     # prepare result
     result = EvaluationResult(test_distribution=sim_counts,
                               name='N-Test',
@@ -96,7 +95,7 @@ def pseudo_likelihood_test(stochastic_event_sets, observation, apprx_rate_densit
     comcat_likelihood = numpy.ma.sum(gridded_obs_ma * numpy.ma.log10(apprx_rate_density_ma)) - expected_cond_count
 
     # determine outcome of evaluation, check for infinity
-    _, quantile = _get_quantiles(test_distribution, comcat_likelihood)
+    _, quantile = get_quantiles(test_distribution, comcat_likelihood)
 
     # Signals outcome of test
     message = "Normal"
@@ -164,7 +163,7 @@ def spatial_test(stochastic_event_sets, observation, apprx_rate_density, time_in
     comcat_likelihood = numpy.ma.sum(gridded_obs_rate_ma * numpy.ma.log10(apprx_rate_density_ma))
 
     # determine outcome of evaluation, check for infinity
-    _, quantile = _get_quantiles(test_distribution, comcat_likelihood)
+    _, quantile = get_quantiles(test_distribution, comcat_likelihood)
 
     # Signals outcome of test
     message = "Normal"
@@ -239,7 +238,7 @@ def magnitude_test(stochastic_event_sets, observation, mag_bins=CSEP_MW_BINS):
     obs_d_statistic = cumulative_square_dist(obs_histogram, union_histogram)
 
     # score evaluation
-    _, quantile = _get_quantiles(test_distribution, obs_d_statistic)
+    _, quantile = get_quantiles(test_distribution, obs_d_statistic)
 
     result = EvaluationResult(test_distribution=test_distribution,
                               name='M-Test',
@@ -253,23 +252,30 @@ def magnitude_test(stochastic_event_sets, observation, mag_bins=CSEP_MW_BINS):
 
     return result
 
-def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, time_interval, n_obs, n_gridded):
+def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
     gridded_cat_ma = numpy.ma.masked_where(gridded_data == 0, gridded_data)
     apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_cat_ma.mask)
-    likelihood = numpy.ma.sum(gridded_cat_ma * numpy.ma.log10(apprx_rate_density_ma)) - expected_cond_count
-    # compute spatial 'likelihood'
-    gridded_rate_cat = gridded_data
-    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio
-    if n_gridded != 0:
-        normalizing_factor = n_obs / n_gridded
-    else:
-        normalizing_factor = 1
-    gridded_rate_cat_norm = normalizing_factor * gridded_rate_cat
-    # compute likelihood for each event, ignoring areas with 0 expectation
-    gridded_rate_cat_norm_ma = numpy.ma.masked_where(gridded_rate_cat_norm == 0, gridded_rate_cat_norm)
-    apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_rate_cat_norm_ma.mask)
-    likelihood_norm = numpy.ma.sum(gridded_rate_cat_norm_ma * numpy.ma.log10(apprx_rate_density_ma))
+    likelihood = numpy.sum(gridded_cat_ma * numpy.ma.log(apprx_rate_density_ma)) - expected_cond_count
+    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio, this should never be 0, else forecast is expecting 0 earthquakes in region.
+    normalizing_factor = n_obs / expected_cond_count
+    normed_rate_density_ma = normalizing_factor * apprx_rate_density_ma
+    # compute likelihood for each event, ignoring cells with 0 events in the catalog.
+    likelihood_norm = numpy.sum(gridded_cat_ma * numpy.ma.log(normed_rate_density_ma)) / numpy.sum(gridded_cat_ma)
     return(likelihood, likelihood_norm)
+
+# @jit(nopython=True)
+# def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
+#     n_poly = len(gridded_data)
+#     lh_sum = 0
+#     sp_sum = 0
+#     scale = n_obs / expected_cond_count
+#     normed_ard = scale * apprx_rate_density
+#     for i in range(n_poly):
+#         if gridded_data[i] != 0:
+#             lh_sum += numpy.log(apprx_rate_density)[i] * gridded_data[i]
+#             sp_sum += numpy.log(normed_ard)[i] * gridded_data[i]
+#     lh_sum -= expected_cond_count
+#     return(lh_sum, sp_sum)
 
 def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_rate_density, time_interval=1.0):
     # integrating, assuming that all cats in ses have same region
@@ -285,21 +291,20 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     t0 = time.time()
     for i, catalog in enumerate(stochastic_event_sets):
         gridded_cat = catalog.gridded_event_counts()
-        n_ses = catalog.get_number_of_events()
         # compute likelihood for each event, ignoring areas with 0 expectation,
-        lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density, expected_cond_count, time_interval, n_obs, n_obs)
+        lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density, expected_cond_count, n_obs)
         # store results
         test_distribution_likelihood[i] = lh
         test_distribution_spatial[i] = lh_norm
-        if (i+1) % 5000 == 0:
+        if (i+1) % 500 == 0:
             t1 = time.time()
             print(f"Processed {i+1} catalogs in {t1-t0} seconds.")
 
-    obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density, expected_cond_count, time_interval, n_obs, n_ses)
+    obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density, expected_cond_count, n_obs)
 
     # determine outcome of evaluation, check for infinity
-    _, quantile_likelihood = _get_quantiles(test_distribution_likelihood, obs_lh)
-    _, quantile_spatial = _get_quantiles(test_distribution_spatial, obs_lh_norm)
+    _, quantile_likelihood = get_quantiles(test_distribution_likelihood, obs_lh)
+    _, quantile_spatial = get_quantiles(test_distribution_spatial, obs_lh_norm)
 
     # Signals outcome of test
     message = "Normal"
@@ -339,6 +344,37 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
                                       obs_name=observation.name)
     return (result_likelihood, result_spatial)
 
+
+def _distribution_test(stochastic_event_set_data, observation_data):
+    union_catalog = flat_map_to_ndarray(stochastic_event_set_data)
+    min_time = 0.0
+    max_time = numpy.max([numpy.max(numpy.ceil(union_catalog)), numpy.max(numpy.ceil(observation_data))])
+
+    # build test_distribution with 30 data points. this was chosen arbitrarily.
+    num_points = 100
+    tms = numpy.linspace(min_time, max_time, num_points, endpoint=True)
+
+    # get combined ecdf and obs ecdf
+    combined_ecdf = binned_ecdf(union_catalog, tms)
+    obs_ecdf = binned_ecdf(observation_data, tms)
+
+    # build test distribution
+    n_cat = len(stochastic_event_set_data)
+    test_distribution = []
+    for i in range(n_cat):
+        test_ecdf = binned_ecdf(stochastic_event_set_data[i], tms)
+        # indicates there were zero events in catalog
+        if test_ecdf is not None:
+            d = sup_dist(test_ecdf[1], combined_ecdf[1])
+            test_distribution.append(d)
+
+    d_obs = sup_dist(obs_ecdf[1], combined_ecdf[1])
+
+    # score evaluation
+    _, quantile = get_quantiles(test_distribution, d_obs)
+
+    return test_distribution, d_obs, quantile
+
 def interevent_time_test(stochastic_event_sets, observation):
     """
     These compare the inter-event time distribution of the forecasts with the observation. It works similarly to
@@ -351,14 +387,89 @@ def interevent_time_test(stochastic_event_sets, observation):
     Returns:
 
     """
-    pass
+    # get data that we need
+    inter_event_times = [cat.get_inter_event_times() for cat in stochastic_event_sets]
 
-def inter_event_distribution_test(stochastic_event_sets, observation):
-    pass
+    # get inter-event times from catalog
+    obs_times = observation.get_inter_event_times()
+
+    # compute distribution statistics
+    test_distribution, d_obs, quantile = _distribution_test(inter_event_times, obs_times)
+
+    result = EvaluationResult(test_distribution=test_distribution,
+                              name='IETD-Test',
+                              observed_statistic=d_obs,
+                              quantile=quantile,
+                              status='Normal',
+                              sim_catalog_repr=str(stochastic_event_sets[0]),
+                              obs_catalog_repr=str(observation),
+                              sim_name=stochastic_event_sets[0].name,
+                              obs_name=observation.name)
+
+    return result
+
+def interevent_distance_test(stochastic_event_sets, observation):
+    # get data that we need
+    inter_event_distances = [cat.get_inter_event_distances() for cat in stochastic_event_sets]
+
+    # get inter-event times from catalog
+    obs_times = observation.get_inter_event_distances()
+
+    # compute distribution statistics
+    test_distribution, d_obs, quantile = _distribution_test(inter_event_distances, obs_times)
+
+    result = EvaluationResult(test_distribution=test_distribution,
+                              name='IESD-Test',
+                              observed_statistic=d_obs,
+                              quantile=quantile,
+                              status='Normal',
+                              sim_catalog_repr=str(stochastic_event_sets[0]),
+                              obs_catalog_repr=str(observation),
+                              sim_name=stochastic_event_sets[0].name,
+                              obs_name=observation.name)
+
+    return result
 
 def total_event_rate_distribution_test(stochastic_event_sets, observation):
-    pass
+    # get data that we need
+    terd = [cat.gridded_event_counts() for cat in stochastic_event_sets]
 
-def bvalue_distribution_test(stochastic_event_sets, observation):
-    pass
+    # get inter-event times from catalog
+    obs_terd = observation.gridded_event_counts()
 
+    # compute distribution statistics
+    test_distribution, d_obs, quantile = _distribution_test(terd, obs_terd)
+
+    result = EvaluationResult(test_distribution=test_distribution,
+                              name='TERD-Test',
+                              observed_statistic=d_obs,
+                              quantile=quantile,
+                              status='Normal',
+                              sim_catalog_repr=str(stochastic_event_sets[0]),
+                              obs_catalog_repr=str(observation),
+                              sim_name=stochastic_event_sets[0].name,
+                              obs_name=observation.name)
+
+    return result
+
+def bvalue_test(stochastic_event_sets, observation):
+    # get number of events for observations and simulations
+    sim_counts = []
+    for catalog in stochastic_event_sets:
+        bv = catalog.get_bvalue(dmw=dmw)
+        if bv is not None:
+            sim_counts.append(bv)
+    observation_count = observation.get_bvalue(dmw=dmw)
+    # get delta_1 and delta_2 values
+    _, quantile = get_quantiles(sim_counts, observation_count)
+    # prepare result
+    result = EvaluationResult(test_distribution=sim_counts,
+                              name='BV-Test',
+                              observed_statistic=observation_count,
+                              quantile=quantile,
+                              status='Normal',
+                              sim_catalog_repr=str(stochastic_event_sets[0]),
+                              obs_catalog_repr=str(observation),
+                              sim_name=stochastic_event_sets[0].name,
+                              obs_name=observation.name)
+    return result

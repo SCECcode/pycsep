@@ -1,17 +1,14 @@
 **news tests / features**
-* total event rate distribution
-* inter-event time/distance distribution
-* depth distribution test
-* b-value distribution test
 * magnitude vs. time for catalog with same number of events
 * go over likelihood test and spatial test
 
 **optimizations**
-* should only try to read data once (mem management)
+* should only try to read data once (mem management, need to write classes)
 * try and refactor numpy part and use numba jit to optimize those calls (after tests confirmed)
+* refactor evaluations into classes that allow updating by catalog (only read/loop through catalog once)
 
 **producing results**
-* some figures need modified a bit
+* get feedback on figures from csep call today.
 * setup automated evaluations, and reproducibility.
 
 **repo love**

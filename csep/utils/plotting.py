@@ -144,15 +144,15 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
         (tuple): fig and axes handle
     """
     # get values from plotting args
-    sim_label = plot_args.pop('sim_label', 'Simulated')
-    obs_label = plot_args.pop('obs_label', 'Observation')
-    xlabel = plot_args.pop('xlabel', 'X')
-    ylabel = plot_args.pop('ylabel', '$P(X \leq x)$')
-    xycoords = plot_args.pop('xycoords', (1.00, 0.40))
-    legend_loc = plot_args.pop('legend_loc', 'best')
-    title = plot_args.pop('title', '')
-    marker_size = plot_args.pop('marker_size', 10)
-    color = plot_args.pop('color', 'blue')
+    sim_label = plot_args.get('sim_label', 'Simulated')
+    obs_label = plot_args.get('obs_label', 'Observation')
+    xlabel = plot_args.get('xlabel', 'X')
+    ylabel = plot_args.get('ylabel', '$P(X \leq x)$')
+    xycoords = plot_args.get('xycoords', (1.00, 0.40))
+    legend_loc = plot_args.get('legend_loc', 'best')
+    title = plot_args.get('title', '')
+    marker_size = plot_args.get('marker_size', 10)
+    color = plot_args.get('color', 'blue')
 
     print('Plotting magnitude versus time.')
     fig = pyplot.figure(figsize=(8,3))
@@ -372,17 +372,18 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
     raise NotImplementedError
 
 
-def plot_ecdf(x, ecdf, xv=None, catalog=None, filename=None, show=False, plot_args = {}):
+def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
     """
     Plots empirical cumulative distribution function.
     """
     # get values from plotting args
-    sim_label = plot_args.pop('sim_label', 'Simulated')
-    obs_label = plot_args.pop('obs_label', 'Observation')
-    xlabel = plot_args.pop('xlabel', 'X')
-    ylabel = plot_args.pop('ylabel', '$P(X \leq x)$')
-    xycoords = plot_args.pop('xycoords', (1.00, 0.40))
-    legend_loc = plot_args.pop('legend_loc', 'best')
+    sim_label = plot_args.get('sim_label', 'Simulated')
+    obs_label = plot_args.get('obs_label', 'Observation')
+    xlabel = plot_args.get('xlabel', 'X')
+    ylabel = plot_args.get('ylabel', '$P(X \leq x)$')
+    xycoords = plot_args.get('xycoords', (1.00, 0.40))
+    legend_loc = plot_args.get('legend_loc', 'best')
+    filename = plot_args.get('filename', None)
 
     # make figure
     fig, ax = pyplot.subplots()
@@ -544,9 +545,9 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
     # supply fixed arguments to plots
     # might want to add other defaults here
     filename = plot_args.get('filename', None)
-    fixed_plot_args = {'xlabel': 'Event Counts per Catalog',
-                       'ylabel': 'Number of Catalogs',
-                       'obs_label': evaluation_result.obs_name,
+    xlabel = plot_args.get('xlabel', '')
+    ylabel = plot_args.get('ylabel', '')
+    fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
     bins = plot_args.get('bins', 'auto')
@@ -560,14 +561,23 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
 
     # annotate plot with p-values
     if not chained:
-        ax.annotate('$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
+        try:
+            ax.annotate('$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
                     .format(*evaluation_result.quantile),
                     xycoords='axes fraction',
                     xy=(0.5, 0.3),
                     fontsize=14)
+        except:
+            ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
+                        .format(evaluation_result.quantile),
+                        xycoords='axes fraction',
+                        xy=(0.5, 0.3),
+                        fontsize=14)
 
-    title = plot_args.get('title', 'CSEP2 Number Test')
+    title = plot_args.get('title', evaluation_result.name)
     ax.set_title(title, fontsize=14)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
 
     if filename is not None:
         pyplot.savefig(filename)
@@ -579,7 +589,6 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
         pyplot.show()
 
     return ax
-
 
 def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
     """
@@ -601,14 +610,14 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
         chained = False
     # supply fixed arguments to plots
     # might want to add other defaults here
-    filename = plot_args.pop('filename', None)
+    filename = plot_args.get('filename', None)
     fixed_plot_args = {'xlabel': 'D* Statistic',
                        'ylabel': 'Number of Catalogs',
                        'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
     bins = plot_args.get('bins', 'auto')
-    percentile = plot_args.pop('percentile', 95)
+    percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
@@ -626,6 +635,66 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
 
     title = plot_args.get('title', 'CSEP2 Magnitude Test')
     ax.set_title(title, fontsize=14)
+
+    if filename is not None:
+        pyplot.savefig(filename)
+
+    # func has different return types, before release refactor and remove plotting from evaluation.
+    # plotting should be separated from evaluation.
+    # evaluation should return some object that can be plotted maybe with verbose option.
+    if show:
+        pyplot.show()
+
+    return ax
+
+def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}):
+    """
+    Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
+    for the M-test.
+
+
+    Args:
+        evaluation_result: object-like var that implements the interface of the above EvaluationResult
+
+    Returns:
+        ax (matplotlib.axes.Axes): can be used to modify the figure
+
+    """
+    # handle plotting
+    if axes:
+        chained = True
+    else:
+        chained = False
+    # supply fixed arguments to plots
+    # might want to add other defaults here
+    filename = plot_args.get('filename', None)
+    xlabel = plot_args.get('xlabel', '')
+    ylabel = plot_args.get('ylabel', '')
+    fixed_plot_args = {'obs_label': evaluation_result.obs_name,
+                       'sim_label': evaluation_result.sim_name}
+    plot_args.update(fixed_plot_args)
+    bins = plot_args.get('bins', 'auto')
+    percentile = plot_args.get('percentile', 95)
+    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+                        catalog=evaluation_result.obs_catalog_repr,
+                        plot_args=plot_args,
+                        bins=bins,
+                        axes=axes,
+                        percentile=percentile)
+
+    # annotate plot with p-values
+    if not chained:
+        ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
+                    .format(evaluation_result.quantile),
+                    xycoords='axes fraction',
+                    xy=(0.5, 0.3),
+                    fontsize=14)
+
+    title = plot_args.get('title', evaluation_result.name)
+    ax.set_title(title, fontsize=14)
+    ax.set_title(title, fontsize=14)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
 
     if filename is not None:
         pyplot.savefig(filename)
@@ -659,14 +728,14 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
         chained = False
     # supply fixed arguments to plots
     # might want to add other defaults here
-    filename = plot_args.pop('filename', None)
+    filename = plot_args.get('filename', None)
     fixed_plot_args = {'xlabel': 'Pseudo Likelihood',
                        'ylabel': 'Number of Catalogs',
                        'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
     bins = plot_args.get('bins', 'auto')
-    percentile = plot_args.pop('percentile', 95)
+    percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
@@ -713,14 +782,14 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args={}, show=True):
         chained = False
     # supply fixed arguments to plots
     # might want to add other defaults here
-    filename = plot_args.pop('filename', None)
+    filename = plot_args.get('filename', None)
     fixed_plot_args = {'xlabel': 'Normalized Pseudo Likelihood',
                        'ylabel': 'Number of Catalogs',
                        'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
     bins = plot_args.get('bins', 'auto')
-    percentile = plot_args.pop('percentile', 95)
+    percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
@@ -733,7 +802,7 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args={}, show=True):
         ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
                     .format(evaluation_result.quantile),
                     xycoords='axes fraction',
-                    xy=(0.6, 0.8),
+                    xy=(0.2, 0.6),
                     fontsize=14)
 
     title = plot_args.get('title', 'CSEP2 Spatial Test')

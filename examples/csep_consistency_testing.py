@@ -13,9 +13,10 @@ import numpy as np
 
 # CSEP Imports
 import csep
-from csep.core.evaluations import number_test, magnitude_test
+from csep.core.evaluations import number_test, magnitude_test, interevent_time_test, interevent_distance_test, \
+    bvalue_test
 from csep.core.evaluations import combined_likelihood_and_spatial
-from csep.utils.plotting import plot_magnitude_histogram
+from csep.utils.plotting import plot_magnitude_histogram, plot_distribution_test
 from csep.utils.time import datetime_to_utc_epoch, epoch_time_to_utc_datetime
 from csep.utils.spatial import california_relm_region, masked_region
 from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_likelihood_test, plot_spatial_test
@@ -101,7 +102,7 @@ def main(mw_min, config, sim_dir, end_time):
     n_test_fname = build_figure_filename(plot_dir, mw_min, 'n_test')
     _ = plot_number_test(n_test_result, show=False,
                          plot_args={'percentile': 95,
-                                    'title': f'N-Test Following M7.1 until Present\nMw>{mw_min}',
+                                    'title': f'Number-Test\nMw>{mw_min}',
                                     'bins': 'auto',
                                     'filename': n_test_fname})
     # store results for later, we care about the test result tuple and the test filename
@@ -120,7 +121,7 @@ def main(mw_min, config, sim_dir, end_time):
     m_test_result = magnitude_test(u3_filt, comcat)
     m_test_fname = build_figure_filename(plot_dir, mw_min, 'm_test')
     _ = plot_magnitude_test(m_test_result, show=False, plot_args={'percentile': 95,
-                                                                  'title': f'M-Test Following M7.1 until Present\nMw>{mw_min}',
+                                                                  'title': f'Magnitude-Test\nMw>{mw_min}',
                                                                   'bins': 'auto',
                                                                   'filename': m_test_fname})
 
@@ -142,7 +143,7 @@ def main(mw_min, config, sim_dir, end_time):
     l_test_fname = build_figure_filename(plot_dir, mw_min, 'l_test')
     _ = plot_likelihood_test(l_test_result, show=False,
                               plot_args={'percentile': 95,
-                                         'title': f'L-Test Following M7.1 until Present\nMw>{mw_min}',
+                                         'title': f'Pseduo Likelihood-Test\nMw>{mw_min}',
                                          'bins': 'auto',
                                          'filename':  l_test_fname})
 
@@ -154,7 +155,7 @@ def main(mw_min, config, sim_dir, end_time):
     s_test_fname = build_figure_filename(plot_dir, mw_min, 's_test')
     _ = plot_spatial_test(s_test_result, show=False,
                            plot_args={'percentile': 95,
-                                      'title': f'S-Test Following M7.1 until Present\nMw>{mw_min}',
+                                      'title': f'Spatial-Test\nMw>{mw_min}',
                                       'bins': 'auto',
                                       'filename':s_test_fname})
 
@@ -176,12 +177,72 @@ def main(mw_min, config, sim_dir, end_time):
     t1 = time.time()
     print(f'Done with Spatial tests in {t1-t0} seconds.')
 
+    # compute interevent-time distribution test
+    t0 = time.time()
+    print('Computing Inter-Event Time Test')
+    ietd_result = interevent_time_test(u3_filt, comcat)
+    ietd_test_fname = build_figure_filename(plot_dir, mw_min, 'ietd_test')
+    _ = plot_distribution_test(ietd_result, show=False, plot_args={'percentile': 95,
+                                                                    'title': f'Inter-event Time Distribution-Test\nMw>{mw_min}',
+                                                                    'bins': 'auto',
+                                                                    'xlabel': "D* Statistic",
+                                                                    'ylabel': r"P(X $\leq$ x)",
+                                                                    'filename': ietd_test_fname})
+    t1 = time.time()
+    print(f"Finished IETD Test in {t1-t0} seconds")
+
+    # compute interevent-distance distribution test
+    t0 = time.time()
+    print('Computing Inter-Event Distance Test')
+    iedd_result = interevent_distance_test(u3_filt, comcat)
+    iedd_test_fname = build_figure_filename(plot_dir, mw_min, 'iedd_test')
+    _ = plot_distribution_test(iedd_result, show=False, plot_args={'percentile': 95,
+                                                                    'title': f'Inter-event Distance Distribution-Test\nMw>{mw_min}',
+                                                                    'bins': 'auto',
+                                                                    'xlabel': "D* Statistic",
+                                                                    'ylabel': r"P(X $\leq$ x)",
+                                                                    'filename': iedd_test_fname})
+    t1 = time.time()
+    print(f"Finished IETD Test in {t1-t0} seconds")
+
+    print('Computing Total Event Rate Distribution Test')
+    t0 = time.time()
+    terd_result = interevent_distance_test(u3_filt, comcat)
+    terd_test_fname = build_figure_filename(plot_dir, mw_min, 'terd_test')
+    _ = plot_distribution_test(terd_result, show=False, plot_args={'percentile': 95,
+                                                                    'title': f'Total Event Rate Distribution-Test\nMw>{mw_min}',
+                                                                    'bins': 'auto',
+                                                                    'xlabel': "D* Statistic",
+                                                                    'ylabel': r"P(X $\leq$ x)",
+                                                                    'filename': terd_test_fname})
+    t1 = time.time()
+    print(f"Finished IETD Test in {t1-t0} seconds")
+
+    # compute b-value test
+    print('Computing B-Value Test')
+    t0 = time.time()
+    bv_result = bvalue_test(u3_filt, comcat)
+    bv_test_fname = build_figure_filename(plot_dir, mw_min, 'bv_test')
+    _ = plot_number_test(bv_result, show=False, plot_args={'percentile': 95,
+                                                           'title': f"B-Value Distribution Test\nMw>{mw_min}",
+                                                           'bins': 'auto',
+                                                           'filename': bv_test_fname})
+    t1 = time.time()
+    print(f"Finished IETD Test in {t1-t0} seconds")
     # compile results
     results['forecast_name'] = u3_filt[0].name
     results['n-test'] = n_test_result
     results['m-test'] = m_test_result
     results['l-test'] = l_test_result
     results['s-test'] = s_test_result
+    results['ietd-test'] = ietd_result
+    results['iedd-test'] = iedd_result
+    results['terd-test'] = terd_result
+    results['bv-test'] = bv_result
+    results['terd-test_plot'] = get_relative_path(terd_test_fname)
+    results['iedd-test_plot'] = get_relative_path(iedd_test_fname)
+    results['ietd-test_plot'] = get_relative_path(ietd_test_fname)
+    results['bv-test_plot'] = get_relative_path(bv_test_fname)
     results['n-test_plot'] = get_relative_path(n_test_fname)
     results['cum_plot'] = get_relative_path(cum_counts_fname)
     results['m-test_plot'] = get_relative_path(m_test_fname)
@@ -189,15 +250,13 @@ def main(mw_min, config, sim_dir, end_time):
     results['l-test_plot'] = get_relative_path(l_test_fname)
     results['s-test_plot'] = get_relative_path(s_test_fname)
     results['crd_obs'] = get_relative_path(crd_fname)
-
     return results
-
 
 def build_figure_filename(dir, mw, plot_id):
     basename = f"{plot_id}_{mw}.png"
     return os.path.join(dir, basename)
 
-def generate_table_from_results(results, tests=('n-test', 'm-test', 's-test', 'l-test')):
+def generate_table_from_results(results, tests=('n-test', 'm-test', 's-test', 'l-test', 'ietd-test', 'bv-test', 'iedd-test')):
     table = []
     header = list(results['minimum_mw'])
     header.insert(0, ' ')
@@ -247,7 +306,6 @@ if __name__ == "__main__":
     now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
     # evaluate in small mag bins, and then total
     mw_min = [3.0, 3.5, 4.0]
-    # mw_min = [5.0]
     # freeze the configuration and the end_time
     partial_main = functools.partial(main, sim_dir=simulation_dir, config=config, end_time=now)
     # parallelize over the magnitudes
@@ -282,6 +340,12 @@ if __name__ == "__main__":
     notebook.add_result_figure('Magnitude Test', 2, [combined_results['m-test_plot']])
     notebook.add_result_figure('Spatial Test', 2, [combined_results['s-test_plot']])
     notebook.add_result_figure('Likelihood Test', 2, [combined_results['l-test_plot']])
+    notebook.add_sub_heading('One-point Statistics', 1, "")
+    notebook.add_result_figure('B-Value Test', 2, [combined_results['bv-test_plot']])
+    notebook.add_sub_heading('Distribution Statistics', 1, "")
+    notebook.add_result_figure('Inter-event Distance Distribution', 2, [combined_results['iedd-test_plot']])
+    notebook.add_result_figure('Inter-event Time Distribution', 2, [combined_results['ietd-test_plot']])
+    notebook.add_result_figure('Total Event Rate Distribution', 2, [combined_results['terd-test_plot']])
     # table should be a list of tuples, where each tuple is the row
     table = generate_table_from_results(combined_results)
     # assemble the results from the dictionary

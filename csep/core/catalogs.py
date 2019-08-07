@@ -2,7 +2,7 @@ import numpy
 import pandas
 import datetime
 import operator
-import time
+import pyproj
 
 # CSEP Imports
 import csep
@@ -251,6 +251,41 @@ class AbstractBaseCatalog:
         """
         raise NotImplementedError('get_longitudes() not implemented!')
 
+    def get_inter_event_times(self, scale=1000):
+        """
+
+        Args:
+            scale (int): scales epoch times to another unit. default is seconds
+
+        Returns:
+            inter_times (ndarray): inter event times
+
+        """
+        times = self.get_epoch_times()
+        inter_times = numpy.diff(times)/scale
+        return inter_times
+
+    def get_inter_event_distances(self, ellps='WGS84'):
+        """
+        compute great circle distances between two points. requires pyproj
+
+        Args:
+            ellps (str): ellipsoid to compute distances. see pyproj.Geod for more info
+
+        Returns:
+            inter_dist (ndarray): ndarray of inter event distances in kilometers
+        """
+        geod = pyproj.Geod(ellps=ellps)
+        lats = self.get_latitudes()
+        lons = self.get_longitudes()
+        # in-case pyproj doesn't behave nicely all the time
+        if self.get_number_of_events() == 0:
+            return numpy.array([])
+        _, _, dists = geod.inv(lons[:-1], lats[:-1], lons[1:], lats[1:])
+        return dists
+
+
+
     def get_bvalue(self, dmw):
         """
         Estimates the b-value of a catalog using Eq. 3.10 from Marzocchi and Sandri (2003)
@@ -261,13 +296,22 @@ class AbstractBaseCatalog:
         Returns:
 
         """
-        mws = discretize(self.get_magnitudes())
+        if self.get_number_of_events() == 0:
+            return None
+        mws = discretize(self.get_magnitudes(), CSEP_MW_BINS)
         # compute the p term from eq 3.10 in marzocchi and sandri [2003]
         def p():
             top = dmw
-            # assuming that the magnitudes are truncated above Mc (ask about this).
             bottom = numpy.mean(mws) - numpy.min(mws)
+            # this might happen if all mags are the same, or 1 event in catalog
+            if bottom == 0:
+                return None
             return 1 + top / bottom
+        bottom = numpy.log(10)*dmw
+        p = p()
+        if p is None:
+            return None
+        return 1.0 / bottom * numpy.log(p)
 
     def get_mfd(self, delta_mw=0.3, p_value=0.05):
         """

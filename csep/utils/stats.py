@@ -1,6 +1,15 @@
 import numpy
 
 
+def sup_dist(cdf1, cdf2):
+    """
+    given two cumulative distribution functions, compute the supremum of the set of absolute distances.
+
+    note:
+        this function does not check that the ecdfs are ordered or balanced. beware!
+    """
+    return numpy.max(numpy.absolute(cdf2 - cdf1))
+
 def cumulative_square_dist(cdf1, cdf2):
     """
     given two cumulative distribution functions, compute the cumulative sq. diff of the set of distances.
@@ -17,6 +26,22 @@ def cumulative_square_dist(cdf1, cdf2):
 
     """
     return numpy.sum((cdf2 - cdf1)**2)
+
+def binned_ecdf(x, vals):
+    """
+    returns the statement P(X ≤ x) for val in vals.
+    vals must be monotonically increasing and unqiue.
+
+    returns:
+        tuple: sorted vals, and ecdf computed at vals
+    """
+    # precompute ecdf for x: returns(sorted(x), ecdf())
+    if len(x) == 0:
+        return None
+    ex, ey = ecdf(x)
+    cdf = numpy.array(list(map(lambda val: less_equal_ecdf(x, val, cdf=(ex, ey)), vals)))
+    return vals, cdf
+
 
 def ecdf(x):
     """
@@ -47,6 +72,8 @@ def greater_equal_ecdf(x, val, cdf=()):
         (float): probability that x ≤ val
     """
     x = numpy.asarray(x)
+    if x.shape[0] == 0:
+        return None
     if not cdf:
         ex, ey = ecdf(x)
     else:
@@ -74,16 +101,18 @@ def less_equal_ecdf(x, val, cdf=()):
         (float): probability that x ≤ val
     """
     x = numpy.asarray(x)
+    if x.shape[0] == 0:
+        return None
     if not cdf:
         ex, ey = ecdf(x)
     else:
         ex, ey = cdf
-
     # some short-circuit cases for discrete distributions
     if val > ex[-1]:
         return 1.0
     if val < ex[0]:
         return 0.0
+    # uses numpy implementation of binary search
     return ey[numpy.searchsorted(ex, val, side='right') - 1]
 
 
@@ -107,7 +136,7 @@ def max_or_none(x):
         return numpy.max(x)
 
 
-def _get_quantiles(sim_counts, obs_count):
+def get_quantiles(sim_counts, obs_count):
     """
     Direct call using ndarray. Useful for optimizing calls to multiprocessing pools.
     """
