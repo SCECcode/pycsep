@@ -1,8 +1,10 @@
 import logging
+
+import time
 from csep.core.catalogs import UCERF3Catalog, CSEPCatalog, ComcatCatalog
 
 
-def load_stochastic_event_set(type=None, format='native', **kwargs):
+def load_stochastic_event_sets(type=None, format='native', **kwargs):
     """
     Factory function to load stochastic event sets.
     # IDEA: should this return a stochastic event set class with a consistent api to apply things to an event set?
@@ -68,3 +70,24 @@ def load_catalog(type=None, format='native', **kwargs):
     else:
         raise ValueError('format must be either "native" or "csep!')
     return return_val
+
+def load_comcat(start_time, end_time, min_magnitude=2.50,
+                min_latitude=31.50, max_latitude=43.00,
+                min_longitude=125.40, max_longitude=-113.10, region=None, verbose=True):
+
+    t0 = time.time()
+    comcat = ComcatCatalog(start_time=start_time, end_time=end_time,
+                           name='Comcat', min_magnitude=min_magnitude,
+                           min_latitude=min_latitude, max_latitude=max_latitude,
+                           min_longitude=min_longitude, max_longitude=max_longitude, region=region, query=True)
+    t1 = time.time()
+    print("Fetched Comcat catalog in {} seconds.\n".format(t1 - t0))
+    if verbose:
+        print("Downloaded Comcat Catalog with following parameters")
+        print("Start Date: {}\nEnd Date: {}".format(str(comcat.start_time), str(comcat.end_time)))
+        print("Min Latitude: {} and Max Latitude: {}".format(comcat.min_latitude, comcat.max_latitude))
+        print("Min Longitude: {} and Max Longitude: {}".format(comcat.min_longitude, comcat.max_longitude))
+        print("Min Magnitude: {}".format(comcat.min_magnitude))
+        print(f"Found {comcat.get_number_of_events()} events in the Comcat catalog.")
+        print(f'Proceesing Catalogs.')
+    return comcat

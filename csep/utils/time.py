@@ -75,6 +75,12 @@ def strptime_to_utc_datetime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     dt = datetime.datetime.strptime(time_string, format).replace(tzinfo=datetime.timezone.utc)
     return dt
 
+def utc_now_datetime():
+    return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+
+def utc_now_epoch():
+    return datetime_to_utc_epoch(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc))
+
 class Specifier(str):
     """Model %Y and such in `strftime`'s format string."""
     def __new__(cls, *args):

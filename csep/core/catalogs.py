@@ -78,11 +78,14 @@ class AbstractBaseCatalog:
 
         Min Mw: {:.2f}
         Max Mw: {:.2f}
+        
+        Event Count: {:.2f}
         '''.format(self.name,
         self.start_time, self.end_time,
         self.min_latitude,self.max_latitude,
         self.min_longitude,self.max_longitude,
-        self.min_magnitude,self.max_magnitude)
+        self.min_magnitude,self.max_magnitude,
+        self.event_count)
         return s
 
     def to_dict(self):
@@ -284,9 +287,7 @@ class AbstractBaseCatalog:
         _, _, dists = geod.inv(lons[:-1], lats[:-1], lons[1:], lats[1:])
         return dists
 
-
-
-    def get_bvalue(self, dmw):
+    def get_bvalue(self):
         """
         Estimates the b-value of a catalog using Eq. 3.10 from Marzocchi and Sandri (2003)
 
@@ -299,6 +300,7 @@ class AbstractBaseCatalog:
         if self.get_number_of_events() == 0:
             return None
         mws = discretize(self.get_magnitudes(), CSEP_MW_BINS)
+        dmw = CSEP_MW_BINS[1] - CSEP_MW_BINS[0]
         # compute the p term from eq 3.10 in marzocchi and sandri [2003]
         def p():
             top = dmw
@@ -331,11 +333,9 @@ class AbstractBaseCatalog:
         """
         raise PendingDeprecationWarning
 
-    def filter(self, statement):
+    def filter(self, statement, in_place=True):
         """
         Filters the catalog based on value.
-
-        Notes: only support lowpass, highpass style filters. Bandpass or notch not implemented yet.
 
         Args:
             statement (str): logical statement to evaluate, e.g., 'magnitude > 4.0'
@@ -349,15 +349,24 @@ class AbstractBaseCatalog:
                      '>=': operator.ge,
                      '<=': operator.le,
                      '==': operator.eq}
+        # if we wnat to access by column name and not dtype.name
         name, type, value = statement.split(' ')
         idx = numpy.where(operators[type](self.catalog[name], float(value)))
         # returns a copy of the array
         filtered = self.catalog[idx]
-        self.catalog = filtered
-        # update instance state before returning
-        self._update_catalog_stats()
-        # return self
-        return self
+        # updates the state of self
+        if in_place:
+            self.catalog = filtered
+            # update instance state before returning
+            self._update_catalog_stats()
+            # return self
+            return self
+        else:
+            # make and return new object
+            cls = self.__class__
+            inst = cls(catalog=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name, region=self.region)
+            inst._update_catalog_stats()
+            return inst
 
     def filter_spatial(self, region):
         """
@@ -476,12 +485,15 @@ class AbstractBaseCatalog:
                                                                         self.region.ys)
         return output
 
-    def binned_magnitude_counts(self, bins=CSEP_MW_BINS):
+    def binned_magnitude_counts(self, bins=CSEP_MW_BINS, retbins=False):
         out = numpy.zeros(len(bins))
         idx = bin1d_vec(self.get_magnitudes(), bins)
         for i in idx:
             out[i] += 1
-        return out
+        if retbins:
+            return (bins, out)
+        else:
+            return out
 
 
 class CSEPCatalog(AbstractBaseCatalog):
@@ -567,7 +579,7 @@ class UCERF3Catalog(AbstractBaseCatalog):
         super().__init__(**kwargs)
 
     @classmethod
-    def load_catalogs(cls, filename=None, filters = [], **kwargs):
+    def load_catalogs(cls, filename=None, filters=(), **kwargs):
         """
         Loads catalogs based on the merged binary file format of UCERF3. File format is described at
         https://scec.usc.edu/scecpedia/CSEP2_Storing_Stochastic_Event_Sets#Introduction.
@@ -824,6 +836,8 @@ class ComcatCatalog(AbstractBaseCatalog):
         if isinstance(self.catalog, numpy.ndarray):
             return self.catalog
         catalog_length = len(self.catalog)
+        if catalog_length == 0:
+            raise RuntimeError("Observed catalog is empty.")
         catalog = numpy.zeros(catalog_length, dtype=self.dtype)
         if isinstance(self.catalog[0], dict):
             for i, event in enumerate(self.catalog):

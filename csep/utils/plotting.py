@@ -34,6 +34,57 @@ IDEA: Since plotting functions are usable by these classes only that don't imple
       method. like catalog.plot_thing()
 """
 
+def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, show=False):
+    """
+    
+    
+    Args:
+        xdata (ndarray): time bins for plotting shape (N,) 
+        ydata (ndarray or list like): ydata for plotting; shape (N,5) in order 2.5%Per, 25%Per, 50%Per, 75%Per, 97.5%Per
+        obs_data (ndarry): same shape as xdata
+        plot_args: 
+        show: 
+
+    Returns:
+
+    """
+    figsize = plot_args.get('figsize', None)
+    sim_label = plot_args.get('sim_label', 'Simulated')
+    obs_label = plot_args.get('obs_label', 'Observation')
+    legend_loc = plot_args.get('legend_loc', 'best')
+    title = plot_args.get('title', 'Cumulative Event Counts')
+
+    fig, ax = pyplot.subplots(figsize=figsize)
+    try:
+        fifth_per = ydata[0,:]
+        first_quar = ydata[1,:]
+        med_counts = ydata[2,:]
+        second_quar = ydata[3,:]
+        nine_fifth = ydata[4,:]
+    except:
+        raise TypeError("ydata must be a [N,5] ndarray.")
+    # plotting
+
+    ax.plot(xdata, obs_data, color='black', label=obs_label)
+    ax.plot(xdata, med_counts, color='red', label=sim_label)
+    ax.fill_between(xdata, fifth_per, nine_fifth, color='red', alpha=0.2, label='5%-95%')
+    ax.fill_between(xdata, first_quar, second_quar, color='red', alpha=0.5, label='25%-75%')
+    ax.legend(loc=legend_loc)
+    ax.set_xlabel('Days since Mainshock')
+    ax.set_ylabel('Cumulative Event Count')
+    ax.set_title(title)
+    pyplot.subplots_adjust(right=0.75)
+    # annotate the plot with information from catalog
+    # ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    # save figure
+    filename = plot_args.get('filename', None)
+    if filename is not None:
+        fig.savefig(filename)
+    # optionally show figure
+    if show:
+        pyplot.show()
+
+    return ax
 
 def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=False, plot_args={}):
     """
@@ -405,6 +456,61 @@ def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
 
     return ax
 
+def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
+    bin_edges, obs_hist = obs.binned_magnitude_counts(retbins=True)
+    n_obs = numpy.sum(obs_hist)
+    event_counts = numpy.sum(ses_data, axis=1)
+    # normalize all histograms by counts in each
+    scale = n_obs / event_counts
+    # use broadcasting
+    ses_data = ses_data * scale.reshape(-1,1)
+    figsize = plot_args.get('figsize', None)
+    fig = pyplot.figure(figsize=figsize)
+    ax = fig.gca()
+    u3etas_median = numpy.median(ses_data, axis=0)
+    u3etas_low = numpy.percentile(ses_data, 2.5, axis=0)
+    u3etas_high = numpy.percentile(ses_data, 97.5, axis=0)
+    u3etas_min = numpy.min(ses_data, axis=0)
+    u3etas_max = numpy.max(ses_data, axis=0)
+    u3etas_emax = u3etas_max - u3etas_median
+    u3etas_emin = u3etas_median - u3etas_min
+    dmw = bin_edges[1] - bin_edges[0]
+    bin_edges_plot = bin_edges + dmw / 2
+
+    # u3etas_emax = u3etas_max
+    # plot 95% range as rectangles
+    rectangles = []
+    for i in range(len(bin_edges)):
+        width = dmw / 2
+        height = u3etas_high[i] - u3etas_low[i]
+        xi = bin_edges[i] + width / 2
+        yi = u3etas_low[i]
+        rect = matplotlib.patches.Rectangle((xi, yi), width, height)
+        rectangles.append(rect)
+    pc = matplotlib.collections.PatchCollection(rectangles, facecolor='blue', alpha=0.3, edgecolor='blue')
+    ax.add_collection(pc)
+    # plot whiskers
+    sim_label = plot_args.get('sim_label', 'Simulated Catalogs')
+    obs_label = plot_args.get('obs_label', 'Observed Catalog')
+    xlim = plot_args.get('xlim', None)
+    title = plot_args.get('title', "UCERF3-ETAS Histogram")
+    filename = plot_args.get('filename', None)
+
+    ax.errorbar(bin_edges_plot, u3etas_median, yerr=[u3etas_emin, u3etas_emax], xerr=0.8 * dmw / 2, fmt=' ',
+                    label=sim_label, color='blue', alpha=0.7)
+    ax.plot(bin_edges_plot, obs_hist, '.k', markersize=10, label=obs_label)
+    ax.legend(loc='upper right')
+    ax.set_xlim(xlim)
+    ax.set_xlabel('Mw')
+    ax.set_ylabel('Count')
+    ax.set_title(title)
+    # ax.annotate(str(comcat), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    # pyplot.subplots_adjust(right=0.75)
+    if filename is not None:
+        fig.savefig(filename)
+    if show:
+        pyplot.show()
+    return ax
 
 def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
     # get list of magnitudes list of ndarray
@@ -455,20 +561,21 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
     ax.add_collection(pc)
     # plot whiskers
     sim_label = plot_args.get('sim_label', 'Simulated Catalogs')
+    xlim = plot_args.get('xlim', None)
+    title=plot_args.get('title', "UCERF3-ETAS Histogram")
+    xycoords = plot_args.get('xycoords', (1.00, 0.40))
+    filename = plot_args.get('filename', None)
+
     pyplot.errorbar(bin_edges_plot, u3etas_median, yerr=[u3etas_emin, u3etas_emax], xerr=0.8 * dmw / 2, fmt=' ',
                     label=sim_label, color='blue', alpha=0.7)
     pyplot.plot(bin_edges_plot, obs_hist, '.k', markersize=10, label='Comcat')
     pyplot.legend(loc='upper right')
-    xlim = plot_args.get('xlim', None)
     pyplot.xlim(xlim)
     pyplot.xlabel('Mw')
     pyplot.ylabel('Count')
-    title=plot_args.get('title', "UCERF3-ETAS Histogram")
     pyplot.title(title)
-    xycoords = plot_args.get('xycoords', (1.00, 0.40))
     # ax.annotate(str(comcat), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     pyplot.subplots_adjust(right=0.75)
-    filename = plot_args.get('filename', None)
     if filename is not None:
         fig.savefig(filename)
     if show:
@@ -547,6 +654,7 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
     filename = plot_args.get('filename', None)
     xlabel = plot_args.get('xlabel', '')
     ylabel = plot_args.get('ylabel', '')
+
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
@@ -589,6 +697,7 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
         pyplot.show()
 
     return ax
+
 
 def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
     """
@@ -646,6 +755,7 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
         pyplot.show()
 
     return ax
+
 
 def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}):
     """

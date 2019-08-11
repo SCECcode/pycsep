@@ -18,10 +18,7 @@ class Region:
         self.bitmask = a
         self.xs = xs
         self.ys = ys
-
-    @property
-    def num_nodes(self):
-        return len(self.polygons)
+        self.num_nodes = len(self.polygons)
 
     def get_index_of(self, lons, lats):
         """
@@ -35,7 +32,7 @@ class Region:
         """
         idx = self._bin1d_vec(lons, self.xs)
         idy = self._bin1d_vec(lats, self.ys)
-        return self.bitmask[idy, idx, 1]
+        return int(self.bitmask[idy, idx, 1])
 
     def get_masked(self, lons, lats):
         """
@@ -94,8 +91,14 @@ class Region:
         assert numpy.isclose(h, self.dh)
         assert h > 0
         idx = np.floor((p - a0) / h)
-        idx[((idx < 0) | (idx >= len(bins) - 1))] = -1
-        return idx.astype(np.int)
+        try:
+            idx[((idx < 0) | (idx >= len(bins) - 1))] = -1
+            idx = idx.astype(np.int)
+        except TypeError:
+            if idx < 0 or idx >= len(bins)-1:
+                idx = -1
+            idx = numpy.int(idx)
+        return idx
 
     def _build_bitmask_vec(self):
         """
