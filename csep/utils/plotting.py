@@ -70,6 +70,7 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
     ax.fill_between(xdata, fifth_per, nine_fifth, color='red', alpha=0.2, label='5%-95%')
     ax.fill_between(xdata, first_quar, second_quar, color='red', alpha=0.5, label='25%-75%')
     ax.legend(loc=legend_loc)
+    ax.set_yscale('log')
     ax.set_xlabel('Days since Mainshock')
     ax.set_ylabel('Cumulative Event Count')
     ax.set_title(title)

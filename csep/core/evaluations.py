@@ -1,18 +1,18 @@
 import copy
 from collections import namedtuple, defaultdict
 import os
+from tempfile import mkstemp
 
 import numpy
 import tqdm
-from numba import njit
 
 import time
 from csep.utils.stats import cumulative_square_dist, binned_ecdf, sup_dist
-from csep.utils.constants import CSEP_MW_BINS, dmw, SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_WEEK, \
-    MW_5_EQS_PER_YEAR
+from csep.utils.constants import CSEP_MW_BINS, SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_WEEK
 from csep.utils import flat_map_to_ndarray
 from csep.utils.plotting import plot_magnitude_test, plot_number_test, plot_spatial_test, \
-    plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_spatial_dataset, plot_distribution_test
+    plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_spatial_dataset, plot_distribution_test, \
+    plot_likelihood_test
 
 # implementing plotting routines as functions
 from csep.utils.stats import get_quantiles
@@ -335,11 +335,13 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     return (result_likelihood, result_spatial)
 
 def _distribution_test(stochastic_event_set_data, observation_data):
+
+    # for cached files want to write this with memmap
     union_catalog = flat_map_to_ndarray(stochastic_event_set_data)
     min_time = 0.0
     max_time = numpy.max([numpy.max(numpy.ceil(union_catalog)), numpy.max(numpy.ceil(observation_data))])
 
-    # build test_distribution with 100 data points. this was chosen arbitrarily.
+    # build test_distribution with 100 data points
     num_points = 100
     tms = numpy.linspace(min_time, max_time, num_points, endpoint=True)
 
@@ -467,6 +469,11 @@ class AbstractProcessingTask:
         self.ax = []
         self.fnames = []
         self.needs_two_passes = False
+        self.cache = False
+        self.buffer = []
+        self.region = None
+        self.buffer_fname = None
+        self.fhandle = None
 
     def process_catalog(self, catalog):
         raise NotImplementedError('must implement process_catalog()!')
@@ -508,6 +515,20 @@ class AbstractProcessingTask:
     def _build_figure_filename(dir, mw, plot_id):
         basename = f"{plot_id}_{mw}_test.png"
         return os.path.join(dir, basename)
+
+    @staticmethod
+    def _get_temporary_filename():
+        # create temporary file and return filename
+        _, tmp_file = mkstemp()
+        return tmp_file
+
+    def cache_results(self, results, buf_len=1000):
+        self.buf_len = buf_len
+        self.buffer.append(results)
+        if len(self.buffer) >= buf_len:
+            out = numpy.array(self.buffer)
+            out.tofile(self.fhandle)
+            self.buffer = []
 
 class NumberTest(AbstractProcessingTask):
 
@@ -622,13 +643,23 @@ class MagnitudeTest(AbstractProcessingTask):
         self.fnames.append(m_test_fname)
 
 class LikelihoodAndSpatialTest(AbstractProcessingTask):
-    def __init__(self, **kwargs):
+    def __init__(self, cache=True, **kwargs):
         super().__init__(**kwargs)
         self.region = None
         self.test_distribution_spatial = []
         self.test_distribution_likelihood = []
         self.cat_id = 0
         self.needs_two_passes = True
+        self.cache = cache
+        self.buffer = []
+        if self.cache:
+            self.needs_two_passes = False
+
+    def __del__(self):
+        print('removing temporary file.')
+        if self.cache:
+            self.fhandle.close()
+            os.remove(self.buffer_fname)
 
     def process_catalog(self, catalog):
         # grab stuff from catalog that we might need later
@@ -640,7 +671,13 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         counts = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            counts.append(cat_filt.gridded_event_counts())
+            gridded_counts = cat_filt.gridded_event_counts()
+            counts.append(gridded_counts)
+        if self.cache:
+            if self.buffer_fname is None:
+                self.buffer_fname = self._get_temporary_filename()
+                self.fhandle = open(self.buffer_fname, 'wb+')
+            self.cache_results(counts)
         # we want to aggregate the counts in each bin to preserve memory
         if len(self.data) == 0:
             self.data = numpy.array(counts)
@@ -648,6 +685,9 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             self.data += numpy.array(counts)
 
     def process_again(self, catalog, args=()):
+        # we dont actually need to do this if we are caching the files
+        if self.cache:
+            return
         time_horizon, n_cat, end_epoch, obs = args
         apprx_rate_density = self.data / self.region.dh / self.region.dh / time_horizon / n_cat
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
@@ -668,17 +708,53 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
     def evaluate(self, obs, args=None):
         """ this function is slow, it could use some love eventually. """
         cata_iter, time_horizon, end_epoch, n_cat = args
-        n_obs = obs.event_count
         results = {}
-
+        items_per_read = len(self.mws) * self.region.num_nodes
         apprx_rate_density = self.data / self.region.dh / self.region.dh / time_horizon / n_cat
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
+        size_of_float = numpy.dtype(float).itemsize
+        # build test distribution from file buffer
+        if n_cat % self.buf_len != 0:
+            raise ValueError('buf_len must be a factor of n_cat')
+        nchunks = int(n_cat / self.buf_len)
+        if self.cache:
+            t0 = time.time()
+            for j in range(nchunks):
+                with open(self.buffer_fname, 'rb') as f:
+                    gridded_cat_mws = numpy.fromfile(f,
+                                                     count=items_per_read*self.buf_len,
+                                                     offset=j*size_of_float*items_per_read*self.buf_len) \
+                        .reshape(self.buf_len, len(self.mws), self.region.num_nodes)
+
+                    if (j+1) % 1 == 0:
+                        t1 = time.time()
+                        print(f'Processed {(j+1)*self.buf_len} in {t1 - t0} seconds')
+
+                    # loop over catalog data
+                    for k in range(self.buf_len):
+                        lhs = numpy.zeros(len(self.mws))
+                        lhs_norm = numpy.zeros(len(self.mws))
+                        for i, mw in enumerate(self.mws):
+                            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+                            n_obs = obs_filt.event_count
+                            gridded_cat = gridded_cat_mws[k, i, :]
+                            lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density[i, :],
+                                                              expected_cond_count[i], n_obs)
+                            lhs[i] = lh
+                            lhs_norm[i] = lh_norm
+                        self.test_distribution_likelihood.append(lhs)
+                        self.test_distribution_spatial.append(lhs_norm)
+
+                if (j+1)*self.buf_len % n_cat == 0:
+                    break
+
         test_distribution_likelihood = numpy.array(self.test_distribution_likelihood)
         test_distribution_spatial = numpy.array(self.test_distribution_spatial)
         # prepare results for each mw
         for i, mw in enumerate(self.mws):
             # get observed likelihood
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            n_obs = obs_filt.get_number_of_events()
             gridded_obs = obs_filt.gridded_event_counts()
             obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density[i,:], expected_cond_count[i], n_obs)
             # determine outcome of evaluation, check for infinity
@@ -738,7 +814,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                          'title': f'Pseudo-Likelihood Test\nMw>{mw}',
                          'bins': 'auto',
                          'filename': l_test_fname}
-            ax = plot_spatial_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
+            ax = plot_likelihood_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
             # we can access this in the main program if needed
             # self.ax.append((ax, spatial_ax))
             self.fnames.append((l_test_fname, s_test_fname))
@@ -768,7 +844,6 @@ class CumulativeEventPlot(AbstractProcessingTask):
             dt = SECONDS_PER_DAY * 1000 * 30
         # always make bins from start to end of catalog
         return numpy.arange(self.origin_epoch, self.end_epoch+dt/2, dt), dt
-
 
     def process_catalog(self, catalog):
         counts = []
@@ -947,26 +1022,47 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
         self.fnames.append(iedd_test_fname)
 
 class TotalEventRateDistribution(AbstractProcessingTask):
-    def __init__(self, **kwargs):
+    def __init__(self, cache=True, **kwargs):
         super().__init__(**kwargs)
+        self.cache = cache
+        self.mws = [2.5]
 
     def process_catalog(self, catalog):
         """ not nice on the memorys. """
         if self.name is None:
             self.name = catalog.name
+        if self.region is None:
+            self.region = catalog.region
+
         cat_filt = catalog.filter(f'magnitude > {self.mws[0]}')
         # this is huge. could be 200k per catalog >>> n_events
-        self.data.append(cat_filt.gridded_event_counts())
+        data = cat_filt.gridded_event_counts()
+        if self.cache:
+            if self.buffer_fname is None:
+                self.buffer_fname = self._get_temporary_filename()
+                self.fhandle = open(self.buffer_fname, 'wb+')
+            self.cache_results(data)
+        else:
+            self.data.append(data)
 
     def evaluate(self, obs, args=None):
         # get inter-event times from catalog
+        _, _, _, n_cat = args
         obs_filt = obs.filter(f'magnitude > {self.mws[0]}')
         obs_terd = obs_filt.gridded_event_counts()
 
-        # compute distribution statistics
-        test_distribution, d_obs, quantile = _distribution_test(self.data, obs_terd)
+        if self.cache:
+            # this might have to be buffered for large data, would be around 6Gb for 100k catalogs down to mw 2.5
+            data = numpy.fromfile(self.buffer_fname).reshape(n_cat, len(self.mws), self.region.num_nodes)
+        else:
+            data = self.data
 
-        result = EvaluationResult(test_distribution=test_distribution,
+        # compute distribution statistics
+        results = {}
+        for i, mw in enumerate(self.mws):
+            test_distribution, d_obs, quantile = _distribution_test(data[:,i,:], obs_terd)
+
+            result = EvaluationResult(test_distribution=test_distribution,
                                   name='TERD-Test',
                                   observed_statistic=d_obs,
                                   quantile=quantile,
@@ -974,18 +1070,20 @@ class TotalEventRateDistribution(AbstractProcessingTask):
                                   obs_catalog_repr=str(obs),
                                   sim_name=self.name,
                                   obs_name=obs.name)
+            results[mw] = result
 
-        return result
+        return results
 
     def plot(self, results, plot_dir, show=False):
-        terd_test_fname = AbstractProcessingTask._build_figure_filename(plot_dir, self.mws[0], 'terd_test')
-        _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
-                                                                       'title': f'Total Event Rate Distribution-Test\nMw>{self.mws[0]}',
-                                                                       'bins': 'auto',
-                                                                       'xlabel': "D* Statistic",
-                                                                       'ylabel': r"P(X $\leq$ x)",
-                                                                       'filename': terd_test_fname})
-        self.fnames.append(terd_test_fname)
+        for mw, result in results.items():
+            terd_test_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'terd_test')
+            _ = plot_distribution_test(result, show=False, plot_args={'percentile': 95,
+                                                                      'title': f'Total Event Rate Distribution-Test\nMw>{mw}',
+                                                                      'bins': 'auto',
+                                                                      'xlabel': "D* Statistic",
+                                                                      'ylabel': r"P(X $\leq$ x)",
+                                                                      'filename': terd_test_fname})
+            self.fnames.append(terd_test_fname)
 
 class BValueTest(AbstractProcessingTask):
     def __init__(self, **kwargs):
@@ -1074,17 +1172,62 @@ class ConditionalEventsVersusTime(AbstractProcessingTask):
         pass
 
 class SpatialLikelihoodPlot(AbstractProcessingTask):
-    def __init__(self, **kwargs):
+    def __init__(self, calc=True, **kwargs):
         super().__init__(**kwargs)
+        self.calc = calc
 
     def process_catalog(self, catalog):
-        pass
+        # grab stuff from catalog that we might need later
+        if not self.region:
+            self.region = catalog.region
+        if not self.name:
+            self.name = catalog.name
+        if self.calc:
+            # compute stuff from catalog
+            counts = []
+            for mw in self.mws:
+                cat_filt = catalog.filter(f'magnitude > {mw}')
+                counts.append(cat_filt.gridded_event_counts())
+            # we want to aggregate the counts in each bin to preserve memory
+            if len(self.data) == 0:
+                self.data = numpy.array(counts)
+            else:
+                self.data += numpy.array(counts)
 
     def evaluate(self, obs, args=None):
-        pass
+        self.obs = obs
+        _, time_horizon, end_epoch, n_cat = args
+        if len(self.data) == 0:
+            raise ValueError("data is empty. need to have calc=True or manually bind data to the class.")
+        data = numpy.array(self.data)
+        apprx_rate_density = data / self.region.dh / self.region.dh / time_horizon / n_cat
+        apprx_rate_density = apprx_rate_density / numpy.sum(apprx_rate_density, axis=1).reshape(-1,1)
+        expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
+
+        results = []
+        for i, mw in enumerate(self.mws):
+            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            gridded_obs = obs_filt.gridded_event_counts()
+            gridded_obs_ma = numpy.ma.masked_where(gridded_obs == 0, gridded_obs)
+            apprx_rate_density_ma = numpy.ma.array(apprx_rate_density[i,:], mask=gridded_obs_ma.mask)
+            likelihood = gridded_obs_ma * numpy.ma.log10(apprx_rate_density_ma) / obs_filt.event_count
+            likelihood = likelihood.data
+            result = self.region.get_cartesian(likelihood)
+            results.append(result)
+        return numpy.array(results)
 
     def plot(self, results, plot_dir, show=False):
-        pass
+        for i, mw in enumerate(self.mws):
+            # compute expected rate density
+            ax = plot_spatial_dataset(results[i,:,:],
+                                      self.region,
+                                      plot_args={'clabel': r'Pseudo Likelihood Per Event',
+                                                 'clim': [-0.1, 0],
+                                                 'title': f'Likelihood Plot with Observations\nMw > {mw}'})
+            like_plot = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'like-plot')
+            ax.figure.savefig(like_plot)
+            # self.ax.append(ax)
+            self.fnames.append(like_plot)
 
 class ConditionalRatePlot(AbstractProcessingTask):
 
@@ -1121,10 +1264,7 @@ class ConditionalRatePlot(AbstractProcessingTask):
 
     def plot(self, results, plot_dir, show=False):
         crd = numpy.log10(numpy.array(self.data) / self.region.dh / self.region.dh / self.time_horizon / self.n_cat)
-        vmax = numpy.log10(
-            MW_5_EQS_PER_YEAR / 10 ** (numpy.min(self.mws) - 5) / self.region.dh / self.region.dh)
-        vmin = numpy.log10(
-            MW_5_EQS_PER_YEAR / 10 ** (numpy.max(self.mws) - 5) / self.region.dh / self.region.dh)
+
         for i, mw in enumerate(self.mws):
             # compute expected rate density
             obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)

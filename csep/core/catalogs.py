@@ -125,6 +125,22 @@ class AbstractBaseCatalog:
     def from_dict(cls, adict):
         raise NotImplementedError
 
+    @classmethod
+    def from_dataframe(cls, df, **kwargs):
+        # turn dataframe into numpy record array, this assumes certain things
+        # 1) there are no indexed columns. this means you should call .reset_index() before passing here
+        catalog_id = None
+        try:
+            catalog_id = df['catalog_id'].iloc[0]
+        except KeyError:
+            print('Warning: Unable to parse catalog_id, setting to default value')
+
+        col_list = list(cls.dtype.names)
+        catalog = df[col_list].to_records(index=False)
+        print('making class')
+        out_cls = cls(catalog=catalog, catalog_id=catalog_id, **kwargs)
+        return out_cls
+
     @property
     def catalog(self):
         return self._catalog
@@ -389,7 +405,7 @@ class AbstractBaseCatalog:
         self._update_catalog_stats()
         return self
 
-    def _get_csep_format(self):
+    def get_csep_format(self):
         """
         This method should be overwritten for catalog formats that do not adhere to the CSEP ZMAP catalog format. For
         those that do, this method will return the catalog as is.
@@ -548,7 +564,11 @@ class CSEPCatalog(AbstractBaseCatalog):
             datetimes.append(dt)
         return datetimes
 
-    def _get_csep_format(self):
+    def get_epoch_times(self):
+        dts = self.get_datetimes()
+        return list(map(datetime_to_utc_epoch, dts))
+
+    def get_csep_format(self):
         return self
 
 
@@ -645,7 +665,7 @@ class UCERF3Catalog(AbstractBaseCatalog):
     def get_latitudes(self):
         return self.catalog['latitude']
 
-    def _get_csep_format(self):
+    def get_csep_format(self):
         n = len(self.catalog)
         # allocate array for csep catalog
         csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
@@ -658,13 +678,13 @@ class UCERF3Catalog(AbstractBaseCatalog):
             hour = dt.hour
             minute = dt.minute
             second = dt.second
-            csep_catalog[i] = (event['longitude'].byteswap(),
-                               event['latitude'].byteswap(),
+            csep_catalog[i] = (event['longitude'],
+                               event['latitude'],
                                year,
                                month,
                                day,
-                               event['magnitude'].byteswap(),
-                               event['depth'].byteswap(),
+                               event['magnitude'],
+                               event['depth'],
                                hour,
                                minute,
                                second)

@@ -34,7 +34,7 @@ def load_stochastic_event_sets(type=None, format='native', **kwargs):
         if format == 'native':
             yield(catalog)
         elif format == 'csep':
-            yield(catalog._get_csep_format())
+            yield(catalog.get_csep_format())
         else:
             raise ValueError('format must be either "native" or "csep!')
 
@@ -66,7 +66,7 @@ def load_catalog(type=None, format='native', **kwargs):
     if format == 'native':
         return_val = catalog
     elif format == 'csep':
-        return_val = catalog._get_csep_format()
+        return_val = catalog.get_csep_format()
     else:
         raise ValueError('format must be either "native" or "csep!')
     return return_val
