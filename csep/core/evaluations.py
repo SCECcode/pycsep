@@ -780,19 +780,33 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
         size_of_float = numpy.dtype(float).itemsize
         # build test distribution from file buffer
-        if n_cat % self.buf_len != 0:
-            raise ValueError('buf_len must be a factor of n_cat')
-        nchunks = int(n_cat / self.buf_len)
         if self.cache:
+            # flush buffer if reading failed for some reason
+            if len(self.buffer) != 0:
+                out = numpy.array(self.buffer)
+                out.tofile(self.fhandle)
+                self.buffer = []
+            # make sure things are consistent
+            nchunks = int(n_cat / self.buf_len)
+            stragglers = n_cat % self.buf_len
+            if stragglers != 0:
+                assert nchunks + stragglers == n_cat
             t0 = time.time()
-            for j in range(nchunks):
+            for j in range(nchunks+1):
                 with open(self.buffer_fname, 'rb') as f:
+                    if stragglers != 0 and j == nchunks:
+                        read_buf_len = stragglers
+                    elif j == nchunks:
+                        # read will return empty and loop will not execute
+                        read_buf_len = 0
+                    else:
+                        read_buf_len = self.buf_len
                     gridded_cat_mws = numpy.fromfile(f,
-                                                     count=items_per_read*self.buf_len,
-                                                     offset=j*size_of_float*items_per_read*self.buf_len) \
+                                                     count=items_per_read*read_buf_len,
+                                                     offset=j*size_of_float*items_per_read*read_buf_len) \
                         .reshape(self.buf_len, len(self.mws), self.region.num_nodes)
                     # loop over catalog data
-                    for k in range(self.buf_len):
+                    for k in range(read_buf_len):
                         lhs = numpy.zeros(len(self.mws))
                         lhs_norm = numpy.zeros(len(self.mws))
                         for i, mw in enumerate(self.mws):
@@ -809,6 +823,8 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                     if (j+1) % 1 == 0:
                         t1 = time.time()
                         print(f'Processed {(j+1)*self.buf_len} in {t1 - t0} seconds')
+
+
 
                 if (j+1)*self.buf_len % n_cat == 0:
                     break
