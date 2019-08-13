@@ -804,7 +804,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                     gridded_cat_mws = numpy.fromfile(f,
                                                      count=items_per_read*read_buf_len,
                                                      offset=j*size_of_float*items_per_read*read_buf_len) \
-                        .reshape(self.buf_len, len(self.mws), self.region.num_nodes)
+                        .reshape(read_buf_len, len(self.mws), self.region.num_nodes)
                     # loop over catalog data
                     for k in range(read_buf_len):
                         lhs = numpy.zeros(len(self.mws))
