@@ -530,6 +530,10 @@ class AbstractProcessingTask:
             out.tofile(self.fhandle)
             self.buffer = []
 
+    def store_results(self, fname):
+        """ archive results of calcuations to compute comparisons plots. """
+        pass
+
 class NumberTest(AbstractProcessingTask):
 
     def process_catalog(self, catalog):
@@ -570,6 +574,124 @@ class NumberTest(AbstractProcessingTask):
             min_bin, max_bin = numpy.min(td), numpy.max(td)
             # hard-code some logic for bin size
             if mw < 4.0:
+                bins = 'sqrt'
+            else:
+                bins = numpy.arange(min_bin, max_bin)
+            n_test_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'n_test')
+            ax = plot_number_test(result, show=show,
+                           plot_args={'percentile': 95,
+                                      'title': f'Number-Test\nMw>{mw}',
+                                      'bins': 'auto',
+                                      'filename': n_test_fname})
+            # self.ax.append(ax)
+            self.fnames.append(n_test_fname)
+
+class MagnitudeTest(AbstractProcessingTask):
+
+    def process_catalog(self, catalog):
+        if not self.name:
+            self.name = catalog.name
+        # always compute this for the lowest magnitude, above this is redundant
+        mags = []
+        for mw in self.mws:
+            cat_filt = catalog.filter(f'magnitude > {mw}')
+            binned_mags = cat_filt.binned_magnitude_counts()
+            mags.append(binned_mags)
+        # data shape (n_cat, n_mw, n_mw_bins)
+        self.data.append(mags)
+
+    def evaluate(self, obs, args=None):
+        # we dont need args
+        _ = args
+        results = {}
+        for i, mw in enumerate(self.mws):
+            test_distribution = []
+            # get observed magnitude counts
+            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            # shape (n_mw_bins)
+            obs_histogram = obs_filt.binned_magnitude_counts()
+            n_obs_events = numpy.sum(obs_histogram)
+            mag_counts_all = numpy.array(self.data)
+            # get the union histogram, simply the sum over all catalogs, (n_cat, n_mw)
+            n_union_events = numpy.sum(mag_counts_all[:,i,:])
+            scale = n_obs_events / n_union_events
+            union_histogram = numpy.sum(mag_counts_all[:,i,:], axis=0) * scale
+            # could do this without a loop, c'est la.
+            for j in range(mag_counts_all.shape[0]):
+                n_events = numpy.sum(mag_counts_all[j,i,:])
+                if n_events == 0:
+                    scale = 0
+                else:
+                    scale = n_obs_events / n_events
+                catalog_histogram = mag_counts_all[j,i,:] * scale
+                test_distribution.append(cumulative_square_dist(catalog_histogram, union_histogram))
+            # compute statistic from the observation
+            obs_d_statistic = cumulative_square_dist(obs_histogram, union_histogram)
+            # score evaluation
+            _, quantile = get_quantiles(test_distribution, obs_d_statistic)
+            # prepare result
+            result = EvaluationResult(test_distribution=test_distribution,
+                                      name='M-Test',
+                                      observed_statistic=obs_d_statistic,
+                                      quantile=quantile,
+                                      status='Normal',
+                                      obs_catalog_repr=str(obs),
+                                      obs_name=obs.name,
+                                      sim_name=self.name)
+            results[mw] = result
+        return results
+
+    def plot(self, results, plot_dir, show=False):
+        # get the filename
+        for mw in self.mws:
+            m_test_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'm-test')
+            plot_args = {'percentile': 95,
+                 'title': f'Magnitude-Test\nMw>{mw}',
+                  'bins': 'auto',
+                  'filename': m_test_fname}
+            ax = plot_magnitude_test(results[mw], show=False, plot_args=plot_args)
+        # self.ax.append(ax)
+            self.fnames.append(m_test_fname)
+
+class NumberTestDelayed(AbstractProcessingTask):
+
+    def process_catalog(self, catalog):
+        if not self.name:
+            self.name = catalog.name
+        counts = []
+        for mw in self.mws:
+            cat_filt = catalog.filter(f'magnitude > {mw}')
+            counts.append(cat_filt.event_count)
+        return numpy.array(counts)
+
+    def evaluate_test(self, data, obs, args=None):
+        # we dont need args for this function
+        _ = args
+        results = {}
+        for i, mw in enumerate(self.mws):
+            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            observation_count = obs_filt.event_count
+            # get delta_1 and delta_2 values
+            delta_1, delta_2 = get_quantiles(data[:,i], observation_count)
+            # prepare result
+            result = EvaluationResult(test_distribution=data[:,i],
+                          name='N-Test',
+                          observed_statistic=observation_count,
+                          quantile=(delta_1, delta_2),
+                          status='Normal',
+                          obs_catalog_repr=str(obs),
+                          sim_name=self.name,
+                          obs_name=obs.name)
+            results[mw] = result
+        return results
+
+    def plot(self, results, plot_dir, show=False):
+        for mw, result in results.items():
+            # compute bin counts, this one is special because of integer values
+            td = result.test_distribution
+            min_bin, max_bin = numpy.min(td), numpy.max(td)
+            # hard-code some logic for bin size
+            if mw < 4.0:
                 bins = 'auto'
             else:
                 bins = numpy.arange(min_bin, max_bin)
@@ -582,66 +704,6 @@ class NumberTest(AbstractProcessingTask):
             # self.ax.append(ax)
             self.fnames.append(n_test_fname)
 
-class MagnitudeTest(AbstractProcessingTask):
-
-    def process_catalog(self, catalog):
-        if not self.name:
-            self.name = catalog.name
-        # always compute this for the lowest magnitude, above this is redundant
-        cat_filt = catalog.filter(f'magnitude > {self.mws[0]}')
-        binned_mags = cat_filt.binned_magnitude_counts()
-        self.data.append(binned_mags)
-
-    def evaluate(self, obs, args=None):
-        # we dont need args
-        _ = args
-        test_distribution = []
-        # get observed magnitude counts
-        obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        obs_histogram = obs_filt.binned_magnitude_counts()
-        n_obs_events = numpy.sum(obs_histogram)
-        mag_counts_all = numpy.array(self.data)
-        # get the union histogram, simply the sum over all catalogs
-        n_union_events = numpy.sum(mag_counts_all)
-        scale = n_obs_events / n_union_events
-        union_histogram = numpy.sum(mag_counts_all, axis=0) * scale
-        # could do this without a loop, c'est la.
-        for i in range(mag_counts_all.shape[0]):
-            n_events = numpy.sum(mag_counts_all[i,:])
-            if n_events == 0:
-                scale = 0
-            else:
-                scale = n_obs_events / n_events
-            catalog_histogram = mag_counts_all[i,:] * scale
-            test_distribution.append(cumulative_square_dist(catalog_histogram, union_histogram))
-        # compute statistic from the observation
-        obs_d_statistic = cumulative_square_dist(obs_histogram, union_histogram)
-        # score evaluation
-        _, quantile = get_quantiles(test_distribution, obs_d_statistic)
-        # prepare result
-        result = EvaluationResult(test_distribution=test_distribution,
-                                  name='M-Test',
-                                  observed_statistic=obs_d_statistic,
-                                  quantile=quantile,
-                                  status='Normal',
-                                  obs_catalog_repr=str(obs),
-                                  obs_name=obs.name,
-                                  sim_name=self.name)
-
-        return result
-
-    def plot(self, results, plot_dir, show=False):
-        # get the filename
-        mw_min = self.mws[0]
-        m_test_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw_min, 'm-test')
-        plot_args = {'percentile': 95,
-             'title': f'Magnitude-Test\nMw>{mw_min}',
-             'bins': 'auto',
-             'filename': m_test_fname}
-        ax = plot_magnitude_test(results, show=False, plot_args=plot_args)
-        # self.ax.append(ax)
-        self.fnames.append(m_test_fname)
-
 class LikelihoodAndSpatialTest(AbstractProcessingTask):
     def __init__(self, cache=True, **kwargs):
         super().__init__(**kwargs)
@@ -652,14 +714,18 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         self.needs_two_passes = True
         self.cache = cache
         self.buffer = []
+        self.fnames = {}
+        self.fnames['l-test'] = []
+        self.fnames['s-test'] = []
         if self.cache:
             self.needs_two_passes = False
 
     def __del__(self):
-        print('removing temporary file.')
-        if self.cache:
-            self.fhandle.close()
+        print('Removing temporary file.')
+        if self.cache and self.buffer_fname:
             os.remove(self.buffer_fname)
+        if self.fhandle:
+            self.fhandle.close()
 
     def process_catalog(self, catalog):
         # grab stuff from catalog that we might need later
@@ -725,11 +791,6 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                                                      count=items_per_read*self.buf_len,
                                                      offset=j*size_of_float*items_per_read*self.buf_len) \
                         .reshape(self.buf_len, len(self.mws), self.region.num_nodes)
-
-                    if (j+1) % 1 == 0:
-                        t1 = time.time()
-                        print(f'Processed {(j+1)*self.buf_len} in {t1 - t0} seconds')
-
                     # loop over catalog data
                     for k in range(self.buf_len):
                         lhs = numpy.zeros(len(self.mws))
@@ -744,6 +805,10 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                             lhs_norm[i] = lh_norm
                         self.test_distribution_likelihood.append(lhs)
                         self.test_distribution_spatial.append(lhs_norm)
+
+                    if (j+1) % 1 == 0:
+                        t1 = time.time()
+                        print(f'Processed {(j+1)*self.buf_len} in {t1 - t0} seconds')
 
                 if (j+1)*self.buf_len % n_cat == 0:
                     break
@@ -817,7 +882,8 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             ax = plot_likelihood_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
             # we can access this in the main program if needed
             # self.ax.append((ax, spatial_ax))
-            self.fnames.append((l_test_fname, s_test_fname))
+            self.fnames['l-test'].append(l_test_fname)
+            self.fnames['s-test'].append(s_test_fname)
 
 class CumulativeEventPlot(AbstractProcessingTask):
 
@@ -942,8 +1008,9 @@ class MagnitudeHistogram(AbstractProcessingTask):
              'obs_label': self.obs.name,
              'filename': mag_hist_fname
         }
-        obs_filt = self.obs.filter(f'magnitude > {self.mws[0]}')
-        ax = plot_magnitude_histogram_dev(self.data, obs_filt, plot_args, show=False)
+        obs_filt = self.obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        # data (n_sim, n_mag, n_mw_bins)
+        ax = plot_magnitude_histogram_dev(numpy.array(self.data)[:,0,:], obs_filt, plot_args, show=False)
         # self.ax.append(ax)
         self.fnames.append(mag_hist_fname)
 
@@ -1118,6 +1185,7 @@ class BValueTest(AbstractProcessingTask):
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
                                                              'title': f"B-Value Distribution Test\nMw>{self.mws[0]}",
                                                              'bins': 'auto',
+                                                             'xy': (0.2, 0.5),
                                                              'filename': bv_test_fname})
         self.fnames.append(bv_test_fname)
 
@@ -1271,7 +1339,9 @@ class ConditionalRatePlot(AbstractProcessingTask):
             plot_data = self.region.get_cartesian(crd[i,:])
             ax = plot_spatial_dataset(plot_data,
                                       self.region,
-                                      plot_args={'clabel': r'Log$_{10}$ Conditional Rate Density',
+                                      plot_args={'clabel': r'Log$_{10}$ Conditional Rate Density'
+                                                           '\n'
+                                                           f'(Expected Events per year per {self.region.dh}°x{self.region.dh}°)',
                                                  'clim': [0, 5],
                                                  'title': f'Approximate Rate Density with Observations\nMw > {mw}'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')

@@ -3,7 +3,6 @@ import logging
 import time
 from csep.core.catalogs import UCERF3Catalog, CSEPCatalog, ComcatCatalog
 
-
 def load_stochastic_event_sets(type=None, format='native', **kwargs):
     """
     Factory function to load stochastic event sets.

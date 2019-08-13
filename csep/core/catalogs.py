@@ -42,8 +42,6 @@ class AbstractBaseCatalog:
 
         # cleans the catalog to set as ndarray, see setter.
         self.catalog = catalog
-        if self.catalog is not None:
-            self.event_count = self.get_number_of_events()
 
         # class attributes that are not settable from constructor (adding here for readability)
         self.mfd = None
@@ -61,31 +59,26 @@ class AbstractBaseCatalog:
         # use user defined stats if entered into catalog
         try:
             if catalog is not None and self.compute_stats:
-                self._update_catalog_stats()
+                self.update_catalog_stats()
         except (AttributeError, NotImplementedError):
             print('Warning: could not parse catalog statistics by reading catalog. get_magnitudes(), get_latitudes() and get_longitudes() ' +
                   'must be implemented and bound to calling class! Reverting to old values.')
 
     def __str__(self):
-        s='''
-        Name: {}
+        s=f'''
+        Name: {self.name}
 
-        Start Date: {}
-        End Date: {}
+        Start Date: {self.start_time}
+        End Date: {self.end_time}
 
-        Latitude: ({:.2f}, {:.2f})
-        Longitude: ({:.2f}, {:.2f})
+        Latitude: ({self.min_latitude}, {self.max_latitude})
+        Longitude: ({self.min_longitude}, {self.max_longitude})
 
-        Min Mw: {:.2f}
-        Max Mw: {:.2f}
+        Min Mw: {self.min_magnitude}
+        Max Mw: {self.max_magnitude}
         
-        Event Count: {:.2f}
-        '''.format(self.name,
-        self.start_time, self.end_time,
-        self.min_latitude,self.max_latitude,
-        self.min_longitude,self.max_longitude,
-        self.min_magnitude,self.max_magnitude,
-        self.event_count)
+        Event Count: {self.event_count}
+        '''
         return s
 
     def to_dict(self):
@@ -121,14 +114,36 @@ class AbstractBaseCatalog:
             out['catalog'].append(new_line)
         return out
 
+    @property
+    def event_count(self):
+        return self.get_number_of_events()
+
     @classmethod
     def from_dict(cls, adict):
         raise NotImplementedError
 
     @classmethod
     def from_dataframe(cls, df, **kwargs):
-        # turn dataframe into numpy record array, this assumes certain things
-        # 1) there are no indexed columns. this means you should call .reset_index() before passing here
+        """
+        Creates catalog from dataframe. Dataframe must have columns that are equivalent to whatever fields
+        the catalog expects.
+
+        For example:
+
+                cat = CSEPCatalog()
+                df = cat.get_dataframe()
+                new_cat = CSEPCatalog.from_dataframe(df)
+                cat == new_cat
+
+        Args:
+            df (pandas.DataFrame): pandas dataframe
+            **kwargs:
+
+        Returns:
+            Catalog
+
+        """
+
         catalog_id = None
         try:
             catalog_id = df['catalog_id'].iloc[0]
@@ -136,8 +151,8 @@ class AbstractBaseCatalog:
             print('Warning: Unable to parse catalog_id, setting to default value')
 
         col_list = list(cls.dtype.names)
-        catalog = df[col_list].to_records(index=False)
-        print('making class')
+        # we want this to be a structured array not a record array
+        catalog = numpy.ascontiguousarray(df[col_list].to_records(index=False), dtype=cls.dtype)
         out_cls = cls(catalog=catalog, catalog_id=catalog_id, **kwargs)
         return out_cls
 
@@ -162,6 +177,8 @@ class AbstractBaseCatalog:
             if not isinstance(self._catalog, numpy.ndarray):
                 raise ValueError("Error: Catalog must be numpy.ndarray! Ensure that self._get_catalog_as_ndarray()" +
                                  " returns an ndarray")
+        if self.compute_stats:
+            self.update_catalog_stats()
 
     @classmethod
     def load_catalogs(cls, filename=None, **kwargs):
@@ -365,23 +382,16 @@ class AbstractBaseCatalog:
                      '>=': operator.ge,
                      '<=': operator.le,
                      '==': operator.eq}
-        # if we wnat to access by column name and not dtype.name
-        name, type, value = statement.split(' ')
-        idx = numpy.where(operators[type](self.catalog[name], float(value)))
+        name, oper, value = statement.split(' ')
+        filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
         # returns a copy of the array
-        filtered = self.catalog[idx]
-        # updates the state of self
         if in_place:
             self.catalog = filtered
-            # update instance state before returning
-            self._update_catalog_stats()
-            # return self
             return self
         else:
             # make and return new object
             cls = self.__class__
             inst = cls(catalog=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name, region=self.region)
-            inst._update_catalog_stats()
             return inst
 
     def filter_spatial(self, region):
@@ -402,7 +412,7 @@ class AbstractBaseCatalog:
         self.catalog = filtered
         # update the region to the new region
         self.region = region
-        self._update_catalog_stats()
+        # self._update_catalog_stats()
         return self
 
     def get_csep_format(self):
@@ -413,9 +423,8 @@ class AbstractBaseCatalog:
         """
         raise NotImplementedError('_get_csep_format() not implemented.')
 
-    def _update_catalog_stats(self):
+    def update_catalog_stats(self):
         # update min and max values
-        self.event_count = self.get_number_of_events()
         self.min_magnitude = min_or_none(self.get_magnitudes())
         self.max_magnitude = max_or_none(self.get_magnitudes())
         self.min_latitude = min_or_none(self.get_latitudes())
@@ -441,6 +450,7 @@ class AbstractBaseCatalog:
             return self.catalog
         n = len(self.catalog)
         catalog = numpy.array(n, dtype=self.dtype)
+        # parsing for comcat SummaryEvent
         for i, event in self.catalog:
             catalog[i] = tuple(event)
         return catalog
@@ -504,8 +514,7 @@ class AbstractBaseCatalog:
     def binned_magnitude_counts(self, bins=CSEP_MW_BINS, retbins=False):
         out = numpy.zeros(len(bins))
         idx = bin1d_vec(self.get_magnitudes(), bins)
-        for i in idx:
-            out[i] += 1
+        numpy.add.at(out, idx, 1)
         if retbins:
             return (bins, out)
         else:
@@ -614,20 +623,15 @@ class UCERF3Catalog(AbstractBaseCatalog):
         with open(filename, 'rb') as catalog_file:
             # parse 4byte header from merged file
             number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
-
             # load all catalogs from merged file
             for catalog_id in range(number_simulations_in_set):
-
                 header = numpy.fromfile(catalog_file, dtype=cls.header_dtype, count=1)
                 catalog_size = header['catalog_size'][0]
-
                 # read catalog
                 catalog = numpy.fromfile(catalog_file, dtype=cls.dtype, count=catalog_size)
-
                 # add column that stores catalog_id in case we want to store in database
                 u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
-
-                # generator function
+                # generator function, maybe apply filters here
                 yield(u3_catalog)
 
     def get_datetimes(self):
@@ -794,7 +798,7 @@ class ComcatCatalog(AbstractBaseCatalog):
         self.date_accessed = datetime.datetime.utcnow()
 
         if self.compute_stats:
-            self._update_catalog_stats()
+            self.update_catalog_stats()
 
         return self
 

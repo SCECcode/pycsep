@@ -25,7 +25,7 @@ class ResultsNotebook:
         self.nb['cells'].append(nbformat.v4.new_markdown_cell(first))
 
 
-    def add_result_figure(self, title, level, relative_filepaths):
+    def add_result_figure(self, title, level, relative_filepaths, ncols=3):
         """
 
         Args:
@@ -37,11 +37,16 @@ class ResultsNotebook:
 
         """
 
+        # convert relative_filepaths into a list with ncols
+        relative_filepaths = [relative_filepaths[i:i+ncols] for i in range(0, len(relative_filepaths), ncols)]
+
         # convert str into a proper list, where each potential row is an iter not str
         def build_header(row):
             top = "|"
             bottom = "|"
-            for _ in row:
+            for i, _ in enumerate(row):
+                if i == ncols:
+                    break
                 top +=  " |"
                 bottom += " --- |"
             return top + '\n' + bottom

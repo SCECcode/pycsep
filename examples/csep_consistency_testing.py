@@ -83,8 +83,8 @@ def main(mw_min, config, sim_dir, end_time):
     # Process Stochastic Event Sets
     gridded_counts = np.zeros(aftershock_region.num_nodes)
     u3_filt = []
-
-    u3catalogs = csep.load_stochastic_event_set(filename=filename, type='ucerf3', format='native', name='UCERF3-ETAS', region=aftershock_region)
+    tstart = time.time()
+    u3catalogs = csep.load_stochastic_event_sets(filename=filename, type='ucerf3', format='native', name='UCERF3-ETAS', region=aftershock_region)
     # read catalogs from disk
     for i in tqdm.tqdm(range(n_cat), total=n_cat):
         cat = next(u3catalogs)
@@ -216,7 +216,7 @@ def main(mw_min, config, sim_dir, end_time):
                                                                     'ylabel': r"P(X $\leq$ x)",
                                                                     'filename': terd_test_fname})
     t1 = time.time()
-    print(f"Finished IETD Test in {t1-t0} seconds")
+    print(f"Finished IEDD Test in {t1-t0} seconds")
 
     # compute b-value test
     print('Computing B-Value Test')
@@ -228,7 +228,8 @@ def main(mw_min, config, sim_dir, end_time):
                                                            'bins': 'auto',
                                                            'filename': bv_test_fname})
     t1 = time.time()
-    print(f"Finished IETD Test in {t1-t0} seconds")
+    print(f"Finished B-Value Test in {t1-t0} seconds")
+    print(f'Finished all catalogs in {tstart-t1} seconds with an average time per catalog of {(tstart-t1)/n_cat}')
     # compile results
     results['forecast_name'] = u3_filt[0].name
     results['n-test'] = n_test_result
@@ -242,7 +243,6 @@ def main(mw_min, config, sim_dir, end_time):
     results['terd-test_plot'] = get_relative_path(terd_test_fname)
     results['iedd-test_plot'] = get_relative_path(iedd_test_fname)
     results['ietd-test_plot'] = get_relative_path(ietd_test_fname)
-    results['bv-test_plot'] = get_relative_path(bv_test_fname)
     results['n-test_plot'] = get_relative_path(n_test_fname)
     results['cum_plot'] = get_relative_path(cum_counts_fname)
     results['m-test_plot'] = get_relative_path(m_test_fname)
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     origin_time = u3etas_config['startTimeMillis']
     # some information for the main program not necessarily just the u3etas config, maybe event isn't in there
     config = {
-              'numSimulations': 100000,
+              'numSimulations': 2500,
               'startTimeMillis': origin_time,
               'magnitude': event_mw,
               'eventLongitude': event_lon,
@@ -305,7 +305,7 @@ if __name__ == "__main__":
     # run evaluation until present time
     now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
     # evaluate in small mag bins, and then total
-    mw_min = [3.0, 3.5, 4.0]
+    mw_min = [2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
     # freeze the configuration and the end_time
     partial_main = functools.partial(main, sim_dir=simulation_dir, config=config, end_time=now)
     # parallelize over the magnitudes
@@ -321,7 +321,7 @@ if __name__ == "__main__":
         for k in set().union(*results)
     }
     # create the notebook for results
-    notebook = ResultsNotebook()
+    notebook = ResultsNotebook('results_10000_mw3-mw5.ipynb')
     # introduction is fixed,  might change to make more general
     notebook.add_introduction(adict={'simulation_name': u3etas_config['simulationName'],
                                     'origin_time': epoch_time_to_utc_datetime(origin_time),

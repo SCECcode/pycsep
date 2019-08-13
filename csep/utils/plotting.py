@@ -599,6 +599,10 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     # plot using cartopy
     figsize = plot_args.get('figsize', None)
     title = plot_args.get('title', 'Spatial Dataset')
+    clim = plot_args.get('clim', None)
+    clabel = plot_args.get('clabel', '')
+    filename = plot_args.get('filename', None)
+
     fig = pyplot.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
     lons, lats = numpy.meshgrid(region.xs, region.ys)
@@ -606,11 +610,9 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     ax.set_extent(extent)
     ax.coastlines(color='black', resolution='110m', linewidth=1)
     ax.add_feature(cartopy.feature.STATES)
-    clim = plot_args.get('clim', None)
     im.set_clim(clim)
     # colorbar options
     cbar = fig.colorbar(im, ax=ax)
-    clabel = plot_args.get('clabel', '')
     cbar.set_label(clabel)
     # matplotlib.cm.get_cmap().set_bad(color='white')
     # matplotlib.cm.get_cmap().set_under(color='gray')
@@ -621,9 +623,8 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     gl.ylabels_right = False
     gl.xformatter = LONGITUDE_FORMATTER
     gl.yformatter = LATITUDE_FORMATTER
-    ax.set_title(title, y=1.04)
+    ax.set_title(title, y=1.06)
     # this is a cartopy.GeoAxes
-    filename = plot_args.get('filename', None)
     if filename is not None:
         fig.savefig(filename)
 
@@ -655,6 +656,7 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
     filename = plot_args.get('filename', None)
     xlabel = plot_args.get('xlabel', '')
     ylabel = plot_args.get('ylabel', '')
+    xy = plot_args.get('xy', (0.5, 0.3))
 
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
@@ -674,13 +676,13 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
             ax.annotate('$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
                     .format(*evaluation_result.quantile),
                     xycoords='axes fraction',
-                    xy=(0.5, 0.3),
+                    xy=xy,
                     fontsize=14)
         except:
             ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
                         .format(evaluation_result.quantile),
                         xycoords='axes fraction',
-                        xy=(0.5, 0.3),
+                        xy=xy,
                         fontsize=14)
 
     title = plot_args.get('title', evaluation_result.name)

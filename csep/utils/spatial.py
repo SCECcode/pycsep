@@ -306,7 +306,7 @@ def build_bitmask_vec(polygons, dh):
     for i in range(len(polygons)):
 
         # store index of polygon
-        a[idy[i], idx[i], 1] = i
+        a[idy[i], idx[i], 1] = int(i)
 
         # build bitmask
         if idx[i] >= 0 and idy[i] >= 0:
@@ -360,21 +360,15 @@ def bin_catalog_spatial_counts(lons, lats, n_poly, bitmask, binx, biny):
     Eventually, we can make a structure that could contain both of these, but the trade-offs will need
     to be compared against performance.
     """
-    ny, nx, _ = bitmask.shape
     ai, bi = binx, biny
     # index in cartesian grid for events in catalog. note, this has a different index than the
     # vector of polygons. this mapping is stored in [:,:,1] index of bitmask
     idx = bin1d_vec(lons, ai)
     idy = bin1d_vec(lats, bi)
-    # start with zero event counts in each bin
     event_counts = np.zeros(n_poly)
-    # does not seem that we can vectorize this part
-    for i in range(idx.shape[0]):
-        # we store the index of that polygon in array [:, :, 1], flag is [:,:,0]
-        if not bitmask[idy[i], idx[i], 0]:
-            hash_idx = int(bitmask[idy[i], idx[i], 1])
-            # update event counts in that polygon
-            event_counts[hash_idx] += 1
+    hash_idx = bitmask[idy,idx,1].astype(int)
+    hash_idx[bitmask[idy,idx,0] != 0] = 0
+    np.add.at(event_counts, hash_idx, 1)
     return event_counts
 
 def masked_region(region, polygon):
