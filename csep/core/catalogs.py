@@ -625,18 +625,15 @@ class UCERF3Catalog(AbstractBaseCatalog):
             number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
             # load all catalogs from merged file
             for catalog_id in range(number_simulations_in_set):
-                try:
-                    header = numpy.fromfile(catalog_file, dtype=cls.header_dtype, count=1)
-                    catalog_size = header['catalog_size'][0]
-                    # read catalog
-                    catalog = numpy.fromfile(catalog_file, dtype=cls.dtype, count=catalog_size)
-                    # add column that stores catalog_id in case we want to store in database
-                    u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
-                    # generator function, maybe apply filters here
-                    yield(u3_catalog)
-                except:
-                    # we failed to load catalog
-                    raise CSEPSchedulerException('unable to load ucerf3-catalog')
+                header = numpy.fromfile(catalog_file, dtype=cls.header_dtype, count=1)
+                catalog_size = header['catalog_size'][0]
+                # read catalog
+                catalog = numpy.fromfile(catalog_file, dtype=cls.dtype, count=catalog_size)
+                # add column that stores catalog_id in case we want to store in database
+                u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
+                # generator function, maybe apply filters here
+                yield u3_catalog
+
 
     def get_datetimes(self):
         """

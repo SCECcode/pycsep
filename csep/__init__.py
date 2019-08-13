@@ -29,7 +29,13 @@ def load_stochastic_event_sets(type=None, format='native', **kwargs):
     result = mapping[type](**kwargs)
 
     # convert to csep format
-    for catalog in result:
+    while True:
+        try:
+            catalog = next(result)
+        except StopIteration:
+            raise
+        except Exception:
+            raise
         if format == 'native':
             yield(catalog)
         elif format == 'csep':
