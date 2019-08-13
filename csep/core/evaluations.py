@@ -792,8 +792,8 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             if stragglers != 0:
                 assert nchunks + stragglers == n_cat
             t0 = time.time()
-            for j in range(nchunks+1):
-                with open(self.buffer_fname, 'rb') as f:
+            with open(self.buffer_fname, 'rb') as f:
+                for j in range(nchunks+1):
                     if stragglers != 0 and j == nchunks:
                         read_buf_len = stragglers
                     elif j == nchunks:
@@ -824,10 +824,8 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                         t1 = time.time()
                         print(f'Processed {(j+1)*self.buf_len} in {t1 - t0} seconds')
 
-
-
-                if (j+1)*self.buf_len % n_cat == 0:
-                    break
+                    if (j+1)*self.buf_len % n_cat == 0:
+                        break
 
         test_distribution_likelihood = numpy.array(self.test_distribution_likelihood)
         test_distribution_spatial = numpy.array(self.test_distribution_spatial)
