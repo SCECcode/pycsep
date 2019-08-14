@@ -778,54 +778,57 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         items_per_read = len(self.mws) * self.region.num_nodes
         apprx_rate_density = self.data / self.region.dh / self.region.dh / time_horizon / n_cat
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
-        size_of_float = numpy.dtype(float).itemsize
+        size_of_float = numpy.dtype(numpy.float64).itemsize
         # build test distribution from file buffer
         if self.cache:
             # flush buffer if reading failed for some reason
             if len(self.buffer) != 0:
+                print(f'Found {len(self.buffer)} items still in buffer. Flushing buffer before continuing.')
                 out = numpy.array(self.buffer)
                 out.tofile(self.fhandle)
                 self.buffer = []
+                self.fhandle.close()
             # make sure things are consistent
             nchunks = int(n_cat / self.buf_len)
             stragglers = n_cat % self.buf_len
-            if stragglers != 0:
-                assert nchunks + stragglers == n_cat
+            assert nchunks*self.buf_len + stragglers == n_cat
             t0 = time.time()
-            with open(self.buffer_fname, 'rb') as f:
-                for j in range(nchunks+1):
-                    if stragglers != 0 and j == nchunks:
-                        read_buf_len = stragglers
-                    elif j == nchunks:
-                        # read will return empty and loop will not execute
-                        read_buf_len = 0
-                    else:
-                        read_buf_len = self.buf_len
-                    gridded_cat_mws = numpy.fromfile(f,
-                                                     count=items_per_read*read_buf_len,
-                                                     offset=j*size_of_float*items_per_read*read_buf_len) \
-                        .reshape(read_buf_len, len(self.mws), self.region.num_nodes)
-                    # loop over catalog data
-                    for k in range(read_buf_len):
-                        lhs = numpy.zeros(len(self.mws))
-                        lhs_norm = numpy.zeros(len(self.mws))
-                        for i, mw in enumerate(self.mws):
-                            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
-                            n_obs = obs_filt.event_count
-                            gridded_cat = gridded_cat_mws[k, i, :]
-                            lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density[i, :],
-                                                              expected_cond_count[i], n_obs)
-                            lhs[i] = lh
-                            lhs_norm[i] = lh_norm
-                        self.test_distribution_likelihood.append(lhs)
-                        self.test_distribution_spatial.append(lhs_norm)
+            print(nchunks, stragglers, n_cat, self.buf_len)
+            for j in range(nchunks+1):
+                if j < nchunks:
+                    read_buf_len = self.buf_len
+                    gridded_cat_mws = numpy.fromfile(self.buffer_fname,
+                                                 count=items_per_read*self.buf_len,
+                                                 offset=j*size_of_float*items_per_read*self.buf_len) \
+                    .reshape(self.buf_len, len(self.mws), self.region.num_nodes)
+                # this happens only once
+                elif stragglers !=0:
+                    read_buf_len = stragglers
+                    gridded_cat_mws = numpy.fromfile(self.buffer_fname,
+                                                 count=items_per_read*read_buf_len,
+                                                 offset=j*size_of_float*items_per_read*self.buf_len) \
+                    .reshape(read_buf_len, len(self.mws), self.region.num_nodes)
+                # loop over catalog data
+                for k in range(read_buf_len):
+                    lhs = numpy.zeros(len(self.mws))
+                    lhs_norm = numpy.zeros(len(self.mws))
+                    for i, mw in enumerate(self.mws):
+                        obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+                        n_obs = obs_filt.event_count
+                        gridded_cat = gridded_cat_mws[k, i, :]
+                        lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density[i, :],
+                                                          expected_cond_count[i], n_obs)
+                        lhs[i] = lh
+                        lhs_norm[i] = lh_norm
+                    self.test_distribution_likelihood.append(lhs)
+                    self.test_distribution_spatial.append(lhs_norm)
 
-                    if (j+1) % 1 == 0:
+                    if (j*self.buf_len+(k+1)) % 2500 == 0:
                         t1 = time.time()
-                        print(f'Processed {(j+1)*self.buf_len} in {t1 - t0} seconds')
+                        print(f'Processed {j*self.buf_len+k+1} in {t1 - t0} seconds')
 
-                    if (j+1)*self.buf_len % n_cat == 0:
-                        break
+                if (j+1)*self.buf_len % n_cat == 0:
+                    break
 
         test_distribution_likelihood = numpy.array(self.test_distribution_likelihood)
         test_distribution_spatial = numpy.array(self.test_distribution_spatial)
