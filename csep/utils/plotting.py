@@ -80,7 +80,8 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
     # save figure
     filename = plot_args.get('filename', None)
     if filename is not None:
-        fig.savefig(filename)
+        fig.savefig(filename + '.pdf')
+        fig.savefig(filename + '.png', dpi=300)
     # optionally show figure
     if show:
         pyplot.show()
@@ -175,7 +176,8 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
     # save figure
     filename = plot_args.get('filename', None)
     if filename is not None:
-        fig.savefig(filename)
+        fig.savefig(filename + '.pdf')
+        fig.savefig(filename + '.png', dpi=300)
     # optionally show figure
     if show:
         pyplot.show()
@@ -238,7 +240,8 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
 
     # handle displaying of figures
     if filename is not None:
-        fig.savefig(filename)
+        fig.savefig(filename + '.pdf')
+        fig.savefig(filename + '.png', dpi=300)
 
     if show:
         pyplot.show()
@@ -247,7 +250,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
 
 
 def plot_histogram(simulated, observation, bins='fd', percentile=None,
-                   filename=None, show=False, axes=None, catalog=None, plot_args={}):
+                   show=False, axes=None, catalog=None, plot_args={}):
     """
     Plots histogram of single statistic for stochastic event sets and observations. The function will behave differently
     depending on the inumpyuts.
@@ -298,6 +301,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     legend = plot_args.get('legend', True)
     bins = plot_args.get('bins', bins)
     color = plot_args.get('color', '')
+    filename = plot_args.get('filename', None)
 
     # this could throw an error exposing bad implementation
     observation = numpy.array(observation)
@@ -359,8 +363,9 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
             patches[idx].set_fc('red')
         for idx in range(idx_high, len(patches)):
             patches[idx].set_fc('red')
-        if filename is not None:
-            pyplot.savefig(filename)
+    if filename is not None:
+        ax.figure.savefig(filename + '.pdf')
+        ax.figure.savefig(filename + '.png', dpi=300)
     if show:
         pyplot.show()
     return ax
@@ -424,7 +429,6 @@ def plot_mfd(catalog, filename=None, show=False, **kwargs):
     #     pyplot.show()
     raise NotImplementedError
 
-
 def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
     """
     Plots empirical cumulative distribution function.
@@ -451,7 +455,8 @@ def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
     #     ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
     if filename is not None:
-        pyplot.savefig(filename)
+        fig.savefig(filename + '.pdf')
+        fig.savefig(filename + '.png', dpi=300)
 
     if show:
         pyplot.show()
@@ -509,7 +514,8 @@ def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
     # ax.annotate(str(comcat), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     # pyplot.subplots_adjust(right=0.75)
     if filename is not None:
-        fig.savefig(filename)
+        fig.savefig(filename + '.pdf')
+        fig.savefig(filename + '.png', dpi=300)
     if show:
         pyplot.show()
     return ax
@@ -579,7 +585,8 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
     # ax.annotate(str(comcat), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     pyplot.subplots_adjust(right=0.75)
     if filename is not None:
-        fig.savefig(filename)
+        fig.savefig(filename + '.pdf')
+        fig.savefig(filename + '.png', dpi=300)
     if show:
         pyplot.show()
 
@@ -627,7 +634,8 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     ax.set_title(title, y=1.06)
     # this is a cartopy.GeoAxes
     if filename is not None:
-        fig.savefig(filename)
+        fig.savefig(filename + '.pdf')
+        fig.savefig(filename + '.png', dpi=300)
 
     if show:
         pyplot.show()
@@ -692,7 +700,8 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
     ax.set_ylabel(ylabel)
 
     if filename is not None:
-        pyplot.savefig(filename)
+        ax.figure.savefig(filename + '.pdf')
+        ax.figure.savefig(filename + '.png', dpi=300)
 
     # func has different return types, before release refactor and remove plotting from evaluation.
     # plotting should be separated from evaluation.
@@ -750,7 +759,8 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
     ax.set_title(title, fontsize=14)
 
     if filename is not None:
-        pyplot.savefig(filename)
+        ax.figure.savefig(filename + '.pdf')
+        ax.figure.savefig(filename + '.png', dpi=300)
 
     # func has different return types, before release refactor and remove plotting from evaluation.
     # plotting should be separated from evaluation.
@@ -811,7 +821,8 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}
     ax.set_ylabel(ylabel)
 
     if filename is not None:
-        pyplot.savefig(filename)
+        ax.figure.savefig(filename + '.pdf')
+        ax.figure.savefig(filename + '.png', dpi=300)
 
     # func has different return types, before release refactor and remove plotting from evaluation.
     # plotting should be separated from evaluation.
@@ -869,7 +880,8 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
     ax.set_title(title, fontsize=14)
 
     if filename is not None:
-        pyplot.savefig(filename)
+        ax.figure.savefig(filename + '.pdf')
+        ax.figure.savefig(filename + '.png', dpi=300)
 
     # func has different return types, before release refactor and remove plotting from evaluation.
     # plotting should be separated from evaluation.
@@ -923,7 +935,8 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args={}, show=True):
     ax.set_title(title, fontsize=14)
 
     if filename is not None:
-        pyplot.savefig(filename)
+        ax.figure.savefig(filename + '.pdf')
+        ax.figure.savefig(filename + '.png', dpi=300)
 
     # func has different return types, before release refactor and remove plotting from evaluation.
     # plotting should be separated from evaluation.

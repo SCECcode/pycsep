@@ -1,4 +1,6 @@
 import os
+from itertools import chain
+
 import nbformat
 from csep.utils.time import epoch_time_to_utc_datetime
 
@@ -10,23 +12,28 @@ class ResultsNotebook:
         self.nb['cells'] = []
         self.toc = []
         self.has_introduction = False
+        self.markdown = []
 
-    def add_introduction(self, adict={}):
+    def add_introduction(self, adict):
         # generate document header
         first = f"# CSEP Testing Results: {adict['simulation_name']}  \n" \
                 f"**Forecast Name:** {adict['forecast_name']}  \n" \
                 f"**Simulation Start Time:** {adict['origin_time']}  \n" \
                 f"**Evaluation Time:** {adict['evaluation_time']}  \n" \
                 f"**Catalog Source:** {adict['catalog_source']}  \n" \
-                f"**Number Simulations:** {adict['num_simulations']}"
+                f"**Number Simulations:** {adict['num_simulations']}\n"
 
         # used to determine to place TOC at beginning of document or after introduction.
         self.has_introduction = True
+        self.markdown.append(first)
         self.nb['cells'].append(nbformat.v4.new_markdown_cell(first))
+        return first
 
 
-    def add_result_figure(self, title, level, relative_filepaths, ncols=3):
+    def add_result_figure(self, title, level, relative_filepaths, ncols=3, add_ext=True):
         """
+        this function expects a list of filepaths. if you want the output stacked, select a
+        value of ncols. ncols should be divisible by filepaths. todo: modify formatted_paths to work when not divis.
 
         Args:
             title: name of the figure
@@ -38,7 +45,19 @@ class ResultsNotebook:
         """
 
         # convert relative_filepaths into a list with ncols
-        relative_filepaths = [relative_filepaths[i:i+ncols] for i in range(0, len(relative_filepaths), ncols)]
+
+        # verify filepaths have proper extension should always be png
+        total_items = len(relative_filepaths)
+        is_single = True if total_items == 1 else False
+        correct_paths = []
+        if add_ext:
+            for fp in relative_filepaths:
+                correct_paths.append(fp + '.png')
+        else:
+            correct_paths = relative_filepaths
+
+        # generate new lists with size ncols
+        formatted_paths = [correct_paths[i:i+ncols] for i in range(0, len(correct_paths), ncols)]
 
         # convert str into a proper list, where each potential row is an iter not str
         def build_header(row):
@@ -59,22 +78,17 @@ class ResultsNotebook:
                 string = string + f' ![]({item}) |'
             return string
 
-        figures = []
-        if isinstance(relative_filepaths, str):
-            figures.append([relative_filepaths])
-        else:
-            figures = relative_filepaths
-
         level_string = f"{level*'#'}"
         result_cell = []
         locator = title.lower().replace(" ", "_")
         result_cell.append(f'{level_string} {title}  <a name="{locator}"></a>\n')
 
-        for i, row in enumerate(figures):
-            if i == 0:
+        for i, row in enumerate(formatted_paths):
+            if i == 0 and not is_single:
                 result_cell.append(build_header(row))
             result_cell.append(add_to_row(row))
 
+        self.markdown.append('\n'.join(result_cell) + '\n')
         self.nb['cells'].append(nbformat.v4.new_markdown_cell('\n'.join(result_cell)))
 
         # generate metadata for TOC
@@ -87,13 +101,14 @@ class ResultsNotebook:
         cell = []
         level_string = f"{level*'#'}"
         locator = title.lower().replace(" ", "_")
-        sub_heading = f'{level_string} {title} <a name="{locator}"></a>'
+        sub_heading = f'{level_string} {title} <a name="{locator}"></a>\n'
         cell.append(sub_heading)
         try:
             for item in list(text):
                 cell.append(item)
         except:
             raise RuntimeWarning("Unable to add results document subheading, text must be iterable.")
+        self.markdown.append('\n'.join(cell) + '\n')
         self.nb['cells'].append(nbformat.v4.new_markdown_cell('\n'.join(cell)))
 
         # generate metadata for TOC
@@ -110,12 +125,11 @@ class ResultsNotebook:
             toc.append(f"{space}1. [{title}](#{locator})")
 
         insert_loc = 1 if self.has_introduction else 0
-
+        self.markdown.insert(insert_loc, '\n'.join(toc) + '\n')
         self.nb['cells'].insert(insert_loc, nbformat.v4.new_markdown_cell('\n'.join(toc)))
 
 
-    @staticmethod
-    def get_table(data, use_header=True):
+    def get_table(self, data, use_header=True):
         """
         Generates table from HTML and styles using bootstrap class
         Args:
@@ -153,8 +167,17 @@ class ResultsNotebook:
         table.append('</table>')
         table.append('</div>')
         table = '\n'.join(table)
-        return table
+        self.markdown.append(table + '\n')
+        return table  + '\n'
 
-    def finalize(self, save_dir):
+    def finalize(self, save_dir, markdown=True, notebook=False):
         self._generate_table_of_contents()
-        nbformat.write(self.nb, os.path.join(save_dir, self.outname))
+        if markdown:
+            output = list(chain.from_iterable(self.markdown))
+            md_fname = os.path.splitext(self.outname)[0] + '.md'
+            full_md_fname = os.path.join(save_dir, md_fname)
+            with open(full_md_fname, 'w') as f:
+                f.writelines(output)
+
+        if notebook:
+            nbformat.write(self.nb, os.path.join(save_dir, self.outname))

@@ -477,7 +477,7 @@ class AbstractProcessingTask:
 
     @staticmethod
     def _build_figure_filename(dir, mw, plot_id):
-        basename = f"{plot_id}_{mw}_test.png"
+        basename = f"{plot_id}_{mw}_test"
         return os.path.join(dir, basename)
 
     @staticmethod
@@ -567,7 +567,8 @@ class NumberTest(AbstractProcessingTask):
             results[mw] = result
         return results
 
-    def plot(self, results, plot_dir, show=False):
+    def plot(self, results, plot_dir, plot_args=None, show=False):
+
         for mw, result in results.items():
             # compute bin counts, this one is special because of integer values
             td = result.test_distribution
@@ -578,12 +579,10 @@ class NumberTest(AbstractProcessingTask):
             else:
                 bins = numpy.arange(min_bin, max_bin)
             n_test_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'n_test')
-            ax = plot_number_test(result, show=show,
-                           plot_args={'percentile': 95,
+            ax = plot_number_test(result, show=show, plot_args={'percentile': 95,
                                       'title': f'Number-Test\nMw>{mw}',
                                       'bins': 'auto',
                                       'filename': n_test_fname})
-            # self.ax.append(ax)
             self.fnames.append(n_test_fname)
 
 class MagnitudeTest(AbstractProcessingTask):
@@ -1202,7 +1201,7 @@ class BValueTest(AbstractProcessingTask):
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
                                                              'title': f"B-Value Distribution Test\nMw>{self.mws[0]}",
                                                              'bins': 'auto',
-                                                             'xy': (0.6, 0.6),
+                                                             'xy': (0.6, 0.65),
                                                              'filename': bv_test_fname})
         self.fnames.append(bv_test_fname)
 
@@ -1310,7 +1309,8 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
                                                  'clim': [-0.1, 0],
                                                  'title': f'Likelihood Plot with Observations\nMw > {mw}'})
             like_plot = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'like-plot')
-            ax.figure.savefig(like_plot)
+            ax.figure.savefig(like_plot + '.pdf')
+            ax.figure.savefig(like_plot + '.png')
             # self.ax.append(ax)
             self.fnames.append(like_plot)
 
@@ -1363,6 +1363,7 @@ class ConditionalRatePlot(AbstractProcessingTask):
                                                  'title': f'Approximate Rate Density with Observations\nMw > {mw}'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
             crd_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'crd_obs')
-            ax.figure.savefig(crd_fname)
+            ax.figure.savefig(crd_fname + '.png')
+            ax.figure.savefig(crd_fname + '.pdf')
             # self.ax.append(ax)
             self.fnames.append(crd_fname)
