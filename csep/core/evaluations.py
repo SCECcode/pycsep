@@ -475,6 +475,17 @@ class AbstractProcessingTask:
         self.buffer_fname = None
         self.fhandle = None
 
+    @staticmethod
+    def _build_figure_filename(dir, mw, plot_id):
+        basename = f"{plot_id}_{mw}_test.png"
+        return os.path.join(dir, basename)
+
+    @staticmethod
+    def _get_temporary_filename():
+        # create temporary file and return filename
+        _, tmp_file = mkstemp()
+        return tmp_file
+
     def process_catalog(self, catalog):
         raise NotImplementedError('must implement process_catalog()!')
 
@@ -510,17 +521,6 @@ class AbstractProcessingTask:
     def process_again(self, catalog, args=()):
         """ This function defaults to pass unless the method needs to read through the data twice. """
         pass
-
-    @staticmethod
-    def _build_figure_filename(dir, mw, plot_id):
-        basename = f"{plot_id}_{mw}_test.png"
-        return os.path.join(dir, basename)
-
-    @staticmethod
-    def _get_temporary_filename():
-        # create temporary file and return filename
-        _, tmp_file = mkstemp()
-        return tmp_file
 
     def cache_results(self, results, buf_len=1000):
         self.buf_len = buf_len
@@ -1202,7 +1202,7 @@ class BValueTest(AbstractProcessingTask):
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
                                                              'title': f"B-Value Distribution Test\nMw>{self.mws[0]}",
                                                              'bins': 'auto',
-                                                             'xy': (0.2, 0.5),
+                                                             'xy': (0.6, 0.6),
                                                              'filename': bv_test_fname})
         self.fnames.append(bv_test_fname)
 

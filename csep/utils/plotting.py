@@ -306,6 +306,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         n = len(observation)
     except TypeError:
         ax.axvline(x=observation, color='black', linestyle='--', label=obs_label)
+
     else:
         # remove any nan values
         observation = observation[~numpy.isnan(observation)]
@@ -334,15 +335,15 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     #     ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     #     pyplot.subplots_adjust(right=0.75)
 
-    # show 99.9% of data
-    upper_xlim = numpy.percentile(simulated, 99.95)
-    upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
-    d_bin = bin_edges[1] - bin_edges[0]
-    upper_xlim = upper_xlim + 2*d_bin
+    # show 99.5% of data
+    upper_xlim = numpy.percentile(simulated, 99.75)
+    # upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
+    # d_bin = bin_edges[1] - bin_edges[0]
+    # upper_xlim = upper_xlim + 2*d_bin
 
-    lower_xlim = numpy.percentile(simulated, 0.05)
-    lower_xlim = numpy.min([0, lower_xlim, numpy.min(observation)])
-    lower_xlim = lower_xlim - 2*d_bin
+    lower_xlim = numpy.percentile(simulated, 0.25)
+    # lower_xlim = numpy.min([0, lower_xlim, numpy.min(observation)])
+    # lower_xlim = lower_xlim - 2*d_bin
 
     ax.set_xlim([lower_xlim, upper_xlim])
 
@@ -352,7 +353,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     if legend:
         ax.legend(loc=legend_loc)
 
-    # hacky workaround for coloring legend, by calling after legend.
+    # hacky workaround for coloring legend, by calling after legend is drawn.
     if percentile is not None:
         for idx in range(idx_low):
             patches[idx].set_fc('red')
@@ -673,14 +674,14 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
     # annotate plot with p-values
     if not chained:
         try:
-            ax.annotate('$\delta_1 = P(X \geq x) = {:.5f}$\n$\delta_2 = P(X \leq x) = {:.5f}$'
-                    .format(*evaluation_result.quantile),
+            ax.annotate('$\delta_1 = P(X \geq x) = {:.2f}$\n$\delta_2 = P(X \leq x) = {:.2f}$\n$\omega = {:d}$'
+                    .format(*evaluation_result.quantile, evaluation_result.observed_statistic),
                     xycoords='axes fraction',
                     xy=xy,
                     fontsize=14)
         except:
-            ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
-                        .format(evaluation_result.quantile),
+            ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
+                        .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
                         fontsize=14)
@@ -739,8 +740,8 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
 
     # annotate plot with p-values
     if not chained:
-        ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
-                    .format(evaluation_result.quantile),
+        ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
+                    .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                     xycoords='axes fraction',
                     xy=(0.5, 0.3),
                     fontsize=14)
@@ -797,8 +798,8 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}
 
     # annotate plot with p-values
     if not chained:
-        ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
-                    .format(evaluation_result.quantile),
+        ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}'
+                    .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                     xycoords='axes fraction',
                     xy=(0.5, 0.3),
                     fontsize=14)
@@ -858,10 +859,10 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
 
     # annotate plot with p-values
     if not chained:
-        ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
-                    .format(evaluation_result.quantile),
+        ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
+                    .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                     xycoords='axes fraction',
-                    xy=(0.5, 0.3),
+                    xy=(0.55, 0.3),
                     fontsize=14)
 
     title = plot_args.get('title', 'CSEP2 Pseudo Likelihood Test')
@@ -906,14 +907,14 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args={}, show=True):
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
-                        bins=bins,
+                        bins='fd',
                         axes=axes,
                         percentile=percentile)
 
     # annotate plot with p-values
     if not chained:
-        ax.annotate('$\gamma = P(X \leq x) = {:.5f}$'
-                    .format(evaluation_result.quantile),
+        ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
+                    .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                     xycoords='axes fraction',
                     xy=(0.2, 0.6),
                     fontsize=14)
