@@ -314,15 +314,15 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     else:
         # remove any nan values
         observation = observation[~numpy.isnan(observation)]
-        ax.hist(observation, bins=bins, label=obs_label)
+        ax.hist(observation, bins=bins, label=obs_label, edgecolor=None, linewidth=0)
 
     # remove any potential nans from arrays
     simulated = numpy.array(simulated)
     simulated = simulated[~numpy.isnan(simulated)]
     if color:
-        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label, color=color)
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label, color=color, edgecolor=None, linewidth=0)
     else:
-        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label)
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label, edgecolor=None, linewidth=0)
 
     # color bars for rejection area
     if percentile is not None:
@@ -663,8 +663,8 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
     # supply fixed arguments to plots
     # might want to add other defaults here
     filename = plot_args.get('filename', None)
-    xlabel = plot_args.get('xlabel', '')
-    ylabel = plot_args.get('ylabel', '')
+    xlabel = plot_args.get('xlabel', 'Event Count in Catalog')
+    ylabel = plot_args.get('ylabel', 'Number of Catalogs')
     xy = plot_args.get('xy', (0.5, 0.3))
 
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
