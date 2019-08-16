@@ -1357,7 +1357,7 @@ class ApproximateRatePlot(AbstractProcessingTask):
             plot_data = self.region.get_cartesian(crd[i,:])
             ax = plot_spatial_dataset(plot_data,
                                       self.region,
-                                      plot_args={'clabel': r'Log$_{10}$ Conditional Rate Density'
+                                      plot_args={'clabel': r'Log$_{10}$ Approximate Rate Density'
                                                            '\n'
                                                            f'(Expected Events per year per {self.region.dh}°x{self.region.dh}°)',
                                                  'clim': [0, 5],
@@ -1368,7 +1368,6 @@ class ApproximateRatePlot(AbstractProcessingTask):
             ax.figure.savefig(crd_fname + '.pdf')
             # self.ax.append(ax)
             self.fnames.append(crd_fname)
-
 
 class ConditionalApproximateRatePlot(AbstractProcessingTask):
 
@@ -1416,7 +1415,7 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
                                                            '\n'
                                       f'(Expected Events per year per {self.region.dh}°x{self.region.dh}°)',
                                                  'clim': [0, 5],
-                                                 'title': f'Approximate Rate Density with Observations\nMw > {mw}'})
+                                                 'title': f'Conditional Approximate Rate Density with Observations\nMw > {mw}'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40,
                        edgecolors='black')
             crd_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'cond_rates')

@@ -184,7 +184,6 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
 
     return ax
 
-
 def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={}, **kwargs):
     """
     Plots magnitude versus linear time for an earthquake catalog.
@@ -255,7 +254,6 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
         pyplot.show()
 
     return ax
-
 
 def plot_histogram(simulated, observation, bins='fd', percentile=None,
                    show=False, axes=None, catalog=None, plot_args={}):
@@ -349,13 +347,13 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
 
     # show 99.5% of data
     upper_xlim = numpy.percentile(simulated, 99.75)
-    # upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
-    # d_bin = bin_edges[1] - bin_edges[0]
-    # upper_xlim = upper_xlim + 2*d_bin
+    upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
+    d_bin = bin_edges[1] - bin_edges[0]
+    upper_xlim = upper_xlim + 2*d_bin
 
     lower_xlim = numpy.percentile(simulated, 0.25)
-    # lower_xlim = numpy.min([0, lower_xlim, numpy.min(observation)])
-    # lower_xlim = lower_xlim - 2*d_bin
+    lower_xlim = numpy.min([0, lower_xlim, numpy.min(observation)])
+    lower_xlim = lower_xlim - 2*d_bin
 
     ax.set_xlim([lower_xlim, upper_xlim])
 
@@ -377,65 +375,6 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     if show:
         pyplot.show()
     return ax
-
-
-def plot_mfd(catalog, filename=None, show=False, **kwargs):
-    """
-    Plots MFD from CSEP Catalog.
-    ### todo: needs redone with maximum likelihood estimation
-    Example usage would be:
-    >>> plot_mfd(catalog, show=True)
-
-    Args:
-        catalog (:class:`~csep.core.catalogs.BaseCatalog`): instance of catalog class
-        filename (str): filename to save figure
-        show (bool): render figure locally using matplotlib backend
-
-    Returns:
-        ax (Axis): matplotlib axis handle
-    """
-    # fig, ax = pyplot.subplots()
-    #
-    # mfd = catalog.mfd
-    # if mfd is None:
-    #     print('Computing MFD for catalog {}.'.format(catalog.name))
-    #     mfd = catalog.get_mfd()
-    #
-    # # get other vals for plotting
-    # a = mfd.loc[0,'a']
-    # b = mfd.loc[0,'b']
-    # ci_b = mfd.loc[0,'ci_b']
-    #
-    # # take mid point of magnitude bins for plotting
-    # x = numpy.array(mfd.index.categories.mid)
-    # try:
-    #     ax.scatter(x, mfd['counts'], color='black', label='{} (accessed: {})'
-    #                   .format(catalog.name, catalog.date_accessed.date()))
-    # except:
-    #     ax.scatter(x, mfd['counts'], color='black', label='{}'.format(catalog.name))
-    #
-    # plt_label = '$log(N)={}-{}\pm{}M$'.format(numpy.round(a,2),numpy.round(abs(b),2),numpy.round(numpy.abs(ci_b),2))
-    # ax.plot(x, 10**mfd['N_est'], label=plt_label)
-    # ax.fill_between(x, 10**mfd['lower_ci'], 10**mfd['upper_ci'], color='blue', alpha=0.2)
-    #
-    # # annotations
-    # ax.set_yscale('log')
-    # ax.set_xlabel('Magnitude')
-    # ax.set_ylabel('Frequency')
-    # ax.set_title('Magnitude Frequency Distribution')
-    # ax.annotate(s='Start Date: {}\nEnd Date: {}\n\nLatitude: ({:.2f}, {:.2f})\nLongitude: ({:.2f}, {:.2f})'
-    #             .format(catalog.start_time.date(), catalog.end_time.date(),
-    #                    catalog.min_latitude,catalog.max_latitude,
-    #                    catalog.min_longitude,catalog.max_longitude),
-    #             xycoords='axes fraction', xy=(0.5, 0.65), fontsize=10)
-    # ax.legend(loc='lower left')
-    #
-    # # handle saving
-    # if filename:
-    #     pyplot.savefig(filename)
-    # if show:
-    #     pyplot.show()
-    raise NotImplementedError
 
 def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
     """
@@ -598,7 +537,6 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
     if show:
         pyplot.show()
 
-
 def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     """
 
@@ -648,7 +586,6 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     if show:
         pyplot.show()
     return ax
-
 
 def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
     """
@@ -719,7 +656,6 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
 
     return ax
 
-
 def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
     """
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
@@ -741,6 +677,7 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
     # supply fixed arguments to plots
     # might want to add other defaults here
     filename = plot_args.get('filename', None)
+    xy = plot_args.get('xy', (0.55, 0.6))
     fixed_plot_args = {'xlabel': 'D* Statistic',
                        'ylabel': 'Number of Catalogs',
                        'obs_label': evaluation_result.obs_name,
@@ -760,7 +697,7 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
         ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
                     .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                     xycoords='axes fraction',
-                    xy=(0.5, 0.3),
+                    xy=xy,
                     fontsize=14)
 
     title = plot_args.get('title', 'CSEP2 Magnitude Test')
@@ -777,7 +714,6 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
         pyplot.show()
 
     return ax
-
 
 def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}):
     """
@@ -840,7 +776,6 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}
 
     return ax
 
-
 def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
     """
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
@@ -897,7 +832,6 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
     if show:
         pyplot.show()
     return ax
-
 
 def plot_spatial_test(evaluation_result, axes=None, plot_args={}, show=True):
     """

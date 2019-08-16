@@ -4,12 +4,10 @@ from itertools import chain
 import nbformat
 from csep.utils.time import epoch_time_to_utc_datetime
 
-class ResultsNotebook:
+class MarkdownReport:
 
-    def __init__(self, outname='results.ipynb'):
-        self.nb = nbformat.v4.new_notebook()
+    def __init__(self, outname='results.md'):
         self.outname = outname
-        self.nb['cells'] = []
         self.toc = []
         self.has_introduction = False
         self.markdown = []
@@ -26,9 +24,20 @@ class ResultsNotebook:
         # used to determine to place TOC at beginning of document or after introduction.
         self.has_introduction = True
         self.markdown.append(first)
-        self.nb['cells'].append(nbformat.v4.new_markdown_cell(first))
         return first
 
+    def add_text(self, text):
+        """
+        text should be a list of strings where each string will be on its own line.
+        each add_text command represents a paragraph.
+
+        Args:
+            text (list): lines to write
+
+        Returns:
+
+        """
+        self.markdown.append('  '.join(text) + '\n\n')
 
     def add_result_figure(self, title, level, relative_filepaths, ncols=3, add_ext=True):
         """
@@ -89,7 +98,6 @@ class ResultsNotebook:
             result_cell.append(add_to_row(row))
 
         self.markdown.append('\n'.join(result_cell) + '\n')
-        self.nb['cells'].append(nbformat.v4.new_markdown_cell('\n'.join(result_cell)))
 
         # generate metadata for TOC
         self.toc.append((title, level, locator))
@@ -109,7 +117,6 @@ class ResultsNotebook:
         except:
             raise RuntimeWarning("Unable to add results document subheading, text must be iterable.")
         self.markdown.append('\n'.join(cell) + '\n')
-        self.nb['cells'].append(nbformat.v4.new_markdown_cell('\n'.join(cell)))
 
         # generate metadata for TOC
         self.toc.append((title, level, locator))
@@ -126,7 +133,6 @@ class ResultsNotebook:
 
         insert_loc = 1 if self.has_introduction else 0
         self.markdown.insert(insert_loc, '\n'.join(toc) + '\n')
-        self.nb['cells'].insert(insert_loc, nbformat.v4.new_markdown_cell('\n'.join(toc)))
 
 
     def get_table(self, data, use_header=True):
@@ -168,16 +174,11 @@ class ResultsNotebook:
         table.append('</div>')
         table = '\n'.join(table)
         self.markdown.append(table + '\n')
-        return table  + '\n'
 
-    def finalize(self, save_dir, markdown=True, notebook=False):
+    def finalize(self, save_dir,):
         self._generate_table_of_contents()
-        if markdown:
-            output = list(chain.from_iterable(self.markdown))
-            md_fname = os.path.splitext(self.outname)[0] + '.md'
-            full_md_fname = os.path.join(save_dir, md_fname)
-            with open(full_md_fname, 'w') as f:
-                f.writelines(output)
-
-        if notebook:
-            nbformat.write(self.nb, os.path.join(save_dir, self.outname))
+        output = list(chain.from_iterable(self.markdown))
+        md_fname = os.path.splitext(self.outname)[0] + '.md'
+        full_md_fname = os.path.join(save_dir, md_fname)
+        with open(full_md_fname, 'w') as f:
+            f.writelines(output)

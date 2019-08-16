@@ -38,9 +38,7 @@ def generate_local_airflow_environment_test(*args, **kwargs):
         sys.exit(-1)
 
     config_filename = kwargs.pop('config_filename')
-
     run_id = kwargs.pop('run_id', '__'.join([experiment_name, runtime]))
-
     logging.info('Configuring local run-time environment for run_id: {}.'.format(run_id))
 
     # generate filepath for unique runtime

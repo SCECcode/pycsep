@@ -74,12 +74,18 @@ def file_exists(path):
 
 def get_relative_path(abs_path):
     """
-    Given an absolute path return the
+    Given an absolute path return the relative path.
 
     Args:
-        abs_path:
+        abs_path (str):
 
     Returns:
+        relative path (str)
+
+    Example:
+
+        abs_path = '/home/csep/test_dir/test.file'
+        returns =  'test_dir/test.file'
 
     """
     basename = os.path.basename(abs_path)
