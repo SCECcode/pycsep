@@ -24,7 +24,7 @@ matplotlib.use('agg')
 matplotlib.rcParams['figure.max_open_warning'] = 150
 sns.set()
 
-def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None):
+def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_dir=None):
     """
     computes all csep consistency tests for simulation located in sim_dir with event_id
 
@@ -38,7 +38,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None):
     """
     # set up directories
     filename = os.path.join(sim_dir, 'results_complete.bin')
-    plot_dir = os.path.join(sim_dir, 'plots')
+    if plot_dir is None:
+        plot_dir = os.path.join(sim_dir, 'plots')
     config_file = os.path.join(sim_dir, 'config.json')
     mkdirs(plot_dir)
 

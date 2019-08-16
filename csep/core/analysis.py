@@ -197,7 +197,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     print(f"Finished everything in {t2-t0} seconds with average time per catalog of {(t2-t0)/n_cat} seconds")
 
     # create the notebook for results
-    md = MarkdownReport('results_benchmark.ipynb')
+    md = MarkdownReport('CSEP_TESTING_RESULTS.md')
 
     md.add_introduction(adict={'simulation_name': u3etas_config['simulationName'],
                                     'origin_time': epoch_time_to_utc_datetime(origin_epoch),
@@ -221,7 +221,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     md.add_sub_heading('One-point Statistics', 1, "")
     md.add_result_figure('B-Value Test', 2, list(map(get_relative_path, data_products['bv-test'].fnames)))
-    md.finalize(sim_dir)
+    md.finalize(os.path.basename(plot_dir))
 
     t1 = time.time()
     print(f'Completed all processing in {t1-t0} seconds')

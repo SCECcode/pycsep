@@ -175,10 +175,9 @@ class MarkdownReport:
         table = '\n'.join(table)
         self.markdown.append(table + '\n')
 
-    def finalize(self, save_dir,):
+    def finalize(self, save_dir):
         self._generate_table_of_contents()
         output = list(chain.from_iterable(self.markdown))
-        md_fname = os.path.splitext(self.outname)[0] + '.md'
-        full_md_fname = os.path.join(save_dir, md_fname)
+        full_md_fname = os.path.join(save_dir, self.outname)
         with open(full_md_fname, 'w') as f:
             f.writelines(output)

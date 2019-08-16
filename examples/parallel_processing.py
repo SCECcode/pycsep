@@ -17,7 +17,7 @@ from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.parallel import do_evaluate_catalogs
 
 from csep.core.evaluations import NumberTest, MagnitudeTest, LikelihoodAndSpatialTest, CumulativeEventPlot, \
-    MagnitudeHistogram, ConditionalRatePlot, BValueTest, TotalEventRateDistribution, InterEventDistanceDistribution, \
+    MagnitudeHistogram, ApproximateRatePlot, BValueTest, TotalEventRateDistribution, InterEventDistanceDistribution, \
     InterEventTimeDistribution
 
 # some basic setup that could easily be looped into the function itself, we will see about that.
@@ -58,7 +58,7 @@ data_products = {
      # # magnitude distribution (same as m-test)
      'mag-hist': MagnitudeHistogram(),
      # # (same as l-test
-     'crd-plot': ConditionalRatePlot(),
+     'crd-plot': ApproximateRatePlot(),
      # # b-value per catalog
      'bv-test': BValueTest()
      # # same as l-test

@@ -7,6 +7,18 @@ from queue import Empty, Full
 import pyproj
 import time
 
+class GriddedDataSet:
+
+    def __init__(self, dh=0.1, anchor=0.0):
+        self.dh = dh
+        self.anchor = 0.0
+        self.data = np.empty([])
+
+    def add(self, data, bins):
+
+        # make sure data are aligned on bins
+        pass
+
 
 class Polygon:
     """
