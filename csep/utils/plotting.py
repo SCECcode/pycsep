@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 import matplotlib
-from matplotlib import pyplot as pyplot
+from matplotlib import pyplot as pyplot, cm
 from matplotlib.collections import PatchCollection
 
 import time
@@ -74,7 +74,7 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
     ax.set_xlabel('Days since Mainshock')
     ax.set_ylabel('Cumulative Event Count')
     ax.set_title(title)
-    pyplot.subplots_adjust(right=0.75)
+    # pyplot.subplots_adjust(right=0.75)
     # annotate the plot with information from catalog
     # ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     # save figure
@@ -207,6 +207,8 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
     title = plot_args.get('title', '')
     marker_size = plot_args.get('marker_size', 10)
     color = plot_args.get('color', 'blue')
+    c = plot_args.get('c', None)
+    clabel = plot_args.get('clabel', None)
 
     print('Plotting magnitude versus time.')
     fig = pyplot.figure(figsize=(8,3))
@@ -223,7 +225,13 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
     magnitudes = catalog.get_magnitudes()
 
     # make plot
-    ax.scatter(days_elapsed, magnitudes, marker='.', s=marker_size, color=color)
+    if c is not None:
+        h = ax.scatter(days_elapsed, magnitudes, marker='.', s=marker_size, c=c, cmap=cm.get_cmap('jet'), **kwargs)
+        cbar = fig.colorbar(h)
+        cbar.set_label(clabel)
+    else:
+        ax.scatter(days_elapsed, magnitudes, marker='.', s=marker_size, color=color, **kwargs)
+
 
     # do some labeling of the figure
     ax.set_title(title, fontsize=16, color='black')

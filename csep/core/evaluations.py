@@ -266,7 +266,7 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
     normalizing_factor = n_obs / expected_cond_count
     normed_rate_density_ma = normalizing_factor * apprx_rate_density_ma
     # compute likelihood for each event, ignoring cells with 0 events in the catalog.
-    likelihood_norm = numpy.sum(gridded_cat_ma * numpy.ma.log10(normed_rate_density_ma)) / numpy.sum(gridded_cat_ma)
+    likelihood_norm = numpy.ma.sum(gridded_cat_ma * numpy.ma.log10(normed_rate_density_ma)) / numpy.ma.sum(gridded_cat_ma)
     return(likelihood, likelihood_norm)
 
 def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_rate_density, time_interval=1.0):
@@ -523,6 +523,9 @@ class AbstractProcessingTask:
         pass
 
     def cache_results(self, results, buf_len=1000):
+        if self.buffer_fname is None:
+            self.buffer_fname = self._get_temporary_filename()
+            self.fhandle = open(self.buffer_fname, 'wb+')
         self.buf_len = buf_len
         self.buffer.append(results)
         if len(self.buffer) >= buf_len:
@@ -619,7 +622,7 @@ class MagnitudeTest(AbstractProcessingTask):
             for j in range(mag_counts_all.shape[0]):
                 n_events = numpy.sum(mag_counts_all[j,i,:])
                 if n_events == 0:
-                    scale = 0
+                    continue
                 else:
                     scale = n_obs_events / n_events
                 catalog_histogram = mag_counts_all[j,i,:] * scale
@@ -750,9 +753,10 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             self.data += numpy.array(counts)
 
     def process_again(self, catalog, args=()):
-        # we dont actually need to do this if we are caching the files
+        # we dont actually need to do this if we are caching the data
         if self.cache:
             return
+
         time_horizon, n_cat, end_epoch, obs = args
         apprx_rate_density = self.data / self.region.dh / self.region.dh / time_horizon / n_cat
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
@@ -760,7 +764,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         lhs = numpy.zeros(len(self.mws))
         lhs_norm = numpy.zeros(len(self.mws))
         for i, mw in enumerate(self.mws):
-            obs_filt = obs.filter(f'magnitude > {mw}')
+            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.event_count
             cat_filt = catalog.filter(f'magnitude > {mw}')
             gridded_cat = cat_filt.gridded_event_counts()
@@ -1121,9 +1125,6 @@ class TotalEventRateDistribution(AbstractProcessingTask):
         # this is huge. could be 200k per catalog >>> n_events
         data = cat_filt.gridded_event_counts()
         if self.cache:
-            if self.buffer_fname is None:
-                self.buffer_fname = self._get_temporary_filename()
-                self.fhandle = open(self.buffer_fname, 'wb+')
             self.cache_results(data)
         else:
             self.data.append(data)
@@ -1314,7 +1315,7 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
             # self.ax.append(ax)
             self.fnames.append(like_plot)
 
-class ConditionalRatePlot(AbstractProcessingTask):
+class ApproximateRatePlot(AbstractProcessingTask):
 
     def __init__(self, calc=True, **kwargs):
         super().__init__(**kwargs)
@@ -1366,4 +1367,60 @@ class ConditionalRatePlot(AbstractProcessingTask):
             ax.figure.savefig(crd_fname + '.png')
             ax.figure.savefig(crd_fname + '.pdf')
             # self.ax.append(ax)
+            self.fnames.append(crd_fname)
+
+
+class ConditionalApproximateRatePlot(AbstractProcessingTask):
+
+    def __init__(self, obs, **kwargs):
+        super().__init__(**kwargs)
+        self.obs = obs
+        self.data = defaultdict(list)
+
+    def process_catalog(self, catalog):
+        if self.name is None:
+            self.name = catalog.name
+
+        if self.region is None:
+            self.region = catalog.region
+        """ collects all catalogs conforming to n_obs in a dict"""
+        for mw in self.mws:
+            cat_filt = catalog.filter(f'magnitude > {mw}')
+            obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)
+            n_obs = obs_filt.event_count
+            tolerance = 0.05 * n_obs
+            if cat_filt.event_count <= n_obs + tolerance \
+                and cat_filt.event_count >= n_obs - tolerance:
+                self.data[mw].append(cat_filt.gridded_event_counts())
+
+    def evaluate(self, obs, args=None):
+        _, time_horizon, _, n_cat = args
+        self.time_horizon = time_horizon
+        self.n_cat = n_cat
+        return
+
+    def plot(self, results, plot_dir, show=False):
+        # compute conditional approximate rate density
+        for i, mw in enumerate(self.mws):
+            rates = numpy.array(self.data[mw])
+            if rates.shape[0] == 0:
+                continue
+            mean_rates = numpy.mean(rates, axis=0)
+            crd = numpy.log10(mean_rates / self.region.dh / self.region.dh / self.time_horizon)
+            # compute expected rate density
+            obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)
+            plot_data = self.region.get_cartesian(crd)
+            ax = plot_spatial_dataset(plot_data,
+                                      self.region,
+                                      plot_args={'clabel': r'Log$_{10}$ Conditional Rate Density'
+                                                           '\n'
+                                      f'(Expected Events per year per {self.region.dh}°x{self.region.dh}°)',
+                                                 'clim': [0, 5],
+                                                 'title': f'Approximate Rate Density with Observations\nMw > {mw}'})
+            ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40,
+                       edgecolors='black')
+            crd_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'cond_rates')
+            ax.figure.savefig(crd_fname + '.png')
+            ax.figure.savefig(crd_fname + '.pdf')
+                # self.ax.append(ax)
             self.fnames.append(crd_fname)
