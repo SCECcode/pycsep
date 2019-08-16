@@ -6,7 +6,6 @@ import docker
 import datetime
 import matplotlib
 
-import tqdm
 import seaborn as sns
 
 import time
@@ -99,6 +98,10 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     """
     # set up directories
+    matplotlib.use('agg')
+    matplotlib.rcParams['figure.max_open_warning'] = 150
+    sns.set()
+
     filename = os.path.join(sim_dir, 'results_complete.bin')
     if plot_dir is None:
         plot_dir = os.path.join(sim_dir, 'plots')
