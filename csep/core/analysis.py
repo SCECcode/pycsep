@@ -221,7 +221,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     md.add_sub_heading('One-point Statistics', 1, "")
     md.add_result_figure('B-Value Test', 2, list(map(get_relative_path, data_products['bv-test'].fnames)))
-    md.finalize(os.path.basename(plot_dir))
+    md.finalize(os.path.dirname(plot_dir))
 
     t1 = time.time()
     print(f'Completed all processing in {t1-t0} seconds')
