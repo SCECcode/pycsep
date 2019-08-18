@@ -144,7 +144,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     data_products = {
          'n-test': NumberTest(),
          'm-test': MagnitudeTest(),
-         'l-test': LikelihoodAndSpatialTest(),
+         'l-test': LikelihoodAndSpatialTest(cache=False),
          'cum-plot': CumulativeEventPlot(origin_epoch, end_epoch),
          'mag-hist': MagnitudeHistogram(calc=False),
          'arp-plot': ApproximateRatePlot(calc=False),
@@ -156,6 +156,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     print(f'Will process {n_cat} catalogs from simulation\n')
     for k, v in data_products.items():
         print(f'Computing {v.__class__.__name__}')
+    print('\n')
 
     # read the catalogs
     print('Begin processing catalogs')
@@ -180,6 +181,20 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     t2 = time.time()
     print(f'Finished processing catalogs in {t2-t0} seconds')
 
+    print('Processing catalogs again for distribution tests')
+    for k, v in data_products.items():
+        if v.needs_two_passes == True:
+            print(v.__class__.__name__)
+
+    # old iterator is expired, need new one
+    u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
+    for i, cat in enumerate(u3):
+        cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region)
+        for name, calc in data_products.items():
+            calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
+        if (i+1) % n_cat == 0:
+            break
+
     # share data where applicable
     data_products['mag-hist'].data = data_products['m-test'].data
     data_products['arp-plot'].data = data_products['l-test'].data
@@ -203,11 +218,11 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     md = MarkdownReport('CSEP_TESTING_RESULTS.md')
 
     md.add_introduction(adict={'simulation_name': u3etas_config['simulationName'],
-                                    'origin_time': epoch_time_to_utc_datetime(origin_epoch),
-                                    'evaluation_time': epoch_time_to_utc_datetime(end_epoch),
-                                    'catalog_source': 'Comcat',
-                                    'forecast_name': 'UCERF3-ETAS',
-                                    'num_simulations': n_cat})
+                               'origin_time': epoch_time_to_utc_datetime(origin_epoch),
+                               'evaluation_time': epoch_time_to_utc_datetime(end_epoch),
+                               'catalog_source': 'Comcat',
+                               'forecast_name': 'UCERF3-ETAS',
+                               'num_simulations': n_cat})
 
     md.add_sub_heading('Visual Overview of Forecast', 1, "")
     md.add_result_figure('Cumulative Event Counts', 2, list(map(get_relative_path, data_products['cum-plot'].fnames)), ncols=2)

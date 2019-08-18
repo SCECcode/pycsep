@@ -14,20 +14,26 @@ from csep.utils.file import copy_file
 
 
 class Repository(LoggingMixin):
-    pass
+    def __eq__(self, other):
+        try:
+            return self.to_dict() == other.to_dict()
+        except:
+            return False
 
+    def load(self, object):
+        raise NotImplementedError
+
+    def save(self, object):
+        raise NotImplementedError
+
+    def delete(self):
+        raise NotImplementedError
 
 class FileSystem(Repository):
     def __init__(self, url="", name='filesystem'):
         expand_url = os.path.expandvars(os.path.expanduser(url))
         self.url = expand_url
         self.name = name
-
-    def __eq__(self, other):
-        try:
-            return self.to_dict() == other.to_dict()
-        except:
-            return False
 
     def load(self, object):
         """
@@ -84,9 +90,6 @@ class FileSystem(Repository):
     @classmethod
     def from_dict(cls, adict):
         return cls(**adict)
-
-    def update(self):
-        raise NotImplementedError
 
 
 # Register repository builders
