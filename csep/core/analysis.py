@@ -102,7 +102,13 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     matplotlib.rcParams['figure.max_open_warning'] = 150
     sns.set()
 
+    # try using two different files
     filename = os.path.join(sim_dir, 'results_complete.bin')
+    if not os.path.exists(filename):
+        filename = os.path.join(sim_dir, 'results_complete_partial.bin')
+    if not os.path.exists(filename):
+        raise FileNotFoundError('could not find results_complete.bin or results_complete.bin')
+        
     if plot_dir is None:
         plot_dir = os.path.join(sim_dir, 'plots')
         print(f'No plotting directory specified defaulting to {plot_dir}')
@@ -127,18 +133,28 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     aftershock_region = masked_region(california_relm_region(), aftershock_polygon)
 
     # event timing
-    origin_epoch = datetime_to_utc_epoch(event.time)
-    time_horizon = (end_epoch - origin_epoch) / SECONDS_PER_ASTRONOMICAL_YEAR / 1000
     event_time = event.time.replace(tzinfo=datetime.timezone.utc)
+    event_epoch = datetime_to_utc_epoch(event.time)
+    origin_epoch = u3etas_config['startTimeMillis']
+    time_horizon = (end_epoch - origin_epoch) / SECONDS_PER_ASTRONOMICAL_YEAR / 1000
 
-    # Download comcat catalog
-    print('Loading Comcat.')
-    comcat = load_comcat(event_time, epoch_time_to_utc_datetime(end_epoch),
-                              min_magnitude=2.50,
-                              min_latitude=31.50, max_latitude=43.00,
-                              min_longitude=-125.40, max_longitude=-113.10)
-    comcat = comcat.filter_spatial(aftershock_region)
-    print(comcat)
+    # Download comcat catalog, if it fails its usually means it timed out, so just try again
+    try:
+        print('Loading Comcat.')
+        comcat = load_comcat(epoch_time_to_utc_datetime(origin_epoch), epoch_time_to_utc_datetime(end_epoch),
+                                  min_magnitude=2.50,
+                                  min_latitude=31.50, max_latitude=43.00,
+                                  min_longitude=-125.40, max_longitude=-113.10)
+        comcat = comcat.filter_spatial(aftershock_region)
+        print(comcat)
+    except:
+        print('Loading Comcat.')
+        comcat = load_comcat(event_time, epoch_time_to_utc_datetime(end_epoch),
+                                  min_magnitude=2.50,
+                                  min_latitude=31.50, max_latitude=43.00,
+                                  min_longitude=-125.40, max_longitude=-113.10)
+        comcat = comcat.filter_spatial(aftershock_region)
+        print(comcat)
 
     # define products to compute on simulation
     data_products = {
@@ -187,13 +203,18 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
             print(v.__class__.__name__)
 
     # old iterator is expired, need new one
+    t2 = time.time()
     u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
     for i, cat in enumerate(u3):
         cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region)
         for name, calc in data_products.items():
             calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
+        # if we failed earlier, just stop there again
         if (i+1) % n_cat == 0:
             break
+        if (i+1) % 2500 == 0:
+            t3=time.time()
+            print(f'Processed {i+1} catalogs in {t3-t2} seconds')
 
     # share data where applicable
     data_products['mag-hist'].data = data_products['m-test'].data

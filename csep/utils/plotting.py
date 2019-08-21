@@ -325,6 +325,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     # remove any potential nans from arrays
     simulated = numpy.array(simulated)
     simulated = simulated[~numpy.isnan(simulated)]
+
     if color:
         n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label, color=color, edgecolor=None, linewidth=0)
     else:
@@ -340,11 +341,6 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         p_low = numpy.percentile(simulated, inc_low)
         idx_low = numpy.digitize(p_low, bin_edges)
 
-    # # annotate the plot with information from catalog
-    # if catalog is not None and not chained:
-    #     ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
-    #     pyplot.subplots_adjust(right=0.75)
-
     # show 99.5% of data
     upper_xlim = numpy.percentile(simulated, 99.75)
     upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
@@ -355,7 +351,17 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     lower_xlim = numpy.min([0, lower_xlim, numpy.min(observation)])
     lower_xlim = lower_xlim - 2*d_bin
 
-    ax.set_xlim([lower_xlim, upper_xlim])
+    try:
+        ax.set_xlim([lower_xlim, upper_xlim])
+    except ValueError:
+        print('Ignoring observation in axis scaling because inf or -inf')
+        upper_xlim = numpy.percentile(simulated, 99.75)
+        upper_xlim = upper_xlim + 2*d_bin
+
+        lower_xlim = numpy.percentile(simulated, 0.25)
+        lower_xlim = lower_xlim - 2*d_bin
+
+        ax.set_xlim([lower_xlim, upper_xlim])
 
     ax.set_title(title)
     ax.set_xlabel(xlabel)

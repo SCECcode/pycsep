@@ -254,7 +254,7 @@ def magnitude_test(stochastic_event_sets, observation, mag_bins=CSEP_MW_BINS):
 
     return result
 
-def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
+def _compute_likelihood_old(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
     """
     not sure if this should actually be used masked arrays, bc we are losing information about undetermined l-test results.
     apply spatial smoothing here?
@@ -268,6 +268,28 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
     # compute likelihood for each event, ignoring cells with 0 events in the catalog.
     likelihood_norm = numpy.ma.sum(gridded_cat_ma * numpy.ma.log10(normed_rate_density_ma)) / numpy.ma.sum(gridded_cat_ma)
     return(likelihood, likelihood_norm)
+
+
+def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
+    # compute pseudo likelihood
+    idx = gridded_data != 0
+
+    # this value is: -inf obs at idx and no apprx_rate_density
+    #                -expected_cond_count if no target earthquakes
+    likelihood = numpy.sum(gridded_data[idx] * numpy.log10(apprx_rate_density[idx])) - expected_cond_count
+
+    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio.
+    normalizing_factor = n_obs / expected_cond_count
+    n_cat = numpy.sum(gridded_data) 
+    norm_apprx_rate_density = apprx_rate_density*normalizing_factor
+    
+    # value could be: -inf if no value in apprx_rate_dens
+    #                  nan if n_cat is 0 and above condition holds
+    #                  inf if n_cat is 0 
+    likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log10(norm_apprx_rate_density[idx])) / n_cat
+
+    return (likelihood, likelihood_norm)
+
 
 def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_rate_density, time_interval=1.0):
     # integrating, assuming that all cats in ses have same region
@@ -756,7 +778,6 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         # we dont actually need to do this if we are caching the data
         if self.cache:
             return
-
         time_horizon, n_cat, end_epoch, obs = args
         apprx_rate_density = self.data / self.region.dh / self.region.dh / time_horizon / n_cat
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
@@ -796,7 +817,6 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             stragglers = n_cat % self.buf_len
             assert nchunks*self.buf_len + stragglers == n_cat
             t0 = time.time()
-            print(nchunks, stragglers, n_cat, self.buf_len)
             for j in range(nchunks+1):
                 if j < nchunks:
                     read_buf_len = self.buf_len
@@ -846,14 +866,14 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             _, quantile_likelihood = get_quantiles(test_distribution_likelihood[:,i], obs_lh)
             _, quantile_spatial = get_quantiles(test_distribution_spatial[:,i], obs_lh_norm)
             # Signals outcome of test
-            message = "Normal"
+            message = "normal"
             # Deal with case with cond. rate. density func has zeros. Keep value but flag as being
             # either normal and wrong or udetermined (undersampled)
             if numpy.isclose(quantile_likelihood, 0.0) or numpy.isclose(quantile_likelihood, 1.0):
                 # undetermined failure of the test
                 if numpy.isinf(obs_lh):
                     # Build message
-                    message = f"undetermined. Infinite likelihood scores found."
+                    message = "undetermined"
             # build evaluation result
             result_likelihood = EvaluationResult(test_distribution=test_distribution_likelihood[:,i],
                                                  name='L-Test',
@@ -868,17 +888,19 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                 # undetermined failure of the test
                 if numpy.isinf(obs_lh_norm):
                     # Build message
-                    message = f"undetermined. Infinite likelihood scores found."
+                    message = "undetermined"
 
-            # build evaluation result
+            if n_obs == 0:
+                message = 'not-valid'
+
             result_spatial = EvaluationResult(test_distribution=test_distribution_spatial[:,i],
-                                              name='S-Test',
-                                              observed_statistic=obs_lh_norm,
-                                              quantile=quantile_spatial,
-                                              status=message,
-                                              obs_catalog_repr=str(obs),
-                                              sim_name=self.name,
-                                              obs_name=obs.name)
+                                          name='S-Test',
+                                          observed_statistic=obs_lh_norm,
+                                          quantile=quantile_spatial,
+                                          status=message,
+                                          obs_catalog_repr=str(obs),
+                                          sim_name=self.name,
+                                          obs_name=obs.name)
 
             results[mw] = (result_likelihood, result_spatial)
 
@@ -886,13 +908,6 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
 
     def plot(self, results, plot_dir, show=False):
         for mw, result_tuple in results.items():
-            # plot spatial test
-            s_test_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 's-test')
-            plot_args = {'percentile': 95,
-                         'title': f'Spatial Test\nMw>{mw}',
-                         'bins': 'auto',
-                         'filename': s_test_fname}
-            spatial_ax = plot_spatial_test(result_tuple[1], axes=None, plot_args=plot_args, show=False)
             # plot likelihood test
             l_test_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 'l-test')
             plot_args = {'percentile': 95,
@@ -903,6 +918,18 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             # we can access this in the main program if needed
             # self.ax.append((ax, spatial_ax))
             self.fnames['l-test'].append(l_test_fname)
+            
+            if result_tuple[1].status == 'not-valid':
+                print(f'Skipping plot for spatial test on {mw}. Test results are not valid, because no earthquakes observed in target catalog.')
+                continue
+
+            # plot spatial test
+            s_test_fname = AbstractProcessingTask._build_figure_filename(plot_dir, mw, 's-test')
+            plot_args = {'percentile': 95,
+                         'title': f'Spatial Test\nMw>{mw}',
+                         'bins': 'auto',
+                         'filename': s_test_fname}
+            spatial_ax = plot_spatial_test(result_tuple[1], axes=None, plot_args=plot_args, show=False)
             self.fnames['s-test'].append(s_test_fname)
 
 class CumulativeEventPlot(AbstractProcessingTask):
@@ -1202,7 +1229,7 @@ class BValueTest(AbstractProcessingTask):
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
                                                              'title': f"B-Value Distribution Test\nMw>{self.mws[0]}",
                                                              'bins': 'auto',
-                                                             'xy': (0.6, 0.65),
+                                                             'xy': (0.2, 0.65),
                                                              'filename': bv_test_fname})
         self.fnames.append(bv_test_fname)
 
