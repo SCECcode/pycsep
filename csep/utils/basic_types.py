@@ -1,23 +1,46 @@
+import numpy as np
 import matplotlib
+
 import redis
 import pickle
-from multiprocessing import Queue, Array
-import numpy as np
-from queue import Empty, Full
 import pyproj
-import time
+
+from queue import Empty, Full
+from multiprocessing import Queue, Array
+
+from csep.utils.calc import discretize
 
 class GriddedDataSet:
+    """
+    Allows us to work with data that need to be discretized and aggregated even though the the global min/max values
+    are not known before hand.
 
-    def __init__(self, dh=0.1, anchor=0.0):
+    Using this function incurs some addition overhead, instead of simply just binning and combining.
+
+    """
+    def __init__(self, dh=0.1):
         self.dh = dh
-        self.anchor = 0.0
         self.data = np.empty([])
+        self.bins = []
 
-    def add(self, data, bins):
+    def add(self, data):
+        # convert to integer to compute modulus
+        int_data = int(np.min(data) * 1e12)
+        int_dh = int(self.dh * 1e12)
+        lower = (int_data - (int_data % int_dh)) / 1e12
+        upper = lower + self.dh
 
-        # make sure data are aligned on bins
-        pass
+        bins = np.arange(lower, upper+self.dh, self.dh)
+        binned_data = discretize(data, bins)
+
+        # bins fits nicely within self.bins
+        self._merge(bins, binned_data)
+
+    def _merge(self, bins, binned_data):
+
+        if not self.bins:
+            self.bins = bins
+            self.data = binned_data
 
 
 class Polygon:
@@ -46,6 +69,12 @@ class Polygon:
             c0 = c0 + p[0]
             c1 = c1 + p[1]
         return c0 / k, c1 / k
+
+    def get_xcoords(self):
+        return np.array(self.points)[:,0]
+
+    def get_ycoords(self):
+        return np.array(self.points)[:,1]
 
     @classmethod
     def from_great_circle_radius(cls, centroid, radius, num_points=10):

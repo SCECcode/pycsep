@@ -1,7 +1,10 @@
+import json
+import operator
+import datetime
+
+# 3rd party
 import numpy
 import pandas
-import datetime
-import operator
 import pyproj
 
 # CSEP Imports
@@ -13,11 +16,13 @@ from csep.utils.calc import discretize
 from csep.utils.comcat import SummaryEvent
 from csep.core.repositories import Repository, repo_builder
 from csep.core.exceptions import CSEPSchedulerException
-from csep.utils.spatial import bin_catalog_spatial_counts, bin1d_vec
+from csep.utils.spatial import bin_catalog_spatial_counts
+from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
+from csep.utils.log import LoggingMixin
 
 
-class AbstractBaseCatalog:
+class AbstractBaseCatalog(LoggingMixin):
     """
     Base class for CSEP2 catalogs.
 
@@ -65,6 +70,9 @@ class AbstractBaseCatalog:
                   'must be implemented and bound to calling class! Reverting to old values.')
 
     def __str__(self):
+        if not self.compute_stats:
+            self.update_catalog_stats()
+
         s=f'''
         Name: {self.name}
 
@@ -155,6 +163,12 @@ class AbstractBaseCatalog:
         catalog = numpy.ascontiguousarray(df[col_list].to_records(index=False), dtype=cls.dtype)
         out_cls = cls(catalog=catalog, catalog_id=catalog_id, **kwargs)
         return out_cls
+
+    @classmethod
+    def from_json(cls, filename):
+        with open(filename, 'r') as f:
+            adict = json.load(f)
+            return cls.from_dict(adict)
 
     @property
     def catalog(self):
@@ -348,24 +362,6 @@ class AbstractBaseCatalog:
             return None
         return 1.0 / bottom * numpy.log(p)
 
-    def get_mfd(self, delta_mw=0.3, p_value=0.05):
-        """
-        TODO: Implement this using maximum-likelihood statistics
-
-        Computes magnitude frequency distribution for catalog. MFD is computed by creating magnitude bins
-        discretized by delta_mw.
-
-        Requires that self.get_dataframe() is implemented in order to compute MFD.
-
-        Args:
-            delta_mw (float): Magnitude spacing for magnitude binning
-            p_value (float): p_value for student's t-distribution
-
-        Returns:
-            (pandas.DataFrame): Magnitude Freq Distribution. Counts and regression statistics attached for plotting.
-        """
-        raise PendingDeprecationWarning
-
     def filter(self, statement, in_place=True):
         """
         Filters the catalog based on value.
@@ -394,7 +390,7 @@ class AbstractBaseCatalog:
             inst = cls(catalog=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name, region=self.region)
             return inst
 
-    def filter_spatial(self, region):
+    def filter_spatial(self, region, update_stats=False):
         """
         Removes events outside of the region. This is slow and should be used once. Typically for isoloate a region
         near the mainshock. This should not be used to create gridded style data sets.
@@ -412,7 +408,9 @@ class AbstractBaseCatalog:
         self.catalog = filtered
         # update the region to the new region
         self.region = region
-        # self._update_catalog_stats()
+
+        if update_stats:
+            self.update_catalog_stats()
         return self
 
     def get_csep_format(self):
@@ -745,17 +743,26 @@ class ComcatCatalog(AbstractBaseCatalog):
         date_accessed = adict.get('date_accessed', None)
 
         if start_time is not None:
-            start_time=strptime_to_utc_datetime(start_time)
+            try:
+                start_time=strptime_to_utc_datetime(start_time)
+            except:
+                start_time=strptime_to_utc_datetime(start_time, format="%Y-%m-%d %H:%M:%S")
 
         if end_time is not None:
-            end_time = strptime_to_utc_datetime(end_time)
+            try:
+                end_time = strptime_to_utc_datetime(end_time)
+            except:
+                end_time = strptime_to_utc_datetime(end_time, format="%Y-%m-%d %H:%M:%S")
 
         if date_accessed is not None:
-            date_accessed = strptime_to_utc_datetime(date_accessed)
+            try:
+                date_accessed = strptime_to_utc_datetime(date_accessed)
+            except:
+                date_accessed = strptime_to_utc_datetime(date_accessed, format="%Y-%m-%d %H:%M:%S")
 
         out = cls(catalog=catalog,
                   start_time=start_time, end_time=end_time,
-                  date_accessed=date_accessed)
+                  date_accessed=date_accessed, query=False)
 
         for k,v in out.__dict__.items():
             if k not in exclude:
@@ -864,7 +871,7 @@ class ComcatCatalog(AbstractBaseCatalog):
         if catalog_length == 0:
             raise RuntimeError("Observed catalog is empty.")
         catalog = numpy.zeros(catalog_length, dtype=self.dtype)
-        if isinstance(self.catalog[0], dict):
+        if isinstance(self.catalog[0], list):
             for i, event in enumerate(self.catalog):
                 catalog[i] = tuple(event)
         elif isinstance(self.catalog[0], SummaryEvent):
@@ -876,6 +883,9 @@ class ComcatCatalog(AbstractBaseCatalog):
                             "id, epoch_time, latitude, longtiude, depth, magnitude. or \n"
                             "list of SummaryEvent type.")
         return catalog
+
+    def get_event_ids(self):
+        return self.catalog['id']
 
     def get_csep_format(self):
         n = len(self.catalog)

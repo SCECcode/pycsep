@@ -601,6 +601,10 @@ class DetailEvent(object):
         return self._jdict['properties']['mag']
 
     @property
+    def magtype(self):
+        return self._jdict['properties']['magType']
+
+    @property
     def properties(self):
         """List of detail event properties.
         Returns:

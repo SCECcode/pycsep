@@ -6,18 +6,14 @@ from matplotlib.collections import PatchCollection
 
 import time
 import numpy
-from numpy.lib.recfunctions import append_fields
-import pandas
 import matplotlib.pyplot as pyplot
-import matplotlib.dates as mdates
 import cartopy
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
-from csep.utils import flat_map_to_ndarray, join_struct_arrays
-from csep.utils.spatial import bin1d_vec
-from csep.utils.time import epoch_time_to_utc_datetime, datetime_to_utc_epoch
+from csep.utils.calc import bin1d_vec
+from csep.utils.time import datetime_to_utc_epoch
 
 """
 This module contains plotting routines that generate figures for the stochastic event sets produced from
@@ -53,6 +49,7 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
     obs_label = plot_args.get('obs_label', 'Observation')
     legend_loc = plot_args.get('legend_loc', 'best')
     title = plot_args.get('title', 'Cumulative Event Counts')
+    xlabel = plot_args.get('xlabel', 'Days')
 
     fig, ax = pyplot.subplots(figsize=figsize)
     try:
@@ -70,8 +67,7 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
     ax.fill_between(xdata, fifth_per, nine_fifth, color='red', alpha=0.2, label='5%-95%')
     ax.fill_between(xdata, first_quar, second_quar, color='red', alpha=0.5, label='25%-75%')
     ax.legend(loc=legend_loc)
-    ax.set_yscale('log')
-    ax.set_xlabel('Days since Mainshock')
+    ax.set_xlabel(xlabel)
     ax.set_ylabel('Cumulative Event Count')
     ax.set_title(title)
     # pyplot.subplots_adjust(right=0.75)
@@ -839,7 +835,7 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
         pyplot.show()
     return ax
 
-def plot_spatial_test(evaluation_result, axes=None, plot_args={}, show=True):
+def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
     """
 
 
@@ -849,6 +845,7 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args={}, show=True):
     Returns:
 
     """
+    plot_args = plot_args or {}
     # handle plotting
     if axes:
         chained = True

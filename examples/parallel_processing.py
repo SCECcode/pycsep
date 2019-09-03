@@ -16,9 +16,9 @@ from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 
 from csep.utils.parallel import do_evaluate_catalogs
 
-from csep.core.evaluations import NumberTest, MagnitudeTest, LikelihoodAndSpatialTest, CumulativeEventPlot, \
-    MagnitudeHistogram, ApproximateRatePlot, BValueTest, TotalEventRateDistribution, InterEventDistanceDistribution, \
-    InterEventTimeDistribution
+from analysis import NumberTest, MagnitudeTest, LikelihoodAndSpatialTest, CumulativeEventPlot, MagnitudeHistogram, \
+    InterEventTimeDistribution, InterEventDistanceDistribution, TotalEventRateDistribution, BValueTest, \
+    ApproximateRatePlot
 
 # some basic setup that could easily be looped into the function itself, we will see about that.
 # potentially start up in the Processing class.

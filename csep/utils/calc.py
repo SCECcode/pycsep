@@ -1,6 +1,6 @@
 import numpy
+import numpy as np
 import scipy
-from csep.utils.spatial import bin1d_vec
 from csep.core.exceptions import CSEPException
 
 
@@ -39,12 +39,22 @@ def discretize(data, bin_edges):
     """
     bin_edges = numpy.array(bin_edges)
     if bin_edges.size == 0:
-        raise ValueError("Bin edges must not be empty.")
+        raise ValueError("bin_edges must not be empty")
     if bin_edges[1] < bin_edges[0]:
-        raise ValueError("bin_edges must be increasing.")
+        raise ValueError("bin_edges must be increasing")
     data = numpy.array(data)
     idx = bin1d_vec(data, bin_edges)
     if numpy.any(idx == -1):
-        raise CSEPException("Discretized values should all be within bin_edges.")
+        raise CSEPException("Discretized values should all be within bin_edges")
     x_new = bin_edges[idx]
     return x_new
+
+def bin1d_vec(p, bins):
+    """
+    same as bin1d but optimized for vectorized calls.
+    """
+    a0 = np.min(bins)
+    h = bins[1] - bins[0]
+    idx = np.floor((p-a0)/h)
+    idx[((idx < 0) | (idx >= len(bins)-1))] = -1
+    return idx.astype(np.int)
