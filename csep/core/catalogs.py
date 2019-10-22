@@ -32,7 +32,7 @@ class AbstractBaseCatalog(LoggingMixin):
     """
     dtype = numpy.dtype([])
 
-    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=False,
+    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True,
                  min_magnitude=None, max_magnitude=None,
                  min_latitude=None, max_latitude=None,
                  min_longitude=None, max_longitude=None,
@@ -588,18 +588,6 @@ class UCERF3Catalog(AbstractBaseCatalog):
     """
     # binary format of UCERF3 catalog
     header_dtype = numpy.dtype([("file_version", ">i2"), ("catalog_size", ">i4")])
-    dtype = numpy.dtype([("rupture_id", ">i4"),
-                         ("parent_id", ">i4"),
-                         ("generation", ">i2"),
-                         ("origin_time", ">i8"),
-                         ("latitude", ">f8"),
-                         ("longitude", ">f8"),
-                         ("depth", ">f8"),
-                         ("magnitude", ">f8"),
-                         ("dist_to_parent", ">f8"),
-                         ("erf_index", ">i4"),
-                         ("fss_index", ">i4"),
-                         ("grid_node_index", ">i4")])
 
     def __init__(self, **kwargs):
         # initialize parent constructor
@@ -625,8 +613,9 @@ class UCERF3Catalog(AbstractBaseCatalog):
             for catalog_id in range(number_simulations_in_set):
                 header = numpy.fromfile(catalog_file, dtype=cls.header_dtype, count=1)
                 catalog_size = header['catalog_size'][0]
+                version = header['file_version'][0]
                 # read catalog
-                catalog = numpy.fromfile(catalog_file, dtype=cls.dtype, count=catalog_size)
+                catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
                 # add column that stores catalog_id in case we want to store in database
                 u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
                 # generator function, maybe apply filters here
@@ -694,6 +683,52 @@ class UCERF3Catalog(AbstractBaseCatalog):
 
         return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 
+    @staticmethod
+    def _get_catalog_dtype(version):
+        """
+        Get catalog dtype from version number
+
+        Args:
+            version:
+
+        Returns:
+
+        """
+
+        if version == 1:
+            dtype = numpy.dtype([("rupture_id", ">i4"),
+                                 ("parent_id", ">i4"),
+                                 ("generation", ">i2"),
+                                 ("origin_time", ">i8"),
+                                 ("latitude", ">f8"),
+                                 ("longitude", ">f8"),
+                                 ("depth", ">f8"),
+                                 ("magnitude", ">f8"),
+                                 ("dist_to_parent", ">f8"),
+                                 ("erf_index", ">i4"),
+                                 ("fss_index", ">i4"),
+                                 ("grid_node_index", ">i4")])
+
+        elif version >= 2:
+            dtype = numpy.dtype([("rupture_id", ">i4"),
+                                 ("parent_id", ">i4"),
+                                 ("generation", ">i2"),
+                                 ("origin_time", ">i8"),
+                                 ("latitude", ">f8"),
+                                 ("longitude", ">f8"),
+                                 ("depth", ">f8"),
+                                 ("magnitude", ">f8"),
+                                 ("dist_to_parent", ">f8"),
+                                 ("erf_index", ">i4"),
+                                 ("fss_index", ">i4"),
+                                 ("grid_node_index", ">i4"),
+                                 ("etas_k", ">f8")])
+
+        else:
+            raise ValueError("incorrect catalog version, cannot read catalog.")
+
+        return dtype
+
 
 class ComcatCatalog(AbstractBaseCatalog):
     """
@@ -707,10 +742,10 @@ class ComcatCatalog(AbstractBaseCatalog):
                          ('magnitude','<f4')])
 
     def __init__(self, catalog_id='Comcat', format='comcat', start_epoch=None, duration_in_years=None,
-                 date_accessed=None, query=True, extra_comcat_params={}, **kwargs):
+                 date_accessed=None, query=True, compute_stats=False, extra_comcat_params={}, **kwargs):
 
         # parent class constructor
-        super().__init__(catalog_id=catalog_id, format=format, **kwargs)
+        super().__init__(catalog_id=catalog_id, format=format, compute_stats=compute_stats, **kwargs)
 
         self.date_accessed = date_accessed
         # if made with no catalog object, load catalog on object creation
@@ -911,5 +946,4 @@ class ComcatCatalog(AbstractBaseCatalog):
                                second)
 
         return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
-
 
