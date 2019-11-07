@@ -2,7 +2,6 @@ import os
 import shutil
 from tempfile import mkdtemp
 from contextlib import contextmanager
-from string import Template
 
 @contextmanager
 def TemporaryDirectory(suffix='', prefix=None, dir=None):

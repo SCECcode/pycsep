@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 import matplotlib
-from matplotlib import pyplot as pyplot, cm
+from matplotlib import cm
 from matplotlib.collections import PatchCollection
 
 import time

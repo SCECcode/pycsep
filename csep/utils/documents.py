@@ -1,9 +1,6 @@
 import os
 from itertools import chain
 
-import nbformat
-from csep.utils.time import epoch_time_to_utc_datetime
-
 class MarkdownReport:
 
     def __init__(self, outname='results.md'):

@@ -1,4 +1,11 @@
-pandas
 numpy
-matplotlib
+pandas
 scipy
+matplotlib
+seaborn
+pyproj
+obspy
+dateutil
+pytest
+cartopy
+vcr
