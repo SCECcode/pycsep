@@ -104,9 +104,14 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
     t0 = time.time()
     n_cat = len(stochastic_event_sets)
 
-    # these values might contain nans
-    extreme_times = numpy.array([(datetime_to_utc_epoch(ses.start_time), datetime_to_utc_epoch(ses.end_time)) for ses in stochastic_event_sets])
-    extreme_times = extreme_times[extreme_times != numpy.array(None)]
+    extreme_times = []
+    for ses in stochastic_event_sets:
+        start_epoch = datetime_to_utc_epoch(ses.start_time)
+        end_epoch = datetime_to_utc_epoch(ses.end_time)
+        if start_epoch == None or end_epoch == None:
+            continue
+
+        extreme_times.append((start_epoch, end_epoch))
 
     # offsets to start at 0 time and converts from millis to hours
     time_bins, dt = numpy.linspace(numpy.min(extreme_times), numpy.max(extreme_times), 100, endpoint=True, retstep=True)
@@ -118,7 +123,7 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
         inds = bin1d_vec(ses_origin_time, time_bins)
         for j in range(n_events):
             binned_counts[i, inds[j]] += 1
-        if (i+1) % 5000 == 0:
+        if (i+1) % 1500 == 0:
             t1 = time.time()
             print(f"Processed {i+1} catalogs in {t1-t0} seconds.")
     t1 = time.time()
@@ -665,7 +670,7 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
 
 
     Args:
-        evaluation_result: object-like var that implements the interface of the above EvaluationResult
+        evaluation_result: object that implements the interface of EvaluationResult
 
     Returns:
         ax (matplotlib.axes.Axes): can be used to modify the figure

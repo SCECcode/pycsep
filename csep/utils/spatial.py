@@ -141,6 +141,14 @@ class Region:
     def midpoints(self):
         return numpy.array([poly.centroid() for poly in self.polygons])
 
+    def to_dict(self):
+        adict = {
+            'name': self.name,
+            'dh': self.dh,
+            'polygons': [{'lat': coord[1], 'lon': coord[0]} for coord in self.midpoints()]
+        }
+        return adict
+
 def grid_spacing(vertices):
     """
     Figures out the length and

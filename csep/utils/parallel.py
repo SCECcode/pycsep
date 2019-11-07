@@ -81,7 +81,7 @@ def do_evaluate_catalogs(filename, task, task_configuration):
 
 
     # compute evaluation and plot
-    result = task.evaluate(comcat, args=(None, time_horizon, end_epoch, n_cat))
+    result = task.post_process(comcat, args=(None, time_horizon, end_epoch, n_cat))
 
     # plot task
     task.plot(result, plot_dir, show=False)

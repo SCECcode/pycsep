@@ -4,21 +4,88 @@ import numpy
 import tqdm
 
 import time
-from csep.utils.stats import cumulative_square_dist, binned_ecdf, sup_dist
+from csep.utils.stats import cumulative_square_diff, binned_ecdf, sup_dist
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils import flat_map_to_ndarray
 
 # implementing plotting routines as functions
 from csep.utils.stats import get_quantiles
 
-EvaluationResult = namedtuple('EvaluationResult', ['test_distribution',
-                                                   'name',
-                                                   'observed_statistic',
-                                                   'quantile',
-                                                   'status',
-                                                   'obs_catalog_repr',
-                                                   'sim_name',
-                                                   'obs_name'])
+# EvaluationResult = namedtuple('EvaluationResult', ['test_distribution',
+#                                                    'name',
+#                                                    'observed_statistic',
+#                                                    'quantile',
+#                                                    'status',
+#                                                    'obs_catalog_repr',
+#                                                    'sim_name',
+#                                                    'obs_name'])
+
+
+class EvaluationResult:
+
+    def __init__(self, test_distribution=None, name=None, observed_statistic=None, quantile=None, status="",
+                       obs_catalog_repr=None, sim_name=None, obs_name=None, min_mw=None):
+        """
+        Stores the result of an evaluation.
+
+        Args:
+            test_distribution (1d array-like): collection of statistics computed from stochastic event sets
+            name (str): name of the evaluation
+            observed_statistic (float or int): statistic computed from target catalog
+            quantile (tuple or float): quantile of observed statistic from test distribution
+            status (str): optional
+            obs_catalog_repr (str): text information about the catalog used for the evaluation
+            sim_name (str): name of simulation
+            obs_name (str): name of observed catalog
+        """
+        self.test_distribution=test_distribution
+        self.name = name
+        self.observed_statistic = observed_statistic
+        self.quantile = quantile
+        self.status = status
+        self.obs_catalog_repr = obs_catalog_repr
+        self.sim_name = sim_name
+        self.obs_name = obs_name
+        self.min_mw = min_mw
+
+    def to_dict(self):
+        adict = {
+            'name': self.name,
+            'sim_name': self.sim_name,
+            'obs_name': self.obs_name,
+            'obs_catalog_repr': self.obs_catalog_repr,
+            'quantile': self.quantile,
+            'observed_statistic': self.observed_statistic,
+            'test_distribution': list(self.test_distribution),
+            'status': self.status,
+            'min_mw': self.min_mw
+        }
+        return adict
+
+    @classmethod
+    def from_dict(cls, adict):
+
+        """
+        creates evaluation result from a dictionary
+        Args:
+            adict (dict): stores information about classes
+
+        Returns:
+
+        """
+
+        new_class = cls(test_distribution=numpy.array(adict['test_distribution']),
+            name=adict['name'],
+            observed_statistic=adict['observed_statistic'],
+            quantile=adict['quantile'],
+            sim_name=adict['sim_name'],
+            obs_name=adict['obs_name'],
+            obs_catalog_repr=adict['obs_catalog_repr'],
+            status=adict['status'],
+            min_mw=adict['min_mw'])
+
+        return new_class
+
 
 def _distribution_test(stochastic_event_set_data, observation_data):
 
@@ -64,8 +131,7 @@ def _compute_likelihood_old(gridded_data, apprx_rate_density, expected_cond_coun
     normalizing_factor = n_obs / expected_cond_count
     normed_rate_density_ma = normalizing_factor * apprx_rate_density_ma
     # compute likelihood for each event, ignoring cells with 0 events in the catalog.
-    likelihood_norm = numpy.ma.sum(gridded_cat_ma * numpy.ma.log10(normed_rate_density_ma)) / numpy.ma.sum(
-        gridded_cat_ma)
+    likelihood_norm = numpy.ma.sum(gridded_cat_ma * numpy.ma.log10(normed_rate_density_ma)) / numpy.ma.sum(gridded_cat_ma)
     return (likelihood, likelihood_norm)
 
 def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
@@ -295,11 +361,11 @@ def magnitude_test(stochastic_event_sets, observation, mag_bins=CSEP_MW_BINS):
             scale = n_obs_events / n_ses_mags
         ses_histogram = numpy.histogram(ses_mags, bins=mag_bins)[0] * scale
         # this distribution might not have the expected variance given n_obs_events.
-        d_statistic = cumulative_square_dist(ses_histogram, union_histogram)
+        d_statistic = cumulative_square_diff(ses_histogram, union_histogram)
         test_distribution.append(d_statistic)
 
     # compute statistic from the observation
-    obs_d_statistic = cumulative_square_dist(obs_histogram, union_histogram)
+    obs_d_statistic = cumulative_square_diff(obs_histogram, union_histogram)
 
     # score evaluation
     _, quantile = get_quantiles(test_distribution, obs_d_statistic)
@@ -423,7 +489,7 @@ def interevent_distance_test(stochastic_event_sets, observation):
     test_distribution, d_obs, quantile = _distribution_test(inter_event_distances, obs_times)
 
     result = EvaluationResult(test_distribution=test_distribution,
-                              name='IESD-Test',
+                              name='IEDD-Test',
                               observed_statistic=d_obs,
                               quantile=quantile,
                               status='Normal',

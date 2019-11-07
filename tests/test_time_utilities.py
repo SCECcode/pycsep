@@ -1,6 +1,6 @@
 import datetime
 from unittest import TestCase
-from csep.utils.time import strptime_to_utc_datetime, datetime_to_utc_epoch, utc_epoch_time_from_strptime, epoch_time_to_utc_datetime
+from csep.utils.time import strptime_to_utc_datetime, datetime_to_utc_epoch, strptime_to_utc_epoch, epoch_time_to_utc_datetime
 
 
 class TestTimeUtilities(TestCase):
@@ -24,7 +24,7 @@ class TestTimeUtilities(TestCase):
 
     def test_utc_epoch_time_from_strptime(self):
         timestring = '1970-1-1 0:0:0.0'
-        test_time = utc_epoch_time_from_strptime(timestring)
+        test_time = strptime_to_utc_epoch(timestring)
         self.assertEqual(test_time, 0)
 
     def test_for_consistency_epoch_to_epoch(self):

@@ -9,7 +9,7 @@ import pyproj
 
 # CSEP Imports
 import csep
-from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime
+from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, millis_to_days
 from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
@@ -334,16 +334,19 @@ class AbstractBaseCatalog(LoggingMixin):
         _, _, dists = geod.inv(lons[:-1], lats[:-1], lons[1:], lats[1:])
         return dists
 
-    def get_bvalue(self):
+    def get_bvalue(self, reterr=True):
         """
         Estimates the b-value of a catalog using Eq. 3.10 from Marzocchi and Sandri (2003)
 
         Args:
             dmw: Discretization of magnitudes
+            reterr (bool): returns errors
 
         Returns:
-
+            bval (float): b-value
+            err (float): std. err
         """
+
         if self.get_number_of_events() == 0:
             return None
         mws = discretize(self.get_magnitudes(), CSEP_MW_BINS)
@@ -360,7 +363,12 @@ class AbstractBaseCatalog(LoggingMixin):
         p = p()
         if p is None:
             return None
-        return 1.0 / bottom * numpy.log(p)
+        bval = 1.0 / bottom * numpy.log(p)
+        if reterr:
+            err = (1 - p) / (numpy.log(10) * dmw * numpy.sqrt(self.event_count * p))
+            return (bval, err)
+        else:
+            return bval
 
     def filter(self, statement, in_place=True):
         """
@@ -411,6 +419,49 @@ class AbstractBaseCatalog(LoggingMixin):
 
         if update_stats:
             self.update_catalog_stats()
+        return self
+
+    def apply_mct(self, m_main, event_epoch, mc=2.5):
+        """
+        Applies time-dependent magnitude of completeness following a mainshock. Taken
+        from Eq. (15) from Helmstetter et al., 2006.
+
+        Args:
+            m_main (float): mainshock magnitude
+            event_epoch: epoch time in millis of event
+            mc (float): mag_completeness
+
+        Returns:
+        """
+
+        def compute_mct(t, m):
+            return m - 4.5 - 0.75 * numpy.log10(t)
+
+        # compute critical time for efficiency
+        t_crit_days = 10 ** -((mc - m_main + 4.5) / 0.75)
+        t_crit_millis = t_crit_days * 1000 * 60 * 60
+
+        times = self.get_epoch_times()
+        mws = self.get_magnitudes()
+
+        # catalogs are stored stored by time
+        t_crit_epoch = t_crit_millis + event_epoch
+
+        # this is used to index the array, starting with accepting all events
+        filter = numpy.ones(self.event_count, dtype=numpy.bool)
+        for i, (mw, time) in enumerate(zip(mws, times)):
+            if time > t_crit_epoch:
+                break
+
+            time_from_mshock_in_days = millis_to_days(time - event_epoch)
+            mct = compute_mct(time_from_mshock_in_days, m_main)
+
+            # ignore events with mw < mct
+            if mw < mct:
+                filter[i] = False
+
+        filtered = self.catalog[filter]
+        self.catalog = filtered
         return self
 
     def get_csep_format(self):
@@ -606,14 +657,15 @@ class UCERF3Catalog(AbstractBaseCatalog):
         :type filename: string
         :returns: list of catalogs of type UCERF3Catalog
         """
+
         with open(filename, 'rb') as catalog_file:
             # parse 4byte header from merged file
             number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
             # load all catalogs from merged file
             for catalog_id in range(number_simulations_in_set):
-                header = numpy.fromfile(catalog_file, dtype=cls.header_dtype, count=1)
+                version = numpy.fromfile(catalog_file, dtype=">i2", count=1)[0]
+                header = numpy.fromfile(catalog_file, dtype=cls._get_header_dtype(version), count=1)
                 catalog_size = header['catalog_size'][0]
-                version = header['file_version'][0]
                 # read catalog
                 catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
                 # add column that stores catalog_id in case we want to store in database
@@ -725,7 +777,34 @@ class UCERF3Catalog(AbstractBaseCatalog):
                                  ("etas_k", ">f8")])
 
         else:
-            raise ValueError("incorrect catalog version, cannot read catalog.")
+            raise ValueError("unknown catalog version, cannot read catalog.")
+
+        return dtype
+
+    @staticmethod
+    def _get_header_dtype(version):
+
+        if version == 1 or version == 2:
+            dtype = numpy.dtype([("catalog_size", ">i4")])
+
+        elif version >= 3:
+            dtype = numpy.dtype([("num_orignal_ruptures", ">i4"),
+                                 ("seed", ">i8"),
+                                 ("index", ">i4"),
+                                 ("hist_rupt_start_id", ">i4"),
+                                 ("hist_rupt_end_id", ">i4"),
+                                 ("trig_rupt_start_id", ">i4"),
+                                 ("trig_rupt_end_id", ">i4"),
+                                 ("sim_start_epoch", ">i8"),
+                                 ("sim_end_epoch", ">i8"),
+                                 ("num_spont", ">i4"),
+                                 ("num_supraseis", ">i4"),
+                                 ("min_mag", ">f8"),
+                                 ("max_mag", ">f8"),
+                                 ("catalog_size", ">i4")])
+        else:
+            raise ValueError("unknown catalog version, cannot parse catalog header.")
+
 
         return dtype
 

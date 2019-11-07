@@ -77,10 +77,10 @@ class FileSystem(Repository):
                     self.log.exception(e)
         try:
             with open(self.url, 'w') as f:
-                self.log.info(f'Writing archive file to {self.url}.')
+                self.log.info(f'Writing file to {self.url}.')
                 json.dump(data, f, indent=4, separators=(',', ': '), default=str)
         except IOError:
-            raise IOError(f"Error saving file to {self.url}")
+            raise IOError(f"FileSystem Repository Error: saving file to {self.url}")
         return success
 
     def to_dict(self):

@@ -10,6 +10,26 @@ from multiprocessing import Queue, Array
 
 from csep.utils.calc import discretize
 
+
+def seq_iter(iterable):
+    """
+    helper function to handle iterating over a dict or list
+
+    should iterate using:
+
+    for idx in iterable:
+         value = iterable[idx]
+         ...
+
+    Args:
+        iterable: an iterable object
+
+    Returns:
+        key to access iterable
+
+    """
+    return iterable if isinstance(iterable, dict) else range(len(iterable))
+
 class GriddedDataSet:
     """
     Allows us to work with data that need to be discretized and aggregated even though the the global min/max values

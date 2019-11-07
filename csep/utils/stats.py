@@ -10,7 +10,7 @@ def sup_dist(cdf1, cdf2):
     """
     return numpy.max(numpy.absolute(cdf2 - cdf1))
 
-def cumulative_square_dist(cdf1, cdf2):
+def cumulative_square_diff(cdf1, cdf2):
     """
     given two cumulative distribution functions, compute the cumulative sq. diff of the set of distances.
 

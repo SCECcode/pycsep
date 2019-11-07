@@ -16,7 +16,7 @@ ucerf3_numbers = []
 nofaults_numbers = []
 min_magnitude = []
 
-project_root = '/Users/wsavran/Projects/CSEP2/u3etas_simulations/landers_experiment'
+project_root = '/Users/wsavran/Projects/CSEP/CSEP2/u3etas_simulations/landers_experiment'
 filename = os.path.join(project_root, '10-23-2018_landers-pt1/results_complete.bin')
 filename_nofaults = os.path.join(project_root, '10-31-2018_landers-nofaults-pt1/results_complete.bin')
 
@@ -28,7 +28,6 @@ t1 = time.time()
 print('Loaded {} UCERF3 catalogs in {} seconds.\n'.format(len(u3catalogs_filt), (t1-t0)))
 
 # Get number of events
-ucerf3_numbers = []
 for u3catalog in u3catalogs_filt:
     ucerf3_numbers.append(u3catalog.get_number_of_events())
 

@@ -1,7 +1,7 @@
 import datetime
 import re
 import warnings
-from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
+from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR, SECONDS_PER_DAY
 
 def epoch_time_to_utc_datetime(epoch_time_milli):
     """
@@ -40,7 +40,13 @@ def datetime_to_utc_epoch(dt):
     epoch_time_seconds = (dt - epoch).total_seconds()
     return int(1000.0 * epoch_time_seconds)
 
-def utc_epoch_time_from_strptime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
+def millis_to_days(millis):
+    return millis / SECONDS_PER_DAY / 1000
+
+def days_to_millis(days):
+    return days * SECONDS_PER_DAY * 1000
+
+def strptime_to_utc_epoch(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     dt=strptime_to_utc_datetime(time_string, format)
     return datetime_to_utc_epoch(dt)
 
