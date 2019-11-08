@@ -275,7 +275,7 @@ def spatial_test(stochastic_event_sets, observation, apprx_rate_density, time_in
     region = stochastic_event_sets[0].region
     test_distribution = []
     # this could be io based if iterator is passed
-    for catalog in stochastic_event_sets):
+    for catalog in stochastic_event_sets:
         gridded_rate_cat = catalog.gridded_event_counts() / time_interval
         # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio
         normalizing_factor = observation.event_count / catalog.event_count
