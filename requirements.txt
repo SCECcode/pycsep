@@ -5,7 +5,7 @@ matplotlib
 seaborn
 pyproj
 obspy
-dateutil
+python-dateutil
 pytest
 cartopy
-vcr
+vcrpy
