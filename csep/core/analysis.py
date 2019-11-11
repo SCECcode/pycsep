@@ -118,13 +118,13 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     if not os.path.exists(filename):
         filename = os.path.join(sim_dir, 'results_complete_partial.bin')
     if not os.path.exists(filename):
-        raise FileNotFoundError('could not find results_complete.bin or results_complete.bin')
+        raise FileNotFoundError('could not find results_complete.bin or results_complete_partial.bin')
         
     if plot_dir is None:
         plot_dir = os.path.join(sim_dir, 'plots')
         print(f'No plotting directory specified defaulting to {plot_dir}')
     config_file = os.path.join(sim_dir, 'config.json')
-    mkdirs(plot_dir)
+    mkdirs(os.path.join(plot_dir, 'plots'))
 
     # load ucerf3 configuration
     with open(os.path.join(config_file), 'r') as f:
@@ -251,15 +251,24 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     # evaluate the catalogs and store results
     t1 = time.time()
+
+    # make plot directory
+    fig_dir = os.path.join(plot_dir, 'plots')
+    mkdirs(fig_dir)
+
+    # make results directory
+    if save_results:
+        results_dir = os.path.join(plot_dir, 'results')
+        mkdirs(results_dir)
+
     for name, calc in data_products.items():
         print(f'Finalizing calculations for {name} and plotting')
         result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
         # plot, and store in plot_dir
-        calc.plot(result, plot_dir, show=False)
+        calc.plot(result, fig_dir, show=False)
 
         if save_results:
             # could expose this, but hard-coded for now
-            results_dir = os.path.join(sim_dir, 'evaluation_results')
             print(f"Storing results from evaluations in {results_dir}")
             calc.store_results(result, results_dir)
 
@@ -268,7 +277,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     # writing catalog
     print(f"Saving ComCat catalog used for Evaluation")
-    evaluation_repo = FileSystem(url=os.path.join(sim_dir, 'evaluation_catalog.json'))
+    evaluation_repo = FileSystem(url=os.path.join(plot_dir, 'evaluation_catalog.json'))
     evaluation_repo.save(comcat.to_dict())
 
     print(f"Finished everything in {t2-t0} seconds with average time per catalog of {(t2-t0)/n_cat} seconds")
