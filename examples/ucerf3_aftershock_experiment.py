@@ -94,7 +94,7 @@ for origin_time in origin_times:
     run_id = f'ot_{origin_time}'
     ucerf3job_config.update({'work_dir': f'/Users/wsavran/Projects/Code/ucerf3_run_gen_testing/runs/{run_id}',
                              'run_id': run_id})
-    fore=exp1.add_forecast(ucerf3job_config, force=True)
+    fore=exp1.add_forecast(ucerf3job_config)
     fore.update_configuration({"startTimeMillis": origin_time,
                                "duration": 1.0,
                                "numSimulations": 10000})
@@ -108,6 +108,6 @@ exp2 = ForecastExperiment.load(repository_config)
 
 assert exp1 == exp2
 
-fore=exp1.add_forecast(ucerf3job_config, force=True)
-fore=exp1.add_forecast(ucerf3job_config, force=True)
-fore=exp1.add_forecast(ucerf3job_config, force=True)
+fore=exp1.add_forecast(ucerf3job_config)
+fore=exp1.add_forecast(ucerf3job_config)
+fore=exp1.add_forecast(ucerf3job_config)

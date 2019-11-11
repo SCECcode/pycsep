@@ -228,7 +228,7 @@ class ForecastExperiment(Workflow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def add_forecast(self, config, force=False):
+    def add_forecast(self, config):
         """
         Add forecast to experiment manager. Wraps around workflow add_job() to provide
         an interface that makes more sense in the context of earthquake forecasting experiments.

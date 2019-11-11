@@ -20,6 +20,7 @@ if __name__ == "__main__":
     required.add_argument("--eval_days", help="Number of days to evaluate forecast starting at the forecast start time", required=True)
     required.add_argument("--event_id", help="String corresponding to the ComCat event_id", required=True)
     optional.add_argument("--generate_markdown", type=bool, default=True, help="True/False to generate markdown document. Defaults to true.")
+    optional.add_argument("--plot_dir", default=None, help="Specifies directory to store plots can be different than the simulation directory.")
     optional.add_argument("--n_cat", default=None, type=int, help="Number of catalogs to process. Defaults to all catalogs.")
     optional.add_argument("--catalog_repo", default=None, help="Filepath to ComCat catalog to use in Json format. Defaults to downloading.")
     optional.add_argument("--save_results", default=True,  type=bool, help="True/False to store evaluation results as json documents.")
