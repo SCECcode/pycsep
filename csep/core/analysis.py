@@ -7,7 +7,6 @@ from tempfile import mkstemp
 
 import numpy
 
-import docker
 import datetime
 import matplotlib
 import matplotlib.pyplot as plt
