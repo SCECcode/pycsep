@@ -303,7 +303,7 @@ class AbstractProcessingTask:
 
     @staticmethod
     def _build_filename(dir, mw, plot_id):
-        basename = f"{plot_id}_{mw}_test"
+        basename = f"{plot_id}_mw_{str(mw).replace('.','p')}".lower()
         return os.path.join(dir, basename)
 
     @staticmethod
@@ -376,12 +376,14 @@ class AbstractProcessingTask:
         """
         success = False
         for idx in seq_iter(results):
+            # for debugging
+            print(type(results[idx]))
             if not isinstance(results[idx], tuple) or not isinstance(results[idx], list):
                 result = [results[idx]]
             else:
                 result = results[idx]
             for r in result:
-                repo = FileSystem(url=self._build_filename(dir, r.min_mw, r.name).lower() + '.json')
+                repo = FileSystem(url=self._build_filename(dir, r.min_mw, r.name) + '.json')
                 if repo.save(r.to_dict()):
                     success = True
         return success
