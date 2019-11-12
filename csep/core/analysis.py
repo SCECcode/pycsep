@@ -381,7 +381,7 @@ class AbstractProcessingTask:
             else:
                 result = results[idx]
             for r in result:
-                repo = FileSystem(url=self._build_filename(dir, r.mw, r.name))
+                repo = FileSystem(url=self._build_filename(dir, r.min_mw, r.name))
                 if repo.save(r):
                     success = True
         return success
