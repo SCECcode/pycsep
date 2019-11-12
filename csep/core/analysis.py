@@ -300,6 +300,7 @@ class AbstractProcessingTask:
         self.region = None
         self.buffer_fname = None
         self.fhandle = None
+        self.archive = True
 
     @staticmethod
     def _build_filename(dir, mw, plot_id):
@@ -374,6 +375,9 @@ class AbstractProcessingTask:
             None
 
         """
+
+        if self.archive == False:
+            return
         success = False
         for idx in seq_iter(results):
             # for debugging
@@ -660,6 +664,7 @@ class CumulativeEventPlot(AbstractProcessingTask):
         self.end_epoch = end_epoch
         self.time_bins, self.dt = self._get_time_bins()
         self.n_bins = self.time_bins.shape[0]
+        self.archive = False
 
     def _get_time_bins(self):
         diff = (self.end_epoch - self.origin_epoch) / SECONDS_PER_DAY / 1000
@@ -751,6 +756,7 @@ class MagnitudeHistogram(AbstractProcessingTask):
     def __init__(self, calc=True, **kwargs):
         super().__init__(**kwargs)
         self.calc = calc
+        self.archive = False
 
     def process_catalog(self, catalog):
         """ this can share data with the Magnitude test, hence self.calc
@@ -1217,6 +1223,7 @@ class ApproximateRatePlot(AbstractProcessingTask):
         super().__init__(**kwargs)
         self.calc=calc
         self.region=None
+        self.archive = False
 
     def process_catalog(self, catalog):
         # grab stuff from catalog that we might need later
@@ -1273,6 +1280,7 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
         super().__init__(**kwargs)
         self.obs = obs
         self.data = defaultdict(list)
+        self.archive = False
 
     def process_catalog(self, catalog):
         if self.name is None:
