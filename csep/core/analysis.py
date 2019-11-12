@@ -1087,7 +1087,7 @@ class BValueTest(AbstractProcessingTask):
         if not self.name:
             self.name = catalog.name
         cat_filt = catalog.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        self.data.append(cat_filt.get_bvalue())
+        self.data.append(cat_filt.get_bvalue(retval=False))
 
     def post_process(self, obs, args=None):
         _ = args
