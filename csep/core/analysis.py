@@ -52,6 +52,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     sns.set()
 
     # try using two different files
+    print(f"Processing simulation in {sim_dir}")
     filename = os.path.join(sim_dir, 'results_complete.bin')
     if not os.path.exists(filename):
         filename = os.path.join(sim_dir, 'results_complete_partial.bin')
@@ -61,6 +62,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     if plot_dir is None:
         plot_dir = sim_dir
         print(f'No plotting directory specified defaulting to {plot_dir}')
+    else:
+        print(f"Using user specified plotting directory: {plot_dir}")
     config_file = os.path.join(sim_dir, 'config.json')
     mkdirs(os.path.join(plot_dir))
 
@@ -69,7 +72,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         u3etas_config = json.load(f)
 
     if plot_dir != sim_dir:
-        print("Copying simulation configuration to plot directory")
+        print("Plotting dir is different than simulation directory. copying simulation configuration to plot directory")
         copy_file(config_file, os.path.join(plot_dir, 'config.json'))
 
     # determine how many catalogs to process
@@ -91,7 +94,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     # this kinda booty
     if type(end_epoch) == str:
-        print('Found end_epoch as time_delta string (in days), adding end_epoch to simulation start time')
+        print(f'Found end_epoch as time_delta string (in days), adding {end_epoch} days to simulation start time')
         time_delta = 1000*24*60*60*int(end_epoch)
         end_epoch = origin_epoch + time_delta
 
@@ -100,7 +103,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     # Download comcat catalog, if it fails its usually means it timed out, so just try again
     if catalog_repo is None:
-        print("Catalog not specified downloading new catalog from ComCat.")
+        print("Catalog repository not specified downloading new catalog from ComCat.")
 
         # Sometimes ComCat fails for non-critical reasons, try twice just to make sure.
         try:
@@ -119,9 +122,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
             print(comcat)
     else:
         # if this fails it should stop the program, therefore no try-catch block
+        print(f"Reading catalog from repository at location {catalog_repo}")
         catalog_repo = FileSystem(url=catalog_repo)
-
-        print(f"Reading catalog from repository at location {catalog_repo.url}")
         comcat = catalog_repo.load(ComcatCatalog(query=False))
         comcat = comcat.filter(f'origin_time >= {datetime_to_utc_epoch(event_time)}').filter(f'origin_time < {end_epoch}')
         comcat = comcat.filter_spatial(aftershock_region).apply_mct(event.magnitude, origin_epoch)
@@ -310,12 +312,6 @@ class AbstractProcessingTask:
     def _build_filename(dir, mw, plot_id):
         basename = f"{plot_id}_mw_{str(mw).replace('.','p')}".lower()
         return os.path.join(dir, basename)
-
-    @staticmethod
-    def _get_temporary_filename():
-        # create temporary file and return filename
-        _, tmp_file = mkstemp()
-        return tmp_file
 
     def process_catalog(self, catalog):
         raise NotImplementedError('must implement process_catalog()!')
