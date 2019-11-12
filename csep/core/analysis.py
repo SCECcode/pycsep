@@ -285,7 +285,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                              text="This test compares the estimated b-value from the observed catalog along with the "
                                   "b-value distribution from the forecast. "
                                   "This test can be considered an alternate form to the Magnitude Test.\n")
-        md.finalize(os.path.dirname(plot_dir))
+        md.finalize(plot_dir)
 
     t1 = time.time()
     print(f'Completed all processing in {t1-t0} seconds')

@@ -339,7 +339,6 @@ class AbstractBaseCatalog(LoggingMixin):
         Estimates the b-value of a catalog using Eq. 3.10 from Marzocchi and Sandri (2003)
 
         Args:
-            dmw: Discretization of magnitudes
             reterr (bool): returns errors
 
         Returns:
@@ -358,6 +357,7 @@ class AbstractBaseCatalog(LoggingMixin):
             if bottom == 0:
                 return None
             return 1 + top / bottom
+
         bottom = numpy.log(10)*dmw
         p = p()
         if p is None:
