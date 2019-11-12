@@ -346,7 +346,6 @@ class AbstractBaseCatalog(LoggingMixin):
             bval (float): b-value
             err (float): std. err
         """
-
         if self.get_number_of_events() == 0:
             return None
         mws = discretize(self.get_magnitudes(), CSEP_MW_BINS)

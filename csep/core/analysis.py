@@ -22,7 +22,7 @@ from csep.utils.basic_types import Polygon, seq_iter
 from csep.utils.scaling_relationships import WellsAndCoppersmith
 from csep.utils.comcat import get_event_by_id
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
-from csep.utils.file import get_relative_path, mkdirs
+from csep.utils.file import get_relative_path, mkdirs, copy_file
 from csep.utils.documents import MarkdownReport
 from csep.core.evaluations import EvaluationResult, _compute_likelihood, _distribution_test
 from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_likelihood_test, plot_spatial_test, \
@@ -59,7 +59,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         raise FileNotFoundError('could not find results_complete.bin or results_complete_partial.bin')
         
     if plot_dir is None:
-        plot_dir = os.path.join(sim_dir, 'plots')
+        plot_dir = sim_dir
         print(f'No plotting directory specified defaulting to {plot_dir}')
     config_file = os.path.join(sim_dir, 'config.json')
     mkdirs(os.path.join(plot_dir))
@@ -67,6 +67,10 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     # load ucerf3 configuration
     with open(os.path.join(config_file), 'r') as f:
         u3etas_config = json.load(f)
+
+    if plot_dir != sim_dir:
+        print("Copying simulation configuration to plot directory")
+        copy_file(config_file, os.path.join(plot_dir, 'config.json'))
 
     # determine how many catalogs to process
     if n_cat is None or n_cat > u3etas_config['numSimulations']:
@@ -1089,13 +1093,13 @@ class BValueTest(AbstractProcessingTask):
         _ = args
         data = numpy.array(self.data)
         obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        observation_count = obs_filt.get_bvalue()
+        obs_bval = obs_filt.get_bvalue(reterr=False)
         # get delta_1 and delta_2 values
-        _, delta_2 = get_quantiles(data, observation_count)
+        _, delta_2 = get_quantiles(data, obs_bval)
         # prepare result
         result = EvaluationResult(test_distribution=data,
                                   name='BV-Test',
-                                  observed_statistic=observation_count,
+                                  observed_statistic=obs_bval,
                                   quantile=delta_2,
                                   status='Normal',
                                   min_mw=self.mws[0],
@@ -1105,9 +1109,9 @@ class BValueTest(AbstractProcessingTask):
         return result
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        bv_test_fname = AbstractProcessingTask._build_filename(plot_dir, self.mws[0], 'bv_test')
+        bv_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'bv_test')
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
-                                                             'title': f"B-Value Distribution Test\nMw>{self.mws[0]}",
+                                                             'title': f"B-Value Distribution Test\nMw>{results.min_mw}",
                                                              'bins': 'auto',
                                                              'xy': (0.2, 0.65),
                                                              'filename': bv_test_fname})
@@ -1123,7 +1127,6 @@ class MedianMagnitudeTest(AbstractProcessingTask):
             self.name = catalog.name
         cat_filt = catalog.filter(f'magnitude > {self.mws[0]}', in_place=False)
         self.data.append(numpy.median(cat_filt.get_magnitudes()))
-        print(self.data)
 
     def post_process(self, obs, args=None):
         _ = args
