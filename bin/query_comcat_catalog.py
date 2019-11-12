@@ -20,14 +20,14 @@ try:
     comcat = ComcatCatalog(start_time = start, end_time = now,
                            min_magnitude = 2.5, max_magnitude = 10.0,
                            min_latitude = 31.5, max_latitude = 43.0,
-                           min_longitude = -125.4, max_longitude = -113.1, compute_stats=False)
+                           min_longitude = -125.4, max_longitude = -113.1, compute_stats=False, name='ComCat')
     t1 = time.time()
 except:
     print('Trying to connect with Comcat again...')
     comcat = ComcatCatalog(start_time = start, end_time = now,
                            min_magnitude = 2.5, max_magnitude = 10.0,
                            min_latitude = 31.5, max_latitude = 43.0,
-                           min_longitude = -125.4, max_longitude = -113.1, compute_stats=False)
+                           min_longitude = -125.4, max_longitude = -113.1, compute_stats=False, name='ComCat')
     t1 = time.time()
 
 print("Fetched Comcat catalog in {} seconds.\n".format(t1 - t0))

@@ -381,7 +381,7 @@ class AbstractProcessingTask:
             else:
                 result = results[idx]
             for r in result:
-                repo = FileSystem(url=self._build_filename(dir, r.min_mw, r.name))
+                repo = FileSystem(url=self._build_filename(dir, r.min_mw, r.name).lower() + '.json')
                 if repo.save(r.to_dict()):
                     success = True
         return success
@@ -418,7 +418,7 @@ class NumberTest(AbstractProcessingTask):
                           observed_statistic=observation_count,
                           quantile=(delta_1, delta_2),
                           status='Normal',
-                          obs_catalog_repr=str(obs),
+                          obs_catalog_repr=obs.date_accessed,
                           sim_name=self.name,
                           min_mw=mw,
                           obs_name=obs.name)
@@ -492,7 +492,7 @@ class MagnitudeTest(AbstractProcessingTask):
                                       quantile=quantile,
                                       status='Normal',
                                       min_mw=mw,
-                                      obs_catalog_repr=str(obs),
+                                      obs_catalog_repr=obs.date_accessed,
                                       obs_name=obs.name,
                                       sim_name=self.name)
             results[mw] = result
@@ -596,7 +596,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                                                  quantile=quantile_likelihood,
                                                  status=message,
                                                  min_mw=mw,
-                                                 obs_catalog_repr=str(obs),
+                                                 obs_catalog_repr=obs.date_accessed,
                                                  sim_name=self.name,
                                                  obs_name=obs.name)
             # find out if there are issues with the test
@@ -615,7 +615,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                                           quantile=quantile_spatial,
                                           status=message,
                                           min_mw=mw,
-                                          obs_catalog_repr=str(obs),
+                                          obs_catalog_repr=obs.date_accessed,
                                           sim_name=self.name,
                                           obs_name=obs.name)
 
@@ -878,7 +878,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
                                                  quantile=quantile_likelihood,
                                                  status=message,
                                                  min_mw=mw,
-                                                 obs_catalog_repr=str(obs),
+                                                 obs_catalog_repr=obs.date_accessed,
                                                  sim_name=self.name,
                                                  obs_name=obs.name)
             # find out if there are issues with the test
@@ -897,7 +897,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
                                               quantile=quantile_spatial,
                                               status=message,
                                               min_mw=mw,
-                                              obs_catalog_repr=str(obs),
+                                              obs_catalog_repr=obs.date_accessed,
                                               sim_name=self.name,
                                               obs_name=obs.name)
 
@@ -956,7 +956,7 @@ class InterEventTimeDistribution(AbstractProcessingTask):
                                   quantile=quantile,
                                   status='Normal',
                                   min_mw=self.mws[0],
-                                  obs_catalog_repr=str(obs),
+                                  obs_catalog_repr=obs.date_accessed,
                                   sim_name=self.name,
                                   obs_name=obs.name)
 
@@ -998,7 +998,7 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
                                   quantile=quantile,
                                   status='Normal',
                                   min_mw=self.mws[0],
-                                  obs_catalog_repr=str(obs),
+                                  obs_catalog_repr=obs.date_accessed,
                                   sim_name=self.name,
                                   obs_name=obs.name)
 
@@ -1049,7 +1049,7 @@ class TotalEventRateDistribution(AbstractProcessingTask):
                                   quantile=quantile,
                                   status='Normal',
                                   min_mw=mw,
-                                  obs_catalog_repr=str(obs),
+                                  obs_catalog_repr=obs.date_accessed,
                                   sim_name=self.name,
                                   obs_name=obs.name)
             results[mw] = result
@@ -1092,7 +1092,7 @@ class BValueTest(AbstractProcessingTask):
                                   quantile=delta_2,
                                   status='Normal',
                                   min_mw=self.mws[0],
-                                  obs_catalog_repr=str(obs),
+                                  obs_catalog_repr=obs.date_accessed,
                                   sim_name=self.name,
                                   obs_name=obs.name)
         return result
@@ -1127,12 +1127,12 @@ class MedianMagnitudeTest(AbstractProcessingTask):
         _, delta_2 = get_quantiles(data, observation_count)
         # prepare result
         result = EvaluationResult(test_distribution=data,
-                                  name='MM-Test',
+                                  name='M-Test',
                                   observed_statistic=observation_count,
                                   quantile=delta_2,
                                   min_mw=self.mws[0],
                                   status='Normal',
-                                  obs_catalog_repr=str(obs),
+                                  obs_catalog_repr=obs.date_accessed,
                                   sim_name=self.name,
                                   obs_name=obs.name)
         return result

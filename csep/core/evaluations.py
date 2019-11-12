@@ -23,7 +23,7 @@ from csep.utils.stats import get_quantiles
 class EvaluationResult:
 
     def __init__(self, test_distribution=None, name=None, observed_statistic=None, quantile=None, status="",
-                       obs_catalog_repr=None, sim_name=None, obs_name=None, min_mw=None):
+                       obs_catalog_repr='', sim_name=None, obs_name=None, min_mw=None):
         """
         Stores the result of an evaluation.
 
