@@ -382,7 +382,7 @@ class AbstractProcessingTask:
                 result = results[idx]
             for r in result:
                 repo = FileSystem(url=self._build_filename(dir, r.min_mw, r.name))
-                if repo.save(r):
+                if repo.save(r.to_dict()):
                     success = True
         return success
 
