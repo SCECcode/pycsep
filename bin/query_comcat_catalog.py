@@ -39,7 +39,7 @@ print("Min Magnitude: {}\n".format(comcat.min_magnitude))
 
 # file paths
 base_dir = os.environ['COMCAT_REPO']
-fname = now.strftime('%Y-%m-%d-comcat.json')
+fname = os.path.join(base_dir, now.strftime('%Y-%m-%d-comcat.json'))
 repo = FileSystem(url=fname)
 
 print('Writing catalog to Json format..')
