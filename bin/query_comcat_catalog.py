@@ -43,4 +43,4 @@ fname = now.strftime('%Y-%m-%d-comcat.json')
 repo = FileSystem(url=fname)
 
 print('Writing catalog to Json format..')
-repo.save(comcat)
+repo.save(comcat.to_dict())

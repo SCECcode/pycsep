@@ -78,7 +78,7 @@ class FileSystem(Repository):
         try:
             with open(self.url, 'w') as f:
                 self.log.info(f'Writing file to {self.url}.')
-                json.dump(data, f, indent=4, separators=(',', ': '), default=str)
+                json.dump(data, f, indent=4, separators=(',', ': '), sort_keys=True, default=str)
         except IOError:
             raise IOError(f"FileSystem Repository Error: saving file to {self.url}")
         return success
