@@ -52,7 +52,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     sns.set()
 
     # try using two different files
-    print(f"Processing simulation in {sim_dir}")
+    print(f"Processing simulation in {sim_dir}", flush=True)
     filename = os.path.join(sim_dir, 'results_complete.bin')
     if not os.path.exists(filename):
         filename = os.path.join(sim_dir, 'results_complete_partial.bin')
@@ -147,7 +147,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     print('\n')
 
     # read the catalogs
-    print('Begin processing catalogs')
+    print('Begin processing catalogs', flush=True)
     t0 = time.time()
     loaded = 0
     u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
@@ -168,9 +168,9 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         n_cat = loaded
 
     t2 = time.time()
-    print(f'Finished processing catalogs in {t2-t0} seconds\n')
+    print(f'Finished processing catalogs in {t2-t0} seconds\n', flush=True)
 
-    print('Processing catalogs again for distribution-based tests')
+    print('Processing catalogs again for distribution-based tests', flush=True)
     for k, v in data_products.items():
         if v.needs_two_passes == True:
             print(v.__class__.__name__)
@@ -226,7 +226,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     evaluation_repo = FileSystem(url=os.path.join(plot_dir, 'evaluation_catalog.json'))
     evaluation_repo.save(comcat.to_dict())
 
-    print(f"Finished everything in {t2-t0} seconds with average time per catalog of {(t2-t0)/n_cat} seconds")
+    print(f"Finished everything in {t2-t0} seconds with average time per catalog of {(t2-t0)/n_cat} seconds", flush=True)
 
     # create the notebook for results
     if generate_markdown:
