@@ -161,8 +161,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
             if (i+1) % n_cat == 0:
                 break
             loaded += 1
-    except:
-        print(f'Failed loading at catalog {i+1}. This may happen if the simulation is incomplete\nProceeding to finalize plots')
+    except Exception as e:
+        print(f'Failed loading at catalog {i+1} with {str(e)}. This may happen if the simulation is incomplete\nProceeding to finalize plots')
         n_cat = loaded
 
     t2 = time.time()
@@ -379,10 +379,17 @@ class AbstractProcessingTask:
             None
 
         """
-
+        success = False
         if self.archive == False:
             return
-        success = False
+
+        # handle if results is just a single result
+        if isinstance(results, EvaluationResult):
+            repo = FileSystem(url=self._build_filename(dir, results.min_mw, results.name) + '.json')
+            if repo.save(results.to_dict()):
+                success = True
+            return success
+        # or if its an iterable
         for idx in seq_iter(results):
             # for debugging
             if isinstance(results[idx], tuple) or isinstance(results[idx], list):
@@ -1087,7 +1094,7 @@ class BValueTest(AbstractProcessingTask):
         if not self.name:
             self.name = catalog.name
         cat_filt = catalog.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        self.data.append(cat_filt.get_bvalue(retval=False))
+        self.data.append(cat_filt.get_bvalue(reterr=False))
 
     def post_process(self, obs, args=None):
         _ = args
