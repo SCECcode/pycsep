@@ -115,6 +115,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
             print(comcat)
     else:
         # if this fails it should stop the program, therefore no try-catch block
+        catalog_repo = FileSystem(url=catalog_repo)
+
         print(f"Reading catalog from repository at location {catalog_repo.url}")
         comcat = catalog_repo.load(ComcatCatalog(query=False))
         comcat = comcat.filter(f'origin_time >= {datetime_to_utc_epoch(event_time)}').filter(f'origin_time < {end_epoch}')
