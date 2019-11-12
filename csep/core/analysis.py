@@ -377,11 +377,10 @@ class AbstractProcessingTask:
         success = False
         for idx in seq_iter(results):
             # for debugging
-            print(type(results[idx]))
-            if not isinstance(results[idx], tuple) or not isinstance(results[idx], list):
-                result = [results[idx]]
-            else:
+            if isinstance(results[idx], tuple) or isinstance(results[idx], list):
                 result = results[idx]
+            else:
+                result = [results[idx]]
             for r in result:
                 repo = FileSystem(url=self._build_filename(dir, r.min_mw, r.name) + '.json')
                 if repo.save(r.to_dict()):
