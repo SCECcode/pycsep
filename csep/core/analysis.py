@@ -159,7 +159,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
             tens_exp = numpy.floor(numpy.log10(i + 1))
             if (i + 1) % 10 ** tens_exp == 0:
                 t1 = time.time()
-                print(f'Processed {i+1} catalogs in {t1-t0} seconds')
+                print(f'Processed {i+1} catalogs in {t1-t0} seconds', flush=True)
             if (i+1) % n_cat == 0:
                 break
             loaded += 1
@@ -191,7 +191,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         tens_exp = numpy.floor(numpy.log10(i+1))
         if (i+1) % 10**tens_exp == 0:
             t3 = time.time()
-            print(f'Processed {i + 1} catalogs in {t3 - t2} seconds')
+            print(f'Processed {i + 1} catalogs in {t3 - t2} seconds', flush=True)
         if (i+1) % n_cat == 0:
             break
 
@@ -215,11 +215,11 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
         if save_results:
             # could expose this, but hard-coded for now
-            print(f"Storing results from evaluations in {results_dir}")
+            print(f"Storing results from evaluations in {results_dir}", flush=True)
             calc.store_results(result, results_dir)
 
     t2 = time.time()
-    print(f"Evaluated forecasts in {t2-t1} seconds")
+    print(f"Evaluated forecasts in {t2-t1} seconds", flush=True)
 
     # writing catalog
     print(f"Saving ComCat catalog used for Evaluation")
