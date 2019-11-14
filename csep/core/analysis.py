@@ -90,6 +90,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     # event timing
     event_time = event.time.replace(tzinfo=datetime.timezone.utc)
+    event_epoch = datetime_to_utc_epoch(event.time)
     origin_epoch = u3etas_config['startTimeMillis']
 
     # this kinda booty
@@ -111,22 +112,22 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                                       min_magnitude=2.50,
                                       min_latitude=31.50, max_latitude=43.00,
                                       min_longitude=-125.40, max_longitude=-113.10)
-            comcat = comcat.filter_spatial(aftershock_region).apply_mct(event.magnitude, origin_epoch)
+            comcat = comcat.filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
             print(comcat)
         except:
             comcat = load_comcat(event_time, epoch_time_to_utc_datetime(end_epoch),
                                       min_magnitude=2.50,
                                       min_latitude=31.50, max_latitude=43.00,
                                       min_longitude=-125.40, max_longitude=-113.10)
-            comcat = comcat.filter_spatial(aftershock_region).apply_mct(event.magnitude, origin_epoch)
+            comcat = comcat.filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
             print(comcat)
     else:
         # if this fails it should stop the program, therefore no try-catch block
         print(f"Reading catalog from repository at location {catalog_repo}")
         catalog_repo = FileSystem(url=catalog_repo)
         comcat = catalog_repo.load(ComcatCatalog(query=False))
-        comcat = comcat.filter(f'origin_time >= {datetime_to_utc_epoch(event_time)}').filter(f'origin_time < {end_epoch}')
-        comcat = comcat.filter_spatial(aftershock_region).apply_mct(event.magnitude, origin_epoch)
+        comcat = comcat.filter(f'origin_time >= {origin_epoch}').filter(f'origin_time < {end_epoch}')
+        comcat = comcat.filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
 
 
     # define products to compute on simulation, this could be extracted
