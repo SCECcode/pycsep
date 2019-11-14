@@ -154,7 +154,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
     try:
         for i, cat in enumerate(u3):
-            cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, origin_epoch)
+            cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
             for name, calc in data_products.items():
                 calc.process_catalog(copy.copy(cat_filt))
             tens_exp = numpy.floor(numpy.log10(i + 1))
@@ -185,7 +185,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     t2 = time.time()
     u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
     for i, cat in enumerate(u3):
-        cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, origin_epoch)
+        cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
         for name, calc in data_products.items():
             calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
         # if we failed earlier, just stop there again
