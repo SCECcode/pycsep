@@ -456,6 +456,10 @@ class NumberTest(AbstractProcessingTask):
 
 class MagnitudeTest(AbstractProcessingTask):
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.mws = [2.5, 3.0, 3.5, 4.0]
+
     def process_catalog(self, catalog):
         if not self.name:
             self.name = catalog.name
