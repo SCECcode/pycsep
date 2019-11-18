@@ -140,6 +140,9 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
          'mag-hist': MagnitudeHistogram(calc=False),
          'arp-plot': ApproximateRatePlot(calc=False),
          'carp-plot': ConditionalApproximateRatePlot(comcat),
+         'terd-test': TotalEventRateDistribution(calc=False),
+         'iedd-test': InterEventDistanceDistribution(),
+         'ietd-test': InterEventTimeDistribution(),
          'bv-test': BValueTest()
     }
 
@@ -181,6 +184,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     # share data where applicable
     data_products['mag-hist'].data = data_products['m-test'].data
     data_products['arp-plot'].data = data_products['l-test'].data
+    data_products['terd-test'].data = data_products['l-test'].data
 
     # old iterator is expired, need new one
     t2 = time.time()
@@ -289,6 +293,20 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                              text="This test compares the estimated b-value from the observed catalog along with the "
                                   "b-value distribution from the forecast. "
                                   "This test can be considered an alternate form to the Magnitude Test.\n")
+
+        md.add_sub_heading('Distribution-based Tests', 1, "")
+        md.add_result_figure('Inter-event Time Distribution', 2, list(map(get_relative_path, data_products['ietd-test'].fnames)),
+                             text='This test compares inter-event time distributions based on a Kilmogorov-Smirnov type statistic'
+                                  'computed from the empiricial CDF.')
+        md.add_result_figure('Inter-event Distance Distribution', 2,
+                             list(map(get_relative_path, data_products['iedd-test'].fnames)),
+                             text='This test compares inter-event distance distributions based on a Kilmogorov-Smirnov type statistic'
+                                  'computed from the empiricial CDF.')
+        md.add_result_figure('Total Earthquake Rate Distribution', 2, list(map(get_relative_path, data_products['terd-test'].fnames)),
+                             text='The total earthquake rate distribution provides another form of insight into the spatial '
+                                  'consistency of the forecast with observations. The total earthquake rate distribution is computed from the '
+                                  'cumulative probability distribution of earthquake occurance against the earthquake rate per spatial bin.')
+
         md.finalize(plot_dir)
 
     t1 = time.time()
