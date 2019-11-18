@@ -1144,14 +1144,15 @@ class TotalEventRateDistribution(AbstractProcessingTask):
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
         _, _, _, n_cat = args
+        test_distribution = numpy.array(self.test_distribution)
         results = {}
         expected_rates = numpy.array(self.data) / n_cat
         for i, mw in enumerate(self.mws):
             obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
             obs_terd = obs_filt.gridded_event_counts()
             d_obs = sup_dist_na(obs_terd, expected_rates[i,:])
-            _, quantile = get_quantiles(self.test_distribution, d_obs)
-            result = EvaluationResult(test_distribution=self.test_distribution,
+            _, quantile = get_quantiles(test_distribution[:,i], d_obs)
+            result = EvaluationResult(test_distribution=test_distribution[:,i],
                                   name='TERD-Test',
                                   observed_statistic=d_obs,
                                   quantile=quantile,
