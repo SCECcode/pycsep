@@ -309,6 +309,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     bins = plot_args.get('bins', bins)
     color = plot_args.get('color', '')
     filename = plot_args.get('filename', None)
+    xlim = plot_args.get('xlim', None)
 
     # this could throw an error exposing bad implementation
     observation = numpy.array(observation)
@@ -343,26 +344,29 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         idx_low = numpy.digitize(p_low, bin_edges)
 
     # show 99.5% of data
-    upper_xlim = numpy.percentile(simulated, 99.75)
-    upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
-    d_bin = bin_edges[1] - bin_edges[0]
-    upper_xlim = upper_xlim + 2*d_bin
-
-    lower_xlim = numpy.percentile(simulated, 0.25)
-    lower_xlim = numpy.min([0, lower_xlim, numpy.min(observation)])
-    lower_xlim = lower_xlim - 2*d_bin
-
-    try:
-        ax.set_xlim([lower_xlim, upper_xlim])
-    except ValueError:
-        print('Ignoring observation in axis scaling because inf or -inf')
+    if xlim is None:
         upper_xlim = numpy.percentile(simulated, 99.75)
+        upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
+        d_bin = bin_edges[1] - bin_edges[0]
         upper_xlim = upper_xlim + 2*d_bin
 
         lower_xlim = numpy.percentile(simulated, 0.25)
+        lower_xlim = numpy.min([lower_xlim, numpy.min(observation)])
         lower_xlim = lower_xlim - 2*d_bin
 
-        ax.set_xlim([lower_xlim, upper_xlim])
+        try:
+            ax.set_xlim([lower_xlim, upper_xlim])
+        except ValueError:
+            print('Ignoring observation in axis scaling because inf or -inf')
+            upper_xlim = numpy.percentile(simulated, 99.75)
+            upper_xlim = upper_xlim + 2*d_bin
+
+            lower_xlim = numpy.percentile(simulated, 0.25)
+            lower_xlim = lower_xlim - 2*d_bin
+
+            ax.set_xlim([lower_xlim, upper_xlim])
+    else:
+        ax.set_xlim(xlim)
 
     ax.set_title(title)
     ax.set_xlabel(xlabel)
@@ -759,7 +763,7 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}
 
     # annotate plot with p-values
     if not chained:
-        ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}'
+        ax.annotate('$\gamma = P(X \leq x) = {:.3f}$\n$\omega$ = {:.3f}'
                     .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                     xycoords='axes fraction',
                     xy=(0.5, 0.3),

@@ -55,6 +55,7 @@ def bin1d_vec(p, bins):
     """
     a0 = np.min(bins)
     h = bins[1] - bins[0]
-    idx = np.floor((p-a0)/h)
+    eps = np.finfo(np.float).eps
+    idx = np.floor((p+eps-a0)/h)
     idx[((idx < 0) | (idx >= len(bins)-1))] = -1
     return idx.astype(np.int)

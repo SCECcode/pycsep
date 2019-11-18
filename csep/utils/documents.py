@@ -36,7 +36,7 @@ class MarkdownReport:
         """
         self.markdown.append('  '.join(text) + '\n\n')
 
-    def add_result_figure(self, title, level, relative_filepaths, ncols=3, add_ext=True, text=''):
+    def add_result_figure(self, title, level, relative_filepaths, ncols=3, add_ext=True, text='', caption=''):
         """
         this function expects a list of filepaths. if you want the output stacked, select a
         value of ncols. ncols should be divisible by filepaths. todo: modify formatted_paths to work when not divis.
@@ -94,6 +94,10 @@ class MarkdownReport:
             if i == 0 and not is_single:
                 result_cell.append(build_header(row))
             result_cell.append(add_to_row(row))
+        result_cell.append('\n')
+
+
+        result_cell.append(f'{caption}')
 
         self.markdown.append('\n'.join(result_cell) + '\n')
 

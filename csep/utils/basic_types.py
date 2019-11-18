@@ -3,7 +3,7 @@ import matplotlib
 
 import pyproj
 
-from csep.utils.calc import discretize
+from csep.utils.calc import discretize, bin1d_vec
 
 
 def seq_iter(iterable):
@@ -25,37 +25,87 @@ def seq_iter(iterable):
     """
     return iterable if isinstance(iterable, dict) else range(len(iterable))
 
-class GriddedDataSet:
+
+class AdaptiveHistogram:
     """
     Allows us to work with data that need to be discretized and aggregated even though the the global min/max values
-    are not known before hand.
+    are not known before hand. Data are discretized according to the dh and anchor positions and their extreme values.
+    If necessary the range of the bin_edges are expanded to accommodate new data
 
     Using this function incurs some addition overhead, instead of simply just binning and combining.
 
     """
-    def __init__(self, dh=0.1):
+    def __init__(self, dh=0.1, anchor=0.0):
         self.dh = dh
-        self.data = np.empty([])
-        self.bins = []
+        self.anchor = anchor
+        self.data = np.array([])
+        self.bins = np.array([])
 
     def add(self, data):
-        # convert to integer to compute modulus
-        int_data = int(np.min(data) * 1e12)
-        int_dh = int(self.dh * 1e12)
-        lower = (int_data - (int_data % int_dh)) / 1e12
-        upper = lower + self.dh
 
-        bins = np.arange(lower, upper+self.dh, self.dh)
-        binned_data = discretize(data, bins)
+        if len(data) == 0:
+            return
 
-        # bins fits nicely within self.bins
-        self._merge(bins, binned_data)
+        # float point arithmitic can be an issue here
+        data_min = np.min(data)
+        data_max = np.max(data)
 
-    def _merge(self, bins, binned_data):
+        # need to know the range of the data to be inserted on discretized grid (min, max)
+        # this is to determine the discretization of the data
+        eps=np.finfo(np.float).eps
+        disc_min = np.floor((data_min+eps-self.anchor)*self.rec_dh)/self.rec_dh+self.anchor
+        disc_max = np.ceil((data_max+eps-self.anchor)*self.rec_dh)/self.rec_dh+self.anchor
 
-        if not self.bins:
+        # compute new bin edges from data
+        new_bins = np.arange(disc_min, disc_max+self.dh/2, self.dh)
+
+        # merge data
+        self._merge(new_bins, data)
+
+    def _merge(self, bins, data):
+
+        # 1) current bins dont exist
+        if self.bins.size == 0:
             self.bins = bins
-            self.data = binned_data
+            self.data = np.zeros(len(self.bins))
+            idx = bin1d_vec(data, self.bins)
+            np.add.at(self.data, idx, 1)
+            return
+
+        # 2) new bins subset of current bins
+        if bins[0] >= self.bins[0] and bins[-1] <= self.bins[-1]:
+            idx = bin1d_vec(data, self.bins)
+            np.add.at(self.data,idx,1)
+            return
+
+        # 3) new bins are outside current bins
+        if bins[0] < self.bins[0]:
+            bin_min = bins[0]
+        else:
+            bin_min = self.bins[0]
+
+        if bins[-1] > self.bins[-1]:
+            bin_max = bins[-1]
+        else:
+            bin_max = self.bins[-1]
+
+        # generate new bins
+        new_bins = np.arange(bin_min, bin_max+self.dh/2, self.dh)
+        tmp_data = np.zeros(len(new_bins))
+        # merge new data to new bins
+        # get old bin locations relative to new bins
+        idx = bin1d_vec(self.bins, new_bins)
+        # add old data
+        tmp_data[idx] = self.data
+        self.data = tmp_data
+        idx = bin1d_vec(data, new_bins)
+        np.add.at(self.data, idx, 1)
+        self.bins = new_bins
+        return
+
+    @property
+    def rec_dh(self):
+        return 1.0 / self.dh
 
 class Polygon:
     """

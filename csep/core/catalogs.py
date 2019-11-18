@@ -312,7 +312,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
         """
         times = self.get_epoch_times()
-        inter_times = numpy.diff(times)/scale
+        inter_times = numpy.diff(times) / scale
         return inter_times
 
     def get_inter_event_distances(self, ellps='WGS84'):
@@ -451,10 +451,8 @@ class AbstractBaseCatalog(LoggingMixin):
         for i, (mw, time) in enumerate(zip(mws, times)):
             if time > t_crit_epoch:
                 break
-
             time_from_mshock_in_days = millis_to_days(time - event_epoch)
             mct = compute_mct(time_from_mshock_in_days, m_main)
-
             # ignore events with mw < mct
             if mw < mct:
                 filter[i] = False
@@ -469,7 +467,7 @@ class AbstractBaseCatalog(LoggingMixin):
         those that do, this method will return the catalog as is.
 
         """
-        raise NotImplementedError('_get_csep_format() not implemented.')
+        raise NotImplementedError('get_csep_format() not implemented.')
 
     def update_catalog_stats(self):
         # update min and max values
@@ -530,35 +528,6 @@ class AbstractBaseCatalog(LoggingMixin):
                                                                self.region.ys)
         return output
 
-    def gridded_space_mag_counts(self):
-        """
-        This function is bad and should be broken up into multiple parts. In general, it works by circumscribing the
-        polygons with a bounding box. Inside the bounding box is assumed to follow a regular Cartesian grid.
-
-        We figure out the index of the polygons and create a map that relates the spatial coordinate in the
-        Cartesian grid with with the polygon in region.
-
-        Args:
-            region: list of polygons
-
-        Returns:
-            outout: unnormalized event count in each bin, 1d ndarray where index corresponds to midpoints
-            midpoints: midpoints of polygons in region
-            cartesian: data embedded into a 2d map. can be used for quick plotting in python
-        """
-
-        # make sure region is specified with catalog
-        if self.region is None:
-            raise CSEPSchedulerException("Cannot create binned rates without region information.")
-        output = csep.utils.spatial.bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
-                                                                        self.get_latitudes(),
-                                                                        self.get_magnitudes(),
-                                                                        len(self.region.polygons),
-                                                                        self.region.bitmask,
-                                                                        self.region.xs,
-                                                                        self.region.ys)
-        return output
-
     def binned_magnitude_counts(self, bins=CSEP_MW_BINS, retbins=False):
         out = numpy.zeros(len(bins))
         idx = bin1d_vec(self.get_magnitudes(), bins)
@@ -567,7 +536,6 @@ class AbstractBaseCatalog(LoggingMixin):
             return (bins, out)
         else:
             return out
-
 
 class CSEPCatalog(AbstractBaseCatalog):
     """

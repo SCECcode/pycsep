@@ -18,21 +18,19 @@ from csep.utils.constants import SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_
 from csep import load_stochastic_event_sets, load_comcat
 from csep.utils.time import epoch_time_to_utc_datetime, datetime_to_utc_epoch, millis_to_days
 from csep.utils.spatial import masked_region, california_relm_region
-from csep.utils.basic_types import Polygon, seq_iter
+from csep.utils.basic_types import Polygon, seq_iter, AdaptiveHistogram
 from csep.utils.scaling_relationships import WellsAndCoppersmith
 from csep.utils.comcat import get_event_by_id
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.file import get_relative_path, mkdirs, copy_file
 from csep.utils.documents import MarkdownReport
-from csep.core.evaluations import EvaluationResult, _compute_likelihood, _distribution_test
+from csep.core.evaluations import EvaluationResult, _compute_likelihood
 from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_likelihood_test, plot_spatial_test, \
     plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_distribution_test, plot_spatial_dataset
 from csep.utils.calc import bin1d_vec
-from csep.utils.stats import get_quantiles, cumulative_square_diff
+from csep.utils.stats import get_quantiles, cumulative_square_diff, sup_dist, sup_dist_na
 from csep.core.catalogs import ComcatCatalog
 from csep.core.repositories import FileSystem
-
-
 
 def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_dir=None, generate_markdown=True, catalog_repo=None, save_results=False):
     """
@@ -80,7 +78,10 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         n_cat = u3etas_config['numSimulations']
 
     # download comcat information
-    event = get_event_by_id(event_id)
+    try:
+        event = get_event_by_id(event_id)
+    except:
+        event = get_event_by_id(event_id)
 
     # filter to aftershock radius
     rupture_length = WellsAndCoppersmith.mag_length_strike_slip(event.magnitude) * 1000
@@ -302,7 +303,6 @@ class AbstractProcessingTask:
         self.ax = []
         self.fnames = []
         self.needs_two_passes = False
-        self.cache = False
         self.buffer = []
         self.region = None
         self.buffer_fname = None
@@ -481,6 +481,7 @@ class MagnitudeTest(AbstractProcessingTask):
             # get observed magnitude counts
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             if obs_filt.event_count == 0:
+                print(f"Skipping {mw} in Magnitude test because no observed events.")
                 continue
             obs_histogram = obs_filt.binned_magnitude_counts()
             n_obs_events = numpy.sum(obs_histogram)
@@ -954,22 +955,48 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
 
 
 class InterEventTimeDistribution(AbstractProcessingTask):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.mws = [2.5]
+        # start by using a 10 second bin for discretizing data
+        # but this should be smart based on the length of the catalog
+        self.data = AdaptiveHistogram(dh=10)
+        self.test_distribution = []
+        self.needs_two_passes = True
+        # jsut saves soem computation bc we only need to compute this once
+        self.normed_data = numpy.array([])
+
     def process_catalog(self, catalog):
         """ not nice on the memorys. """
         if self.name is None:
             self.name = catalog.name
-        cat_filt = catalog.filter(f'magnitude > {self.mws[0]}')
-        self.data.append(cat_filt.get_inter_event_times())
+
+        cat_ietd = catalog.get_inter_event_times()
+        self.data.add(cat_ietd)
+
+    def process_again(self, catalog, args=()):
+        cat_ietd = catalog.get_inter_event_times()
+        disc_ietd = numpy.zeros(len(self.data.bins))
+        idx = bin1d_vec(cat_ietd, self.data.bins)
+        numpy.add.at(disc_ietd, idx, 1)
+        disc_ietd_normed = numpy.cumsum(disc_ietd) / numpy.trapz(disc_ietd, dx=self.data.dh)
+
+        if self.normed_data.size == 0:
+            self.normed_data = numpy.cumsum(self.data.data) / numpy.trapz(self.data.data, dx=self.data.dh)
+        self.test_distribution.append(sup_dist(self.normed_data, disc_ietd_normed))
 
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
         obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        obs_terd = obs_filt.get_inter_event_times()
-
-        # compute distribution statistics
-        test_distribution, d_obs, quantile = _distribution_test(self.data, obs_terd)
-
-        result = EvaluationResult(test_distribution=test_distribution,
+        obs_ietd = obs_filt.get_inter_event_times()
+        obs_disc_ietd = numpy.zeros(len(self.data.bins))
+        idx = bin1d_vec(obs_ietd, self.data.bins)
+        numpy.add.at(obs_disc_ietd, idx, 1)
+        obs_disc_ietd_normed = numpy.cumsum(obs_disc_ietd) / numpy.trapz(obs_disc_ietd, dx=self.data.dh)
+        d_obs = sup_dist(self.normed_data, obs_disc_ietd_normed)
+        _, quantile = get_quantiles(self.test_distribution, d_obs)
+        result = EvaluationResult(test_distribution=self.test_distribution,
                                   name='IEDD-Test',
                                   observed_statistic=d_obs,
                                   quantile=quantile,
@@ -981,37 +1008,59 @@ class InterEventTimeDistribution(AbstractProcessingTask):
 
         return result
 
-    def process_again(self, catalog, args=()):
-        pass
-
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        ietd_test_fname = AbstractProcessingTask._build_filename(plot_dir, self.mws[0], 'ietd_test')
+        ietd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'ietd_test')
         _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
-                                                                       'title': f'Inter-event Time Distribution Test\nMw>{self.mws[0]}',
-                                                                       'bins': 'auto',
-                                                                       'xlabel': "D* Statistic",
-                                                                       'ylabel': r"P(X $\leq$ x)",
-                                                                       'filename': ietd_test_fname})
+                                                                   'title': f'Inter-event Time Distribution Test\nMw>{results.min_mw}',
+                                                                   'bins': 'auto',
+                                                                   'xlabel': "D* Statistic",
+                                                                   'ylabel': r"P(X $\leq$ x)",
+                                                                   'filename': ietd_test_fname})
         self.fnames.append(ietd_test_fname)
 
 
 class InterEventDistanceDistribution(AbstractProcessingTask):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.mws = [2.5]
+        # start by using a 10 second bin for discretizing data
+        # but this should be smart based on the length of the catalog
+        self.data = AdaptiveHistogram(dh=1)
+        self.test_distribution = []
+        self.needs_two_passes = True
+        # jsut saves soem computation bc we only need to compute this once
+        self.normed_data = numpy.array([])
+
     def process_catalog(self, catalog):
         """ not nice on the memorys. """
         if self.name is None:
             self.name = catalog.name
-        cat_filt = catalog.filter(f'magnitude > {self.mws[0]}')
-        self.data.append(cat_filt.get_inter_event_distances())
+        # distances are in kilometers
+        cat_iedd = catalog.get_inter_event_distances()
+        self.data.add(cat_iedd)
+
+    def process_again(self, catalog, args=()):
+        cat_iedd = catalog.get_inter_event_distances()
+        disc_iedd = numpy.zeros(len(self.data.bins))
+        idx = bin1d_vec(cat_iedd, self.data.bins)
+        numpy.add.at(disc_iedd, idx, 1)
+        disc_iedd_normed = numpy.cumsum(disc_iedd) / numpy.trapz(disc_iedd, dx=self.data.dh)
+
+        if self.normed_data.size == 0:
+            self.normed_data = numpy.cumsum(self.data.data) / numpy.trapz(self.data.data, dx=self.data.dh)
+        self.test_distribution.append(sup_dist(self.normed_data, disc_iedd_normed))
 
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
         obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        obs_terd = obs_filt.get_inter_event_distances()
-
-        # compute distribution statistics
-        test_distribution, d_obs, quantile = _distribution_test(self.data, obs_terd)
-
-        result = EvaluationResult(test_distribution=test_distribution,
+        obs_iedd = obs_filt.get_inter_event_times()
+        obs_disc_iedd = numpy.zeros(len(self.data.bins))
+        idx = bin1d_vec(obs_iedd, self.data.bins)
+        numpy.add.at(obs_disc_iedd, idx, 1)
+        obs_disc_iedd_normed = numpy.cumsum(obs_disc_iedd) / numpy.trapz(obs_disc_iedd, dx=self.data.dh)
+        d_obs = sup_dist(self.normed_data, obs_disc_iedd_normed)
+        _, quantile = get_quantiles(self.test_distribution, d_obs)
+        result = EvaluationResult(test_distribution=self.test_distribution,
                                   name='IEDD-Test',
                                   observed_statistic=d_obs,
                                   quantile=quantile,
@@ -1024,45 +1073,68 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
         return result
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        iedd_test_fname = AbstractProcessingTask._build_filename(plot_dir, self.mws[0], 'iedd_test')
+        iedd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'iedd_test')
         _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
-                                                                       'title': f'Inter-event Distance Distribution Test\nMw>{self.mws[0]}',
-                                                                       'bins': 'auto',
-                                                                       'xlabel': "D* Statistic",
-                                                                       'ylabel': r"P(X $\leq$ x)",
-                                                                       'filename': iedd_test_fname})
+                                                                   'title': f'Inter-event Distance Distribution Test\nMw>{results.min_mw}',
+                                                                   'bins': 'auto',
+                                                                   'xlabel': "D* Statistic",
+                                                                   'ylabel': r"P(X $\leq$ x)",
+                                                                   'filename': iedd_test_fname})
         self.fnames.append(iedd_test_fname)
 
 
 class TotalEventRateDistribution(AbstractProcessingTask):
-    def __init__(self, **kwargs):
+    def __init__(self, calc=True, **kwargs):
         super().__init__(**kwargs)
         self.mws = [2.5]
+        self.needs_two_passes = True
+        self.data = []
+        self.test_distribution = []
+        self.calc = calc
 
     def process_catalog(self, catalog):
-        """ not nice on the memorys. """
-        if self.name is None:
-            self.name = catalog.name
-        if self.region is None:
+        # grab stuff from catalog that we might need later
+        if not self.region:
             self.region = catalog.region
+        if not self.name:
+            self.name = catalog.name
+        # compute stuff from catalog
+        if self.calc:
+            counts = []
+            for mw in self.mws:
+                cat_filt = catalog.filter(f'magnitude > {mw}')
+                gridded_counts = cat_filt.gridded_event_counts()
+                counts.append(gridded_counts)
+            # we want to aggregate the counts in each bin to preserve memory
+            if len(self.data) == 0:
+                self.data = numpy.array(counts)
+            else:
+                self.data += numpy.array(counts)
 
-        cat_filt = catalog.filter(f'magnitude > {self.mws[0]}')
-        data = cat_filt.gridded_event_counts()
-        self.data.append(data)
+    def process_again(self, catalog, args=()):
+        # we dont actually need to do this if we are caching the data
+        _, n_cat, _, _ = args
+
+        # index [n_mw, n_bins]
+        expected_rates = numpy.array(self.data) / n_cat
+        d_cat = []
+        for i, mw in enumerate(self.mws):
+            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_terd = cat_filt.gridded_event_counts()
+            d_cat.append(sup_dist_na(cat_terd, expected_rates[i,:]))
+        self.test_distribution.append(d_cat)
 
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
         _, _, _, n_cat = args
-        obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        obs_terd = obs_filt.gridded_event_counts()
-        data = self.data
-
-        # compute distribution statistics
         results = {}
+        expected_rates = numpy.array(self.data) / n_cat
         for i, mw in enumerate(self.mws):
-            test_distribution, d_obs, quantile = _distribution_test(data[:,i,:], obs_terd)
-
-            result = EvaluationResult(test_distribution=test_distribution,
+            obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
+            obs_terd = obs_filt.gridded_event_counts()
+            d_obs = sup_dist_na(obs_terd, expected_rates[i,:])
+            _, quantile = get_quantiles(self.test_distribution, d_obs)
+            result = EvaluationResult(test_distribution=self.test_distribution,
                                   name='TERD-Test',
                                   observed_statistic=d_obs,
                                   quantile=quantile,

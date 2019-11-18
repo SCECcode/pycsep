@@ -10,6 +10,29 @@ def sup_dist(cdf1, cdf2):
     """
     return numpy.max(numpy.absolute(cdf2 - cdf1))
 
+def sup_dist_na(data1, data2):
+    """
+    computes the ks statistic for two ecdfs that are not necessarily aligned on the same values. performs this
+    operation by merging the two datasets together
+
+    Args:
+        data1: (numpy array like)
+        data2: (numpy array like)
+
+    Returns:
+        ks: sup dist from the two cdf functions
+    """
+    data1, data2 = map(numpy.asarray, (data1, data2))
+    n1 = len(data1)
+    n2 = len(data2)
+    data1 = numpy.sort(data1)
+    data2 = numpy.sort(data2)
+    data_all = numpy.concatenate([data1,data2])
+    cdf1 = numpy.searchsorted(data1,data_all,side='right')/(1.0*n1)
+    cdf2 = (numpy.searchsorted(data2,data_all,side='right'))/(1.0*n2)
+    d = numpy.max(numpy.absolute(cdf1-cdf2))
+    return d
+
 def cumulative_square_diff(cdf1, cdf2):
     """
     given two cumulative distribution functions, compute the cumulative sq. diff of the set of distances.
