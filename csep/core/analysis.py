@@ -140,7 +140,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
          'mag-hist': MagnitudeHistogram(calc=False),
          'arp-plot': ApproximateRatePlot(calc=False),
          'carp-plot': ConditionalApproximateRatePlot(comcat),
-         'terd-test': TotalEventRateDistribution(calc=False),
+         'terd-test': TotalEventRateDistribution(),
          'iedd-test': InterEventDistanceDistribution(),
          'ietd-test': InterEventTimeDistribution(),
          'bv-test': BValueTest()
@@ -184,7 +184,6 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     # share data where applicable
     data_products['mag-hist'].data = data_products['m-test'].data
     data_products['arp-plot'].data = data_products['l-test'].data
-    data_products['terd-test'].data = data_products['l-test'].data
 
     # old iterator is expired, need new one
     t2 = time.time()
