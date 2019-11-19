@@ -463,6 +463,8 @@ class NumberTest(AbstractProcessingTask):
             min_bin, max_bin = numpy.min(td), numpy.max(td)
             # hard-code some logic for bin size
             bins = numpy.arange(min_bin, max_bin)
+            if len(bins) == 1:
+                bins = 3
             n_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'n_test')
             _ = plot_number_test(result, show=show, plot_args={'percentile': 95,
                                                                 'title': f'Number-Test\nMw>{mw}',
