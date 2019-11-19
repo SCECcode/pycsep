@@ -1,3 +1,5 @@
+import os
+import git
 import functools
 import operator
 import numpy
@@ -44,3 +46,6 @@ def join_struct_arrays(arrays):
     dtype = sum((a.dtype.descr for a in arrays), [])
     return joint.ravel().view(dtype)
 
+def current_git_hash():
+    repo = git.Repo(path=os.path.dirname(__file__), search_parent_directories=True)
+    return repo.head.object.hexsha

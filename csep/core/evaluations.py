@@ -1,23 +1,16 @@
 from collections import namedtuple
 
+import time
+
 import numpy
 
-import time
 from csep.utils.stats import cumulative_square_diff, binned_ecdf, sup_dist
 from csep.utils.constants import CSEP_MW_BINS
-from csep.utils import flat_map_to_ndarray
+from csep.utils import flat_map_to_ndarray, current_git_hash
 
 # implementing plotting routines as functions
 from csep.utils.stats import get_quantiles
 
-# EvaluationResult = namedtuple('EvaluationResult', ['test_distribution',
-#                                                    'name',
-#                                                    'observed_statistic',
-#                                                    'quantile',
-#                                                    'status',
-#                                                    'obs_catalog_repr',
-#                                                    'sim_name',
-#                                                    'obs_name'])
 
 
 class EvaluationResult:
@@ -73,7 +66,7 @@ class EvaluationResult:
 
         """
 
-        new_class = cls(test_distribution=numpy.array(adict['test_distribution']),
+        new = cls(test_distribution=numpy.array(adict['test_distribution']),
             name=adict['name'],
             observed_statistic=adict['observed_statistic'],
             quantile=adict['quantile'],
@@ -83,7 +76,78 @@ class EvaluationResult:
             status=adict['status'],
             min_mw=adict['min_mw'])
 
-        return new_class
+        return new
+
+class EvaluationConfiguration:
+    """
+    Store information about the evaluation which will be used to store metadata about the evaluation.
+    """
+    def __init__(self, compute_time=None, catalog_file=None, forecast_file=None, n_cat=None,
+                 eval_start_epoch=None, eval_end_epoch=None, git_hash=None, evaluations=None, forecast_name=None):
+        """
+        Constructor for EvaluationConfiguration object
+
+        Args:
+            compute_time (int): utc_epoch_time in millis indicating time plotting was completed
+            catalog_file (str): filename of the catalog used to evaluate forecast
+            forecast_file (str): filename of the forecast
+            n_cat (int): number of catalogs processed
+            eval_start_epoch (int): utc_epoch_time indicating start time of evaluations
+            eval_end_epoch (int): utc_epoch_time indiciating end time of evaluations
+            git_hash (str): hash indicating commit used for evaluations
+            evaluations (dict): version information about evaluations
+        """
+        self.compute_time = compute_time
+        self.catalog_file = catalog_file
+        self.forecast_file = forecast_file
+        self.forecast_name = forecast_name
+        self.n_cat = n_cat
+        self.eval_start_epoch = eval_start_epoch
+        self.eval_end_epoch = eval_end_epoch
+        self.git_hash = git_hash
+        self.evaluations = evaluations or []
+
+    def to_dict(self):
+        adict = {
+            'compute_time': self.compute_time,
+            'forecast_file': self.forecast_file,
+            'catalog_file': self.catalog_file,
+            'n_cat': self.n_cat,
+            'forecast_name': self.forecast_name,
+            'eval_start_epoch': self.eval_start_epoch,
+            'eval_end_epoch': self.eval_end_epoch,
+            'git_hash': self.git_hash,
+            'evaluations': self.evaluations
+        }
+        return adict
+
+    @classmethod
+    def from_dict(cls, adict):
+        new = cls( compute_time=adict['compute_time'],
+             catalog_file=adict['catalog_file'],
+             forecast_file=adict['forecast_file'],
+             forecast_name=adict['forecast_name'],
+             n_cat=adict['n_cat'],
+             eval_start_epoch=adict['eval_start_epoch'],
+             eval_end_epoch=adict['eval_end_epoch'],
+             git_hash=adict['git_hash'],
+             evaluations=adict['evaluations'])
+        return new
+
+    def get_evaluation_version(self, name):
+        for e in self.evaluations:
+            if e['name'] == name:
+                return e['version']
+        return None
+
+    def update_version(self, name, version):
+        found = False
+        for e in self.evaluations:
+            if e['name'] == name:
+                e['version'] = version
+                found = True
+        if not found:
+            self.evaluations.append({'name': name, 'version': version})
 
 
 def _distribution_test(stochastic_event_set_data, observation_data):
@@ -110,7 +174,6 @@ def _distribution_test(stochastic_event_set_data, observation_data):
         if test_ecdf is not None:
             d = sup_dist(test_ecdf[1], combined_ecdf[1])
             test_distribution.append(d)
-
     d_obs = sup_dist(obs_ecdf[1], combined_ecdf[1])
 
     # score evaluation

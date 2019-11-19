@@ -2,8 +2,8 @@
 import os
 import json
 import copy
+import time
 from collections import defaultdict
-from tempfile import mkstemp
 
 import numpy
 
@@ -13,10 +13,10 @@ import matplotlib.pyplot as plt
 
 import seaborn as sns
 
-import time
-from csep.utils.constants import SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_WEEK, CSEP_MW_BINS
 from csep import load_stochastic_event_sets, load_comcat
-from csep.utils.time import epoch_time_to_utc_datetime, datetime_to_utc_epoch, millis_to_days
+from csep.utils import current_git_hash
+from csep.utils.constants import SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_WEEK, CSEP_MW_BINS
+from csep.utils.time import epoch_time_to_utc_datetime, datetime_to_utc_epoch, millis_to_days, utc_now_epoch
 from csep.utils.spatial import masked_region, california_relm_region
 from csep.utils.basic_types import Polygon, seq_iter, AdaptiveHistogram
 from csep.utils.scaling_relationships import WellsAndCoppersmith
@@ -24,7 +24,7 @@ from csep.utils.comcat import get_event_by_id
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.file import get_relative_path, mkdirs, copy_file
 from csep.utils.documents import MarkdownReport
-from csep.core.evaluations import EvaluationResult, _compute_likelihood
+from csep.core.evaluations import EvaluationResult, EvaluationConfiguration, _compute_likelihood
 from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_likelihood_test, plot_spatial_test, \
     plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_distribution_test, plot_spatial_dataset
 from csep.utils.calc import bin1d_vec
@@ -32,17 +32,14 @@ from csep.utils.stats import get_quantiles, cumulative_square_diff, sup_dist, su
 from csep.core.catalogs import ComcatCatalog
 from csep.core.repositories import FileSystem
 
-def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_dir=None, generate_markdown=True, catalog_repo=None, save_results=False):
+def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_dir=None, generate_markdown=True, catalog_repo=None, save_results=False,
+                               force_plot_all=False):
     """
     computes all csep consistency tests for simulation located in sim_dir with event_id
 
     Args:
         sim_dir (str): directory where results and configuration are stored
         event_id (str): event_id corresponding to comcat event
-        data_products (dict):
-
-    Returns:
-
     """
     # set up directories
     matplotlib.use('agg')
@@ -65,6 +62,9 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     config_file = os.path.join(sim_dir, 'config.json')
     mkdirs(os.path.join(plot_dir))
 
+    # catalog filename
+    catalog_fname = os.path.join(plot_dir, 'evaluation_catalog.json')
+
     # load ucerf3 configuration
     with open(os.path.join(config_file), 'r') as f:
         u3etas_config = json.load(f)
@@ -77,7 +77,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     if n_cat is None or n_cat > u3etas_config['numSimulations']:
         n_cat = u3etas_config['numSimulations']
 
-    # download comcat information
+    # download comcat information, sometimes times out but usually doesn't fail twice in a row
     try:
         event = get_event_by_id(event_id)
     except:
@@ -94,7 +94,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     event_epoch = datetime_to_utc_epoch(event.time)
     origin_epoch = u3etas_config['startTimeMillis']
 
-    # this kinda booty
+    # this kinda booty, should probably add another variable or something
     if type(end_epoch) == str:
         print(f'Found end_epoch as time_delta string (in days), adding {end_epoch} days to simulation start time')
         time_delta = 1000*24*60*60*int(end_epoch)
@@ -130,7 +130,6 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         comcat = comcat.filter(f'origin_time >= {origin_epoch}').filter(f'origin_time < {end_epoch}')
         comcat = comcat.filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
 
-
     # define products to compute on simulation, this could be extracted
     data_products = {
          'n-test': NumberTest(),
@@ -146,6 +145,22 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
          'bv-test': BValueTest()
     }
 
+    # try and read metadata file from plotting dir
+    metadata_fname = os.path.join(plot_dir, 'meta.json')
+    meta_repo = FileSystem(url=metadata_fname)
+    try:
+        eval_config = meta_repo.load(EvaluationConfiguration())
+
+    except IOError:
+        print('Unable to load metadata file due to filesystem error or file not existing. Replotting everything by default.')
+        eval_config = EvaluationResult()
+
+    if eval_config.n_cat is None or n_cat > eval_config.n_cat:
+        force_plot_all = True
+    else:
+        force_plot_all = False
+
+    # output some info for the user
     print(f'Will process {n_cat} catalogs from simulation\n')
     for k, v in data_products.items():
         print(f'Computing {v.__class__.__name__}')
@@ -160,12 +175,14 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         for i, cat in enumerate(u3):
             cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
             for name, calc in data_products.items():
-                calc.process_catalog(copy.copy(cat_filt))
+                version = eval_config.get_version()
+                if calc.version != version or force_plot_all:
+                    calc.process_catalog(copy.copy(cat_filt))
             tens_exp = numpy.floor(numpy.log10(i + 1))
             if (i + 1) % 10 ** tens_exp == 0:
                 t1 = time.time()
                 print(f'Processed {i+1} catalogs in {t1-t0} seconds', flush=True)
-            if (i+1) % n_cat == 0:
+            if (i + 1) % n_cat == 0:
                 break
             loaded += 1
     except Exception as e:
@@ -191,7 +208,9 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     for i, cat in enumerate(u3):
         cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
         for name, calc in data_products.items():
-            calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
+            version = eval_config.get_version()
+            if calc.version != version or force_plot_all:
+                calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
         # if we failed earlier, just stop there again
         tens_exp = numpy.floor(numpy.log10(i+1))
         if (i+1) % 10**tens_exp == 0:
@@ -208,30 +227,48 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     mkdirs(fig_dir)
 
     # make results directory
+    results_dir = os.path.join(plot_dir, 'results')
     if save_results:
         results_dir = os.path.join(plot_dir, 'results')
         mkdirs(results_dir)
 
     for name, calc in data_products.items():
         print(f'Finalizing calculations for {name} and plotting')
-        result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
-        # plot, and store in plot_dir
-        calc.plot(result, fig_dir, show=False)
+        version = eval_config.get_version()
+        if calc.version != version or force_plot_all:
+            result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
+            # plot, and store in plot_dir
+            calc.plot(result, fig_dir, show=False)
 
-        if save_results:
-            # could expose this, but hard-coded for now
-            print(f"Storing results from evaluations in {results_dir}", flush=True)
-            calc.store_results(result, results_dir)
+            if save_results:
+                # could expose this, but hard-coded for now
+                print(f"Storing results from evaluations in {results_dir}", flush=True)
+                calc.store_results(result, results_dir)
 
     t2 = time.time()
     print(f"Evaluated forecasts in {t2-t1} seconds", flush=True)
 
+    # update evaluation config
+    print("Updating evaluation metadata file", flush=True)
+    eval_config.compute_time = time.utc_now_epoch()
+    eval_config.catalog_file = catalog_fname
+    eval_config.forecast_file = filename
+    eval_config.forecast_name = 'UCERF3-ETAS'
+    eval_config.n_cat = n_cat
+    eval_config.eval_start_epoch = origin_epoch
+    eval_config.eval_end_epoch = end_epoch
+    eval_config.git_hash = current_git_hash()
+    for name, calc in data_products.items():
+        eval_config.update_version(name, calc.version)
+    # save new meta data
+    meta_repo.save(eval_config.to_dict())
+
     # writing catalog
-    print(f"Saving ComCat catalog used for Evaluation")
-    evaluation_repo = FileSystem(url=os.path.join(plot_dir, 'evaluation_catalog.json'))
+    print(f"Saving ComCat catalog used for Evaluation", flush=True)
+    evaluation_repo = FileSystem(url=catalog_fname)
     evaluation_repo.save(comcat.to_dict())
 
-    print(f"Finished everything in {t2-t0} seconds with average time per catalog of {(t2-t0)/n_cat} seconds", flush=True)
+    print(f"Finished evaluating everything in {t2-t0} seconds with average time per catalog of {(t2-t0)/n_cat} seconds", flush=True)
 
     # create the notebook for results
     if generate_markdown:
@@ -248,7 +285,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                 "These plots show qualitative comparisons between the forecast "
                 f"and the target catalog obtained from ComCat. Plots contain events within {numpy.round(millis_to_days(end_epoch-origin_epoch))} days "
                 f"of the forecast start time and within {numpy.round(3*rupture_length/1000)} kilometers from the epicenter of the mainshock.  \n  \n"
-                "All catalogs are processed using a time-dependent magnitude of completeness from Helmstetter et al., 2006.\n")
+                "All catalogs are processed using a time-dependent magnitude of completeness from Helmstetter et al., (2006).\n")
 
         md.add_result_figure('Cumulative Event Counts', 2, list(map(get_relative_path, data_products['cum-plot'].fnames)), ncols=2,
                              text="Percentiles for cumulative event counts are aggregated within one-day bins.  \n")
@@ -286,7 +323,6 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                                   "the scores are normalized so that differences in earthquake rates are inconsequential. "
                                   "As above, this statistic is unconditional.\n")
 
-
         md.add_sub_heading('One-point Statistics', 1, "")
         md.add_result_figure('B-Value Test', 2, list(map(get_relative_path, data_products['bv-test'].fnames)),
                              text="This test compares the estimated b-value from the observed catalog along with the "
@@ -297,14 +333,16 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         md.add_result_figure('Inter-event Time Distribution', 2, list(map(get_relative_path, data_products['ietd-test'].fnames)),
                              text='This test compares inter-event time distributions based on a Kilmogorov-Smirnov type statistic'
                                   'computed from the empiricial CDF.')
+
         md.add_result_figure('Inter-event Distance Distribution', 2,
                              list(map(get_relative_path, data_products['iedd-test'].fnames)),
                              text='This test compares inter-event distance distributions based on a Kilmogorov-Smirnov type statistic'
                                   'computed from the empiricial CDF.')
+
         md.add_result_figure('Total Earthquake Rate Distribution', 2, list(map(get_relative_path, data_products['terd-test'].fnames)),
                              text='The total earthquake rate distribution provides another form of insight into the spatial '
                                   'consistency of the forecast with observations. The total earthquake rate distribution is computed from the '
-                                  'cumulative probability distribution of earthquake occurance against the earthquake rate per spatial bin.')
+                                  'cumulative probability distribution of earthquake occurrence against the earthquake rate per spatial bin.')
 
         md.finalize(plot_dir)
 
@@ -325,6 +363,7 @@ class AbstractProcessingTask:
         self.buffer_fname = None
         self.fhandle = None
         self.archive = True
+        self.version = 1
 
     @staticmethod
     def _build_filename(dir, mw, plot_id):
@@ -1016,7 +1055,7 @@ class InterEventTimeDistribution(AbstractProcessingTask):
         d_obs = sup_dist(self.normed_data, obs_disc_ietd_normed)
         _, quantile = get_quantiles(self.test_distribution, d_obs)
         result = EvaluationResult(test_distribution=self.test_distribution,
-                                  name='IEDD-Test',
+                                  name='IETD-Test',
                                   observed_statistic=d_obs,
                                   quantile=quantile,
                                   status='Normal',

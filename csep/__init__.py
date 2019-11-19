@@ -1,5 +1,3 @@
-import logging
-
 import time
 from csep.core.catalogs import UCERF3Catalog, CSEPCatalog, ComcatCatalog
 
