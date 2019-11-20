@@ -1365,6 +1365,7 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
         super().__init__(**kwargs)
         self.calc=calc
         self.region=None
+        self.archive=False
 
     def process_catalog(self, catalog):
         # grab stuff from catalog that we might need later
