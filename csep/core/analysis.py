@@ -292,7 +292,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                 "All catalogs are processed using a time-dependent magnitude of completeness from Helmstetter et al., (2006).\n")
 
 
-        md.add_result_figure('Cumulative Event Counts', 2, list(map(get_relative_path, eval_config.get_fnames('cum_plot'))), ncols=2,
+        md.add_result_figure('Cumulative Event Counts', 2, list(map(get_relative_path, eval_config.get_fnames('cum-plot'))), ncols=2,
                              text="Percentiles for cumulative event counts are aggregated within one-day bins.  \n")
 
         md.add_result_figure('Magnitude Histogram', 2, list(map(get_relative_path, eval_config.get_fnames('mag-hist'))))
@@ -1463,7 +1463,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
                          'title': f'Probability Test\nMw>{mw}',
                          'bins': 'auto',
                          'filename': prob_test_fname}
-            _ = plot_probability_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
+            _ = plot_probability_test(result, axes=None, plot_args=plot_args, show=show)
             self.fnames.append(prob_test_fname)
 
 
