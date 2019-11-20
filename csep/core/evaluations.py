@@ -229,7 +229,8 @@ def _compute_spatial_statistic(gridded_data, log10_probability_map):
         gridded_data:
         log10_probability_map:
     """
-    idx = gridded_data != 0
+    # returns a unique set of indexes corresponding to cells where earthquakes occurred
+    idx = numpy.unique(numpy.argwhere(gridded_data))
     return numpy.sum(log10_probability_map[idx])
 
 def number_test(stochastic_event_sets, observation, event_counts=None):
