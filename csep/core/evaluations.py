@@ -229,7 +229,7 @@ def _compute_spatial_statistic(gridded_data, log10_probability_map):
         gridded_data:
         log10_probability_map:
     """
-    idx = numpy.unique(gridded_data != 0)
+    idx = gridded_data != 0
     return numpy.sum(log10_probability_map[idx])
 
 def number_test(stochastic_event_sets, observation, event_counts=None):

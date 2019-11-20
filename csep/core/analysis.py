@@ -1456,17 +1456,14 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         return results
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        for mw, result_tuple in results.items():
+        for mw, result in results.items():
             # plot likelihood test
             prob_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob-test')
             plot_args = {'percentile': 95,
-                         'title': f'Spatial Test using Probability Map\nMw>{mw}',
+                         'title': f'Probability Test\nMw>{mw}',
                          'bins': 'auto',
                          'filename': prob_test_fname}
             _ = plot_probability_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
-
-            # we can access this in the main program if needed
-            # self.ax.append((ax, spatial_ax))
             self.fnames.append(prob_test_fname)
 
 
