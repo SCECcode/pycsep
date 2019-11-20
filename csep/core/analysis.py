@@ -1365,7 +1365,6 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
         super().__init__(**kwargs)
         self.calc=calc
         self.region=None
-        self.archive = False
 
     def process_catalog(self, catalog):
         # grab stuff from catalog that we might need later
@@ -1396,7 +1395,6 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
         prob = numpy.log10(numpy.array(self.data) / self.n_cat)
-
         for i, mw in enumerate(self.mws):
             # compute expected rate density
             obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)
@@ -1406,7 +1404,7 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
                                       plot_args={'clabel': r'Log$_{10}$ Probability 1 or more events'
                                                            '\n'
                                                            f'within {self.region.dh}°x{self.region.dh}° cells',
-                                                 'clim': [0, 5],
+                                                 'clim': [-5, 0],
                                                  'title': f'Spatial Probability Plot\nMw > {mw}'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
             crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob_obs')
