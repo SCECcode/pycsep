@@ -9,12 +9,17 @@ from csep.utils.basic_types import Polygon
 from csep.utils.constants import CSEP_MW_BINS
 
 class Region:
-    def __init__(self, polygons, dh):
+    """
+    This class needs unit-testing before mergining into main. Visually inspected using LikelihoodPlot but no formal
+    unit testing was done on this function. Components like bin1d_vec have been tested though.
+    """
+    def __init__(self, polygons, dh, name='Generic Region'):
         self.polygons = polygons
         self.dh = dh
-        self.name = 'California RELM Region'
+        self.name = name
         a, xs, ys = self._build_bitmask_vec()
-        # bitmask is 2d numpy array with 2d shape (xs, ys), dim=0 is the mapping from 2d to polygon, dim=1 is index in self.polygon
+        # bitmask is 2d numpy array with 2d shape (xs, ys), dim=0 is the mapping from 2d to polygon,
+        # dim=1 is index in self.polygon
         # note: might consider changing this, but it requires less constraints on how the polygons are defined.
         self.bitmask = a
         self.xs = xs
@@ -194,7 +199,7 @@ def california_relm_region(filepath=None, dh=0.1):
     origins = increase_grid_resolution(origins, dh, 4)
     dh = dh / 4
     bboxes = compute_vertices(origins, dh)
-    relm_region = Region([Polygon(bbox) for bbox in bboxes], dh)
+    relm_region = Region([Polygon(bbox) for bbox in bboxes], dh, name='California RELM Region')
     return relm_region
 
 def parse_csep_template(xml_filename):
@@ -226,7 +231,6 @@ def increase_grid_resolution(points, dh, factor):
         points: list of (lon,lat) tuples with spacing dh / scale
 
     """
-
     # short-circuit recursion
     if factor == 1:
         return points
@@ -294,8 +298,10 @@ def build_bitmask_vec(polygons, dh):
     xs = dh * numpy.arange(nx + 1) + bbox[0][0]
     ys = dh * numpy.arange(ny + 1) + bbox[0][1]
 
-    # set up mask array, 0 is index 1 is mask
+    # set up mask array, 1 is index 0 is mask
     a = numpy.ones([len(ys), len(xs), 2])
+
+    # bin1d returns the index of polygon within the cartesian grid
     idx = bin1d_vec(midpoints[:, 0], xs)
     idy = bin1d_vec(midpoints[:, 1], ys)
 
@@ -304,7 +310,7 @@ def build_bitmask_vec(polygons, dh):
         # store index of polygon
         a[idy[i], idx[i], 1] = int(i)
 
-        # build bitmask
+        # build bitmask, if statement is confusing.
         if idx[i] >= 0 and idy[i] >= 0:
             a[idy[i], idx[i], 0] = 0
 
@@ -341,19 +347,18 @@ def bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, bitmask, binx,
             mag_idx = mags[i]
             # update event counts in that polygon
             event_counts[hash_idx][mag_idx] += 1
-
     return event_counts
 
 def bin_catalog_spatial_counts(lons, lats, n_poly, bitmask, binx, biny):
     """
-    Returns a list of event counts as ndarray with shape (n_poly, n_cat) where each value
+    Returns a list of event counts as ndarray with shape (n_poly) where each value
     represents the event counts within the polygon.
 
     Using [:, :, 1] index of the bitmask, we store the mapping between the index of n_poly and
     that polygon in the bitmask. Additionally, the polygons are ordered such that the index of n_poly
     in the result corresponds to the index of the polygons.
 
-    Eventually, we can make a structure that could contain both of these, but the trade-offs will need
+    We can make a structure that could contain both of these, but the trade-offs will need
     to be compared against performance.
     """
     ai, bi = binx, biny
@@ -362,16 +367,42 @@ def bin_catalog_spatial_counts(lons, lats, n_poly, bitmask, binx, biny):
     idx = bin1d_vec(lons, ai)
     idy = bin1d_vec(lats, bi)
     event_counts = numpy.zeros(n_poly)
-    hash_idx = bitmask[idy,idx,1].astype(int)
+    # [:,:,1] is a mapping from the polygon array to cartesian grid
+    hash_idx=bitmask[idy,idx,1].astype(int)
+    # this line seems redundant. need unit testing before merging to master.
     hash_idx[bitmask[idy,idx,0] != 0] = 0
     numpy.add.at(event_counts, hash_idx, 1)
     return event_counts
 
+def bin_catalog_probability(lons, lats, n_poly, bitmask, binx, biny):
+    """
+    Returns a list of event counts as ndarray with shape (n_poly) where each value
+    represents the event counts within the polygon.
+
+    Using [:, :, 1] index of the bitmask, we store the mapping between the index of n_poly and
+    that polygon in the bitmask. Additionally, the polygons are ordered such that the index of n_poly
+    in the result corresponds to the index of the polygons.
+
+    We can make a structure that could contain both of these, but the trade-offs will need
+    to be compared against performance.
+    """
+    ai, bi = binx, biny
+    # index in cartesian grid for events in catalog. note, this has a different index than the
+    # vector of polygons. this mapping is stored in [:,:,1] index of bitmask
+    idx = bin1d_vec(lons, ai)
+    idy = bin1d_vec(lats, bi)
+    event_counts = numpy.zeros(n_poly)
+    # [:,:,1] is a mapping from the polygon array to cartesian grid
+    hash_idx=bitmask[idy,idx,1].astype(int)
+    # this line seems redundant, because lons/lats should be removed if outside of polygon. need unit testing before merging to master.
+    hash_idx[bitmask[idy,idx,0] != 0] = 0
+    # dont accumulate just set to one
+    event_counts[hash_idx] = 1
+    return event_counts
+
 def masked_region(region, polygon):
     """
-    build a new region based off the coordinates in the polygon.
-    light weight and no error checking. have fun.
-
+    build a new region based off the coordinates in the polygon. warning: light weight and no error checking.
     Args:
         region: Region object
         polygon: Polygon object
@@ -379,6 +410,9 @@ def masked_region(region, polygon):
     Returns:
         new_region: Region object
     """
+    # contains is true if spatial cell in region is inside the polygon
     contains = polygon.contains(region.midpoints())
+    # compress only returns elements that are true, effectively removing elements outside of the polygons
     new_polygons = list(compress(region.polygons, contains))
+    # create new region with the spatial cells inside the polygon
     return Region(new_polygons, region.dh)

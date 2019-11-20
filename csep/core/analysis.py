@@ -138,6 +138,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
          'cum-plot': CumulativeEventPlot(origin_epoch, end_epoch),
          'mag-hist': MagnitudeHistogram(calc=False),
          'arp-plot': ApproximateRatePlot(calc=False),
+         'prob-plot': SpatialProbabilityPlot(),
          'carp-plot': ConditionalApproximateRatePlot(comcat),
          'terd-test': TotalEventRateDistribution(),
          'iedd-test': InterEventDistanceDistribution(),
@@ -157,8 +158,6 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     if eval_config.n_cat is None or n_cat > eval_config.n_cat:
         force_plot_all = True
-    else:
-        force_plot_all = False
 
     # output some info for the user
     print(f'Will process {n_cat} catalogs from simulation\n')
@@ -234,7 +233,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     for name, calc in data_products.items():
         print(f'Finalizing calculations for {name} and plotting')
-        version = eval_config.get_version()
+        version = eval_config.get_evaluation_version(name)
         if calc.version != version or force_plot_all:
             result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
             # plot, and store in plot_dir
@@ -1358,6 +1357,62 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
             except IndexError:
                 print(f'Skipping plotting of Mw: {mw}, results not found for this magnitude')
 
+
+class SpatialProbabilityPlot(AbstractProcessingTask):
+
+    def __init__(self, calc=True, **kwargs):
+        super().__init__(**kwargs)
+        self.calc=calc
+        self.region=None
+        self.archive = False
+
+    def process_catalog(self, catalog):
+        # grab stuff from catalog that we might need later
+        if not self.region:
+            self.region = catalog.region
+        if not self.name:
+            self.name = catalog.name
+        if self.calc:
+            # compute stuff from catalog
+            counts = []
+            for mw in self.mws:
+                cat_filt = catalog.filter(f'magnitude > {mw}')
+                gridded_counts = cat_filt.gridded_event_probability()
+                counts.append(gridded_counts)
+            # we want to aggregate the counts in each bin to preserve memory
+            if len(self.data) == 0:
+                self.data = numpy.array(counts)
+            else:
+                self.data += numpy.array(counts)
+
+    def post_process(self, obs, args=None):
+        """ store things for later """
+        self.obs = obs
+        _, time_horizon, _, n_cat = args
+        self.time_horizon = time_horizon
+        self.n_cat = n_cat
+        return None
+
+    def plot(self, results, plot_dir, plot_args=None, show=False):
+        prob = numpy.log10(numpy.array(self.data) / self.n_cat)
+
+        for i, mw in enumerate(self.mws):
+            # compute expected rate density
+            obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)
+            plot_data = self.region.get_cartesian(prob[i,:])
+            ax = plot_spatial_dataset(plot_data,
+                                      self.region,
+                                      plot_args={'clabel': r'Log$_{10}$ Probability 1 or more events'
+                                                           '\n'
+                                                           f'within {self.region.dh}°x{self.region.dh}° cells',
+                                                 'clim': [0, 5],
+                                                 'title': f'Spatial Probability Plot\nMw > {mw}'})
+            ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
+            crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob_obs')
+            ax.figure.savefig(crd_fname + '.png')
+            ax.figure.savefig(crd_fname + '.pdf')
+            # self.ax.append(ax)
+            self.fnames.append(crd_fname)
 
 class ApproximateRatePlot(AbstractProcessingTask):
 

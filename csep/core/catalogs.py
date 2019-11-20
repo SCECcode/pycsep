@@ -415,7 +415,6 @@ class AbstractBaseCatalog(LoggingMixin):
         self.catalog = filtered
         # update the region to the new region
         self.region = region
-
         if update_stats:
             self.update_catalog_stats()
         return self
@@ -521,6 +520,18 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned rates without region information.")
         output = csep.utils.spatial.bin_catalog_spatial_counts(self.get_longitudes(),
+                                                               self.get_latitudes(),
+                                                               len(self.region.polygons),
+                                                               self.region.bitmask,
+                                                               self.region.xs,
+                                                               self.region.ys)
+        return output
+
+    def gridded_event_probability(self):
+        # make sure region is specified with catalog
+        if self.region is None:
+            raise CSEPSchedulerException("Cannot create binned probabilities without region information.")
+        output = csep.utils.spatial.bin_catalog_probability(self.get_longitudes(),
                                                                self.get_latitudes(),
                                                                len(self.region.polygons),
                                                                self.region.bitmask,
