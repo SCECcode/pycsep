@@ -140,14 +140,20 @@ class EvaluationConfiguration:
                 return e['version']
         return None
 
-    def update_version(self, name, version):
+    def get_fnames(self, name):
+        for e in self.evaluations:
+            if e['name'] == name:
+                return e['fnames']
+        return None
+
+    def update_version(self, name, version, fnames):
         found = False
         for e in self.evaluations:
             if e['name'] == name:
                 e['version'] = version
                 found = True
         if not found:
-            self.evaluations.append({'name': name, 'version': version})
+            self.evaluations.append({'name': name, 'version': version, 'fnames': fnames})
 
 
 def _distribution_test(stochastic_event_set_data, observation_data):
@@ -222,9 +228,6 @@ def _compute_spatial_statistic(gridded_data, log10_probability_map):
     Args:
         gridded_data:
         log10_probability_map:
-
-    Returns:
-
     """
     idx = numpy.unique(gridded_data != 0)
     return numpy.sum(log10_probability_map[idx])

@@ -27,7 +27,8 @@ from csep.utils.documents import MarkdownReport
 from csep.core.evaluations import EvaluationResult, EvaluationConfiguration, _compute_likelihood, \
     _compute_spatial_statistic
 from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_likelihood_test, plot_spatial_test, \
-    plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_distribution_test, plot_spatial_dataset
+    plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_distribution_test, plot_spatial_dataset, \
+    plot_probability_test
 from csep.utils.calc import bin1d_vec
 from csep.utils.stats import get_quantiles, cumulative_square_diff, sup_dist, sup_dist_na
 from csep.core.catalogs import ComcatCatalog
@@ -262,7 +263,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     eval_config.eval_end_epoch = end_epoch
     eval_config.git_hash = current_git_hash()
     for name, calc in data_products.items():
-        eval_config.update_version(name, calc.version)
+        eval_config.update_version(name, calc.version, calc.fnames)
     # save new meta data
     meta_repo.save(eval_config.to_dict())
 
@@ -290,33 +291,34 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                 f"of the forecast start time and within {numpy.round(3*rupture_length/1000)} kilometers from the epicenter of the mainshock.  \n  \n"
                 "All catalogs are processed using a time-dependent magnitude of completeness from Helmstetter et al., (2006).\n")
 
-        md.add_result_figure('Cumulative Event Counts', 2, list(map(get_relative_path, data_products['cum-plot'].fnames)), ncols=2,
+
+        md.add_result_figure('Cumulative Event Counts', 2, list(map(get_relative_path, eval_config.get_fnames('cum_plot'))), ncols=2,
                              text="Percentiles for cumulative event counts are aggregated within one-day bins.  \n")
 
-        md.add_result_figure('Magnitude Histogram', 2, list(map(get_relative_path, data_products['mag-hist'].fnames)))
+        md.add_result_figure('Magnitude Histogram', 2, list(map(get_relative_path, eval_config.get_fnames('mag-hist'))))
 
-        md.add_result_figure('Approximate Rate Density with Observations', 2, list(map(get_relative_path, data_products['arp-plot'].fnames)), ncols=2)
+        md.add_result_figure('Approximate Rate Density with Observations', 2, list(map(get_relative_path, eval_config.get_fnames('arp-plot'))), ncols=2)
 
-        md.add_result_figure('Conditional Rate Density', 2, list(map(get_relative_path, data_products['carp-plot'].fnames)), ncols=2,
+        md.add_result_figure('Conditional Rate Density', 2, list(map(get_relative_path, eval_config.get_fnames('carp-plot'))), ncols=2,
                              text="Plots are conditioned on number of target events ± 5%\n")
 
         md.add_result_figure('Spatial Probability Plot', 2,
-                             list(map(get_relative_path, data_products['prob-plot'].fnames)), ncols=2,
+                             list(map(get_relative_path, eval_config.get_fnames('prob-plot'))), ncols=2,
                              text="Probability of one or more events occuring in the spatial cells. ")
 
         md.add_sub_heading('CSEP Consistency Tests', 1, "<b>Note</b>: These tests are explained in detail by Savran et al. (In prep).\n")
 
-        md.add_result_figure('Number Test', 2, list(map(get_relative_path, data_products['n-test'].fnames)),
+        md.add_result_figure('Number Test', 2, list(map(get_relative_path, eval_config.get_fnames('n-test'))),
                              text="The number test compares the earthquake counts within the forecast region aginst observations from the"
                                   " target catalog.\n")
 
-        md.add_result_figure('Magnitude Test', 2, list(map(get_relative_path, data_products['m-test'].fnames)),
+        md.add_result_figure('Magnitude Test', 2, list(map(get_relative_path, eval_config.get_fnames('m-test'))),
                              text="The magnitude test computes the sum of squared residuals between normalized "
                                   "incremental Magnitude-Number distributions."
                                   " The test distribution is built from statistics scored between individal catalogs and the"
                                   " expected Magnitude-Number distribution of the forecast.\n")
 
-        md.add_result_figure('Likelihood Test', 2, list(map(get_relative_path, data_products['l-test'].fnames['l-test'])),
+        md.add_result_figure('Likelihood Test', 2, list(map(get_relative_path, eval_config.get_fnames('l-test'))),
                              text="The likelihood tests uses a statistic based on the continuous point-process "
                                   "likelihood function. We approximate the rate-density of the forecast "
                                   "by stacking synthetic catalogs in spatial bins. The rate-density represents the "
@@ -325,35 +327,35 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                                   "approximation to the continuous rate-density is unconditional in the sense that it does "
                                   "not consider the number of target events.\n")
 
-        md.add_result_figure('Probability Test', 2, list(map(get_relative_path, data_products['prob-test'].fnames)),
+        md.add_result_figure('Probability Test', 2, list(map(get_relative_path, eval_config.get_fnames('prob-test'))),
                              text="This test uses the probability map to build the test distribution and the observed "
                                   "statistic. Unlike the pseudo-likelihood based tests, the test statistic is built "
                                   "by summing probabilities associated with cells where earthquakes occurred once. In effect,"
                                   "two simulations that have the exact same spatial distribution, but different numbers of events "
                                   "will product the same statistic.")
 
-        md.add_result_figure('Spatial Test', 2, list(map(get_relative_path, data_products['l-test'].fnames['s-test'])),
+        md.add_result_figure('Spatial Test', 2, list(map(get_relative_path, eval_config.get_fnames('l-test'))),
                              text="The spatial test is based on the same likelihood statistic from above. However, "
                                   "the scores are normalized so that differences in earthquake rates are inconsequential. "
                                   "As above, this statistic is unconditional.\n")
 
         md.add_sub_heading('One-point Statistics', 1, "")
-        md.add_result_figure('B-Value Test', 2, list(map(get_relative_path, data_products['bv-test'].fnames)),
+        md.add_result_figure('B-Value Test', 2, list(map(get_relative_path, eval_config.get_fnames('bv-test'))),
                              text="This test compares the estimated b-value from the observed catalog along with the "
                                   "b-value distribution from the forecast. "
                                   "This test can be considered an alternate form to the Magnitude Test.\n")
 
         md.add_sub_heading('Distribution-based Tests', 1, "")
-        md.add_result_figure('Inter-event Time Distribution', 2, list(map(get_relative_path, data_products['ietd-test'].fnames)),
+        md.add_result_figure('Inter-event Time Distribution', 2, list(map(get_relative_path, eval_config.get_fnames('ietd-test'))),
                              text='This test compares inter-event time distributions based on a Kilmogorov-Smirnov type statistic'
                                   'computed from the empiricial CDF.')
 
         md.add_result_figure('Inter-event Distance Distribution', 2,
-                             list(map(get_relative_path, data_products['iedd-test'].fnames)),
+                             list(map(get_relative_path, eval_config.get_fnames('iedd-test'))),
                              text='This test compares inter-event distance distributions based on a Kilmogorov-Smirnov type statistic'
                                   'computed from the empiricial CDF.')
 
-        md.add_result_figure('Total Earthquake Rate Distribution', 2, list(map(get_relative_path, data_products['terd-test'].fnames)),
+        md.add_result_figure('Total Earthquake Rate Distribution', 2, list(map(get_relative_path, eval_config.get_fnames('terd-test'))),
                              text='The total earthquake rate distribution provides another form of insight into the spatial '
                                   'consistency of the forecast with observations. The total earthquake rate distribution is computed from the '
                                   'cumulative probability distribution of earthquake occurrence against the earthquake rate per spatial bin.')
@@ -1461,7 +1463,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
                          'title': f'Spatial Test using Probability Map\nMw>{mw}',
                          'bins': 'auto',
                          'filename': prob_test_fname}
-            _ = plot_likelihood_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
+            _ = plot_probability_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
 
             # we can access this in the main program if needed
             # self.ax.append((ax, spatial_ax))
