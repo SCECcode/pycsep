@@ -35,7 +35,7 @@ from csep.core.catalogs import ComcatCatalog
 from csep.core.repositories import FileSystem
 
 def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_dir=None, generate_markdown=True, catalog_repo=None, save_results=False,
-                               force_plot_all=False):
+                               force_plot_all=False, skip_processing=False):
     """
     computes all csep consistency tests for simulation located in sim_dir with event_id
 
@@ -173,106 +173,109 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     t0 = time.time()
     loaded = 0
     u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
-    try:
+    if not skip_processing:
+        try:
+            for i, cat in enumerate(u3):
+                cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
+                for name, calc in data_products.items():
+                    version = eval_config.get_evaluation_version(name)
+                    if calc.version != version or force_plot_all:
+                        calc.process_catalog(copy.copy(cat_filt))
+                tens_exp = numpy.floor(numpy.log10(i + 1))
+                if (i + 1) % 10 ** tens_exp == 0:
+                    t1 = time.time()
+                    print(f'Processed {i+1} catalogs in {t1-t0} seconds', flush=True)
+                if (i + 1) % n_cat == 0:
+                    break
+                loaded += 1
+        except Exception as e:
+            print(f'Failed loading at catalog {i+1} with {str(e)}. This may happen if the simulation is incomplete\nProceeding to finalize plots')
+            n_cat = loaded
+
+        t2 = time.time()
+        print(f'Finished processing catalogs in {t2-t0} seconds\n', flush=True)
+
+        print('Processing catalogs again for distribution-based tests', flush=True)
+        for k, v in data_products.items():
+            if v.needs_two_passes == True:
+                print(v.__class__.__name__)
+        print('\n')
+
+        # share data where applicable, it would be cool if this could be optimized and hidden from this 
+        # part of the script. ie, it just knows to share the data based on some other object's logic
+        data_products['mag-hist'].data = data_products['m-test'].data
+        data_products['arp-plot'].data = data_products['l-test'].data
+        data_products['prob-plot'].data = data_products['prob-test'].data
+
+        # old iterator is expired, need new one
+        t2 = time.time()
+        u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
         for i, cat in enumerate(u3):
             cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
             for name, calc in data_products.items():
                 version = eval_config.get_evaluation_version(name)
                 if calc.version != version or force_plot_all:
-                    calc.process_catalog(copy.copy(cat_filt))
-            tens_exp = numpy.floor(numpy.log10(i + 1))
-            if (i + 1) % 10 ** tens_exp == 0:
-                t1 = time.time()
-                print(f'Processed {i+1} catalogs in {t1-t0} seconds', flush=True)
-            if (i + 1) % n_cat == 0:
+                    calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
+            # if we failed earlier, just stop there again
+            tens_exp = numpy.floor(numpy.log10(i+1))
+            if (i+1) % 10**tens_exp == 0:
+                t3 = time.time()
+                print(f'Processed {i + 1} catalogs in {t3 - t2} seconds', flush=True)
+            if (i+1) % n_cat == 0:
                 break
-            loaded += 1
-    except Exception as e:
-        print(f'Failed loading at catalog {i+1} with {str(e)}. This may happen if the simulation is incomplete\nProceeding to finalize plots')
-        n_cat = loaded
 
-    t2 = time.time()
-    print(f'Finished processing catalogs in {t2-t0} seconds\n', flush=True)
+        # evaluate the catalogs and store results
+        t1 = time.time()
 
-    print('Processing catalogs again for distribution-based tests', flush=True)
-    for k, v in data_products.items():
-        if v.needs_two_passes == True:
-            print(v.__class__.__name__)
-    print('\n')
+        # make plot directory
+        fig_dir = os.path.join(plot_dir, 'plots')
+        mkdirs(fig_dir)
 
-    # share data where applicable, it would be cool if this could be optimized and hidden from this 
-    # part of the script. ie, it just knows to share the data based on some other object's logic
-    data_products['mag-hist'].data = data_products['m-test'].data
-    data_products['arp-plot'].data = data_products['l-test'].data
-    data_products['prob-plot'].data = data_products['prob-test'].data
+        # make results directory
+        results_dir = os.path.join(plot_dir, 'results')
+        if save_results:
+            results_dir = os.path.join(plot_dir, 'results')
+            mkdirs(results_dir)
 
-    # old iterator is expired, need new one
-    t2 = time.time()
-    u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
-    for i, cat in enumerate(u3):
-        cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
         for name, calc in data_products.items():
+            print(f'Finalizing calculations for {name} and plotting')
             version = eval_config.get_evaluation_version(name)
             if calc.version != version or force_plot_all:
-                calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
-        # if we failed earlier, just stop there again
-        tens_exp = numpy.floor(numpy.log10(i+1))
-        if (i+1) % 10**tens_exp == 0:
-            t3 = time.time()
-            print(f'Processed {i + 1} catalogs in {t3 - t2} seconds', flush=True)
-        if (i+1) % n_cat == 0:
-            break
+                result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
+                # plot, and store in plot_dir
+                calc.plot(result, fig_dir, show=False)
 
-    # evaluate the catalogs and store results
-    t1 = time.time()
+                if save_results:
+                    # could expose this, but hard-coded for now
+                    print(f"Storing results from evaluations in {results_dir}", flush=True)
+                    calc.store_results(result, results_dir)
 
-    # make plot directory
-    fig_dir = os.path.join(plot_dir, 'plots')
-    mkdirs(fig_dir)
+        t2 = time.time()
+        print(f"Evaluated forecasts in {t2-t1} seconds", flush=True)
 
-    # make results directory
-    results_dir = os.path.join(plot_dir, 'results')
-    if save_results:
-        results_dir = os.path.join(plot_dir, 'results')
-        mkdirs(results_dir)
+        # update evaluation config
+        print("Updating evaluation metadata file", flush=True)
+        eval_config.compute_time = utc_now_epoch()
+        eval_config.catalog_file = catalog_fname
+        eval_config.forecast_file = filename
+        eval_config.forecast_name = 'UCERF3-ETAS'
+        eval_config.n_cat = n_cat
+        eval_config.eval_start_epoch = origin_epoch
+        eval_config.eval_end_epoch = end_epoch
+        eval_config.git_hash = current_git_hash()
+        for name, calc in data_products.items():
+            eval_config.update_version(name, calc.version, calc.fnames)
+        # save new meta data
+        meta_repo.save(eval_config.to_dict())
 
-    for name, calc in data_products.items():
-        print(f'Finalizing calculations for {name} and plotting')
-        version = eval_config.get_evaluation_version(name)
-        if calc.version != version or force_plot_all:
-            result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
-            # plot, and store in plot_dir
-            calc.plot(result, fig_dir, show=False)
+        # writing catalog
+        print(f"Saving ComCat catalog used for Evaluation", flush=True)
+        evaluation_repo = FileSystem(url=catalog_fname)
+        evaluation_repo.save(comcat.to_dict())
 
-            if save_results:
-                # could expose this, but hard-coded for now
-                print(f"Storing results from evaluations in {results_dir}", flush=True)
-                calc.store_results(result, results_dir)
-
-    t2 = time.time()
-    print(f"Evaluated forecasts in {t2-t1} seconds", flush=True)
-
-    # update evaluation config
-    print("Updating evaluation metadata file", flush=True)
-    eval_config.compute_time = utc_now_epoch()
-    eval_config.catalog_file = catalog_fname
-    eval_config.forecast_file = filename
-    eval_config.forecast_name = 'UCERF3-ETAS'
-    eval_config.n_cat = n_cat
-    eval_config.eval_start_epoch = origin_epoch
-    eval_config.eval_end_epoch = end_epoch
-    eval_config.git_hash = current_git_hash()
-    for name, calc in data_products.items():
-        eval_config.update_version(name, calc.version, calc.fnames)
-    # save new meta data
-    meta_repo.save(eval_config.to_dict())
-
-    # writing catalog
-    print(f"Saving ComCat catalog used for Evaluation", flush=True)
-    evaluation_repo = FileSystem(url=catalog_fname)
-    evaluation_repo.save(comcat.to_dict())
-
-    print(f"Finished evaluating everything in {t2-t0} seconds with average time per catalog of {(t2-t0)/n_cat} seconds", flush=True)
+        print(f"Finished evaluating everything in {t2-t0} seconds with average time per catalog of {(t2-t0)/n_cat} seconds", flush=True)
+    else:
+        print('Skip processing flag enabled so skipping straight to report generation.')
 
     # create the notebook for results
     if generate_markdown:
@@ -318,7 +321,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                                   " The test distribution is built from statistics scored between individal catalogs and the"
                                   " expected Magnitude-Number distribution of the forecast.\n")
 
-        md.add_result_figure('Likelihood Test', 2, list(map(get_relative_path, eval_config.get_fnames('l-test'))),
+        md.add_result_figure('Likelihood Test', 2, list(map(get_relative_path, eval_config.get_fnames('l-test')['l-test'])),
                              text="The likelihood tests uses a statistic based on the continuous point-process "
                                   "likelihood function. We approximate the rate-density of the forecast "
                                   "by stacking synthetic catalogs in spatial bins. The rate-density represents the "
@@ -334,7 +337,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                                   "two simulations that have the exact same spatial distribution, but different numbers of events "
                                   "will product the same statistic.")
 
-        md.add_result_figure('Spatial Test', 2, list(map(get_relative_path, eval_config.get_fnames('l-test'))),
+        md.add_result_figure('Spatial Test', 2, list(map(get_relative_path, eval_config.get_fnames('l-test')['s-test'])),
                              text="The spatial test is based on the same likelihood statistic from above. However, "
                                   "the scores are normalized so that differences in earthquake rates are inconsequential. "
                                   "As above, this statistic is unconditional.\n")
@@ -342,23 +345,22 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         md.add_sub_heading('One-point Statistics', 1, "")
         md.add_result_figure('B-Value Test', 2, list(map(get_relative_path, eval_config.get_fnames('bv-test'))),
                              text="This test compares the estimated b-value from the observed catalog along with the "
-                                  "b-value distribution from the forecast. "
-                                  "This test can be considered an alternate form to the Magnitude Test.\n")
+                                  "b-value distribution from the forecast. This test can be considered an alternate form to the Magnitude Test.\n")
 
         md.add_sub_heading('Distribution-based Tests', 1, "")
         md.add_result_figure('Inter-event Time Distribution', 2, list(map(get_relative_path, eval_config.get_fnames('ietd-test'))),
-                             text='This test compares inter-event time distributions based on a Kilmogorov-Smirnov type statistic'
-                                  'computed from the empiricial CDF.')
+                             text='This test compares inter-event time distributions based on a Kilmogorov-Smirnov type statistic '
+                                  'computed from the empiricial CDF.\n')
 
         md.add_result_figure('Inter-event Distance Distribution', 2,
                              list(map(get_relative_path, eval_config.get_fnames('iedd-test'))),
-                             text='This test compares inter-event distance distributions based on a Kilmogorov-Smirnov type statistic'
-                                  'computed from the empiricial CDF.')
+                             text='This test compares inter-event distance distributions based on a Kilmogorov-Smirnov type statistic '
+                                  'computed from the empiricial CDF.\n')
 
         md.add_result_figure('Total Earthquake Rate Distribution', 2, list(map(get_relative_path, eval_config.get_fnames('terd-test'))),
                              text='The total earthquake rate distribution provides another form of insight into the spatial '
                                   'consistency of the forecast with observations. The total earthquake rate distribution is computed from the '
-                                  'cumulative probability distribution of earthquake occurrence against the earthquake rate per spatial bin.')
+                                  'cumulative probability distribution of earthquake occurrence against the earthquake rate per spatial bin.\n')
 
         md.finalize(plot_dir)
 
@@ -1376,7 +1378,6 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
 
 
 class SpatialProbabilityTest(AbstractProcessingTask):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.region = None
@@ -1384,6 +1385,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         self.needs_two_passes = True
         self.buffer = []
         self.fnames = []
+        self.version = 2
 
     def process_catalog(self, catalog):
         # grab stuff from catalog that we might need later
@@ -1406,13 +1408,13 @@ class SpatialProbabilityTest(AbstractProcessingTask):
     def process_again(self, catalog, args=()):
         # we dont actually need to do this if we are caching the data
         time_horizon, n_cat, end_epoch, obs = args
-        prob_map = self.data / n_cat
+        prob_map = numpy.log10(self.data / n_cat)
 
         # unfortunately, we need to iterate twice through the catalogs for this.
         probs = numpy.zeros(len(self.mws))
         for i, mw in enumerate(self.mws):
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            gridded_cat = cat_filt.gridded_event_counts()
+            gridded_cat = cat_filt.gridded_event_probability()
             prob = _compute_spatial_statistic(gridded_cat, prob_map[i, :])
             probs[i] = prob
         self.test_distribution.append(probs)
@@ -1420,15 +1422,13 @@ class SpatialProbabilityTest(AbstractProcessingTask):
     def post_process(self, obs, args=None):
         cata_iter, time_horizon, end_epoch, n_cat = args
         results = {}
-
-        prob_map = self.data / n_cat
-
+        prob_map = numpy.log10(self.data / n_cat)
         test_distribution_prob = numpy.array(self.test_distribution)
         # prepare results for each mw
         for i, mw in enumerate(self.mws):
             # get observed likelihood
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
-            gridded_obs = obs_filt.gridded_event_counts()
+            gridded_obs = obs_filt.gridded_event_probability()
             obs_prob = _compute_spatial_statistic(gridded_obs, prob_map[i, :])
             # determine outcome of evaluation, check for infinity
             _, quantile_likelihood = get_quantiles(test_distribution_prob[:, i], obs_prob)
@@ -1468,7 +1468,6 @@ class SpatialProbabilityTest(AbstractProcessingTask):
 
 
 class SpatialProbabilityPlot(AbstractProcessingTask):
-
     def __init__(self, calc=True, **kwargs):
         super().__init__(**kwargs)
         self.calc=calc
@@ -1523,7 +1522,6 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
 
 
 class ApproximateRatePlot(AbstractProcessingTask):
-
     def __init__(self, calc=True, **kwargs):
         super().__init__(**kwargs)
         self.calc=calc
@@ -1580,7 +1578,6 @@ class ApproximateRatePlot(AbstractProcessingTask):
 
 
 class ConditionalApproximateRatePlot(AbstractProcessingTask):
-
     def __init__(self, obs, **kwargs):
         super().__init__(**kwargs)
         self.obs = obs
@@ -1642,7 +1639,6 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
 
 
 class ConditionalMagnitudeVersusTime(AbstractProcessingTask):
-
     def __init__(self, obs, data=None, name=None):
         super().__init__(data, name)
 
@@ -1663,7 +1659,6 @@ class ConditionalMagnitudeVersusTime(AbstractProcessingTask):
 
 
 class CatalogMeanStabilityAnalysis(AbstractProcessingTask):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.calc = False
