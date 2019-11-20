@@ -153,7 +153,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     except IOError:
         print('Unable to load metadata file due to filesystem error or file not existing. Replotting everything by default.')
-        eval_config = EvaluationResult()
+        eval_config = EvaluationConfiguration()
 
     if eval_config.n_cat is None or n_cat > eval_config.n_cat:
         force_plot_all = True
@@ -175,7 +175,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         for i, cat in enumerate(u3):
             cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
             for name, calc in data_products.items():
-                version = eval_config.get_version()
+                version = eval_config.get_evaluation_version(name)
                 if calc.version != version or force_plot_all:
                     calc.process_catalog(copy.copy(cat_filt))
             tens_exp = numpy.floor(numpy.log10(i + 1))
@@ -198,7 +198,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
             print(v.__class__.__name__)
     print('\n')
 
-    # share data where applicable
+    # share data where applicable, it would be cool if this could be optimized and hidden from this 
+    # part of the script. ie, it just knows to share the data based on some other object's logic
     data_products['mag-hist'].data = data_products['m-test'].data
     data_products['arp-plot'].data = data_products['l-test'].data
 
@@ -208,7 +209,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     for i, cat in enumerate(u3):
         cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
         for name, calc in data_products.items():
-            version = eval_config.get_version()
+            version = eval_config.get_evaluation_version(name)
             if calc.version != version or force_plot_all:
                 calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
         # if we failed earlier, just stop there again
@@ -234,7 +235,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     for name, calc in data_products.items():
         print(f'Finalizing calculations for {name} and plotting')
-        version = eval_config.get_version()
+        version = eval_config.get_evaluation_version(name)
         if calc.version != version or force_plot_all:
             result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
             # plot, and store in plot_dir
@@ -250,7 +251,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
     # update evaluation config
     print("Updating evaluation metadata file", flush=True)
-    eval_config.compute_time = time.utc_now_epoch()
+    eval_config.compute_time = utc_now_epoch()
     eval_config.catalog_file = catalog_fname
     eval_config.forecast_file = filename
     eval_config.forecast_name = 'UCERF3-ETAS'
