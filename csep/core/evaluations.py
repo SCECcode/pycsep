@@ -216,6 +216,19 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
 
     return (likelihood, likelihood_norm)
 
+def _compute_spatial_statistic(gridded_data, log10_probability_map):
+    """
+    aggregates the log1
+    Args:
+        gridded_data:
+        log10_probability_map:
+
+    Returns:
+
+    """
+    idx = numpy.unique(gridded_data != 0)
+    return numpy.sum(log10_probability_map[idx])
+
 def number_test(stochastic_event_sets, observation, event_counts=None):
     # get number of events for observations and simulations
     if not event_counts:

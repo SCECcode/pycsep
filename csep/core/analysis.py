@@ -24,7 +24,8 @@ from csep.utils.comcat import get_event_by_id
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.file import get_relative_path, mkdirs, copy_file
 from csep.utils.documents import MarkdownReport
-from csep.core.evaluations import EvaluationResult, EvaluationConfiguration, _compute_likelihood
+from csep.core.evaluations import EvaluationResult, EvaluationConfiguration, _compute_likelihood, \
+    _compute_spatial_statistic
 from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_likelihood_test, plot_spatial_test, \
     plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_distribution_test, plot_spatial_dataset
 from csep.utils.calc import bin1d_vec
@@ -138,7 +139,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
          'cum-plot': CumulativeEventPlot(origin_epoch, end_epoch),
          'mag-hist': MagnitudeHistogram(calc=False),
          'arp-plot': ApproximateRatePlot(calc=False),
-         'prob-plot': SpatialProbabilityPlot(),
+         'prob-plot': SpatialProbabilityPlot(calc=False),
+         'prob-test': SpatialProbabilityTest(),
          'carp-plot': ConditionalApproximateRatePlot(comcat),
          'terd-test': TotalEventRateDistribution(),
          'iedd-test': InterEventDistanceDistribution(),
@@ -201,6 +203,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     # part of the script. ie, it just knows to share the data based on some other object's logic
     data_products['mag-hist'].data = data_products['m-test'].data
     data_products['arp-plot'].data = data_products['l-test'].data
+    data_products['prob-plot'].data = data_products['prob-test'].data
 
     # old iterator is expired, need new one
     t2 = time.time()
@@ -297,6 +300,10 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         md.add_result_figure('Conditional Rate Density', 2, list(map(get_relative_path, data_products['carp-plot'].fnames)), ncols=2,
                              text="Plots are conditioned on number of target events ± 5%\n")
 
+        md.add_result_figure('Spatial Probability Plot', 2,
+                             list(map(get_relative_path, data_products['prob-plot'].fnames)), ncols=2,
+                             text="Probability of one or more events occuring in the spatial cells. ")
+
         md.add_sub_heading('CSEP Consistency Tests', 1, "<b>Note</b>: These tests are explained in detail by Savran et al. (In prep).\n")
 
         md.add_result_figure('Number Test', 2, list(map(get_relative_path, data_products['n-test'].fnames)),
@@ -317,6 +324,13 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                                   "Event log-likelihoods are aggregated for each event in the catalog. This "
                                   "approximation to the continuous rate-density is unconditional in the sense that it does "
                                   "not consider the number of target events.\n")
+
+        md.add_result_figure('Probability Test', 2, list(map(get_relative_path, data_products['prob-test'].fnames)),
+                             text="This test uses the probability map to build the test distribution and the observed "
+                                  "statistic. Unlike the pseudo-likelihood based tests, the test statistic is built "
+                                  "by summing probabilities associated with cells where earthquakes occurred once. In effect,"
+                                  "two simulations that have the exact same spatial distribution, but different numbers of events "
+                                  "will product the same statistic.")
 
         md.add_result_figure('Spatial Test', 2, list(map(get_relative_path, data_products['l-test'].fnames['s-test'])),
                              text="The spatial test is based on the same likelihood statistic from above. However, "
@@ -1359,6 +1373,101 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
                 print(f'Skipping plotting of Mw: {mw}, results not found for this magnitude')
 
 
+class SpatialProbabilityTest(AbstractProcessingTask):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.region = None
+        self.test_distribution = []
+        self.needs_two_passes = True
+        self.buffer = []
+        self.fnames = []
+
+    def process_catalog(self, catalog):
+        # grab stuff from catalog that we might need later
+        if not self.region:
+            self.region = catalog.region
+        if not self.name:
+            self.name = catalog.name
+        # compute stuff from catalog
+        counts = []
+        for mw in self.mws:
+            cat_filt = catalog.filter(f'magnitude > {mw}')
+            gridded_counts = cat_filt.gridded_event_probability()
+            counts.append(gridded_counts)
+        # we want to aggregate the counts in each bin to preserve memory
+        if len(self.data) == 0:
+            self.data = numpy.array(counts)
+        else:
+            self.data += numpy.array(counts)
+
+    def process_again(self, catalog, args=()):
+        # we dont actually need to do this if we are caching the data
+        time_horizon, n_cat, end_epoch, obs = args
+        prob_map = self.data / n_cat
+
+        # unfortunately, we need to iterate twice through the catalogs for this.
+        probs = numpy.zeros(len(self.mws))
+        for i, mw in enumerate(self.mws):
+            cat_filt = catalog.filter(f'magnitude > {mw}')
+            gridded_cat = cat_filt.gridded_event_counts()
+            prob = _compute_spatial_statistic(gridded_cat, prob_map[i, :])
+            probs[i] = prob
+        self.test_distribution.append(probs)
+
+    def post_process(self, obs, args=None):
+        cata_iter, time_horizon, end_epoch, n_cat = args
+        results = {}
+
+        prob_map = self.data / n_cat
+
+        test_distribution_prob = numpy.array(self.test_distribution)
+        # prepare results for each mw
+        for i, mw in enumerate(self.mws):
+            # get observed likelihood
+            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            gridded_obs = obs_filt.gridded_event_counts()
+            obs_prob = _compute_spatial_statistic(gridded_obs, prob_map[i, :])
+            # determine outcome of evaluation, check for infinity
+            _, quantile_likelihood = get_quantiles(test_distribution_prob[:, i], obs_prob)
+            # Signals outcome of test
+            message = "normal"
+            # Deal with case with cond. rate. density func has zeros. Keep value but flag as being
+            # either normal and wrong or udetermined (undersampled)
+            if numpy.isclose(quantile_likelihood, 0.0) or numpy.isclose(quantile_likelihood, 1.0):
+                # undetermined failure of the test
+                if numpy.isinf(obs_prob):
+                    # Build message
+                    message = "undetermined"
+            # build evaluation result
+            result_prob = EvaluationResult(test_distribution=test_distribution_prob[:, i],
+                                                 name='Prob-Test',
+                                                 observed_statistic=obs_prob,
+                                                 quantile=quantile_likelihood,
+                                                 status=message,
+                                                 min_mw=mw,
+                                                 obs_catalog_repr=obs.date_accessed,
+                                                 sim_name=self.name,
+                                                 obs_name=obs.name)
+            results[mw] = result_prob
+
+        return results
+
+    def plot(self, results, plot_dir, plot_args=None, show=False):
+        for mw, result_tuple in results.items():
+            # plot likelihood test
+            prob_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob-test')
+            plot_args = {'percentile': 95,
+                         'title': f'Spatial Test using Probability Map\nMw>{mw}',
+                         'bins': 'auto',
+                         'filename': prob_test_fname}
+            _ = plot_likelihood_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
+
+            # we can access this in the main program if needed
+            # self.ax.append((ax, spatial_ax))
+            self.fnames.append(prob_test_fname)
+
+
 class SpatialProbabilityPlot(AbstractProcessingTask):
 
     def __init__(self, calc=True, **kwargs):
@@ -1411,8 +1520,8 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
             crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob_obs')
             ax.figure.savefig(crd_fname + '.png')
             ax.figure.savefig(crd_fname + '.pdf')
-            # self.ax.append(ax)
             self.fnames.append(crd_fname)
+
 
 class ApproximateRatePlot(AbstractProcessingTask):
 
