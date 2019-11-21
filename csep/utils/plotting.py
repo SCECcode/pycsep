@@ -901,7 +901,6 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
 
     return ax
 
-
 def plot_probability_test(evaluation_result, axes=None, plot_args=None, show=True):
     """
 
@@ -921,9 +920,7 @@ def plot_probability_test(evaluation_result, axes=None, plot_args=None, show=Tru
     # supply fixed arguments to plots
     # might want to add other defaults here
     filename = plot_args.get('filename', None)
-    fixed_plot_args = {'xlabel': 'Spatial Probability',
-                       'ylabel': 'Number of Catalogs',
-                       'obs_label': evaluation_result.obs_name,
+    fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
 
@@ -932,7 +929,7 @@ def plot_probability_test(evaluation_result, axes=None, plot_args=None, show=Tru
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
-                        bins='fd',
+                        bins=bins,
                         axes=axes,
                         percentile=percentile)
 

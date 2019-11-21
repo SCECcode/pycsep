@@ -524,7 +524,7 @@ class NumberTest(AbstractProcessingTask):
                 bins = 3
             n_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'n_test')
             _ = plot_number_test(result, show=show, plot_args={'percentile': 95,
-                                                                'title': f'Number-Test\nMw>{mw}',
+                                                                'title': f'Number-Test\nMw > {mw}',
                                                                 'bins': bins,
                                                                 'filename': n_test_fname})
             self.fnames.append(n_test_fname)
@@ -722,7 +722,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             # plot likelihood test
             l_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'l-test')
             plot_args = {'percentile': 95,
-                         'title': f'Pseudo-Likelihood Test\nMw>{mw}',
+                         'title': f'Pseudo-Likelihood Test\nMw > {mw}',
                          'bins': 'auto',
                          'filename': l_test_fname}
             _ = plot_likelihood_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
@@ -738,7 +738,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             # plot spatial test
             s_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 's-test')
             plot_args = {'percentile': 95,
-                         'title': f'Spatial Test\nMw>{mw}',
+                         'title': f'Spatial Test\nMw > {mw}',
                          'bins': 'auto',
                          'filename': s_test_fname}
             _ = plot_spatial_test(result_tuple[1], axes=None, plot_args=plot_args, show=False)
@@ -833,7 +833,7 @@ class CumulativeEventPlot(AbstractProcessingTask):
         # get values from plotting args
         for i, mw in enumerate(self.mws):
             cum_counts_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'cum_counts')
-            plot_args = {'title': f'Cumulative Event Counts\nMw>{mw}',
+            plot_args = {'title': f'Cumulative Event Counts\nMw > {mw}',
                          'xlabel': 'Days Since Start of Forecast',
                          'filename': cum_counts_fname}
             ax = plot_cumulative_events_versus_time_dev(xdata, ydata[:,i,:], obs_data[i,:], plot_args, show=False)
@@ -867,7 +867,7 @@ class MagnitudeHistogram(AbstractProcessingTask):
         mag_hist_fname = AbstractProcessingTask._build_filename(plot_dir, self.mws[0], 'mag_hist')
         plot_args = {
              'xlim': [self.mws[0], numpy.max(CSEP_MW_BINS)],
-             'title': f"Magnitude Histogram\nMw>{self.mws[0]}",
+             'title': f"Magnitude Histogram\nMw > {self.mws[0]}",
              'sim_label': self.name,
              'obs_label': self.obs.name,
              'filename': mag_hist_fname
@@ -1006,7 +1006,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
             # plot likelihood test
             l_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'ul-test')
             plot_args = {'percentile': 95,
-                         'title': f'Pseudo-Likelihood Test\nMw>{mw}',
+                         'title': f'Pseudo-Likelihood Test\nMw > {mw}',
                          'bins': 'fd',
                          'filename': l_test_fname}
             _ = plot_likelihood_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
@@ -1023,7 +1023,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
             # plot spatial test
             s_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'us-test')
             plot_args = {'percentile': 95,
-                         'title': f'Spatial Test\nMw>{mw}',
+                         'title': f'Spatial Test\nMw > {mw}',
                          'bins': 'fd',
                          'filename': s_test_fname}
             _ = plot_spatial_test(result_tuple[1], axes=None, plot_args=plot_args, show=False)
@@ -1087,7 +1087,7 @@ class InterEventTimeDistribution(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         ietd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'ietd_test')
         _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
-                                                                   'title': f'Inter-event Time Distribution Test\nMw>{results.min_mw}',
+                                                                   'title': f'Inter-event Time Distribution Test\nMw > {results.min_mw}',
                                                                    'bins': 'auto',
                                                                    'xlabel': "D* Statistic",
                                                                    'ylabel': r"P(X $\leq$ x)",
@@ -1151,7 +1151,7 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         iedd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'iedd_test')
         _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
-                                                                   'title': f'Inter-event Distance Distribution Test\nMw>{results.min_mw}',
+                                                                   'title': f'Inter-event Distance Distribution Test\nMw > {results.min_mw}',
                                                                    'bins': 'auto',
                                                                    'xlabel': "D* Statistic",
                                                                    'ylabel': r"P(X $\leq$ x)",
@@ -1228,7 +1228,7 @@ class TotalEventRateDistribution(AbstractProcessingTask):
         for mw, result in results.items():
             terd_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'terd_test')
             _ = plot_distribution_test(result, show=False, plot_args={'percentile': 95,
-                                                                      'title': f'Total Event Rate Distribution-Test\nMw>{mw}',
+                                                                      'title': f'Total Event Rate Distribution-Test\nMw > {mw}',
                                                                       'bins': 'auto',
                                                                       'xlabel': "D* Statistic",
                                                                       'ylabel': r"P(X $\leq$ x)",
@@ -1239,6 +1239,7 @@ class TotalEventRateDistribution(AbstractProcessingTask):
 class BValueTest(AbstractProcessingTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.version = 2
 
     def process_catalog(self, catalog):
         if not self.name:
@@ -1268,8 +1269,9 @@ class BValueTest(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         bv_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'bv_test')
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
-                                                             'title': f"B-Value Distribution Test\nMw>{results.min_mw}",
+                                                             'title': f"B-Value Distribution Test\nMw > {results.min_mw}",
                                                              'bins': 'auto',
+                                                             'xlabel': 'b-Value',
                                                              'xy': (0.2, 0.65),
                                                              'filename': bv_test_fname})
         self.fnames.append(bv_test_fname)
@@ -1307,7 +1309,7 @@ class MedianMagnitudeTest(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         mm_test_fname = AbstractProcessingTask._build_filename(plot_dir, self.mws[0], 'mm_test')
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
-                                                             'title': f"Median Magnitude Distribution Test\nMw>{self.mws[0]}",
+                                                             'title': f"Median Magnitude Distribution Test\nMw > {self.mws[0]}",
                                                              'bins': 25,
                                                              'filename': mm_test_fname})
         self.fnames.append(mm_test_fname)
@@ -1460,8 +1462,9 @@ class SpatialProbabilityTest(AbstractProcessingTask):
             # plot likelihood test
             prob_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob-test')
             plot_args = {'percentile': 95,
-                         'title': f'Probability Test\nMw>{mw}',
+                         'title': f'Probability Test\nMw > {mw}',
                          'bins': 'auto',
+                         'xlabel': 'log10(Probability)',
                          'filename': prob_test_fname}
             _ = plot_probability_test(result, axes=None, plot_args=plot_args, show=show)
             self.fnames.append(prob_test_fname)
