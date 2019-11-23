@@ -7,6 +7,7 @@ import numpy
 from csep.utils.calc import bin1d_vec
 from csep.utils.basic_types import Polygon
 from csep.utils.constants import CSEP_MW_BINS
+from csep.utils.scaling_relationships import WellsAndCoppersmith
 
 class Region:
     """
@@ -416,3 +417,12 @@ def masked_region(region, polygon):
     new_polygons = list(compress(region.polygons, contains))
     # create new region with the spatial cells inside the polygon
     return Region(new_polygons, region.dh)
+
+
+def generate_aftershock_region(mainshock_mw, mainshock_lon, mainshock_lat, num_radii=3):
+    # filter to aftershock radius
+    rupture_length = WellsAndCoppersmith.mag_length_strike_slip(mainshock_mw) * 1000
+    aftershock_polygon = Polygon.from_great_circle_radius((mainshock_lon, mainshock_lat),
+                                                          num_radii * rupture_length, num_points=100)
+    aftershock_region = masked_region(california_relm_region(), aftershock_polygon)
+    return aftershock_region

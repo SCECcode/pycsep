@@ -535,11 +535,12 @@ class MagnitudeTest(AbstractProcessingTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.mws = [2.5, 3.0, 3.5, 4.0]
+        self.version = 2
 
     def process_catalog(self, catalog):
         if not self.name:
             self.name = catalog.name
-        # always compute this for the lowest magnitude, above this is redundant
+        # optimization: always compute this for the lowest magnitude, above this is redundant
         mags = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude > {mw}')
@@ -574,9 +575,9 @@ class MagnitudeTest(AbstractProcessingTask):
                 scale = n_obs_events / n_events
                 catalog_histogram = mag_counts_all[j,i,:] * scale
 
-                test_distribution.append(cumulative_square_diff(catalog_histogram, scaled_union_histogram))
+                test_distribution.append(cumulative_square_diff(numpy.log10(catalog_histogram + 1), numpy.log10(scaled_union_histogram+1)))
             # compute statistic from the observation
-            obs_d_statistic = cumulative_square_diff(obs_histogram, scaled_union_histogram)
+            obs_d_statistic = cumulative_square_diff(numpy.log10(obs_histogram+1), numpy.log10(scaled_union_histogram+1))
             # score evaluation
             _, quantile = get_quantiles(test_distribution, obs_d_statistic)
             # prepare result
