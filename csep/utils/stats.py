@@ -13,7 +13,7 @@ def sup_dist(cdf1, cdf2):
 def sup_dist_na(data1, data2):
     """
     computes the ks statistic for two ecdfs that are not necessarily aligned on the same values. performs this
-    operation by merging the two datasets together
+    operation by merging the two datasets together. this is taken from the 2sample ks test in the scipy codebase
 
     Args:
         data1: (numpy array like)

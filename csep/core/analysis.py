@@ -1036,16 +1036,15 @@ class InterEventTimeDistribution(AbstractProcessingTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.mws = [2.5]
-        # start by using a 10 second bin for discretizing data
         # but this should be smart based on the length of the catalog
-        self.data = AdaptiveHistogram(dh=10)
+        self.data = AdaptiveHistogram(dh=0.1)
         self.test_distribution = []
         self.needs_two_passes = True
         # jsut saves soem computation bc we only need to compute this once
         self.normed_data = numpy.array([])
+        self.version = 2
 
     def process_catalog(self, catalog):
-        """ not nice on the memorys. """
         if self.name is None:
             self.name = catalog.name
 
@@ -1057,10 +1056,10 @@ class InterEventTimeDistribution(AbstractProcessingTask):
         disc_ietd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(cat_ietd, self.data.bins)
         numpy.add.at(disc_ietd, idx, 1)
-        disc_ietd_normed = numpy.cumsum(disc_ietd) / numpy.trapz(disc_ietd, dx=self.data.dh)
+        disc_ietd_normed = numpy.cumsum(disc_ietd) / numpy.trapz(disc_ietd)
 
         if self.normed_data.size == 0:
-            self.normed_data = numpy.cumsum(self.data.data) / numpy.trapz(self.data.data, dx=self.data.dh)
+            self.normed_data = numpy.cumsum(self.data.data) / numpy.trapz(self.data.data)
         self.test_distribution.append(sup_dist(self.normed_data, disc_ietd_normed))
 
     def post_process(self, obs, args=None):
@@ -1070,7 +1069,7 @@ class InterEventTimeDistribution(AbstractProcessingTask):
         obs_disc_ietd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(obs_ietd, self.data.bins)
         numpy.add.at(obs_disc_ietd, idx, 1)
-        obs_disc_ietd_normed = numpy.cumsum(obs_disc_ietd) / numpy.trapz(obs_disc_ietd, dx=self.data.dh)
+        obs_disc_ietd_normed = numpy.cumsum(obs_disc_ietd) / numpy.trapz(obs_disc_ietd)
         d_obs = sup_dist(self.normed_data, obs_disc_ietd_normed)
         _, quantile = get_quantiles(self.test_distribution, d_obs)
         result = EvaluationResult(test_distribution=self.test_distribution,
@@ -1107,6 +1106,7 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
         self.needs_two_passes = True
         # jsut saves soem computation bc we only need to compute this once
         self.normed_data = numpy.array([])
+        self.version = 2
 
     def process_catalog(self, catalog):
         """ not nice on the memorys. """
@@ -1121,20 +1121,19 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
         disc_iedd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(cat_iedd, self.data.bins)
         numpy.add.at(disc_iedd, idx, 1)
-        disc_iedd_normed = numpy.cumsum(disc_iedd) / numpy.trapz(disc_iedd, dx=self.data.dh)
-
+        disc_iedd_normed = numpy.cumsum(disc_iedd) / numpy.trapz(disc_iedd)
         if self.normed_data.size == 0:
-            self.normed_data = numpy.cumsum(self.data.data) / numpy.trapz(self.data.data, dx=self.data.dh)
+            self.normed_data = numpy.cumsum(self.data.data) / numpy.trapz(self.data.data)
         self.test_distribution.append(sup_dist(self.normed_data, disc_iedd_normed))
 
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
         obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        obs_iedd = obs_filt.get_inter_event_times()
+        obs_iedd = obs_filt.get_inter_event_distances()
         obs_disc_iedd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(obs_iedd, self.data.bins)
         numpy.add.at(obs_disc_iedd, idx, 1)
-        obs_disc_iedd_normed = numpy.cumsum(obs_disc_iedd) / numpy.trapz(obs_disc_iedd, dx=self.data.dh)
+        obs_disc_iedd_normed = numpy.cumsum(obs_disc_iedd) / numpy.trapz(obs_disc_iedd)
         d_obs = sup_dist(self.normed_data, obs_disc_iedd_normed)
         _, quantile = get_quantiles(self.test_distribution, d_obs)
         result = EvaluationResult(test_distribution=self.test_distribution,
