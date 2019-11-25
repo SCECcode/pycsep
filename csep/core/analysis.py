@@ -234,7 +234,6 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         # make results directory
         results_dir = os.path.join(plot_dir, 'results')
         if save_results:
-            results_dir = os.path.join(plot_dir, 'results')
             mkdirs(results_dir)
 
         for name, calc in data_products.items():
@@ -1047,7 +1046,6 @@ class InterEventTimeDistribution(AbstractProcessingTask):
     def process_catalog(self, catalog):
         if self.name is None:
             self.name = catalog.name
-
         cat_ietd = catalog.get_inter_event_times()
         self.data.add(cat_ietd)
 
@@ -1057,7 +1055,6 @@ class InterEventTimeDistribution(AbstractProcessingTask):
         idx = bin1d_vec(cat_ietd, self.data.bins)
         numpy.add.at(disc_ietd, idx, 1)
         disc_ietd_normed = numpy.cumsum(disc_ietd) / numpy.trapz(disc_ietd)
-
         if self.normed_data.size == 0:
             self.normed_data = numpy.cumsum(self.data.data) / numpy.trapz(self.data.data)
         self.test_distribution.append(sup_dist(self.normed_data, disc_ietd_normed))
@@ -1160,13 +1157,13 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
 
 
 class TotalEventRateDistribution(AbstractProcessingTask):
-    def __init__(self, calc=True, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.mws = [2.5]
         self.needs_two_passes = True
-        self.data = []
+        self.data = AdaptiveHistogram(dh=1)
+        self.normed_data = numpy.array([])
         self.test_distribution = []
-        self.calc = calc
+        self.version = 2
 
     def process_catalog(self, catalog):
         # grab stuff from catalog that we might need later
@@ -1175,54 +1172,42 @@ class TotalEventRateDistribution(AbstractProcessingTask):
         if not self.name:
             self.name = catalog.name
         # compute stuff from catalog
-        if self.calc:
-            counts = []
-            for mw in self.mws:
-                cat_filt = catalog.filter(f'magnitude > {mw}')
-                gridded_counts = cat_filt.gridded_event_counts()
-                counts.append(gridded_counts)
-            # we want to aggregate the counts in each bin to preserve memory
-            if len(self.data) == 0:
-                self.data = numpy.array(counts)
-            else:
-                self.data += numpy.array(counts)
+        gridded_counts = catalog.gridded_event_counts()
+        self.data.add(gridded_counts)
 
     def process_again(self, catalog, args=()):
         # we dont actually need to do this if we are caching the data
         _, n_cat, _, _ = args
-
-        # index [n_mw, n_bins]
-        expected_rates = numpy.array(self.data) / n_cat
-        d_cat = []
-        for i, mw in enumerate(self.mws):
-            cat_filt = catalog.filter(f'magnitude > {mw}')
-            cat_terd = cat_filt.gridded_event_counts()
-            d_cat.append(sup_dist_na(cat_terd, expected_rates[i,:]))
-        self.test_distribution.append(d_cat)
+        cat_counts = catalog.gridded_event_counts()
+        cat_disc = numpy.zeros(len(self.data.bins))
+        idx = bin1d_vec(cat_counts, self.data.bins)
+        numpy.add.at(cat_disc, idx, 1)
+        disc_terd_normed = numpy.cumsum(cat_disc) / numpy.sum(cat_disc)
+        if self.normed_data.size == 0:
+            self.normed_data = numpy.cumsum(self.data.data) / numpy.sum(self.data.data)
+        self.test_distribution.append(sup_dist(self.normed_data, disc_terd_normed))
 
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
-        _, _, _, n_cat = args
-        test_distribution = numpy.array(self.test_distribution)
-        results = {}
-        expected_rates = numpy.array(self.data) / n_cat
-        for i, mw in enumerate(self.mws):
-            obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
-            obs_terd = obs_filt.gridded_event_counts()
-            d_obs = sup_dist_na(obs_terd, expected_rates[i,:])
-            _, quantile = get_quantiles(test_distribution[:,i], d_obs)
-            result = EvaluationResult(test_distribution=test_distribution[:,i],
+        obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        obs_terd = obs_filt.gridded_event_counts()
+        obs_disc_terd = numpy.zeros(len(self.data.bins))
+        idx = bin1d_vec(obs_terd, self.data.bins)
+        numpy.add.at(obs_disc_terd, idx, 1)
+        obs_disc_terd_normed = numpy.cumsum(obs_disc_terd) / numpy.sum(obs_disc_terd)
+        d_obs = sup_dist(self.normed_data, obs_disc_terd_normed)
+        _, quantile = get_quantiles(self.test_distribution, d_obs)
+        result = EvaluationResult(test_distribution=self.test_distribution,
                                   name='TERD-Test',
                                   observed_statistic=d_obs,
                                   quantile=quantile,
                                   status='Normal',
-                                  min_mw=mw,
+                                  min_mw=self.mws[0],
                                   obs_catalog_repr=obs.date_accessed,
                                   sim_name=self.name,
                                   obs_name=obs.name)
-            results[mw] = result
 
-        return results
+        return result
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
         for mw, result in results.items():
