@@ -1210,15 +1210,14 @@ class TotalEventRateDistribution(AbstractProcessingTask):
         return result
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        for mw, result in results.items():
-            terd_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'terd_test')
-            _ = plot_distribution_test(result, show=False, plot_args={'percentile': 95,
-                                                                      'title': f'Total Event Rate Distribution-Test\nMw > {mw}',
-                                                                      'bins': 'auto',
-                                                                      'xlabel': "D* Statistic",
-                                                                      'ylabel': r"P(X $\leq$ x)",
-                                                                      'filename': terd_test_fname})
-            self.fnames.append(terd_test_fname)
+        terd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'terd_test')
+        _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
+                                                                  'title': f'Total Event Rate Distribution-Test\nMw > {results.min_mw}',
+                                                                  'bins': 'auto',
+                                                                  'xlabel': "D* Statistic",
+                                                                  'ylabel': r"P(X $\leq$ x)",
+                                                                  'filename': terd_test_fname})
+        self.fnames.append(terd_test_fname)
 
 
 class BValueTest(AbstractProcessingTask):
