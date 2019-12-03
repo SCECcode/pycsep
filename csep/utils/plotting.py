@@ -185,7 +185,7 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
 
     return ax
 
-def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={}, **kwargs):
+def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=False, plot_args={}, **kwargs):
     """
     Plots magnitude versus linear time for an earthquake catalog.
 
@@ -198,12 +198,6 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
         (tuple): fig and axes handle
     """
     # get values from plotting args
-    sim_label = plot_args.get('sim_label', 'Simulated')
-    obs_label = plot_args.get('obs_label', 'Observation')
-    xlabel = plot_args.get('xlabel', 'X')
-    ylabel = plot_args.get('ylabel', '$P(X \leq x)$')
-    xycoords = plot_args.get('xycoords', (1.00, 0.40))
-    legend_loc = plot_args.get('legend_loc', 'best')
     title = plot_args.get('title', '')
     marker_size = plot_args.get('marker_size', 10)
     color = plot_args.get('color', 'blue')
@@ -220,7 +214,9 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, plot_args={},
 
     # map returns a generator function which we collapse with list
     days_elapsed = numpy.array(list(map(f, catalog.get_datetimes())))
-    days_elapsed = days_elapsed - days_elapsed[0]
+
+    if reset_times:
+        days_elapsed = days_elapsed - days_elapsed[0]
 
     magnitudes = catalog.get_magnitudes()
 

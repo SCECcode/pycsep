@@ -61,7 +61,11 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         print(f'No plotting directory specified defaulting to {plot_dir}')
     else:
         print(f"Using user specified plotting directory: {plot_dir}")
+
+    # config file can be either config.json or basename of simulation-config.json
     config_file = os.path.join(sim_dir, 'config.json')
+    if not os.path.exists(config_file):
+        config_file = os.path.join(sim_dir, os.path.basename(sim_dir) + '-config.json')
     mkdirs(os.path.join(plot_dir))
 
     # catalog filename
