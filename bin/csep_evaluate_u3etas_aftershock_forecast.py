@@ -28,9 +28,10 @@ if __name__ == "__main__":
     optional.add_argument("--save_results", default=True,  type=bool, help="True/False to store evaluation results as json documents.")
     optional.add_argument("--force_replot", default=False,  type=bool, help="True/False Force replotting of all figures.")
     optional.add_argument("--skip_processing", default=False, type=bool, help="True/False flag to skip evaluations to generate report.")
-
+    optional.add_argument("--name", default=False, help="Name of the forecast does not have to be Unique")
     args = parser.parse_args()
 
     ucerf3_consistency_testing(args.sim_dir, args.event_id, args.eval_days,
                                n_cat=args.n_cat, plot_dir=args.plot_dir, generate_markdown=args.generate_markdown,
-                               catalog_repo=args.catalog_repo, save_results=args.save_results, skip_processing=args.skip_processing, force_plot_all=args.force_replot)
+                               catalog_repo=args.catalog_repo, save_results=args.save_results, skip_processing=args.skip_processing, force_plot_all=args.force_replot,
+                               name=args.name)
