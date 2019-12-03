@@ -35,7 +35,7 @@ from csep.core.catalogs import ComcatCatalog
 from csep.core.repositories import FileSystem
 
 def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_dir=None, generate_markdown=True, catalog_repo=None, save_results=False,
-                               force_plot_all=False, skip_processing=False):
+                               force_plot_all=False, skip_processing=False, name='Forecast'):
     """
     computes all csep consistency tests for simulation located in sim_dir with event_id
 
@@ -172,7 +172,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     print('Begin processing catalogs', flush=True)
     t0 = time.time()
     loaded = 0
-    u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
+    u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name=name, region=aftershock_region)
     if not skip_processing:
         try:
             for i, cat in enumerate(u3):
