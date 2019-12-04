@@ -448,8 +448,8 @@ class AbstractBaseCatalog(LoggingMixin):
         # this is used to index the array, starting with accepting all events
         filter = numpy.ones(self.event_count, dtype=numpy.bool)
         for i, (mw, time) in enumerate(zip(mws, times)):
-            if time > t_crit_epoch:
-                break
+            if time > t_crit_epoch or time < event_epoch:
+                continue
             time_from_mshock_in_days = millis_to_days(time - event_epoch)
             mct = compute_mct(time_from_mshock_in_days, m_main)
             # ignore events with mw < mct
