@@ -1375,7 +1375,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         self.needs_two_passes = True
         self.buffer = []
         self.fnames = []
-        self.version = 2
+        self.version = 3
 
     def process_catalog(self, catalog):
         # grab stuff from catalog that we might need later
@@ -1418,6 +1418,9 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         for i, mw in enumerate(self.mws):
             # get observed likelihood
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            if obs_filt.event_count == 0:
+                print('Skipping Probability test for Mw {mw} because no events in observed catalog.')
+                continue
             gridded_obs = obs_filt.gridded_event_probability()
             obs_prob = _compute_spatial_statistic(gridded_obs, prob_map[i, :])
             # determine outcome of evaluation, check for infinity
