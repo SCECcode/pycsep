@@ -631,7 +631,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         counts = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            gridded_counts = cat_filt.gridded_event_counts()
+            gridded_counts = cat_filt.spatial_event_counts()
             counts.append(gridded_counts)
         # we want to aggregate the counts in each bin to preserve memory
         if len(self.data) == 0:
@@ -652,7 +652,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.event_count
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            gridded_cat = cat_filt.gridded_event_counts()
+            gridded_cat = cat_filt.spatial_event_counts()
             lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density[i,:], expected_cond_count[i], n_obs)
             lhs[i] = lh
             lhs_norm[i] = lh_norm
@@ -673,7 +673,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             # get observed likelihood
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.get_number_of_events()
-            gridded_obs = obs_filt.gridded_event_counts()
+            gridded_obs = obs_filt.spatial_event_counts()
             obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density[i,:], expected_cond_count[i], n_obs)
             # determine outcome of evaluation, check for infinity
             _, quantile_likelihood = get_quantiles(test_distribution_likelihood[:,i], obs_lh)
@@ -926,7 +926,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.event_count
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            gridded_cat = cat_filt.gridded_event_counts()
+            gridded_cat = cat_filt.spatial_event_counts()
             lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density, expected_cond_count[i], n_obs)
             lhs[i] = lh
             lhs_norm[i] = lh_norm
@@ -954,7 +954,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
 
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.get_number_of_events()
-            gridded_obs = obs_filt.gridded_event_counts()
+            gridded_obs = obs_filt.spatial_event_counts()
             obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density, expected_cond_count[i],
                                                       n_obs)
             # determine outcome of evaluation, check for infinity
@@ -1176,13 +1176,13 @@ class TotalEventRateDistribution(AbstractProcessingTask):
         if not self.name:
             self.name = catalog.name
         # compute stuff from catalog
-        gridded_counts = catalog.gridded_event_counts()
+        gridded_counts = catalog.spatial_event_counts()
         self.data.add(gridded_counts)
 
     def process_again(self, catalog, args=()):
         # we dont actually need to do this if we are caching the data
         _, n_cat, _, _ = args
-        cat_counts = catalog.gridded_event_counts()
+        cat_counts = catalog.spatial_event_counts()
         cat_disc = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(cat_counts, self.data.bins)
         numpy.add.at(cat_disc, idx, 1)
@@ -1194,7 +1194,7 @@ class TotalEventRateDistribution(AbstractProcessingTask):
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
         obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        obs_terd = obs_filt.gridded_event_counts()
+        obs_terd = obs_filt.spatial_event_counts()
         obs_disc_terd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(obs_terd, self.data.bins)
         numpy.add.at(obs_disc_terd, idx, 1)
@@ -1319,7 +1319,7 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
             counts = []
             for mw in self.mws:
                 cat_filt = catalog.filter(f'magnitude > {mw}')
-                counts.append(cat_filt.gridded_event_counts())
+                counts.append(cat_filt.spatial_event_counts())
             # we want to aggregate the counts in each bin to preserve memory
             if len(self.data) == 0:
                 self.data = numpy.array(counts)
@@ -1340,7 +1340,7 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             if obs_filt.event_count == 0:
                 continue
-            gridded_obs = obs_filt.gridded_event_counts()
+            gridded_obs = obs_filt.spatial_event_counts()
             gridded_obs_ma = numpy.ma.masked_where(gridded_obs == 0, gridded_obs)
             apprx_rate_density_ma = numpy.ma.array(apprx_rate_density[i,:], mask=gridded_obs_ma.mask)
             likelihood = gridded_obs_ma * numpy.ma.log10(apprx_rate_density_ma) / obs_filt.event_count
@@ -1387,7 +1387,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         counts = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            gridded_counts = cat_filt.gridded_event_probability()
+            gridded_counts = cat_filt.spatial_event_probability()
             counts.append(gridded_counts)
         # we want to aggregate the counts in each bin to preserve memory
         if len(self.data) == 0:
@@ -1404,7 +1404,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         probs = numpy.zeros(len(self.mws))
         for i, mw in enumerate(self.mws):
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            gridded_cat = cat_filt.gridded_event_probability()
+            gridded_cat = cat_filt.spatial_event_probability()
             prob = _compute_spatial_statistic(gridded_cat, prob_map[i, :])
             probs[i] = prob
         self.test_distribution.append(probs)
@@ -1419,9 +1419,9 @@ class SpatialProbabilityTest(AbstractProcessingTask):
             # get observed likelihood
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             if obs_filt.event_count == 0:
-                print('Skipping Probability test for Mw {mw} because no events in observed catalog.')
+                print(f'Skipping Probability test for Mw {mw} because no events in observed catalog.')
                 continue
-            gridded_obs = obs_filt.gridded_event_probability()
+            gridded_obs = obs_filt.spatial_event_probability()
             obs_prob = _compute_spatial_statistic(gridded_obs, prob_map[i, :])
             # determine outcome of evaluation, check for infinity
             _, quantile_likelihood = get_quantiles(test_distribution_prob[:, i], obs_prob)
@@ -1479,7 +1479,7 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
             counts = []
             for mw in self.mws:
                 cat_filt = catalog.filter(f'magnitude > {mw}')
-                gridded_counts = cat_filt.gridded_event_probability()
+                gridded_counts = cat_filt.spatial_event_probability()
                 counts.append(gridded_counts)
             # we want to aggregate the counts in each bin to preserve memory
             if len(self.data) == 0:
@@ -1533,7 +1533,7 @@ class ApproximateRatePlot(AbstractProcessingTask):
             counts = []
             for mw in self.mws:
                 cat_filt = catalog.filter(f'magnitude > {mw}')
-                gridded_counts = cat_filt.gridded_event_counts()
+                gridded_counts = cat_filt.spatial_event_counts()
                 counts.append(gridded_counts)
             # we want to aggregate the counts in each bin to preserve memory
             if len(self.data) == 0:
@@ -1592,7 +1592,7 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
             tolerance = 0.05 * n_obs
             if cat_filt.event_count <= n_obs + tolerance \
                 and cat_filt.event_count >= n_obs - tolerance:
-                self.data[mw].append(cat_filt.gridded_event_counts())
+                self.data[mw].append(cat_filt.spatial_event_counts())
 
     def post_process(self, obs, args=None):
         _, time_horizon, _, n_cat = args

@@ -92,7 +92,7 @@ def main(mw_min, config, sim_dir, end_time):
         # store catalog will need to iterate over these again to compute pseudo-likelihood
         u3_filt.append(cat_filt)
         # counts on spatial grid, might as well do now
-        gridded_counts += cat_filt.gridded_event_counts()
+        gridded_counts += cat_filt.spatial_event_counts()
     n_cat = len(u3_filt)
 
 

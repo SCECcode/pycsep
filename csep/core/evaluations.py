@@ -282,14 +282,14 @@ def pseudo_likelihood_test(stochastic_event_sets, observation, apprx_rate_densit
     # integrating, assuming that all cats in ses have same region
     region = stochastic_event_sets[0].region
     expected_cond_count = numpy.sum(apprx_rate_density) * region.dh * region.dh * time_interval
-    gridded_obs = observation.gridded_event_counts()
+    gridded_obs = observation.spatial_event_counts()
     name = 'L-Test'
 
     # build likelihood distribution from ses
     test_distribution = []
     t0 = time.time()
     for i, catalog in enumerate(stochastic_event_sets):
-        gridded_cat = catalog.gridded_event_counts()
+        gridded_cat = catalog.spatial_event_counts()
          # compute likelihood for each event, ignoring areas with 0 expectation
         gridded_cat_ma = numpy.ma.masked_where(gridded_cat == 0, gridded_cat)
         apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_cat_ma.mask)
@@ -356,7 +356,7 @@ def spatial_test(stochastic_event_sets, observation, apprx_rate_density, time_in
     test_distribution = []
     # this could be io based if iterator is passed
     for catalog in stochastic_event_sets:
-        gridded_rate_cat = catalog.gridded_event_counts() / time_interval
+        gridded_rate_cat = catalog.spatial_event_counts() / time_interval
         # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio
         normalizing_factor = observation.event_count / catalog.event_count
         gridded_rate_cat_norm = normalizing_factor * gridded_rate_cat
@@ -367,7 +367,7 @@ def spatial_test(stochastic_event_sets, observation, apprx_rate_density, time_in
         test_distribution.append(likelihood)
 
     # compute psuedo-likelihood for comcat
-    gridded_obs_rate = observation.gridded_event_counts() / time_interval
+    gridded_obs_rate = observation.spatial_event_counts() / time_interval
     gridded_obs_rate_ma = numpy.ma.masked_where(gridded_obs_rate == 0, gridded_obs_rate)
     apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_obs_rate_ma.mask)
     comcat_likelihood = numpy.ma.sum(gridded_obs_rate_ma * numpy.ma.log10(apprx_rate_density_ma))
@@ -465,7 +465,7 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     region = stochastic_event_sets[0].region
     n_cat = len(stochastic_event_sets)
     expected_cond_count = numpy.sum(apprx_rate_density) * region.dh * region.dh * time_interval
-    gridded_obs = observation.gridded_event_counts()
+    gridded_obs = observation.spatial_event_counts()
     n_obs = observation.get_number_of_events()
 
     # build likelihood distribution from ses
@@ -473,7 +473,7 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     test_distribution_spatial = numpy.empty(n_cat)
     t0 = time.time()
     for i, catalog in enumerate(stochastic_event_sets):
-        gridded_cat = catalog.gridded_event_counts()
+        gridded_cat = catalog.spatial_event_counts()
         # compute likelihood for each event, ignoring areas with 0 expectation,
         lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density, expected_cond_count, n_obs)
         # store results
@@ -580,10 +580,10 @@ def interevent_distance_test(stochastic_event_sets, observation):
 
 def total_event_rate_distribution_test(stochastic_event_sets, observation):
     # get data that we need
-    terd = [cat.gridded_event_counts() for cat in stochastic_event_sets]
+    terd = [cat.spatial_event_counts() for cat in stochastic_event_sets]
 
     # get inter-event times from catalog
-    obs_terd = observation.gridded_event_counts()
+    obs_terd = observation.spatial_event_counts()
 
     # compute distribution statistics
     test_distribution, d_obs, quantile = _distribution_test(terd, obs_terd)

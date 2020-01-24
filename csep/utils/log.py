@@ -6,6 +6,7 @@ class LoggingMixin:
     """
     def __init__(self, context=None):
         self._set_context(context)
+
     @property
     def log(self):
         try:

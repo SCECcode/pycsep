@@ -73,7 +73,7 @@ class AbstractBaseCatalog(LoggingMixin):
         if not self.compute_stats:
             self.update_catalog_stats()
 
-        s=f'''
+        s = f'''
         Name: {self.name}
 
         Start Date: {self.start_time}
@@ -84,7 +84,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
         Min Mw: {self.min_magnitude}
         Max Mw: {self.max_magnitude}
-        
+
         Event Count: {self.event_count}
         '''
         return s
@@ -113,12 +113,13 @@ class AbstractBaseCatalog(LoggingMixin):
         for line in self.catalog.tolist():
             new_line=[]
             for item in line:
+                # try to decode, if it fails just use original, we use this to handle string-based event_ids
                 try:
                     item = item.decode('utf-8')
                 except:
                     pass
                 finally:
-                    new_line.append(item)        
+                    new_line.append(item)
             out['catalog'].append(new_line)
         return out
 
@@ -191,7 +192,7 @@ class AbstractBaseCatalog(LoggingMixin):
             if not isinstance(self._catalog, numpy.ndarray):
                 raise ValueError("Error: Catalog must be numpy.ndarray! Ensure that self._get_catalog_as_ndarray()" +
                                  " returns an ndarray")
-        if self.compute_stats:
+        if self.compute_stats and self._catalog is not None:
             self.update_catalog_stats()
 
     @classmethod
@@ -245,7 +246,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def get_number_of_events(self):
         """
-        Compute the number of events from a catalog by checking its length.
+        Computes the number of events from a catalog by checking its length.
 
         :returns: number of events in catalog, zero if catalog is None
         """
@@ -277,7 +278,7 @@ class AbstractBaseCatalog(LoggingMixin):
 # use user defined stats if entered into catalog
         :returns: list of magnitudes from catalog
         """
-        raise NotImplementedError('get_magnitudes must be implemented by subclasses of AbstractBaseCatalog')
+        raise NotImplementedError('get_magnitudes() must be implemented by subclasses of AbstractBaseCatalog')
 
     def get_datetimes(self):
         """
@@ -300,6 +301,9 @@ class AbstractBaseCatalog(LoggingMixin):
             (numpy.array): longitudes
         """
         raise NotImplementedError('get_longitudes() not implemented!')
+
+    def get_depths(self):
+        raise NotImplementedError("Specific catalog types must implement a getter for depths.")
 
     def get_inter_event_times(self, scale=1000):
         """
@@ -500,7 +504,7 @@ class AbstractBaseCatalog(LoggingMixin):
             catalog[i] = tuple(event)
         return catalog
 
-    def gridded_event_counts(self):
+    def spatial_event_counts(self):
         """
         This function is bad and should be broken up into multiple parts. In general, it works by circumscribing the
         polygons with a bounding box. Inside the bounding box is assumed to follow a regular Cartesian grid.
@@ -527,7 +531,7 @@ class AbstractBaseCatalog(LoggingMixin):
                                                                self.region.ys)
         return output
 
-    def gridded_event_probability(self):
+    def spatial_event_probability(self):
         # make sure region is specified with catalog
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned probabilities without region information.")
@@ -547,6 +551,36 @@ class AbstractBaseCatalog(LoggingMixin):
             return (bins, out)
         else:
             return out
+
+    def spatial_magnitude_counts(self):
+        """
+        This function is bad and should be broken up into multiple parts. In general, it works by circumscribing the
+        polygons with a bounding box. Inside the bounding box is assumed to follow a regular Cartesian grid.
+
+        We figure out the index of the polygons and create a map that relates the spatial coordinate in the
+        Cartesian grid with with the polygon in region.
+
+        Args:
+            region: list of polygons
+
+        Returns:
+            outout: unnormalized event count in each bin, 1d ndarray where index corresponds to midpoints
+            midpoints: midpoints of polygons in region
+            cartesian: data embedded into a 2d map. can be used for quick plotting in python
+        """
+
+        # make sure region is specified with catalog
+        if self.region is None:
+            raise CSEPSchedulerException("Cannot create binned rates without region information.")
+        output = csep.utils.spatial.bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
+                                                                        self.get_latitudes(),
+                                                                        self.get_magnitudes(),
+                                                                        len(self.region.polygons),
+                                                                        self.region.bitmask,
+                                                                        self.region.xs,
+                                                                        self.region.ys)
+        return output
+
 
 class CSEPCatalog(AbstractBaseCatalog):
     """
@@ -635,7 +669,6 @@ class UCERF3Catalog(AbstractBaseCatalog):
         :type filename: string
         :returns: list of catalogs of type UCERF3Catalog
         """
-
         with open(filename, 'rb') as catalog_file:
             # parse 4byte header from merged file
             number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
@@ -650,7 +683,6 @@ class UCERF3Catalog(AbstractBaseCatalog):
                 u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
                 # generator function, maybe apply filters here
                 yield u3_catalog
-
 
     def get_datetimes(self):
         """

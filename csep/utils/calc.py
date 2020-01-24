@@ -1,6 +1,6 @@
 import numpy
 import numpy as np
-import scipy
+import scipy.interpolate
 from csep.core.exceptions import CSEPException
 
 
@@ -12,7 +12,6 @@ def nearest_index(array, value):
     idx = (numpy.abs(array - value)).argmin()
     return idx
 
-
 def find_nearest(array, value):
     """
     Returns the value from array that is less than the value specified.
@@ -20,7 +19,6 @@ def find_nearest(array, value):
     array = numpy.asarray(array)
     idx = nearest_index(array, value)
     return array[idx]
-
 
 def func_inverse(x, y, val, kind='nearest', **kwargs):
     """
@@ -50,12 +48,32 @@ def discretize(data, bin_edges):
     return x_new
 
 def bin1d_vec(p, bins):
+    """Efficient implementation of binning routine on 1D Cartesian Grid.
+
+    Returns the indices of the points into bins. Bins are inclusive on the lower bound
+    and exclusive on the upper bound. In the case where a point does not fall within the bins a -1
+    will be returned.
+
+
+    Args:
+        p (array-like): Point(s) to be placed into b
+
+    Returns:
+        idx (array-like):
+
+    Raises:
+        TypeError:
     """
-    same as bin1d but optimized for vectorized calls.
-    """
-    a0 = np.min(bins)
+    a0 = numpy.min(bins)
     h = bins[1] - bins[0]
-    eps = np.finfo(np.float).eps
-    idx = np.floor((p+eps-a0)/h)
-    idx[((idx < 0) | (idx >= len(bins)-1))] = -1
-    return idx.astype(np.int)
+    eps = numpy.finfo(np.float).eps
+    assert h > 0
+    idx = numpy.floor((p + eps - a0) / h)
+    try:
+        idx[((idx < 0) | (idx >= len(bins) - 1))] = -1
+        idx = idx.astype(numpy.int)
+    except TypeError:
+        if idx < 0 or idx >= len(bins) - 1:
+            idx = -1
+        idx = numpy.int(idx)
+    return idx

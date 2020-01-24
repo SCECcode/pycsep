@@ -549,7 +549,7 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
 
     Args:
         gridded: 1d numpy array with vals according to region
-        region: Region class
+        region: CartesianGrid2D class
         plot_args: arguments to various matplotlib functions.
 
     Returns:

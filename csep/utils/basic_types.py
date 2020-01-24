@@ -111,7 +111,8 @@ class Polygon:
     """
     Represents polygons defined through a collection of vertices.
 
-    This polygon is assumed to be 2d, but could contain an arbitrary number of vertices.
+    This polygon is assumed to be 2d, but could contain an arbitrary number of vertices. The path is treated as not being
+    closed.
     """
     def __init__(self, points):
         # instance members
@@ -123,7 +124,7 @@ class Polygon:
         return str(self.origin)
 
     def contains(self, points):
-        """ Returns a bool array which is True if the (closed) path contains the corresponding point."""
+        """ Returns a bool array which is True if the path contains the corresponding point."""
         return self.path.contains_points(points)
 
     def centroid(self):
