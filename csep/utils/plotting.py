@@ -332,3 +332,180 @@ def plot_ecdf(x, ecdf, xv=None, catalog=None, filename=None, show=False, plot_ar
         pyplot.show()
 
     return ax
+
+## Functions for plotting CSEP 1 tests. By Asim
+
+def Multiple_ll_Models(Model_list):
+    
+    """
+    ***This function is applicable for plotting "Log-Likelihood" based Models***    
+    
+    This function gives 3 plots.
+    1 - The values of Simulated log-likelihoods are taken as Error bounds and indicates the location of Actual log-likelihood 
+    2 - Scatter plot of Quantile score of models
+    3 - Scatter plot of actual joint log-likelihood of models 
+    Args:
+        A list of Dictionaries of Models. Each dictionary consists of following structure.
+        A Dictionary of a Model: {'quantile': Value
+                                  'll_actual': Value
+                                  'll_simulation':Value
+                                   'model_name': name}
+    Returns
+    
+    """
+    #Get all the models details into respective Lists
+    name = []
+    quantile = []
+    ll_actuals = []
+    upper_simulation = []
+    lower_simulation = []
+    for i in range(numpy.size(Model_list)):
+        name.append(Model_list[i]["model_name"])
+        quantile.append(Model_list[i]["quantile"])
+        ll_actuals.append(Model_list[i]["ll_actual"])
+        ll_sim = Model_list[i]["ll_simulation"]
+        upper_simulation.append(max(ll_sim))
+        ll_sim = Model_list[i]["ll_simulation"]
+        lower_simulation.append(min(ll_sim))
+    
+    
+    #Mathematically, Compute the Upper and Lower Bounds of Error to be plotted in Error Plot 
+    lower_bound = numpy.subtract(ll_actuals,lower_simulation)
+    upper_bound = numpy.subtract(upper_simulation,ll_actuals)
+   
+    error_bound = [lower_bound,upper_bound]
+   
+    ########## - Error Bound Plot
+    fig, ax=plt.subplots()
+    ax.errorbar(ll_actuals,name,xerr=error_bound,fmt='o')   #(name,quantile)
+    plt.xlabel('Joint Log Likelihoods')
+    plt.title('Actual Likelihood and Interval of Simulated Likelihoods ')
+    
+    ########## - Just Quantiles with Models
+    fig, ax1=plt.subplots()
+    ax1.scatter(name,quantile)   #(name,quantile)
+    plt.xlabel('Model Names')
+    plt.ylabel('Quantile Scores')
+    plt.title('Quantile score of Models')
+    
+    ########## - Just Actual Likelihoods
+    fig, ax2=plt.subplots()
+    ax2.scatter(name,ll_actuals)   #(name,quantile)
+    plt.xlabel('Model Names')
+    plt.ylabel('Joint Log Likelihood')
+    plt.title('Joint Log Likelihood between actual forecast and observation')
+    
+
+def Single_ll_Model(Single_ll_Model):
+    
+    """
+    ***This function is applicable for plotting "Log-Likelihood" based Models***    
+    
+    This function plots the values of Simulated log-likelihoods.
+    Furthermore, A vertical line indicates Actual log-likelihood and horizontal line points quantile score of model
+    
+    Args:
+        A Dictionary of a Model: {'quantile': Value
+                                  'll_actual': Value
+                                  'll_simulation':Value
+                                   'model_name': name}
+    Returns
+    
+    """
+    
+    Quantile = Single_ll_Model['quantile']
+    ll_actual = Single_ll_Model['ll_actual']
+    ll_sim = Single_ll_Model['ll_simulation']
+        
+    #y=numpy.arange(ll_sim.size)/ll_sim.size
+    x = numpy.sort(ll_sim)
+    y=(numpy.arange(ll_sim.size)+1)/ll_sim.size
+    
+    fig, ax=plt.subplots()
+    
+    ax.plot(x,y,label='Simulated Likelihoods',color='g')
+    ax.vlines(ll_actual,ymin=min(y),ymax=max(y),color='r',linestyle='--',label='Actual Likelihood')
+    ax.hlines(Quantile,xmin=min(min(x),ll_actual),xmax=max(max(x),ll_actual),color='y',linestyle='--',label='Quantile Score') ####
+    #ax.xlabel('Joint Log Likelihood Values')
+    #äax.label_outer()
+    ax.legend()
+    plt.xlabel('Joint Log Likelihood')
+    plt.ylabel('Fraction of Cases')    
+
+def plot_N_test(Model_list):
+    
+    """
+    ***This function is applicable for plotting the outcome of N-Test only***    
+    
+    This function provides two plots. 
+    1. It Scatter Plots the values of delta 1 and delta 2 as (x,y) coordinates. Models names are provided in legends
+    2. It provides separate plots delta 1 and delta 2 values versus model names
+    
+    Args:
+        A list of Dictionaries of Models. Each dictionary consists of following structure.
+        A Dictionary of a Model: {'delta1': Value
+                                  'delta 2': Value
+                                   'name': modelname}
+    Returns
+    
+    """
+    #1st Plot -- Scatter Plot for every delta 1 and delta 2: Combine Plot  
+    name = []
+    delta1 = []
+    delta2 = []
+    fig, ax2=plt.subplots()
+    for i in range(numpy.size(Model_list)):
+        print(i)
+        name.append(Model_list[i]["name"])
+        delta1.append(Model_list[i]["delta1"])
+        delta2.append(Model_list[i]["delta2"])
+        ax2.scatter(delta1[i],delta2[i], label=name[i])   #(name,quantile)
+
+    plt.xlabel('delta 1')
+    plt.ylabel('delta 2')
+    plt.title('Performance of models in terms of Number test')
+    plt.legend()
+    
+    #2nd Plot -- Separate lines for delta 1 and delta 2. 
+    fig, ax1=plt.subplots()
+    ax1.plot(name, delta1, label='delta 1', color ='r')   #(name,quantile)
+    ax1.plot(name, delta2, label='delta 2', color ='b')
+    plt.xlabel('Model Names')
+    plt.ylabel('delta 1 and delta 2')
+    plt.title('Performance of models in terms of Number test')
+    plt.legend()
+
+
+
+### -----------The following lines can be run for Plotting of N Tests
+#forecast =numpy.zeros((10,10))+0.0015
+#forecast /= numpy.size(forecast)
+#observation = numpy.zeros((10,10))
+#N1 = N_test(observation, forecast, 'Mod1')
+#
+#forecast =numpy.zeros((3,3))+5
+#observation = numpy.zeros((3,3))+8
+#N2 = N_test(observation, forecast, 'Mod2')
+#
+#observation=numpy.array([[5, 8],[4, 2]])
+#forecast = numpy.array([[8, 2],[3, 5]])
+#N3 = N_test(observation, forecast, 'Mod3')
+#
+#Model_list = [N1,N2,N3]
+#plot_N_test(Model_list)
+    
+#####-----------The following lines can be run for testing Likelihood Plots
+#forecast =numpy.zeros((10,10))+0.15
+#observation = numpy.zeros((10,10))+1
+#L1 = L_Test(observation, forecast, 5,'L')
+#forecast =numpy.zeros((3,3))+5
+#observation = numpy.zeros((3,3))+8
+#L2 = M_Test(observation, forecast, 5,'M')
+#observation=numpy.array([[5, 8],[4, 2]])
+#forecast = numpy.array([[8, 2],[3, 5]])
+#L3 = S_Test(observation, forecast, 5,'S')
+#Model_list = [L1,L2,L3]
+#Multiple_ll_Models(Model_list)
+#Single_ll_Model(L1)
+#Single_ll_Model(L2)
+#Single_ll_Model(L3)
