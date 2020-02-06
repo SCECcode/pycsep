@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jan 27 14:38:30 2020
+Implementation of Unit Test for L Test
+@author: khawaja
+"""
+import numpy
+import unittest
+from csep1_tests import n_test
+from csep1_tests import poisson_log_likelihood
+from csep1_tests import forecast_realization_inverse_cdf
+from csep1_tests import m_test_prep
+from csep1_tests import s_test_prep
+
+
+class TestGriddedForecastTests(unittest.TestCase):
+    
+
+    def test_n_test(self):
+        #s = 'hello world'
+        forecast =numpy.zeros((10,10))+0.0015
+        forecast /= numpy.size(forecast)
+        observation = numpy.zeros((10,10))
+        expected_output = {'delta1':1.0,'delta2':0.9985011244377109,'name':'Unittesting'}
+        print('N Test: Running Unit Test')
+        self.assertEqual(n_test(observation, forecast,'Unittesting'), expected_output, 'Failed N Test')
+        
+    def test_l_lest(self):
+        
+        """
+        L Test is bisected in 03 independent Steps. 
+        #Step 1: Test the Likelihood between Actual Observation and Actual Forecast
+        #Step 2: Test the Generation of Realization of Forecast by providing Random Matrix
+        #Step 3: Test applied to check the Quantile Score on Eq. 15 of Zechar et al, 2010 
+        """
+        observation = numpy.array([[5, 8],[4, 2]])
+        forecast = numpy.array([[8, 2],[3,5]])
+        random_matrix = numpy.array([[0.2, 0.4],[0.6, 0.8]])
+        num_simulations = 1
+        Actual_log_Likelihood = numpy.array([[-2.3902840343828666,-7.059425458265689],
+                              [-1.7836046756755066,-2.474271355691745]])
+        ll_actual=-13.707585524015807
+        forecast_realization = numpy.array([[6., 1.],[3., 7.]])
+        ll_simulations = -7.16447335862158
+        Quantile_score = 0
+        
+        #Step 1: Poisson Likelihood Wrapper function Test
+        print('L Test: Step 1, Running NUMPY Test')
+        numpy.testing.assert_array_equal(poisson_log_likelihood(observation, forecast), Actual_log_Likelihood,'Failed L Test: Actual Likelihood Testing Failed')
+        
+        #Step 2: Test Forecast Realization. 
+        print('L Test: Step 2, Running NUMPY Test')
+        numpy.testing.assert_array_equal(forecast_realization_inverse_cdf(random_matrix, forecast), forecast_realization, 'Failed L Test: Simulated Forecast Likelihood Test')
+        
+        #Step 3: Check Equation of Quantile Score
+        print('L Test: Step 3, Running Unit Test')
+        self.assertEqual((numpy.sum(ll_simulations <= ll_actual) / num_simulations), Quantile_score,'Failed L Test: Quantile Score Testing')
+      
+        
+    def test_m_test_partial(self):
+        """
+        The first step of M Test is to prepare observation and forecast according to the definition of M Test. 
+        Then Second step is just same as L Test.
+        So we write Unit test to check only the output of M_Test_Prep() 
+        """
+        observation = numpy.array([[5, 8],[4, 2]])
+        forecast = numpy.array([[8, 2],[3,5]])
+        
+        observation_magbins = numpy.array([9, 10])
+        norm_forecast_magbins = numpy.array([11, 7])*19/18
+        
+        #Apply Test now
+        print('M Test: Observation Preparation, Running NUMPY Test')
+        numpy.testing.assert_array_equal(m_test_prep(observation,forecast)[0],observation_magbins,'M Test: Failed Row Summation of Observation')
+        print('M Test: Forecast Preparation, Running NUMPY Test')
+        numpy.testing.assert_array_equal(m_test_prep(observation,forecast)[1],norm_forecast_magbins,'M Test: Failed Row Summation or Normalization of Forecast')
+        
+        
+    def test_s_test_partial(self):
+        """
+        The first step of M Test is to prepare observation and forecast according to the definition of M Test. 
+        Then Second step is just same as L Test.
+        So we write Unit test to check only the output of M_Test_Prep() 
+        """
+        observation = numpy.array([[5, 8],[4, 2]])
+        forecast = numpy.array([[8, 2],[3,5]])
+        
+        observation_spacebins = numpy.array([13, 6])
+        norm_forecast_spacebins = numpy.array([10, 8])*19/18
+        
+        #Apply Test now
+        print('S Test: Observation Preparation, Running NUMPY Test')
+        numpy.testing.assert_array_equal(s_test_prep(observation,forecast)[0],observation_spacebins,'S Test: Failed Row Summation of Observation')
+        print('S Test: Forecast Preparation, Running NUMPY Test')
+        numpy.testing.assert_array_equal(s_test_prep(observation,forecast)[1],norm_forecast_spacebins,'S Test: Failed Row Summation or Normalization of Forecast')
+        
+if __name__ == '__main__':
+    unittest.main() 
+
