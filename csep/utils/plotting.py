@@ -954,7 +954,7 @@ def plot_probability_test(evaluation_result, axes=None, plot_args=None, show=Tru
 
 ##---Plotting functions for Likelihood based tests and N test, By Asim
 
-def multiple_ll_models(Model_list):
+def plot_csep1_likelihood_test(Model_list):
     
     """
     ***This function is applicable for plotting "Log-Likelihood" based Models***    
@@ -979,6 +979,10 @@ def multiple_ll_models(Model_list):
     upper_simulation = []
     lower_simulation = []
     for i in range(numpy.size(Model_list)):
+        
+        if Model_list[i]["model_name"] == 'None':   #Changing the default model (None) to Model i
+            Model_list[i]["model_name"] = 'Model '+str(i+1)
+          
         name.append(Model_list[i]["model_name"])
         quantile.append(Model_list[i]["quantile"])
         ll_actuals.append(Model_list[i]["ll_actual"])
@@ -996,26 +1000,26 @@ def multiple_ll_models(Model_list):
    
     ########## - Error Bound Plot
     fig, ax=plt.subplots()
-    ax.errorbar(ll_actuals,name,xerr=error_bound,fmt='o')   #(name,quantile)
+    ax.errorbar(ll_actuals,name,xerr=error_bound,fmt='o')
     plt.xlabel('Joint Log Likelihoods')
     plt.title('Actual Likelihood and Interval of Simulated Likelihoods ')
     
     ########## - Just Quantiles with Models
     fig, ax1=plt.subplots()
-    ax1.scatter(name,quantile)   #(name,quantile)
+    ax1.scatter(name,quantile) 
     plt.xlabel('Model Names')
     plt.ylabel('Quantile Scores')
     plt.title('Quantile score of Models')
     
     ########## - Just Actual Likelihoods
     fig, ax2=plt.subplots()
-    ax2.scatter(name,ll_actuals)   #(name,quantile)
+    ax2.scatter(name,ll_actuals) 
     plt.xlabel('Model Names')
     plt.ylabel('Joint Log Likelihood')
     plt.title('Joint Log Likelihood between actual forecast and observation')
     
 
-def single_ll_model(Single_ll_Model):
+def plot_csep1_single_likelihood_test(Single_ll_Model):
     
     """
     ***This function is applicable for plotting "Log-Likelihood" based Models***    
@@ -1037,7 +1041,6 @@ def single_ll_model(Single_ll_Model):
     ll_sim = Single_ll_Model['ll_simulation']
     model_name = Single_ll_Model['model_name']
         
-    #y=numpy.arange(ll_sim.size)/ll_sim.size
     x = numpy.sort(ll_sim)
     y=(numpy.arange(ll_sim.size)+1)/ll_sim.size
     
@@ -1045,15 +1048,14 @@ def single_ll_model(Single_ll_Model):
     
     ax.plot(x,y,label='Simulated Likelihoods',color='g')
     ax.vlines(ll_actual,ymin=min(y),ymax=max(y),color='r',linestyle='--',label='Actual Likelihood')
-    ax.hlines(Quantile,xmin=min(min(x),ll_actual),xmax=max(max(x),ll_actual),color='y',linestyle='--',label='Quantile Score') ####
-    #ax.xlabel('Joint Log Likelihood Values')
-    #äax.label_outer()
+    ax.hlines(Quantile,xmin=min(min(x),ll_actual),xmax=max(max(x),ll_actual),color='y',linestyle='--',label='Quantile Score') 
+
     ax.legend()
     plt.xlabel('Joint Log Likelihood')
     plt.ylabel('Fraction of Cases')    
     plt.title('Performance of Model '+model_name)
 
-def plot_n_test(Model_list):
+def plot_csep1_number_test(Model_list):
     
     """
     ***This function is applicable for plotting the outcome of N-Test only***    
@@ -1076,11 +1078,14 @@ def plot_n_test(Model_list):
     delta2 = []
     fig, ax2=plt.subplots()
     for i in range(numpy.size(Model_list)):
-        #print(i)
-        name.append(Model_list[i]["name"])
+        
+        if Model_list[i]["model_name"] == 'None':   #Changing the default model (None) to Model i
+            Model_list[i]["model_name"] = 'Model '+str(i+1)
+            
+        name.append(Model_list[i]["model_name"])
         delta1.append(Model_list[i]["delta1"])
         delta2.append(Model_list[i]["delta2"])
-        ax2.scatter(delta1[i],delta2[i], label=name[i])   #(name,quantile)
+        ax2.scatter(delta1[i],delta2[i], label=name[i])
 
     plt.xlabel('delta 1')
     plt.ylabel('delta 2')
@@ -1089,44 +1094,9 @@ def plot_n_test(Model_list):
     
     #2nd Plot -- Separate lines for delta 1 and delta 2. 
     fig, ax1=plt.subplots()
-    ax1.plot(name, delta1, label='delta 1', color ='r')   #(name,quantile)
+    ax1.plot(name, delta1, label='delta 1', color ='r')
     ax1.plot(name, delta2, label='delta 2', color ='b')
     plt.xlabel('Model Names')
     plt.ylabel('delta 1 and delta 2')
     plt.title('Performance of models in terms of Number test')
     plt.legend()
-
-
-
-### -----------The following lines can be run for Plotting of N Tests
-#forecast =numpy.zeros((10,10))+0.0015
-#forecast /= numpy.size(forecast)
-#observation = numpy.zeros((10,10))
-#N1 = n_test(observation, forecast, 'Mod1')
-#
-#forecast =numpy.zeros((3,3))+5
-#observation = numpy.zeros((3,3))+8
-#N2 = n_test(observation, forecast, 'Mod2')
-#
-#observation=numpy.array([[5, 8],[4, 2]])
-#forecast = numpy.array([[8, 2],[3, 5]])
-#N3 = n_test(observation, forecast, 'Mod3')
-#
-#Model_list = [N1,N2,N3]
-#plot_n_test(Model_list)
-    
-#####-----------The following lines can be run for testing Likelihood Plots
-#forecast =numpy.zeros((10,10))+0.15
-#observation = numpy.zeros((10,10))+1
-#L1 = s_test(observation, forecast, 5,'S')
-#forecast =numpy.zeros((3,3))+5
-#observation = numpy.zeros((3,3))+8
-#L2 = m_test(observation, forecast, 5,'M')
-#observation=numpy.array([[5, 8],[4, 2]])
-#forecast = numpy.array([[8, 2],[3, 5]])
-#L3 = l_test(observation, forecast, 5,'L')
-#Model_list = [L1,L2,L3]
-#multiple_ll_models(Model_list)
-#single_ll_model(L1)
-#single_ll_model(L2)
-#single_ll_model(L3)
