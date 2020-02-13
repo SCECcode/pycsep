@@ -8,7 +8,6 @@ Created on Thu Jan 23 20:06:58 2020
 """
 import numpy
 import scipy.stats
-#import matplotlib.pyplot as plt
 
 def poisson_log_likelihood(observation, forecast):      #This calls Poisson PMF function
     """Wrapper around scipy to compute the Poisson log-likelihood
@@ -23,7 +22,7 @@ def poisson_log_likelihood(observation, forecast):      #This calls Poisson PMF 
     return numpy.log(scipy.stats.poisson.pmf(observation, forecast))
 
 
-def forecast_realization_inverse_cdf(random_matrix, forecast):
+def _forecast_realization_inverse_cdf(random_matrix, forecast):
     """Wrapper around scipy inverse poisson cdf to compute new forecast using 
         actual forecast and random numbers between 0 and 1
     
@@ -39,7 +38,7 @@ def forecast_realization_inverse_cdf(random_matrix, forecast):
     return scipy.stats.poisson.ppf(random_matrix, forecast) 
 
 
-def l_test(observation, forecast, num_simulations, model_name):
+def l_test(observation, forecast, num_simulations=1000, model_name='None'):
     """
     Computes L test for Observed and Forecasted Catalogs
     
@@ -72,37 +71,21 @@ def l_test(observation, forecast, num_simulations, model_name):
     if not isinstance(forecast, numpy.ndarray):
         raise TypeError('forecast must be numpy.ndarray')
         
-    # seed the random number generator
-    #new_seed = seed or numpy.random.randint(1, high=99999)
-    #numpy.random.seed(seed=new_seed)
-    
-    # compute log-likelihood between the forecast and observations
-    ll_actual = numpy.sum(poisson_log_likelihood(observation, forecast))   #1) Apply first UNIT Test Here BEFORE NUMPYSUM...
-    #print(ll_actual)
-    # pre-allocated vector to store simulated log-likelihoods
+
+    ll_actual = numpy.sum(poisson_log_likelihood(observation, forecast))   
+
     ll_simulations = numpy.zeros(num_simulations)
     
     # compute simulated log-likelihoods
     for count in range(num_simulations):
         # random percentile for each independent bin
         random_matrix = numpy.random.random(forecast.shape) 
-        #random_matrix = numpy.array([0.2, 0.4])  # THIS IS JUST FOR CHECKING M TEST
-        #print(random_matrix)
         # computes the inverse cdf of the poisson random variable
-        forecast_realization = forecast_realization_inverse_cdf(random_matrix, forecast)  #Wrapper is put around scipy inverse poisson cdf
-        #2) Apply 2nd Test of FORECAST REALIZATION by Feeding CHOSEN RANDOM MATRIX
-        #print(forecast_realization)
-        # joint-loglikelihood from forecast realization and offset to zero for simplifed quantile score calc. 
-        #print(forecast_realization)
+        forecast_realization = _forecast_realization_inverse_cdf(random_matrix, forecast)  
         ll_simulations[count] = numpy.sum(poisson_log_likelihood(forecast_realization, forecast))
-        #print(ll_simulations)
-    # compute quantile score from Eq. 15 from Zechar et al., 2010    
     quantile_score = numpy.sum(ll_simulations <= ll_actual) / num_simulations #Apply 3rd UNIT TEST here on Quantile Score. 
     
-#    fig, ax = plt.subplots()
-#    ax.hist(ll_simulations, bins=25)
-#    plt.axvline(x=ll_actual)
-#    plt.show()
+
     L_Test_Eval = { 'model_name': model_name,
                     'quantile' : quantile_score,
                     'll_actual': ll_actual,
@@ -110,7 +93,7 @@ def l_test(observation, forecast, num_simulations, model_name):
      
     return L_Test_Eval
         
-def m_test_prep(observation, forecast):
+def _m_test_prep(observation, forecast):
     """
     This function prepares observation and forecasts by summing up all the values accross Spance-bins (x-axis, in our case)
     After summing up on Space-bins, it returns a 1-D vector containing only magnitude bins
@@ -145,7 +128,7 @@ def m_test_prep(observation, forecast):
 
 
 
-def m_test(observation, forecast, num_simulations, model_name):
+def m_test(observation, forecast, num_simulations = 1000, model_name = 'None'):
     """
     Computes M-test for Observed and Forecasted Catalogs
     -It must be noted that observation and forecasts are arranged in following form
@@ -179,13 +162,13 @@ def m_test(observation, forecast, num_simulations, model_name):
     if not isinstance(forecast, numpy.ndarray):
         raise TypeError('forecast must be numpy.ndarray')
     
-    [observations_magbins, norm_forecast_magbins] = m_test_prep(observation,forecast)
+    [observations_magbins, norm_forecast_magbins] = _m_test_prep(observation,forecast)
   
     M_Test_Eval = l_test(observations_magbins, norm_forecast_magbins, num_simulations, model_name)
     return M_Test_Eval
 
 
-def s_test_prep(observation, forecast):
+def _s_test_prep(observation, forecast):
     """
     This function prepares observation and forecasts by summing up all the values accross Magnitude-bins (y-axis, in our case)
     After summing up on Magnitude-bins, it returns a 1-D vector containing only Space bins
@@ -220,7 +203,7 @@ def s_test_prep(observation, forecast):
 
 
 
-def s_test(observation, forecast, num_simulations, model_name):
+def s_test(observation, forecast, num_simulations = 1000, model_name = 'None'):
     """
     Computes M-test for Observed and Forecasted Catalogs
     -It must be noted that observation and forecasts are arranged in following form
@@ -254,13 +237,13 @@ def s_test(observation, forecast, num_simulations, model_name):
     if not isinstance(forecast, numpy.ndarray):
         raise TypeError('forecast must be numpy.ndarray')
     
-    [observations_spacebins, norm_forecast_spacebins] = s_test_prep(observation,forecast)
+    [observations_spacebins, norm_forecast_spacebins] = _s_test_prep(observation,forecast)
   
     S_Test_Eval = l_test(observations_spacebins, norm_forecast_spacebins, num_simulations, model_name)
 
     return S_Test_Eval
 
-def n_test(observation, forecast, model_name):
+def n_test(observation, forecast, model_name = 'None'):
     """
     Computes Number (N) test for Observed and Forecasted Catalogs
     
@@ -284,17 +267,11 @@ def n_test(observation, forecast, model_name):
                   'delta2': delta2,
                   'model_name': The name of the model, provided in the input}
     """
-    #number_quakes = np.size(observation)
-    #number_forecast_quakes = np.size(forecast)
+
     Epsilon = 1e-6
-    
-   # delta1 = (1.0 - CSEPUtils.poissonCDF(np.size(observation) - Epsilon,
-                                       #np.size(forecast))
-    
+     
     delta1 = 1.0-scipy.stats.poisson.cdf(numpy.sum(observation) - Epsilon, numpy.sum(forecast))
     
-    #delta2 = CSEPUtils.poissonCDF(np.size(observation) + Epsilon,
-                                #np.size(forecast))
     delta2 = scipy.stats.poisson.cdf(numpy.sum(observation) + Epsilon, numpy.sum(forecast))
     
     Number_Test_Eval = {'delta1' : delta1,
@@ -303,3 +280,70 @@ def n_test(observation, forecast, model_name):
     return Number_Test_Eval
 
 
+def _conditional_l_test_prep(observation, forecast):
+    """
+    This function prepares the forecasts by normalizing them by a factor of (N_obs/_forecasts)
+    
+    Args
+    observation:Observed (Grided) seismicity (Numpy Array):
+                An Observation has to be Number of Events in Each Bin
+                It has to be a either zero or positive integer only (No Floating Point)
+    forecast:   Forecast of a Model (Grided) (Numpy Arrazy)
+                A forecast has to be in terms of Average Number of Events in Each Bin 
+                It can be anything greater than zero
+    
+    Returns
+    norm_forecast: Normalized Forecasted seismicity (Grided only accross Magnitude bins) 
+    """
+    if not isinstance(observation, numpy.ndarray):
+        raise TypeError('observation must be numpy.ndarray')
+    if not isinstance(forecast, numpy.ndarray):
+        raise TypeError('forecast must be numpy.ndarray')
+        
+    N_obs = numpy.sum(observation)
+    N_fcst = numpy.sum(forecast)
+    
+
+    norm_forecast = forecast*N_obs/N_fcst
+    
+    return norm_forecast
+
+
+
+def conditional_l_test(observation, forecast, num_simulations = 1000, model_name = 'None'):
+    """
+    Computes Conditional L-test for Observed and Forecasted Catalogs
+    This function first normalizes forecasts by a factor of (N_obs/_forecasts)
+    
+    We find the Joint Log Likelihood between Observed Catalog and Normalized Forecast
+    Catalogs. Later on, "num_simulations" Normalized Forecast Realizations are generated using Forecasted Catalog and Random numbers through inverse poission CDF.
+    Then Joint Likelihood of Forecast and Forecast Realizations are computed. 
+    Actual Joint Log Likelihood and Simulated Joint Log Likelihoods are then employed to compute Quantile Score
+    
+    Args
+    observation:Observed (Grided) seismicity (Numpy Array):
+                An Observation has to be Number of Events in Each Bin
+                It has to be a either zero or positive integer only (No Floating Point)
+    forecast:   Forecast of a Model (Grided) (Numpy Arrazy)
+                A forecast has to be in terms of Average Number of Events in Each Bin 
+                It can be anything greater than zero
+    num_simulation: Number of simulated Catalogs to be generated (Non-negative Integer)
+                A non-negative integer indicating the number of realized forecasts to be generated
+    model_name: A chosen name of the model is also required.
+    Returns
+    A dictionary of 4 elements
+                {'quantile' : Quantile Score of the Model,
+                    'll_actual': joint Log Likelihood of Observation and Actual Forecast,
+                     'll_simulation': Numpy array of Joint Likelihood of Simulated Forecasts 
+                     'model_name': The name of the model, provided in the input}
+    """
+    
+    if not isinstance(observation, numpy.ndarray):
+        raise TypeError('observation must be numpy.ndarray')
+    if not isinstance(forecast, numpy.ndarray):
+        raise TypeError('forecast must be numpy.ndarray')
+    
+    norm_forecast = _conditional_l_test_prep(observation,forecast)
+    
+    Conditional_L_Test_Eval = l_test(observation, norm_forecast, num_simulations, model_name)
+    return Conditional_L_Test_Eval
