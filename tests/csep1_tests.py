@@ -9,6 +9,18 @@ Created on Thu Jan 23 20:06:58 2020
 import numpy
 import scipy.stats
 
+def poisson_log_likelihood(observation, forecast):      #This calls Poisson PMF function
+    """Wrapper around scipy to compute the Poisson log-likelihood
+    
+    Args:
+        observation: Observed (Grided) seismicity
+        forecast: Forecast of a Model (Grided)
+    
+    Returns:
+        Log-Liklihood values of between binned-observations and binned-forecasts
+    """
+    return numpy.log(scipy.stats.poisson.pmf(observation, forecast))
+
 
 def _forecast_realization_inverse_cdf(random_matrix, forecast):
     """Wrapper around scipy inverse poisson cdf to compute new forecast using 
@@ -264,7 +276,7 @@ def n_test(observation, forecast, model_name = 'None'):
     
     Number_Test_Eval = {'delta1' : delta1,
                   'delta2': delta2
-                  ,'name': model_name} 
+                  ,'model_name': model_name} 
     return Number_Test_Eval
 
 

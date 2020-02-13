@@ -22,7 +22,7 @@ class TestGriddedForecastTests(unittest.TestCase):
         forecast =numpy.zeros((10,10))+0.0015
         forecast /= numpy.size(forecast)
         observation = numpy.zeros((10,10))
-        expected_output = {'delta1':1.0,'delta2':0.9985011244377109,'name':'Unittesting'}
+        expected_output = {'delta1':1.0,'delta2':0.9985011244377109,'model_name':'Unittesting'}
         print('N Test: Running Unit Test')
         self.assertEqual(n_test(observation, forecast,'Unittesting'), expected_output, 'Failed N Test')
         
