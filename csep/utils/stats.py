@@ -168,3 +168,17 @@ def get_quantiles(sim_counts, obs_count):
     # delta 2 prob of observing at most n_obs events given the catalog
     delta_2 = less_equal_ecdf(sim_counts, obs_count)
     return delta_1, delta_2
+
+def poisson_log_likelihood(observation, forecast):      #This calls Poisson PMF function
+    """Wrapper around scipy to compute the Poisson log-likelihood
+    
+    Args:
+        observation: Observed (Grided) seismicity
+        forecast: Forecast of a Model (Grided)
+    
+    Returns:
+        Log-Liklihood values of between binned-observations and binned-forecasts
+    """
+    return numpy.log(scipy.stats.poisson.pmf(observation, forecast))
+
+
