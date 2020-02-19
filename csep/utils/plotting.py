@@ -1100,3 +1100,175 @@ def plot_csep1_number_test(Model_list):
     plt.ylabel('delta 1 and delta 2')
     plt.title('Performance of models in terms of Number test')
     plt.legend()
+
+
+def csep1_plot_t_test(dic_list_t_test):
+    
+    """
+    ***This function is applicable for plotting the outcomes of t test***    
+    
+    This function gives 2 plots.
+    1 - The information gain of Model 1 vs All the Models which were compared, along with their confidence interval of their information
+    2 - T statistic value is plotted along with T critical
+    
+    Args:
+        A list of Dictionaries of Models. Each dictionary consists of following structure.
+        Every dictionary in the list of dictionaries consists of following elecments
+                {'model_name_1': Name of Mdoel 1 with which rest of the forecasts are compared,
+                 'model_name_2': Name of Model 2, which is compared with forecast of Model 1,
+                 't_critical': Critical value of T at 95% CDF, assuming 1-Tail distribution,
+                 'information_gain': Information gain per earthquake of Model A over Model B,
+                 'IG_lower':Lower bound pf Information Gain Confidence Interval,
+                 'IG_upper': Upper bound of Information Gain Confidence Interval }
+    Returns
+    
+    """
+    #Get the Names of Models into a List
+    model_name_1 = dic_list_t_test[0]["model_name_1"]
+    t_critical = dic_list_t_test[0]["t_critical"]
+    model_name_2 = []
+    information_gain = []
+    information_gain_upper = []
+    t_statistic = []
+    
+    for i in range(numpy.size(dic_list_t_test)):
+        
+        if dic_list_t_test[i]["model_name_2"] == 'None':   #Changing the default model (None) to Model i
+            dic_list_t_test[i]["model_name_2"] = 'Model '+str(i+1)
+        model_name_2.append(dic_list_t_test[i]["model_name_2"])
+        information_gain.append(dic_list_t_test[i]["information_gain"])
+        information_gain_upper.append(dic_list_t_test[i]["IG_upper"])
+        t_statistic.append(dic_list_t_test[i]["t_statistic"])
+    confidence_interval = numpy.subtract(information_gain_upper, information_gain)
+    
+    ########## - Information Gain Plot
+    fig, ax=plt.subplots()
+    ax.errorbar(information_gain,model_name_2,xerr=confidence_interval,fmt='o')   #(name,quantile)
+    ax.vlines(0,-0.2,max(model_name_2),color='r',linestyle='--')
+    plt.xlabel('Information gain per earthquake')
+    plt.title('Information gain comparision with '+model_name_1)
+    
+    ######## - T statistic Comparision Plot
+    fig, ax2 = plt.subplots()
+    ax2.scatter(numpy.abs(t_statistic), model_name_2, label='T statistic')
+    ax2.vlines(t_critical,-0.2,max(model_name_2),color='r',linestyle='--',label='T critical')
+    ax2.legend()
+    plt.xlabel('Absolute value of T Statistic')
+    plt.title('T statistic comparision with '+model_name_1)
+    
+    
+def csep1_plot_w_test(dic_list_w_test):
+    
+    """
+    ***This function is applicable for plotting the probablity outcomes of w test***    
+    
+    This function gives 1 plots.
+    1 - Probablity value of w statistic plotted along with 95% threshold line.
+    
+    Args:
+        dic_list_w_test:    Every dictionary in the list of dictionaries consists of following elecments
+                        A dictionary of following elements
+                        {'model_name_1': Name of Model 1,
+                         'model_name_2': Name of Model 2,
+                         'z_statistic' : Z statistic computed between forecast 1 and forecast 2,
+                         'probability': probability value}
+    Returns
+    Returns
+    
+    """
+    #Get the Names of Models into a List
+    model_name_1 = dic_list_w_test[0]["model_name_1"]
+    model_name_2 = []
+    w_prob = []
+    
+    for i in range(numpy.size(dic_list_w_test)):
+        
+        if dic_list_w_test[i]["model_name_2"] == 'None':   #Changing the default model (None) to Model i
+            dic_list_w_test[i]["model_name_2"] = 'Model '+str(i+1)
+        model_name_2.append(dic_list_w_test[i]["model_name_2"])
+        w_prob.append(dic_list_w_test[i]["probability"])
+    
+ 
+    ######## - Z probablity Comparision Plot
+    fig, ax = plt.subplots()
+    ax.scatter(numpy.abs(w_prob), model_name_2, label='W test probability')
+    ax.vlines(0.05,-0.2,max(model_name_2),color='r',linestyle='--',label='95% threshold')
+    ax.legend()
+    plt.xlabel('W test probability values')
+    plt.title('W test comparision with '+model_name_1)
+    
+def csep1_plot_t_w_test(dic_list_t_test,dic_list_w_test):
+    
+    """
+    ***This function is applicable for plotting the outcomes of both t and w test***    
+    ***Caution: The function assumes that the arrangement of Models given to t_test and w_test is same***
+    
+    This function gives following plot.
+    - The information gain of Model 1 vs All the Models which were compared, along with their confidence interval of their information
+    - Writes 'w=s' below IG, if NULL Hypothesis is rejected by W Test. otherwise, prints 'w=ns' 
+    
+    
+    Args:
+    dic_list_t_test:    A list of Dictionaries of Models. Each dictionary consists of following structure.
+                        Every dictionary in the list of dictionaries consists of following elecments
+                        {'model_name_1': Name of Mdoel 1 with which rest of the forecasts are compared,
+                         'model_name_2': Name of Model 2, which is compared with forecast of Model 1,
+                         't_critical': Critical value of T at 95% CDF, assuming 1-Tail distribution,
+                         'information_gain': Information gain per earthquake of Model A over Model B,
+                         'IG_lower':Lower bound pf Information Gain Confidence Interval,
+                         'IG_upper': Upper bound of Information Gain Confidence Interval }
+    
+    dic_list_w_test:    Every dictionary in the list of dictionaries consists of following elecments
+                        A dictionary of following elements
+                        {'model_name_1': Name of Model 1,
+                         'model_name_2': Name of Model 2,
+                         'z_statistic' : Z statistic computed between forecast 1 and forecast 2,
+                         'probability': probability value}
+    Returns
+    
+    """
+    
+    #Check to see whether the quantity of models being compared in T test and W test are same or not.
+    if numpy.size(dic_list_t_test) != numpy.size(dic_list_w_test):
+        sys.exit('The quantity and arrangement of models in Dictionaries of T and W test should be same')
+        
+     
+    #Write a check to compare the arrangement of model names for T test and W test. 
+    #Get the Names of Models into a List
+    model_name_1 = dic_list_t_test[0]["model_name_1"]
+    #t_critical = dic_list_t_test[0]["t_critical"]
+    model_name_2 = []
+    information_gain = []
+    information_gain_upper = []
+    t_statistic = []
+    w_prob = []
+    for i in range(numpy.size(dic_list_t_test)):
+        
+        if dic_list_t_test[i]["model_name_2"] == 'None':   #Changing the default model (None) to Model i
+            dic_list_t_test[i]["model_name_2"] = 'Model '+str(i+1)
+        model_name_2.append(dic_list_t_test[i]["model_name_2"])
+        information_gain.append(dic_list_t_test[i]["information_gain"])
+        information_gain_upper.append(dic_list_t_test[i]["IG_upper"])
+        t_statistic.append(dic_list_t_test[i]["t_statistic"])
+        
+        if dic_list_w_test[i]["probability"] < 0.05:
+            w_prob.append('w=s')
+        else:
+            w_prob.append('w=ns')
+            
+        print(w_prob)        
+        
+    confidence_interval = numpy.subtract(information_gain_upper, information_gain)
+    
+    ########## - Information Gain Plot
+    fig, ax=plt.subplots()
+    ax.errorbar(information_gain,model_name_2,xerr=confidence_interval,fmt='o')   #(name,quantile)
+  
+    for i, txt in enumerate(w_prob):
+        ax.annotate(txt, (information_gain[i], model_name_2[i]))
+   
+    ax.vlines(0,-0.2,max(model_name_2),color='r',linestyle='--')
+    
+    
+    plt.xlabel('Information gain per earthquake')
+    plt.title('Information gain comparision with '+model_name_1)
