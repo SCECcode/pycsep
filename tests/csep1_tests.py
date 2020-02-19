@@ -461,7 +461,7 @@ def multiple_t_tests(observation, dic_forecast_1, list_dic_forecast_2):
 
 
     
-def w_test(x, m=0):
+def w_test_single_sample(x, m=0):
     
     """
     Calculate the Single Sample Wilcoxon signed-rank test for any sample. .
@@ -525,7 +525,7 @@ def w_test(x, m=0):
                     'probability': prob }    
     return w_test_eval
 
-def w_test_csep(observation, forecast_1, forecast_2, model_1='None', model_2='None'):
+def w_test(observation, forecast_1, forecast_2, model_1='None', model_2='None'):
     
     """
     Calculate the Single Sample Wilcoxon signed-rank test for "log(forecast_1(i))-log(forecast_2(i))".
@@ -570,7 +570,7 @@ def w_test_csep(observation, forecast_1, forecast_2, model_1='None', model_2='No
     #W_test is One Sample Wilcoxon Signed Rank Test. It accepts the data only in 1D array. 
     x = Diff.flatten()  #Converting 2D Difference to 1D
     
-    w_test_dic = w_test(x, median_value)
+    w_test_dic = w_test_single_sample(x, median_value)
     
     w_test_dic['model_name_1'] =  model_1
     w_test_dic['model_name_2'] =  model_2
@@ -620,7 +620,7 @@ def multiple_w_tests(observation, dic_forecast_1, list_dic_forecast_2):
         model_name_2 = list_dic_forecast_2[i]["model_name"]
         forecast_2 = list_dic_forecast_2[i]["forecast"]
         
-        out = w_test_csep(observation, forecast_1, forecast_2, model_name_1, model_name_2)
+        out = w_test(observation, forecast_1, forecast_2, model_name_1, model_name_2)
         output_dic_list.append(out)
         
     return output_dic_list
