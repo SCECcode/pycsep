@@ -1006,21 +1006,20 @@ def plot_consistency_test(results, plot_args=None):
     """
     fig, ax = pyplot.subplots()
 
-    # compute p5 and p95
-    if results.test_distribution == 'poisson':
-        p5 = scipy.stats.poisson.ppf(0.05, results.fore_cnt)
-        p95 = scipy.stats.poisson.ppf(0.95, results.fore_cnt)
-    else:
-        p5 = numpy.percentile(results.test_distribution, 5)
-        p95 = numpy.percentile(results.test_distribution, 95)
-
     for index, res in enumerate(results):
         # errobar expects err to be relative to 'x'
+        # compute p5 and p95
+        if res.test_distribution == 'poisson':
+            p5 = scipy.stats.poisson.ppf(0.05, res.fore_cnt)
+            p95 = scipy.stats.poisson.ppf(0.95, res.fore_cnt)
+        else:
+            p5 = numpy.percentile(res.test_distribution, 5)
+            p95 = numpy.percentile(res.test_distribution, 95)
         low = res.observed - p5
         high = p95 - res.observed
         ax.errorbar(res.observed, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(res), capsize=4,
                     ecolor='black')
-    ax.set_yticklabels([res.fore_name for res in results])
+    ax.set_yticklabels([res.sim_name for res in results])
     ax.set_yticks(numpy.arange(len(results)))
 
     # parse plot arguments, more can be added here
