@@ -1036,3 +1036,121 @@ class ComcatCatalog(AbstractBaseCatalog):
 
         return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 
+
+class JmaCsvCatalog(AbstractBaseCatalog):
+    """
+    Handles a catalog type for preprocessed (deck2csv.pl) JMA deck file data:
+        timestamp;longitude;latitude;depth;magnitude
+        1923-01-08T13:46:29.170000+0900;140.6260;35.3025;0.00;4.100
+        1923-01-12T00:56:56.280000+0900;132.1828;32.4093;40.00;5.600
+        1923-01-14T14:51:29.130000+0900;140.0535;36.0797;87.00;6.000
+        1923-01-26T21:35:30.310000+0900;140.1388;36.2613;37.00;5.200
+        1923-01-27T08:28:11.320000+0900;140.1462;36.3623;99.67;3.700
+        1923-01-27T13:12:10.220000+0900;141.2377;36.9512;0.00;5.100
+
+        output created by a perl script developed first '89 by Hiroshi Tsuruoka,
+        updated by -tb to create proper JST timestamp strings instead of separate
+        columns for year, month, days, hours, minutes (all int), and seconds (.2 digit floats)
+
+    :var event_dtype: numpy.dtype description of JMA CSV catalog format:
+            - timestamp: milli(sic!)seconds as bigint
+            - longitude, latitude: regular coordinates as float64
+            - depth: kilometers as float64
+            - magnitude: regular magnitude as float64
+        after some benchmarks of comparing ('i8','f8','f8','f8','f8') vs. ('i8','i4','i4','i2','i2') the
+        10% speed gain by using full length float instead of minimum sized integers seemed to be more important than
+        the 200% used space
+    """
+
+    event_dtype = numpy.dtype([
+        ('timestamp', 'i8'),
+        ('longitude', 'f8'),
+        ('latitude', 'f8'),
+        ('depth', 'f8'),
+        ('magnitude', 'f8')
+    ])
+
+    def __init__(self, catalog_id='JMA', format='csv', **kwargs):
+        # initialize parent constructor
+        super().__init__(**kwargs)
+
+    def load_catalog(self):
+
+        # template for timestamp format in JMA csv file:
+        _tsTpl = '%Y-%m-%dT%H:%M:%S.%f%z'
+
+        # helper function to parse the timestamps:
+        parseDateString = lambda x: int(1000 * datetime.datetime.strptime(x.decode('utf-8'), _tsTpl).timestamp())
+
+        try:
+            self.catalog = numpy.genfromtxt(self.filename, delimiter=';', names=True, skip_header=0,
+                         dtype=self.event_dtype, invalid_raise=True, loose=False, converters={0: parseDateString})
+        except:
+            raise
+        else:
+            self._update_catalog_stats()
+
+        return self
+
+    def get_epoch_times(self):
+        """
+        Retrieves numpy.array of epoch milli(sic!)seconds from JMA eventset.
+
+        Returns:
+            numpy.array: of epoch seconds
+        """
+        return ( 1.0 * self.catalog['timestamp'] )
+
+    def get_magnitudes(self):
+        """
+        Retrieves numpy.array of magnitudes from JMA eventset.
+
+        Returns:
+            numpy.array: of magnitudes
+        """
+        return self.catalog['magnitude']
+
+    def get_longitudes(self):
+        """
+        Retrieves numpy.array of longitudes from JMA eventset.
+
+        Returns:
+            numpy.array: of longitudes
+        """
+        return self.catalog['longitude']
+
+    def get_latitudes(self):
+        """
+        Retrieves numpy.array of latitudes from JMA eventset.
+
+        Returns:
+            numpy.array: of latitudes
+        """
+        return self.catalog['latitude']
+
+    def _get_csep_format(self):
+        n = len(self.catalog)
+        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.csep_dtype)
+
+        # ToDo instead of iterating we should use self.catalog['timestamp'].astype('datetime64[ms]') and split this
+        for i, event in enumerate(self.catalog):
+            dt = epoch_time_to_utc_datetime(event['timestamp'])
+            year = dt.year
+            month = dt.month
+            day = dt.day
+            hour = dt.hour
+            minute = dt.minute
+            second = dt.second
+            csep_catalog[i] = (event['longitude'],
+                               event['latitude'],
+                               year,
+                               month,
+                               day,
+                               event['magnitude'],
+                               event['depth'],
+                               hour,
+                               minute,
+                               second)
+
+        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
+
