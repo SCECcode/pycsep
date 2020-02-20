@@ -1,5 +1,5 @@
 import time
-from csep.core.catalogs import UCERF3Catalog, CSEPCatalog, ComcatCatalog
+from csep.core.catalogs import UCERF3Catalog, ZMAPCatalog, ComcatCatalog
 
 def load_stochastic_event_sets(type=None, format='native', **kwargs):
     """
@@ -51,7 +51,7 @@ def load_catalog(type=None, format='native', **kwargs):
         format (str): ('csep' or 'native')
 
     Returns:
-        (:class:`~csep.core.catalogs.CSEPCatalog`)
+        (:class:`~csep.core.catalogs.ZMAPCatalog`)
     """
 
     if type not in ('ucerf3', 'comcat', 'csep'):
@@ -59,7 +59,7 @@ def load_catalog(type=None, format='native', **kwargs):
 
     # add entry point to load catalog here.
     mapping = {'ucerf3': UCERF3Catalog,
-               'csep': CSEPCatalog,
+               'csep': ZMAPCatalog,
                'comcat': ComcatCatalog}
 
     # load catalog in native format
@@ -77,6 +77,8 @@ def load_catalog(type=None, format='native', **kwargs):
 def load_comcat(start_time, end_time, min_magnitude=2.50,
                 min_latitude=31.50, max_latitude=43.00,
                 min_longitude=-125.40, max_longitude=-113.10, region=None, verbose=True):
+
+    # Todo: check if datetime has utc timezone and if not set it, and issue a warning to the user.
 
     t0 = time.time()
     comcat = ComcatCatalog(start_time=start_time, end_time=end_time,
