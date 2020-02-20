@@ -1037,7 +1037,7 @@ class ComcatCatalog(AbstractBaseCatalog):
         return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 
 
-class JmaCsvCatalog(BaseCatalog):
+class JmaCsvCatalog(AbstractBaseCatalog):
     """
     Handles a catalog type for preprocessed (deck2csv.pl) JMA deck file data:
         timestamp;longitude;latitude;depth;magnitude
