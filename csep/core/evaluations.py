@@ -11,9 +11,6 @@ from csep.utils import flat_map_to_ndarray
 # implementing plotting routines as functions
 from csep.utils.stats import get_quantiles, _poisson_log_likelihood
 
-from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
-
-
 
 class EvaluationResult:
 
@@ -688,7 +685,9 @@ def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_si
     are consistent with the observations. This modification eliminates the strong impact differences in the number distribution have on the
     forecasted rates.
 
-    The forecast should be treated as yearly rates.
+    The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
 
     Args:
         gridded_forecast: csep.core.forecasts.MarkedGriddedDataSet
@@ -699,7 +698,6 @@ def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_si
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
-    # sanity checking for types goes here, but later
 
     # storing this for later
     result = EvaluationResult()
@@ -710,10 +708,6 @@ def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_si
 
     # grid catalog onto spatial grid
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
-
-    # convert catalog from yearly rates to counts
-    catalog_length_in_years = observed_catalog.length_in_seconds() / SECONDS_PER_ASTRONOMICAL_YEAR
-    gridded_forecast.scale(catalog_length_in_years)
 
     # simply call likelihood test on catalog data and forecast
     qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
@@ -754,9 +748,7 @@ def csep1_number_test(gridded_forecast, observed_catalog):
     """
     result = EvaluationResult()
 
-    # grid catalog onto spatial grid
-    gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
-
+    # observed count
     obs_cnt = observed_catalog.event_count
 
     # forecasts provide the expeceted number of events during the time horizon of the forecast

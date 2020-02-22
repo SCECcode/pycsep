@@ -3,7 +3,7 @@ import matplotlib
 
 import pyproj
 
-from csep.utils.calc import discretize, bin1d_vec
+from csep.utils.calc import bin1d_vec
 
 
 def seq_iter(iterable):

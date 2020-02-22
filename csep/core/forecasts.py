@@ -1,9 +1,8 @@
 import numpy
+from csep.utils.log import LoggingMixin
 
-from csep.utils.calc import bin1d_vec
 
-
-class GriddedDataSet:
+class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
 
     Map-based and discrete forecasts, such as those provided by time-independent forecasts can be stored using this format.
@@ -92,7 +91,6 @@ class MarkedGriddedDataSet(GriddedDataSet):
         self.time_horizon = time_horizon
         self.magnitudes = magnitudes
 
-    @property
     def spatial_counts(self, cartesian=False):
         """
         Integrates over magnitudes to return the spatial version of the forecast.
@@ -109,7 +107,6 @@ class MarkedGriddedDataSet(GriddedDataSet):
         else:
             return numpy.sum(self.data, axis=1)
 
-    @property
     def magnitude_counts(self):
         return numpy.sum(self.data, axis=0)
 
@@ -126,6 +123,3 @@ class MarkedGriddedDataSet(GriddedDataSet):
     @classmethod
     def from_csep1_xml(cls, xml_fname):
         raise NotImplementedError()
-
-
-

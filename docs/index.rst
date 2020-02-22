@@ -1,7 +1,7 @@
 CSEP: Toolkit for Earthquake Forecast Developers
 ================================================
 
-*The CSEP tools help earthquake forecast model developers evaluate with the goal of understanding
+*The CSEP tools help earthquake forecast model developers evaluate their forecasts with the goal of understanding
 earthquake predictability.*
 
 
@@ -20,14 +20,9 @@ The CSEP toolkit provides the following modules:
 
 The toolkit helps enforce the following traits:
 
-+ *Reproducible*:
++ *Reproducible*
 + *Transparent*
 + *Accessible*
 + *Extensible*
 + *Interoperable*
-
-
-
-
-
 

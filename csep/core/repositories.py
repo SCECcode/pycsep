@@ -29,6 +29,12 @@ class Repository(LoggingMixin):
     def delete(self):
         raise NotImplementedError
 
+    def to_dict(self):
+        raise NotImplementedError
+
+    def from_dict(self, adict):
+        raise NotImplementedError
+
 class FileSystem(Repository):
     def __init__(self, url="", name='filesystem'):
         expand_url = os.path.expandvars(os.path.expanduser(url))

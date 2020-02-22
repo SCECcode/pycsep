@@ -101,7 +101,7 @@ class TestPoissonLikelihood(unittest.TestCase):
         # expecting the sampling weights to be [0.25, 0.5, 0.75, 1.0]
         # assuming the random numbers are equal to thhe following:
         random_numbers = numpy.array([[0.5488135, 0.71518937],
-                                   [0.60276338, 0.54488318]])
+                                      [0.60276338, 0.54488318]])
 
         num_events = 4
 

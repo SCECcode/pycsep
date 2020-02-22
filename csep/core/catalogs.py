@@ -1,6 +1,7 @@
 import json
 import operator
 import datetime
+import six
 
 # 3rd party
 import numpy
@@ -8,8 +9,6 @@ import pandas
 import pyproj
 
 # CSEP Imports
-import six
-
 import csep
 from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, millis_to_days
 from csep.utils.comcat import search
@@ -22,6 +21,7 @@ from csep.utils.spatial import bin_catalog_spatial_counts
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
+
 # idea: should we have a single catalog object with multiple readers that all return the same object?
 
 
@@ -659,6 +659,7 @@ class ZMAPCatalog(AbstractBaseCatalog):
 
     def get_csep_format(self):
         return self
+
 
 class UCERF3Catalog(AbstractBaseCatalog):
     """
