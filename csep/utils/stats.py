@@ -1,5 +1,5 @@
 import numpy
-
+import scipy.stats
 
 def sup_dist(cdf1, cdf2):
     """
@@ -168,3 +168,32 @@ def get_quantiles(sim_counts, obs_count):
     # delta 2 prob of observing at most n_obs events given the catalog
     delta_2 = less_equal_ecdf(sim_counts, obs_count)
     return delta_1, delta_2
+
+
+def _poisson_log_likelihood(observation, forecast):
+    """Wrapper around scipy to compute the Poisson log-likelihood
+
+    Args:
+        observation: Observed (Grided) seismicity
+        forecast: Forecast of a Model (Grided)
+
+    Returns:
+        Log-Liklihood values of between binned-observations and binned-forecasts
+    """
+    return numpy.log(scipy.stats.poisson.pmf(observation, forecast))
+
+
+def _poisson_inverse_cdf(random_matrix, forecast):
+    """Wrapper around scipy inverse poisson cdf to compute new forecast using
+        actual forecast and random numbers between 0 and 1
+
+    Args:
+        random_matrix: Matrix of dimenions equal to forecast, containing random
+                       numbers between 0 and 1.
+        forecast: Actual Forecast of a Model (Grided)
+
+    Returns:
+        A new forecast which is the realization of Actual forecast
+    """
+
+    return scipy.stats.poisson.ppf(random_matrix, forecast)

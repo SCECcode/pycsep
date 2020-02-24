@@ -1,3 +1,4 @@
+import itertools
 import os
 import xml.etree.ElementTree as ET
 from itertools import compress
@@ -10,12 +11,13 @@ from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.scaling_relationships import WellsAndCoppersmith
 
 class CartesianGrid2D:
-    """Represents a 2-dimensional cartesian grid.
+    """Represents a 2D cartesian gridded region.
 
-    The class provides functions to query onto 2D Cartesian grid and maintains a mapping between space coordinates defined
-    by polygons and the index into the polygon array. Additionally this
+    The class provides functions to query onto an index 2D Cartesian grid and maintains a mapping between space coordinates defined
+    by polygons and the index into the polygon array.
 
-
+    Custom regions can be easily created by using the from_polygon classmethod. This function will accept an arbitrary closed
+    polygon and return a CartesianGrid class with only points inside the polygon to be valid.
     """
     def __init__(self, polygons, dh, name='Generic CartesianGrid2D'):
         self.polygons = polygons
@@ -25,10 +27,9 @@ class CartesianGrid2D:
         # bitmask is 2d numpy array with 2d shape (xs, ys), dim=0 is the mapping from 2d to polygon dim=1 maps the index
         # note: might consider changing this, but it requires less constraints on how the polygons are defined.
         self.bitmask = a
-        # index values into the 2d cartesian grid
+        # index values of polygons array into the 2d cartesian grid, based on the midpoint.
         self.xs = xs
         self.ys = ys
-        # number of polygons
 
     @property
     def num_nodes(self):
@@ -46,7 +47,7 @@ class CartesianGrid2D:
         """
         idx = bin1d_vec(lons, self.xs)
         idy = bin1d_vec(lats, self.ys)
-        return int(self.bitmask[idy, idx, 1])
+        return self.bitmask[idy, idx, 1].astype(numpy.int)
 
     def get_location_of(self, idx):
         """
@@ -66,19 +67,26 @@ class CartesianGrid2D:
     def get_masked(self, lons, lats):
         """Returns bool array lons and lats are not included in the spatial region.
 
+        .. note:: The ordering of lons and lats should correspond to the ordering of the lons and lats in the catalog.
+
         Args:
-            lons: ndarray-like
-            lats: ndarray-like
+            lons: array-like
+            lats: array-like
 
         Returns:
-            idx: ndarray-like
+            idx: array-like
         """
+
         idx = bin1d_vec(lons, self.xs)
         idy = bin1d_vec(lats, self.ys)
         return self.bitmask[idy, idx, 0].astype(bool)
 
     def get_cartesian(self, data):
-        """"""
+        """Returns 2d ndrray representation of the data set, corresponding to the bounding box.
+
+        Args:
+            data:
+        """
         assert len(data) == len(self.polygons)
         results = numpy.zeros(self.bitmask.shape[:2])
         ny = len(self.ys)
@@ -98,17 +106,21 @@ class CartesianGrid2D:
     def midpoints(self):
         return numpy.array([poly.centroid() for poly in self.polygons])
 
+    def origins(self):
+        return numpy.array([poly.origin for poly in self.polygons])
+
     def to_dict(self):
         adict = {
             'name': self.name,
             'dh': self.dh,
-            'polygons': [{'lat': coord[1], 'lon': coord[0]} for coord in self.midpoints()]
+            'polygons': [{'lat': origin[1], 'lon': origin[0]} for origin in self.polygons.origin]
         }
         return adict
 
     @classmethod
     def from_dict(cls, adict):
         raise NotImplementedError("Todo!")
+
 
 def grid_spacing(vertices):
     """
@@ -146,6 +158,7 @@ def california_relm_region(filepath=None, dh=0.1):
         list of polygons (region)
 
     """
+    # todo: allow user to specifiy grid spacing
     if filepath is None:
         # use default file path from python pacakge
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -157,6 +170,27 @@ def california_relm_region(filepath=None, dh=0.1):
     bboxes = compute_vertices(origins, dh)
     relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name='California RELM CartesianGrid2D')
     return relm_region
+
+
+def global_region(dh=0.1, name="global"):
+    """ Creates a global region used for evaluating gridded forecasts on the global scale.
+
+    The gridded region corresponds to the
+
+    Args:
+        dh:
+
+    Returns:
+        csep.utils.CartesianGrid2D:
+    """
+    # generate latitudes
+    lats = numpy.arange(-90.0, 89.9 + dh/2, dh)
+    lons = numpy.arange(-180, 179.9 + dh/2, dh)
+    coords = itertools.product(lons,lats)
+    bboxes = compute_vertices(coords, dh)
+    region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
+    return region
+
 
 def parse_csep_template(xml_filename):
     """
@@ -206,7 +240,7 @@ def increase_grid_resolution(points, dh, factor):
     new_factor = factor / 2
     return increase_grid_resolution(list(new_points), new_dh, new_factor)
 
-def compute_vertex(origin_point, dh, tol=0.0):
+def compute_vertex(origin_point, dh, tol=numpy.finfo(float).eps):
     """
     Computes the bounding box of a rectangular polygon given its origin points and spacing dh.
 
@@ -226,10 +260,19 @@ def compute_vertex(origin_point, dh, tol=0.0):
             (origin_point[0] + dh - tol, origin_point[1]))
     return bbox
 
-def compute_vertices(origin_points, dh, tol=0.0):
+def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
     """
     Wrapper function to compute vertices for multiple points. Default tolerance is set to machine precision
     of floating point number.
+
+    Args:
+        origin_points: 2d ndarray
+
+    Notes:
+        (x,y) should be accessible like:
+        >>> x_coords = origin_points[:,0]
+        >>> y_coords = origin_points[:,1]
+
     """
     return list(map(lambda x: compute_vertex(x, dh, tol=tol), origin_points))
 
@@ -301,7 +344,7 @@ def bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, bitmask, binx,
             hash_idx = int(bitmask[idy[i], idx[i], 1])
             mag_idx = mags[i]
             # update event counts in that polygon
-            numpy.add.at(event_counts, [hash_idx, mag_idx], 1)
+            event_counts[(hash_idx, mag_idx)]+=1
     return event_counts
 
 def bin_catalog_spatial_counts(lons, lats, n_poly, bitmask, binx, biny):

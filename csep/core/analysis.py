@@ -30,7 +30,7 @@ from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_like
     plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_distribution_test, plot_spatial_dataset, \
     plot_probability_test
 from csep.utils.calc import bin1d_vec
-from csep.utils.stats import get_quantiles, cumulative_square_diff, sup_dist, sup_dist_na
+from csep.utils.stats import get_quantiles, cumulative_square_diff, sup_dist
 from csep.core.catalogs import ComcatCatalog
 from csep.core.repositories import FileSystem
 

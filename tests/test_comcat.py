@@ -5,8 +5,6 @@ import json
 import tempfile
 
 
-from csep.utils.comcat import search
-
 import vcr
 
 def get_datadir():

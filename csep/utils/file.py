@@ -1,5 +1,7 @@
 import os
 import shutil
+import collections
+import six
 from tempfile import mkdtemp
 from contextlib import contextmanager
 
@@ -90,3 +92,9 @@ def get_relative_path(abs_path):
     basename = os.path.basename(abs_path)
     dir_name = os.path.basename(os.path.dirname(abs_path))
     return os.path.join(dir_name, basename)
+
+def iterable(arg):
+    return (
+        isinstance(arg, collections.Iterable)
+        and not isinstance(arg, six.string_types)
+    )

@@ -125,8 +125,6 @@ class HistoricTime(datetime.datetime):
         result = self.replace(year=future_year).strftime(format)
         if any(f.ispresent_in(format) for f in map(Specifier, ['%c', '%x'])):
             msg = "'%c', '%x' produce unreliable results for year < 1900"
-            if not force:
-                raise ValueError(msg + " use force=True to override")
             warnings.warn(msg)
             result = result.replace(str(future_year), str(year))
         assert (future_year % 100) == (year %
