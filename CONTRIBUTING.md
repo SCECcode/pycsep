@@ -1,7 +1,7 @@
 # Contributing to PyCSEP
 
 This document provides an overview on how to contribute to PyCSEP. It will provide step-by-step instructions and hope to 
-answer some 
+answer some questions.
 
 
 ## Getting Started
