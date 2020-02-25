@@ -1,6 +1,7 @@
 import json
 import operator
 import datetime
+import six
 
 # 3rd party
 import numpy
@@ -20,6 +21,8 @@ from csep.utils.spatial import bin_catalog_spatial_counts
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
+
+# idea: should we have a single catalog object with multiple readers that all return the same object?
 
 
 class AbstractBaseCatalog(LoggingMixin):
@@ -139,9 +142,9 @@ class AbstractBaseCatalog(LoggingMixin):
 
         For example:
 
-                cat = CSEPCatalog()
+                cat = ZMAPCatalog()
                 df = cat.get_dataframe()
-                new_cat = CSEPCatalog.from_dataframe(df)
+                new_cat = ZMAPCatalog.from_dataframe(df)
                 cat == new_cat
 
         Args:
@@ -204,7 +207,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def write_catalog(self, binary=True):
         """
-        Write catalog in bespoke format. For interoperability, CSEPCatalog classes should be used.
+        Write catalog in bespoke format. For interoperability, ZMAPCatalog classes should be used.
         But we don't want to force the user to use a CSEP catalog if they are working with their own format.
         Each model might need to implement a custom reader if the file formats are different.
 
@@ -373,25 +376,38 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             return bval
 
-    def filter(self, statement, in_place=True):
+    def filter(self, statements, in_place=True):
         """
         Filters the catalog based on value.
 
         Args:
-            statement (str): logical statement to evaluate, e.g., 'magnitude > 4.0'
+            statements (str, iter): logical statements to evaluate, e.g., ['magnitude > 4.0', 'year >= 1995']
 
         Returns:
             self: instance of AbstractBaseCatalog, so that this function can be chained.
 
         """
+        filters=[]
+        # if we got a single string
+        if isinstance(statements, six.string_types):
+            filters.append(statements)
+        # if we got list of strings, not the most secure because we aren't checking each item of the list
+        elif isinstance(statements, (list, tuple)):
+            filters=list(statements)
+        else:
+            raise ValueError('statements should be either a string or list or tuple of strings')
+        # progamatically assign operators
         operators = {'>': operator.gt,
                      '<': operator.lt,
                      '>=': operator.ge,
                      '<=': operator.le,
                      '==': operator.eq}
-        name, oper, value = statement.split(' ')
-        filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
-        # returns a copy of the array
+        # filter catalogs, implied logical and
+        filtered = numpy.copy(self.catalog)
+        for filter in filters:
+            name, oper, value = filter.split(' ')
+            filtered = filtered[operators[oper](filtered[name], float(value))]
+        # can return new instance of class or original instance
         if in_place:
             self.catalog = filtered
             return self
@@ -403,18 +419,18 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def filter_spatial(self, region, update_stats=False):
         """
-        Removes events outside of the region. This is slow and should be used once. Typically for isoloate a region
-        near the mainshock. This should not be used to create gridded style data sets.
+        Removes events outside of the region. This takes some time and should be used sparingly. Typically for isolating a region
+        near the mainshock or inside a testing region. This should not be used to create gridded style data sets.
 
         Args:
-            region: interface (implements obj.contains())
+            region: csep.utils.spatial.Region
 
         Returns:
             self
 
         """
         mask = region.get_masked(self.get_longitudes(), self.get_latitudes())
-        # logical index uses opposite boolean values than masked arrays, confusing i know.
+        # logical index uses opposite boolean values than masked arrays.
         filtered = self.catalog[~mask]
         self.catalog = filtered
         # update the region to the new region
@@ -485,22 +501,20 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def _get_catalog_as_ndarray(self):
         """
-        This function must be implemented if the catalog is loaded in a bespoke format.
-        This function will be called anytime that a catalog is assigned
-        to self.catalog and is not of type ndarray.
+        This function will be called anytime that a catalog is assigned to self.catalog
 
-        The structure of the ndarray does not matter, so long as the getters can be
-        implemented correctly.
+        The purpose of this function is to ensure that the catalog is being properly parsed into the correct format, and
+        to prevent users of the catalog classes from assigning improper data types.
 
-        Additionally, advanced catalog operations could be carried out using GeoDataFrames and
-        DataFrames.
+        This also acts as a convenience to allow easy assignment of different types to the catalog. The default
+        implementation of this function expects that the data are arranged as a collection of tuples corresponding to
+        the catalog data type.
         """
-        if isinstance(self.catalog, numpy.ndarray):
-            return self.catalog
-        n = len(self.catalog)
-        catalog = numpy.array(n, dtype=self.dtype)
-        # parsing for comcat SummaryEvent
-        for i, event in self.catalog:
+        if isinstance(self._catalog, numpy.ndarray):
+            return self._catalog
+        n = len(self._catalog)
+        catalog = numpy.empty(n, dtype=self.dtype)
+        for i, event in enumerate(self._catalog):
             catalog[i] = tuple(event)
         return catalog
 
@@ -581,8 +595,14 @@ class AbstractBaseCatalog(LoggingMixin):
                                                                         self.region.ys)
         return output
 
+    def length_in_seconds(self):
+        """Returns catalog length in years assuming that the catalog is sorted by time."""
+        dts = self.get_datetimes()
+        elapsed_time = (dts[-1] - dts[0]).total_seconds()
+        return elapsed_time
 
-class CSEPCatalog(AbstractBaseCatalog):
+
+class ZMAPCatalog(AbstractBaseCatalog):
     """
     Catalog stored in CSEP2 format. This catalog be used when operating within the CSEP2 software ecosystem.
     """
@@ -635,8 +655,7 @@ class CSEPCatalog(AbstractBaseCatalog):
         return datetimes
 
     def get_epoch_times(self):
-        dts = self.get_datetimes()
-        return list(map(datetime_to_utc_epoch, dts))
+        return list(map(datetime_to_utc_epoch, self.get_datetimes()))
 
     def get_csep_format(self):
         return self
@@ -722,7 +741,7 @@ class UCERF3Catalog(AbstractBaseCatalog):
     def get_csep_format(self):
         n = len(self.catalog)
         # allocate array for csep catalog
-        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
+        csep_catalog = numpy.zeros(n, dtype=ZMAPCatalog.dtype)
 
         for i, event in enumerate(self.catalog):
             dt = epoch_time_to_utc_datetime(event['origin_time'])
@@ -743,7 +762,7 @@ class UCERF3Catalog(AbstractBaseCatalog):
                                minute,
                                second)
 
-        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
+        return ZMAPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 
     @staticmethod
     def _get_catalog_dtype(version):
@@ -993,7 +1012,7 @@ class ComcatCatalog(AbstractBaseCatalog):
             return self.catalog
         catalog_length = len(self.catalog)
         if catalog_length == 0:
-            raise RuntimeError("Observed catalog is empty.")
+            raise RuntimeError("catalog is empty.")
         catalog = numpy.zeros(catalog_length, dtype=self.dtype)
         if isinstance(self.catalog[0], list):
             for i, event in enumerate(self.catalog):
@@ -1013,10 +1032,121 @@ class ComcatCatalog(AbstractBaseCatalog):
 
     def get_csep_format(self):
         n = len(self.catalog)
-        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
-
+        csep_catalog = numpy.zeros(n, dtype=ZMAPCatalog.dtype)
         for i, event in enumerate(self.catalog):
             dt = epoch_time_to_utc_datetime(event['origin_time'])
+            csep_catalog[i] = (event['longitude'],
+                               event['latitude'],
+                               dt.year,
+                               dt.month,
+                               dt.day,
+                               event['magnitude'],
+                               event['depth'],
+                               dt.hour,
+                               dt.minute,
+                               dt.second)
+
+        return ZMAPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
+
+
+class JmaCsvCatalog(AbstractBaseCatalog):
+    """
+    Handles a catalog type for preprocessed (deck2csv.pl) JMA deck file data:
+        timestamp;longitude;latitude;depth;magnitude
+        1923-01-08T13:46:29.170000+0900;140.6260;35.3025;0.00;4.100
+        1923-01-12T00:56:56.280000+0900;132.1828;32.4093;40.00;5.600
+        1923-01-14T14:51:29.130000+0900;140.0535;36.0797;87.00;6.000
+        1923-01-26T21:35:30.310000+0900;140.1388;36.2613;37.00;5.200
+        1923-01-27T08:28:11.320000+0900;140.1462;36.3623;99.67;3.700
+        1923-01-27T13:12:10.220000+0900;141.2377;36.9512;0.00;5.100
+
+        output created by a perl script developed first '89 by Hiroshi Tsuruoka,
+        updated by -tb to create proper JST timestamp strings instead of separate
+        columns for year, month, days, hours, minutes (all int), and seconds (.2 digit floats)
+
+    :var event_dtype: numpy.dtype description of JMA CSV catalog format:
+            - timestamp: milli(sic!)seconds as bigint
+            - longitude, latitude: regular coordinates as float64
+            - depth: kilometers as float64
+            - magnitude: regular magnitude as float64
+        after some benchmarks of comparing ('i8','f8','f8','f8','f8') vs. ('i8','i4','i4','i2','i2') the
+        10% speed gain by using full length float instead of minimum sized integers seemed to be more important than
+        the 200% used space
+    """
+
+    event_dtype = numpy.dtype([
+        ('timestamp', 'i8'),
+        ('longitude', 'f8'),
+        ('latitude', 'f8'),
+        ('depth', 'f8'),
+        ('magnitude', 'f8')
+    ])
+
+    def __init__(self, catalog_id='JMA', format='csv', **kwargs):
+        # initialize parent constructor
+        super().__init__(**kwargs)
+
+    def load_catalog(self):
+
+        # template for timestamp format in JMA csv file:
+        _tsTpl = '%Y-%m-%dT%H:%M:%S.%f%z'
+
+        # helper function to parse the timestamps:
+        parseDateString = lambda x: int(1000 * datetime.datetime.strptime(x.decode('utf-8'), _tsTpl).timestamp())
+
+        try:
+            self.catalog = numpy.genfromtxt(self.filename, delimiter=';', names=True, skip_header=0,
+                         dtype=self.event_dtype, invalid_raise=True, loose=False, converters={0: parseDateString})
+        except:
+            raise
+        else:
+            self._update_catalog_stats()
+
+        return self
+
+    def get_epoch_times(self):
+        """
+        Retrieves numpy.array of epoch milli(sic!)seconds from JMA eventset.
+
+        Returns:
+            numpy.array: of epoch seconds
+        """
+        return ( 1.0 * self.catalog['timestamp'] )
+
+    def get_magnitudes(self):
+        """
+        Retrieves numpy.array of magnitudes from JMA eventset.
+
+        Returns:
+            numpy.array: of magnitudes
+        """
+        return self.catalog['magnitude']
+
+    def get_longitudes(self):
+        """
+        Retrieves numpy.array of longitudes from JMA eventset.
+
+        Returns:
+            numpy.array: of longitudes
+        """
+        return self.catalog['longitude']
+
+    def get_latitudes(self):
+        """
+        Retrieves numpy.array of latitudes from JMA eventset.
+
+        Returns:
+            numpy.array: of latitudes
+        """
+        return self.catalog['latitude']
+
+    def _get_csep_format(self):
+        n = len(self.catalog)
+        csep_catalog = numpy.zeros(n, dtype=ZMAPCatalog.dtype)
+
+        # ToDo instead of iterating we should use self.catalog['timestamp'].astype('datetime64[ms]') and split this
+        for i, event in enumerate(self.catalog):
+            dt = epoch_time_to_utc_datetime(event['timestamp'])
             year = dt.year
             month = dt.month
             day = dt.day
@@ -1034,5 +1164,5 @@ class ComcatCatalog(AbstractBaseCatalog):
                                minute,
                                second)
 
-        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
+        return ZMAPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 

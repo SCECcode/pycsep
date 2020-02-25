@@ -23,3 +23,17 @@ class TestBin1d(unittest.TestCase):
         test = bin1d_vec(data, bin_edges)
         expected = [0, 0, 0, 1, 2]
         self.assertListEqual(test.tolist(), expected)
+
+    def test_upper_limit(self):
+        data = [40, 40, 40]
+        bin_edges = [0, 10, 20, 30]
+        test = bin1d_vec(data, bin_edges)
+        expected = [3, 3, 3]
+        self.assertListEqual(test.tolist(), expected)
+
+    def test_lower_limit(self):
+        data = [0]
+        bin_edges = [0, 10, 20, 30]
+        test = bin1d_vec(data, bin_edges)
+        expected = [0]
+        self.assertListEqual(test.tolist(), expected)

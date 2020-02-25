@@ -1,22 +1,21 @@
-from collections import namedtuple
-
 import time
 
 import numpy
+import scipy.stats
 
 from csep.utils.stats import cumulative_square_diff, binned_ecdf, sup_dist
 from csep.utils.constants import CSEP_MW_BINS
-from csep.utils import flat_map_to_ndarray, current_git_hash
+from csep.utils import flat_map_to_ndarray
+
 
 # implementing plotting routines as functions
-from csep.utils.stats import get_quantiles
-
+from csep.utils.stats import get_quantiles, _poisson_log_likelihood
 
 
 class EvaluationResult:
 
     def __init__(self, test_distribution=None, name=None, observed_statistic=None, quantile=None, status="",
-                       obs_catalog_repr='', sim_name=None, obs_name=None, min_mw=None):
+                       obs_catalog_repr='', sim_name=None, obs_name=None, min_mw=None, fore_cnt=None):
         """
         Stores the result of an evaluation.
 
@@ -38,6 +37,7 @@ class EvaluationResult:
         self.obs_catalog_repr = obs_catalog_repr
         self.sim_name = sim_name
         self.obs_name = obs_name
+        self.fore_cnt = fore_cnt
         self.min_mw = min_mw
 
     def to_dict(self):
@@ -50,7 +50,8 @@ class EvaluationResult:
             'observed_statistic': self.observed_statistic,
             'test_distribution': list(self.test_distribution),
             'status': self.status,
-            'min_mw': self.min_mw
+            'min_mw': self.min_mw,
+            'fore_cnt': self.fore_cnt
         }
         return adict
 
@@ -74,8 +75,8 @@ class EvaluationResult:
             obs_name=adict['obs_name'],
             obs_catalog_repr=adict['obs_catalog_repr'],
             status=adict['status'],
-            min_mw=adict['min_mw'])
-
+            min_mw=adict['min_mw'],
+            fore_cnt=adict['fore_cnt'])
         return new
 
 class EvaluationConfiguration:
@@ -618,4 +619,155 @@ def bvalue_test(stochastic_event_sets, observation):
                               obs_catalog_repr=str(observation),
                               sim_name=stochastic_event_sets[0].name,
                               obs_name=observation.name)
+    return result
+
+
+def _simulate_catalog(num_events, sampling_weights, sort_args, sim_fore, random_numbers=None, seed=None):
+    if seed is not None:
+        numpy.random.seed(seed)
+
+    # generate uniformly distributed random numbers in [0,1), this
+    if random_numbers is None:
+        random_numbers = numpy.random.rand(num_events)
+
+    # reset simulation array to zero, but don't reallocate
+    sim_fore.fill(0)
+
+    # find insertion points using binary search inserting to satisfy a[i-1] <= v < a[i]
+    pnts = numpy.searchsorted(sampling_weights, random_numbers, sorter=sort_args, side='right')
+
+    # create simulated catalog
+    numpy.add.at(sim_fore, pnts, 1)
+
+    return sim_fore
+
+
+def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, seed=None):
+    """
+    Computes the likelihood-test from CSEP using an efficient simulation based approach.
+
+    Args:
+        forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
+        observed_data (numpy.ndarray): same format as observation.
+    """
+
+    # forecast_data should be event counts
+    expected_forecast_count = numpy.sum(forecast_data)
+
+    # used to determine where simulated earthquake shoudl be placed
+    sampling_weights = numpy.cumsum(forecast_data.ravel()) / expected_forecast_count
+    sort_args = numpy.argsort(sampling_weights)
+
+    # data structures to store results
+    sim_fore = numpy.empty(sampling_weights.shape)
+    simulated_ll = []
+
+    # observed joint log-likelihood
+    obs_ll = numpy.sum(_poisson_log_likelihood(observed_data, forecast_data))
+
+    for idx in range(num_simulations):
+        sim_fore = _simulate_catalog(expected_forecast_count, sampling_weights, sort_args, sim_fore, seed=seed)
+
+        # compute joint log-likelihood from simulation
+        current_ll = numpy.sum(_poisson_log_likelihood(sim_fore, forecast_data.ravel()))
+
+        simulated_ll.append(current_ll)
+
+    # quantile score
+    qs = numpy.sum(simulated_ll <= obs_ll) / num_simulations
+
+    return qs, obs_ll, simulated_ll
+
+
+def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None):
+    """
+    Performs the conditional likelihood test on Gridded Forecast using an Observed Catalog. This test normalizes the forecast so the forecasted rate
+    are consistent with the observations. This modification eliminates the strong impact differences in the number distribution have on the
+    forecasted rates.
+
+    The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecast: csep.core.forecasts.MarkedGriddedDataSet
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # storing this for later
+    result = EvaluationResult()
+
+    # scale forecast to observed event count
+    scaling_factor = observed_catalog.event_count / gridded_forecast.event_count
+    gridded_forecast.scale(scaling_factor)
+
+    # grid catalog onto spatial grid
+    gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
+
+    # simply call likelihood test on catalog data and forecast
+    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
+                                                       num_simulations=num_simulations, seed=seed)
+
+    # populate result
+    result.test_distribution = simulated_ll
+    result.name = 'CL-Test'
+    result.observed_statistic = obs_ll
+    result.quantile = qs
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+
+def csep1_number_test(gridded_forecast, observed_catalog):
+    """
+    @asim
+    Computes Number (N) test for Observed and Forecasts. Both data sets are expected to be in terms of event counts.
+
+    We find the Total number of events in Observed Catalog and Forecasted Catalogs. Which are then employed to compute the probablities of
+       (i) At least no. of events (delta 1)
+       (ii) At most no. of events (delta 2) assuming the possionian distribution.
+
+    Args:
+        observation: Observed (Grided) seismicity (Numpy Array):
+                    An Observation has to be Number of Events in Each Bin
+                    It has to be a either zero or positive integer only (No Floating Point)
+        forecast:   Forecast of a Model (Grided) (Numpy Array)
+                    A forecast has to be in terms of Average Number of Events in Each Bin
+                    It can be anything greater than zero
+
+    Returns:
+        out (tuple): (delta_1, delta_2)
+    """
+    result = EvaluationResult()
+
+    # observed count
+    obs_cnt = observed_catalog.event_count
+
+    # forecasts provide the expeceted number of events during the time horizon of the forecast
+    fore_cnt = gridded_forecast.event_count
+
+    epsilon = 1e-6
+    # stores the actual result of the number test
+    delta1 = 1.0 - scipy.stats.poisson.cdf(obs_cnt - epsilon, fore_cnt)
+    delta2 = scipy.stats.poisson.cdf(obs_cnt + epsilon, fore_cnt)
+
+    # store results
+    result.test_distribution = 'poisson'
+    result.name = 'N-Test'
+    result.observed_statistic = obs_cnt
+    result.quantile = (delta1, delta2)
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+    result.fore_cnt = fore_cnt
+
     return result

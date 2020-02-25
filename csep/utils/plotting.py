@@ -1,8 +1,10 @@
 from collections import defaultdict
 
 import matplotlib
+import scipy.stats
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
+from mpl_toolkits.basemap import Basemap
 
 import time
 import numpy
@@ -14,6 +16,8 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.calc import bin1d_vec
 from csep.utils.time import datetime_to_utc_epoch
+
+
 
 """
 This module contains plotting routines that generate figures for the stochastic event sets produced from
@@ -563,11 +567,12 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     clim = plot_args.get('clim', None)
     clabel = plot_args.get('clabel', '')
     filename = plot_args.get('filename', None)
+    cmap = plot_args.get('cmap', None)
 
     fig = pyplot.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
     lons, lats = numpy.meshgrid(region.xs, region.ys)
-    im = ax.pcolormesh(lons, lats, gridded)
+    im = ax.pcolormesh(lons, lats, gridded, cmap=cmap)
     ax.set_extent(extent)
     ax.coastlines(color='black', resolution='110m', linewidth=1)
     ax.add_feature(cartopy.feature.STATES)
@@ -575,8 +580,6 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     # colorbar options
     cbar = fig.colorbar(im, ax=ax)
     cbar.set_label(clabel)
-    # matplotlib.cm.get_cmap().set_bad(color='white')
-    # matplotlib.cm.get_cmap().set_under(color='gray')
     # gridlines options
     gl = ax.gridlines(draw_labels=True, alpha=0.5)
     gl.xlines = False
@@ -952,323 +955,79 @@ def plot_probability_test(evaluation_result, axes=None, plot_args=None, show=Tru
 
     return ax
 
-##---Plotting functions for Likelihood based tests and N test, By Asim
-
-def plot_csep1_likelihood_test(Model_list):
-    
+def plot_global_forecast(forecast, catalog=None, name=None):
     """
-    ***This function is applicable for plotting "Log-Likelihood" based Models***    
-    
-    This function gives 3 plots.
-    1 - The values of Simulated log-likelihoods are taken as Error bounds and indicates the location of Actual log-likelihood 
-    2 - Scatter plot of Quantile score of models
-    3 - Scatter plot of actual joint log-likelihood of models 
+    Creates global plot from a forecast using a Robin projection. This should be used as a quick and dirty plot and probably
+    will not suffice for publication quality figures.
+
     Args:
-        A list of Dictionaries of Models. Each dictionary consists of following structure.
-        A Dictionary of a Model: {'quantile': Value
-                                  'll_actual': Value
-                                  'll_simulation':Value
-                                   'model_name': name}
-    Returns
-    
-    """
-    #Get all the models details into respective Lists
-    name = []
-    quantile = []
-    ll_actuals = []
-    upper_simulation = []
-    lower_simulation = []
-    for i in range(numpy.size(Model_list)):
-        
-        if Model_list[i]["model_name"] == 'None':   #Changing the default model (None) to Model i
-            Model_list[i]["model_name"] = 'Model '+str(i+1)
-          
-        name.append(Model_list[i]["model_name"])
-        quantile.append(Model_list[i]["quantile"])
-        ll_actuals.append(Model_list[i]["ll_actual"])
-        ll_sim = Model_list[i]["ll_simulation"]
-        upper_simulation.append(max(ll_sim))
-        ll_sim = Model_list[i]["ll_simulation"]
-        lower_simulation.append(min(ll_sim))
-    
-    
-    #Mathematically, Compute the Upper and Lower Bounds of Error to be plotted in Error Plot 
-    lower_bound = numpy.subtract(ll_actuals,lower_simulation)
-    upper_bound = numpy.subtract(upper_simulation,ll_actuals)
-   
-    error_bound = [lower_bound,upper_bound]
-   
-    ########## - Error Bound Plot
-    fig, ax=plt.subplots()
-    ax.errorbar(ll_actuals,name,xerr=error_bound,fmt='o')
-    plt.xlabel('Joint Log Likelihoods')
-    plt.title('Actual Likelihood and Interval of Simulated Likelihoods ')
-    
-    ########## - Just Quantiles with Models
-    fig, ax1=plt.subplots()
-    ax1.scatter(name,quantile) 
-    plt.xlabel('Model Names')
-    plt.ylabel('Quantile Scores')
-    plt.title('Quantile score of Models')
-    
-    ########## - Just Actual Likelihoods
-    fig, ax2=plt.subplots()
-    ax2.scatter(name,ll_actuals) 
-    plt.xlabel('Model Names')
-    plt.ylabel('Joint Log Likelihood')
-    plt.title('Joint Log Likelihood between actual forecast and observation')
-    
+        forecast (csep.core.forecasts.MarkedGriddedDataSet): marked gridded data set
+        catalog (csep.core.catalog.AbstractBaseCatalog):  catalog base class
+        name (str): name of the catalog
 
-def plot_csep1_single_likelihood_test(Single_ll_Model):
-    
+    Returns:
+
     """
-    ***This function is applicable for plotting "Log-Likelihood" based Models***    
-    
-    This function plots the values of Simulated log-likelihoods.
-    Furthermore, A vertical line indicates Actual log-likelihood and horizontal line points quantile score of model
-    
+    fig, ax = pyplot.subplots(figsize=(18,11))
+    m = Basemap(projection='robin', lon_0= -180, resolution='c')
+    m.drawcoastlines(color = 'lightgrey', linewidth = 1.5)
+    m.drawparallels(numpy.arange(-90.,120.,15.), labels=[1,1,0,1], linewidth= 0.0, fontsize = 13)
+    m.drawmeridians(numpy.arange(0.,360.,40.), labels=[1,1,1,1], linewidth= 0.0, fontsize = 13)
+    x, y = m(forecast.longitudes(), forecast.latitudes())
+    cbar = ax.scatter(x, y, s = 2, c = numpy.log10(forecast.spatial_counts), cmap = 'inferno', edgecolor='')
+    a = fig.colorbar(cbar, orientation = 'horizontal', shrink = 0.5, pad = 0.01)
+    if catalog is not None:
+        x, y = m(catalog.get_longitudes(), catalog.get_latitudes())
+        ax.scatter(x, y, color='black')
+    a.ax.tick_params(labelsize = 14)
+    a.ax.tick_params(labelsize = 14)
+    if name is None:
+        name='Global Forecast'
+    a.set_label('{}\nlog$_{{10}}$(EQs / (0.1$^o$ x 0.1$^o$)'.format(name), size = 18)
+    return ax
+
+
+def _get_marker_style(result):
+    """Returns matplotlib marker style as fmt string"""
+    if result.observed < result.p5 or result.observed > result.p95:
+        # red square
+        fmt = 'rs'
+    else:
+        # green circle
+        fmt = 'go'
+    return fmt
+
+
+def plot_consistency_test(results, plot_args=None):
+    """ Plots results from CSEP1 Number test following the CSEP1 convention.
+
     Args:
-        A Dictionary of a Model: {'quantile': Value
-                                  'll_actual': Value
-                                  'll_simulation':Value
-                                   'model_name': name}
-    Returns
-    
+        results: N_Test_Result namedtuple storing test results (see above).
     """
-    
-    Quantile = Single_ll_Model['quantile']
-    ll_actual = Single_ll_Model['ll_actual']
-    ll_sim = Single_ll_Model['ll_simulation']
-    model_name = Single_ll_Model['model_name']
-        
-    x = numpy.sort(ll_sim)
-    y=(numpy.arange(ll_sim.size)+1)/ll_sim.size
-    
-    fig, ax=plt.subplots()
-    
-    ax.plot(x,y,label='Simulated Likelihoods',color='g')
-    ax.vlines(ll_actual,ymin=min(y),ymax=max(y),color='r',linestyle='--',label='Actual Likelihood')
-    ax.hlines(Quantile,xmin=min(min(x),ll_actual),xmax=max(max(x),ll_actual),color='y',linestyle='--',label='Quantile Score') 
+    fig, ax = pyplot.subplots()
 
-    ax.legend()
-    plt.xlabel('Joint Log Likelihood')
-    plt.ylabel('Fraction of Cases')    
-    plt.title('Performance of Model '+model_name)
-
-def plot_csep1_number_test(Model_list):
-    
-    """
-    ***This function is applicable for plotting the outcome of N-Test only***    
-    
-    This function provides two plots. 
-    1. It Scatter Plots the values of delta 1 and delta 2 as (x,y) coordinates. Models names are provided in legends
-    2. It provides separate plots delta 1 and delta 2 values versus model names
-    
-    Args:
-        A list of Dictionaries of Models. Each dictionary consists of following structure.
-        A Dictionary of a Model: {'delta1': Value
-                                  'delta 2': Value
-                                   'name': modelname}
-    Returns
-    
-    """
-    #1st Plot -- Scatter Plot for every delta 1 and delta 2: Combine Plot  
-    name = []
-    delta1 = []
-    delta2 = []
-    fig, ax2=plt.subplots()
-    for i in range(numpy.size(Model_list)):
-        
-        if Model_list[i]["model_name"] == 'None':   #Changing the default model (None) to Model i
-            Model_list[i]["model_name"] = 'Model '+str(i+1)
-            
-        name.append(Model_list[i]["model_name"])
-        delta1.append(Model_list[i]["delta1"])
-        delta2.append(Model_list[i]["delta2"])
-        ax2.scatter(delta1[i],delta2[i], label=name[i])
-
-    plt.xlabel('delta 1')
-    plt.ylabel('delta 2')
-    plt.title('Performance of models in terms of Number test')
-    plt.legend()
-    
-    #2nd Plot -- Separate lines for delta 1 and delta 2. 
-    fig, ax1=plt.subplots()
-    ax1.plot(name, delta1, label='delta 1', color ='r')
-    ax1.plot(name, delta2, label='delta 2', color ='b')
-    plt.xlabel('Model Names')
-    plt.ylabel('delta 1 and delta 2')
-    plt.title('Performance of models in terms of Number test')
-    plt.legend()
-
-
-def csep1_plot_t_test(dic_list_t_test):
-    
-    """
-    ***This function is applicable for plotting the outcomes of t test***    
-    
-    This function gives 2 plots.
-    1 - The information gain of Model 1 vs All the Models which were compared, along with their confidence interval of their information
-    2 - T statistic value is plotted along with T critical
-    
-    Args:
-        A list of Dictionaries of Models. Each dictionary consists of following structure.
-        Every dictionary in the list of dictionaries consists of following elecments
-                {'model_name_1': Name of Mdoel 1 with which rest of the forecasts are compared,
-                 'model_name_2': Name of Model 2, which is compared with forecast of Model 1,
-                 't_critical': Critical value of T at 95% CDF, assuming 1-Tail distribution,
-                 'information_gain': Information gain per earthquake of Model A over Model B,
-                 'IG_lower':Lower bound pf Information Gain Confidence Interval,
-                 'IG_upper': Upper bound of Information Gain Confidence Interval }
-    Returns
-    
-    """
-    #Get the Names of Models into a List
-    model_name_1 = dic_list_t_test[0]["model_name_1"]
-    t_critical = dic_list_t_test[0]["t_critical"]
-    model_name_2 = []
-    information_gain = []
-    information_gain_upper = []
-    t_statistic = []
-    
-    for i in range(numpy.size(dic_list_t_test)):
-        
-        if dic_list_t_test[i]["model_name_2"] == 'None':   #Changing the default model (None) to Model i
-            dic_list_t_test[i]["model_name_2"] = 'Model '+str(i+1)
-        model_name_2.append(dic_list_t_test[i]["model_name_2"])
-        information_gain.append(dic_list_t_test[i]["information_gain"])
-        information_gain_upper.append(dic_list_t_test[i]["IG_upper"])
-        t_statistic.append(dic_list_t_test[i]["t_statistic"])
-    confidence_interval = numpy.subtract(information_gain_upper, information_gain)
-    
-    ########## - Information Gain Plot
-    fig, ax=plt.subplots()
-    ax.errorbar(information_gain,model_name_2,xerr=confidence_interval,fmt='o')   #(name,quantile)
-    ax.vlines(0,-0.2,max(model_name_2),color='r',linestyle='--')
-    plt.xlabel('Information gain per earthquake')
-    plt.title('Information gain comparision with '+model_name_1)
-    
-    ######## - T statistic Comparision Plot
-    fig, ax2 = plt.subplots()
-    ax2.scatter(numpy.abs(t_statistic), model_name_2, label='T statistic')
-    ax2.vlines(t_critical,-0.2,max(model_name_2),color='r',linestyle='--',label='T critical')
-    ax2.legend()
-    plt.xlabel('Absolute value of T Statistic')
-    plt.title('T statistic comparision with '+model_name_1)
-    
-    
-def csep1_plot_w_test(dic_list_w_test):
-    
-    """
-    ***This function is applicable for plotting the probablity outcomes of w test***    
-    
-    This function gives 1 plots.
-    1 - Probablity value of w statistic plotted along with 95% threshold line.
-    
-    Args:
-        dic_list_w_test:    Every dictionary in the list of dictionaries consists of following elecments
-                        A dictionary of following elements
-                        {'model_name_1': Name of Model 1,
-                         'model_name_2': Name of Model 2,
-                         'z_statistic' : Z statistic computed between forecast 1 and forecast 2,
-                         'probability': probability value}
-    Returns
-    Returns
-    
-    """
-    #Get the Names of Models into a List
-    model_name_1 = dic_list_w_test[0]["model_name_1"]
-    model_name_2 = []
-    w_prob = []
-    
-    for i in range(numpy.size(dic_list_w_test)):
-        
-        if dic_list_w_test[i]["model_name_2"] == 'None':   #Changing the default model (None) to Model i
-            dic_list_w_test[i]["model_name_2"] = 'Model '+str(i+1)
-        model_name_2.append(dic_list_w_test[i]["model_name_2"])
-        w_prob.append(dic_list_w_test[i]["probability"])
-    
- 
-    ######## - Z probablity Comparision Plot
-    fig, ax = plt.subplots()
-    ax.scatter(numpy.abs(w_prob), model_name_2, label='W test probability')
-    ax.vlines(0.05,-0.2,max(model_name_2),color='r',linestyle='--',label='95% threshold')
-    ax.legend()
-    plt.xlabel('W test probability values')
-    plt.title('W test comparision with '+model_name_1)
-    
-def csep1_plot_t_w_test(dic_list_t_test,dic_list_w_test):
-    
-    """
-    ***This function is applicable for plotting the outcomes of both t and w test***    
-    ***Caution: The function assumes that the arrangement of Models given to t_test and w_test is same***
-    
-    This function gives following plot.
-    - The information gain of Model 1 vs All the Models which were compared, along with their confidence interval of their information
-    - Writes 'w=s' below IG, if NULL Hypothesis is rejected by W Test. otherwise, prints 'w=ns' 
-    
-    
-    Args:
-    dic_list_t_test:    A list of Dictionaries of Models. Each dictionary consists of following structure.
-                        Every dictionary in the list of dictionaries consists of following elecments
-                        {'model_name_1': Name of Mdoel 1 with which rest of the forecasts are compared,
-                         'model_name_2': Name of Model 2, which is compared with forecast of Model 1,
-                         't_critical': Critical value of T at 95% CDF, assuming 1-Tail distribution,
-                         'information_gain': Information gain per earthquake of Model A over Model B,
-                         'IG_lower':Lower bound pf Information Gain Confidence Interval,
-                         'IG_upper': Upper bound of Information Gain Confidence Interval }
-    
-    dic_list_w_test:    Every dictionary in the list of dictionaries consists of following elecments
-                        A dictionary of following elements
-                        {'model_name_1': Name of Model 1,
-                         'model_name_2': Name of Model 2,
-                         'z_statistic' : Z statistic computed between forecast 1 and forecast 2,
-                         'probability': probability value}
-    Returns
-    
-    """
-    
-    #Check to see whether the quantity of models being compared in T test and W test are same or not.
-    if numpy.size(dic_list_t_test) != numpy.size(dic_list_w_test):
-        sys.exit('The quantity and arrangement of models in Dictionaries of T and W test should be same')
-        
-     
-    #Write a check to compare the arrangement of model names for T test and W test. 
-    #Get the Names of Models into a List
-    model_name_1 = dic_list_t_test[0]["model_name_1"]
-    #t_critical = dic_list_t_test[0]["t_critical"]
-    model_name_2 = []
-    information_gain = []
-    information_gain_upper = []
-    t_statistic = []
-    w_prob = []
-    for i in range(numpy.size(dic_list_t_test)):
-        
-        if dic_list_t_test[i]["model_name_2"] == 'None':   #Changing the default model (None) to Model i
-            dic_list_t_test[i]["model_name_2"] = 'Model '+str(i+1)
-        model_name_2.append(dic_list_t_test[i]["model_name_2"])
-        information_gain.append(dic_list_t_test[i]["information_gain"])
-        information_gain_upper.append(dic_list_t_test[i]["IG_upper"])
-        t_statistic.append(dic_list_t_test[i]["t_statistic"])
-        
-        if dic_list_w_test[i]["probability"] < 0.05:
-            w_prob.append('w=s')
+    for index, res in enumerate(results):
+        # errobar expects err to be relative to 'x'
+        # compute p5 and p95
+        if res.test_distribution == 'poisson':
+            p5 = scipy.stats.poisson.ppf(0.05, res.fore_cnt)
+            p95 = scipy.stats.poisson.ppf(0.95, res.fore_cnt)
         else:
-            w_prob.append('w=ns')
-            
-        print(w_prob)        
-        
-    confidence_interval = numpy.subtract(information_gain_upper, information_gain)
-    
-    ########## - Information Gain Plot
-    fig, ax=plt.subplots()
-    ax.errorbar(information_gain,model_name_2,xerr=confidence_interval,fmt='o')   #(name,quantile)
-  
-    for i, txt in enumerate(w_prob):
-        ax.annotate(txt, (information_gain[i], model_name_2[i]))
-   
-    ax.vlines(0,-0.2,max(model_name_2),color='r',linestyle='--')
-    
-    
-    plt.xlabel('Information gain per earthquake')
-    plt.title('Information gain comparision with '+model_name_1)
+            p5 = numpy.percentile(res.test_distribution, 5)
+            p95 = numpy.percentile(res.test_distribution, 95)
+        low = res.observed - p5
+        high = p95 - res.observed
+        ax.errorbar(res.observed, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(res), capsize=4,
+                    ecolor='black')
+    ax.set_yticklabels([res.sim_name for res in results])
+    ax.set_yticks(numpy.arange(len(results)))
+
+    # parse plot arguments, more can be added here
+    if plot_args is None:
+        plot_args = {}
+    title = plot_args.get('title', 'CSEP1 Consistency Test')
+    xlabel = plot_args.get('xlabel', 'X')
+
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    return ax

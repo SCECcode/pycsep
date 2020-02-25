@@ -88,8 +88,9 @@ class TestDigitize(unittest.TestCase):
 
     def test_upper_bound_equal(self):
         data = [4.0]
-        with pytest.raises(CSEPException):
-            discretize(data, self.bin_edges)
+        test = discretize(data, self.bin_edges)
+        expected = [4]
+        self.assertListEqual(test.tolist(), expected)
 
     def test_unsorted_bins(self):
         data = [4.0]

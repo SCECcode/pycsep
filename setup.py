@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(
-    name='CSEP',
+    name='PyCSEP',
     version='0.1.0-dev',
     author='William Savran',
     author_email='wsavran@usc.edu',

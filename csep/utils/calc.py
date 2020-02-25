@@ -52,7 +52,7 @@ def bin1d_vec(p, bins):
 
     Returns the indices of the points into bins. Bins are inclusive on the lower bound
     and exclusive on the upper bound. In the case where a point does not fall within the bins a -1
-    will be returned.
+    will be returned. The last bin extends to infinity.
 
 
     Args:
@@ -62,18 +62,19 @@ def bin1d_vec(p, bins):
         idx (array-like):
 
     Raises:
-        TypeError:
+        ValueError:
     """
     a0 = numpy.min(bins)
     h = bins[1] - bins[0]
     eps = numpy.finfo(np.float).eps
-    assert h > 0
+    if h < 0:
+        raise ValueError("grid spacing must be positive.")
     idx = numpy.floor((p + eps - a0) / h)
     try:
-        idx[((idx < 0) | (idx >= len(bins) - 1))] = -1
+        idx[(idx >= len(bins) - 1)] = len(bins)-1
         idx = idx.astype(numpy.int)
     except TypeError:
-        if idx < 0 or idx >= len(bins) - 1:
-            idx = -1
+        if idx < 0:
+            raise ValueError("index must be greater than 0.")
         idx = numpy.int(idx)
     return idx
