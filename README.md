@@ -21,23 +21,30 @@ within in the python environment.
 
 1. Clone repository from `https://github.com/SCECcode/csep2`
 2. Create environment for installation
-    * [Anaconda](https://www.anaconda.com/) (recommended): `conda env create -f requirements.yaml`
+    * [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended):  
+    `conda env create -f requirements.yaml`  
+    `conda activate csep`  
+    To go back to your base environment enter `conda deactivate`
     * [Virtualenv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/):  
+    We highly recommend using Anaconda, because this tools helps to manage binary dependencies on Python pacakages. If you
+    must use `virtaulenv` follow these instructions:  
+    `cd csep2`  
     `mkdir venv`  
-    `cd venv`         
-    `python3 -m venv csep`    
-    `source venv/csep/bin/activate`      
-    `pip3 install -r requirements.txt`   
-3. Navigate to repo `cd csep2`
-4. Install package `pip install -e .`
+    `cd venv`  
+    `python3 -m venv csep`  
+    `source csep/bin/activate`  
+    `cd ..`  
+    `pip3 install numpy` (Because of obspy and another reason for using conda)  
+    `pip3 install -r requirements.txt`
+    
+    Note: There is an issue installing Cartopy on MacOS with Proj >=6.0.0 and will be addressed in 0.18 release of Cartopy. If this package,
+    is needed please manually install or use Conda instructions above.
+    
+3. Navigate to repo `cd csep2` (If you are not already there...)
+4. Install editable version of package `pip install -e .`
 
 You can verify the installation works by opening a python interpreter and typing `import csep`. If you see
 no errors the installation worked.
 
 With this editable installation you can freely edit the package and have the changes propagate to the python 
 installation.
-
-
-
-
-
