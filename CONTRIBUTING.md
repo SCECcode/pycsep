@@ -15,9 +15,6 @@ answer some questions.
 
 Pull requests are great! Please submit them to us! Here's how:
 
-If the pull request is related to an issue (which is no PR yet), let us know before opening the PR. We will convert 
-the issue into a PR and this will prevent having to keep track of duplicates.
-
 1. Fork the repo.
 2. Make a new branch. For features/additions base your new branch at `dev`.
 3. Add a test! Only pull requests for documentation and refactoring do not require a test.
