@@ -26,7 +26,7 @@ within in the python environment.
     `conda activate csep`  
     To go back to your base environment enter `conda deactivate`
     * [Virtualenv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/):  
-    We highly recommend using Anaconda, because this tools helps to manage binary dependencies on Python pacakages. If you
+    We highly recommend using Conda, because this tools helps to manage binary dependencies on Python pacakages. If you
     must use `virtaulenv` follow these instructions:  
     `cd csep2`  
     `mkdir venv`  
