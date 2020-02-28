@@ -1,6 +1,6 @@
 # PyCSEP: Collaboratory for the Study of Earthquake Predictability
 
-The CSEP tools help earthquake forecast model developers evaluate their forecasts with the goal of understanding
+The PyCSEP tools help earthquake forecast model developers evaluate their forecasts with the goal of understanding
 earthquake predictability.
 
 PyCSEP should:
