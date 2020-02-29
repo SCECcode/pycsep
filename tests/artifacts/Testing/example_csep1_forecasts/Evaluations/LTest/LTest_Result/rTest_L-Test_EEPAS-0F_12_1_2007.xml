@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CSEPResult xmlns="http://www.scec.org/xml-ns/csep/0.1">
+   <resultData publicID="smi://org.scec/csep/results/1">
+      <LTest publicID="smi://org.scec/csep/tests/ltest/1">
+         <creationInfo creationTime="2009-03-15T22:19:51"/>
+         <simulationData publicID="smi://local/simulationdata/1">
+            <simulationCount>10</simulationCount>
+            <simulation> 0 0 0 0 0 0 0 0 0 0</simulation>
+         </simulationData>
+         <modificationData publicID="smi://local/modificationdata/1">
+            <modificationCount>0</modificationCount>
+            <modification> </modification>
+         </modificationData>
+         <logLikelihood>0</logLikelihood>
+         <gamma>1</gamma>
+         <name>L-Test_EEPAS-0F_12_1_2007</name>
+         <description>This is LTest for EEPAS-0F_12_1_2007 model.</description>
+      </LTest>
+   </resultData>
+</CSEPResult>

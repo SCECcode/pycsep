@@ -1,6 +1,6 @@
 import datetime
 from unittest import TestCase
-from csep.utils.time import strptime_to_utc_datetime, datetime_to_utc_epoch, strptime_to_utc_epoch, epoch_time_to_utc_datetime
+from csep.utils.time_utils import strptime_to_utc_datetime, datetime_to_utc_epoch, strptime_to_utc_epoch, epoch_time_to_utc_datetime
 
 
 class TestTimeUtilities(TestCase):

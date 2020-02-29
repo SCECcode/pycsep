@@ -1,0 +1,22 @@
+<ns0:CSEPResult xmlns:ns0="http://www.scec.org/xml-ns/csep/0.1">
+  <ns0:resultData publicID="smi://org.scec/csep/results/1">
+     <ns0:NTest publicID="smi://org.scec/csep/tests/ntest/1">
+        <ns0:description>This is N-Test for EEPAS-0F_12_1_2007 model.</ns0:description>
+        <ns0:name file="EEPAS-0F_12_1_2007.dat">EEPAS-0F_12_1_2007</ns0:name>
+        <ns0:creationInfo CSEPVersion="pre14.4.0" creationTime="2014-08-01T14:10:18" />
+        <ns0:modificationData publicID="smi://local/modificationdata/1">
+           <ns0:modificationCount>0</ns0:modificationCount>
+           <ns0:modification> </ns0:modification>
+         </ns0:modificationData>
+        <ns0:cdfData publicID="smi://local/cdfdata/1">
+           <ns0:cdfCount>5</ns0:cdfCount>
+           <ns0:cdfValues>0.0 0.85689989412942635 0.98923452392879474 0.99945301874021475 0.99997904701852369</ns0:cdfValues>
+           <ns0:cdfEventCount>-1 0 1 2 3</ns0:cdfEventCount>
+         </ns0:cdfData>
+        <ns0:eventCount>0.0</ns0:eventCount>
+        <ns0:eventCountForecast>0.154434176858</ns0:eventCountForecast>
+        <ns0:delta1>1.00000</ns0:delta1>
+        <ns0:delta2>0.85690</ns0:delta2>
+      </ns0:NTest>
+   </ns0:resultData>
+</ns0:CSEPResult>

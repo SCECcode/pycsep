@@ -7,7 +7,6 @@ import numpy
 
 from csep.utils.calc import bin1d_vec
 from csep.utils.basic_types import Polygon
-from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.scaling_relationships import WellsAndCoppersmith
 
 class CartesianGrid2D:
@@ -19,7 +18,7 @@ class CartesianGrid2D:
     Custom regions can be easily created by using the from_polygon classmethod. This function will accept an arbitrary closed
     polygon and return a CartesianGrid class with only points inside the polygon to be valid.
     """
-    def __init__(self, polygons, dh, name='Generic CartesianGrid2D'):
+    def __init__(self, polygons, dh, name='cartesian2d'):
         self.polygons = polygons
         self.dh = dh
         self.name = name
@@ -145,7 +144,7 @@ def grid_spacing(vertices):
         raise ValueError("Problem computing grid spacing cannot be zero.")
     return dh
 
-def california_relm_region(filepath=None, dh=0.1):
+def california_relm_region(filepath=None, dh_scale=1):
     """
     Takes a CSEP1 XML file and returns a 'region' which is a list of polygons. This region can
     be used to create gridded datasets for earthquake forecasts.
@@ -157,18 +156,28 @@ def california_relm_region(filepath=None, dh=0.1):
     Returns:
         list of polygons (region)
 
+    Raises:
+        ValueError: dh_scale must be a factor of two
+
     """
-    # todo: allow user to specifiy grid spacing
+
+    if dh_scale % 2 != 0 and dh_scale != 1:
+        raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
+
     if filepath is None:
         # use default file path from python pacakge
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'csep-forecast-template-M5.xml')
     csep_template = os.path.expanduser(filepath)
-    origins = parse_csep_template(csep_template)
-    origins = increase_grid_resolution(origins, dh, 4)
-    dh = dh / 4
+    origins, dh = parse_csep_template(csep_template)
+
+    if dh_scale > 1:
+        origins = increase_grid_resolution(origins, dh, dh_scale)
+        dh = dh / dh_scale
+
+    # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name='California RELM CartesianGrid2D')
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name="california")
     return relm_region
 
 
@@ -187,8 +196,7 @@ def global_region(dh=0.1, name="global"):
     lats = numpy.arange(-90.0, 89.9 + dh/2, dh)
     lons = numpy.arange(-180, 179.9 + dh/2, dh)
     coords = itertools.product(lons,lats)
-    bboxes = compute_vertices(coords, dh)
-    region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
+    region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name)
     return region
 
 
@@ -205,7 +213,17 @@ def parse_csep_template(xml_filename):
     points = []
     for cell in root.iter('{http://www.scec.org/xml-ns/csep/forecast/0.1}cell'):
         points.append((float(cell.attrib['lon']), float(cell.attrib['lat'])))
-    return points
+
+    # get cell spacing
+    data = root.find('{http://www.scec.org/xml-ns/csep/forecast/0.1}forecastData')
+    dh_elem = data.find('{http://www.scec.org/xml-ns/csep/forecast/0.1}defaultCellDimension')
+    dh_lat = float(dh_elem.attrib['latRange'])
+    dh_lon = float(dh_elem.attrib['lonRange'])
+
+    if not numpy.isclose(dh_lat, dh_lon):
+        raise ValueError("dh_lat must equal dh_lon. grid needs to be regular.")
+
+    return points, dh_lat
 
 def increase_grid_resolution(points, dh, factor):
     """
@@ -314,7 +332,7 @@ def build_bitmask_vec(polygons, dh):
 
     return a, xs, ys
 
-def bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, bitmask, binx, biny):
+def bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, bitmask, binx, biny, mag_bins):
     """
     Returns a list of event counts as ndarray with shape (n_poly, n_cat) where each value
     represents the event counts within the polygon.
@@ -333,9 +351,9 @@ def bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, bitmask, binx,
     # index in 2d grid
     idx = bin1d_vec(lons, binx)
     idy = bin1d_vec(lats, biny)
-    mags = bin1d_vec(mags, CSEP_MW_BINS)
+    mags = bin1d_vec(mags, mag_bins)
     # start with zero event counts in each bin
-    event_counts = numpy.zeros((n_poly, len(CSEP_MW_BINS)))
+    event_counts = numpy.zeros((n_poly, len(mag_bins)))
     # does not seem that we can vectorize this part
     for i in range(idx.shape[0]):
         # we store the index of that polygon in array [:, :, 1], flag is [:,:,0]

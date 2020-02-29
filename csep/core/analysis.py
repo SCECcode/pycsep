@@ -16,7 +16,7 @@ import seaborn as sns
 from csep import load_stochastic_event_sets, load_comcat
 from csep.utils import current_git_hash
 from csep.utils.constants import SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_WEEK, CSEP_MW_BINS
-from csep.utils.time import epoch_time_to_utc_datetime, datetime_to_utc_epoch, millis_to_days, utc_now_epoch
+from csep.utils.time_utils import epoch_time_to_utc_datetime, datetime_to_utc_epoch, millis_to_days, utc_now_epoch
 from csep.utils.spatial import masked_region, california_relm_region
 from csep.utils.basic_types import Polygon, seq_iter, AdaptiveHistogram
 from csep.utils.scaling_relationships import WellsAndCoppersmith
@@ -93,7 +93,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     rupture_length = WellsAndCoppersmith.mag_length_strike_slip(event.magnitude) * 1000
     aftershock_polygon = Polygon.from_great_circle_radius((event.longitude, event.latitude),
                                                           3*rupture_length, num_points=100)
-    aftershock_region = masked_region(california_relm_region(), aftershock_polygon)
+    aftershock_region = masked_region(california_relm_region(dh_scale=4), aftershock_polygon)
 
     # event timing
     event_time = event.time.replace(tzinfo=datetime.timezone.utc)
