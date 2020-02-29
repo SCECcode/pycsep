@@ -10,19 +10,19 @@ import pyproj
 
 # CSEP Imports
 import csep
-from csep.utils.time import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, millis_to_days
+from csep.utils.time_utils import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, millis_to_days
 from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
 from csep.utils.comcat import SummaryEvent
 from csep.core.repositories import Repository, repo_builder
-from csep.core.exceptions import CSEPSchedulerException
+from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException
 from csep.utils.spatial import bin_catalog_spatial_counts
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
 
-# idea: should we have a single catalog object with multiple readers that all return the same object?
+# Idea: should we have a single catalog object with multiple readers that all return the same object?
 
 
 class AbstractBaseCatalog(LoggingMixin):
@@ -197,13 +197,6 @@ class AbstractBaseCatalog(LoggingMixin):
                                  " returns an ndarray")
         if self.compute_stats and self._catalog is not None:
             self.update_catalog_stats()
-
-    @classmethod
-    def load_catalogs(cls, filename=None, **kwargs):
-        """
-        Generator function to handle loading a stochastic event set.
-        """
-        raise NotImplementedError('load_catalogs must be overwritten in child classes')
 
     def write_catalog(self, binary=True):
         """
@@ -535,11 +528,14 @@ class AbstractBaseCatalog(LoggingMixin):
             cartesian: data embedded into a 2d map. can be used for quick plotting in python
         """
         # make sure region is specified with catalog
+        if self.event_count == 0:
+            return numpy.zeros(self.region.num_nodes)
+
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned rates without region information.")
         output = csep.utils.spatial.bin_catalog_spatial_counts(self.get_longitudes(),
                                                                self.get_latitudes(),
-                                                               len(self.region.polygons),
+                                                               self.region.num_nodes,
                                                                self.region.bitmask,
                                                                self.region.xs,
                                                                self.region.ys)
@@ -547,6 +543,9 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def spatial_event_probability(self):
         # make sure region is specified with catalog
+        if self.event_count == 0:
+            return numpy.zeros(self.region.num_nodes)
+
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned probabilities without region information.")
         output = csep.utils.spatial.bin_catalog_probability(self.get_longitudes(),
@@ -559,6 +558,11 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def binned_magnitude_counts(self, bins=CSEP_MW_BINS, retbins=False):
         out = numpy.zeros(len(bins))
+        if self.event_count == 0:
+            if retbins:
+                return (bins, out)
+            else:
+                return out
         idx = bin1d_vec(self.get_magnitudes(), bins)
         numpy.add.at(out, idx, 1)
         if retbins:
@@ -585,14 +589,23 @@ class AbstractBaseCatalog(LoggingMixin):
 
         # make sure region is specified with catalog
         if self.region is None:
-            raise CSEPSchedulerException("Cannot create binned rates without region information.")
+            raise CSEPCatalogException("Cannot create binned rates without region information.")
+
+        # short-circuit if zero-events in catalog... return array of zeros
+        if self.event_count == 0:
+            n_poly = self.region.num_nodes
+            n_mws = self.region.num_mag_bins
+            return numpy.zeros((n_poly, n_mws))
+
+        # compute if not
         output = csep.utils.spatial.bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
                                                                         self.get_latitudes(),
                                                                         self.get_magnitudes(),
-                                                                        len(self.region.polygons),
+                                                                        self.region.num_nodes,
                                                                         self.region.bitmask,
                                                                         self.region.xs,
-                                                                        self.region.ys)
+                                                                        self.region.ys,
+                                                                        self.region.magnitudes)
         return output
 
     def length_in_seconds(self):
@@ -659,6 +672,10 @@ class ZMAPCatalog(AbstractBaseCatalog):
 
     def get_csep_format(self):
         return self
+
+    def load_catalog(self, filename):
+        # ToDo: Write Function to Load catalog from ZMAP format
+        pass
 
 
 class UCERF3Catalog(AbstractBaseCatalog):
@@ -1084,7 +1101,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
 
     def __init__(self, catalog_id='JMA', format='csv', **kwargs):
         # initialize parent constructor
-        super().__init__(**kwargs)
+        super().__init__(catalog_id=catalog_id, format=format, **kwargs)
 
     def load_catalog(self):
 
@@ -1100,7 +1117,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         except:
             raise
         else:
-            self._update_catalog_stats()
+            self.update_catalog_stats()
 
         return self
 
@@ -1111,7 +1128,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         Returns:
             numpy.array: of epoch seconds
         """
-        return ( 1.0 * self.catalog['timestamp'] )
+        return self.catalog['timestamp']
 
     def get_magnitudes(self):
         """
@@ -1142,7 +1159,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
 
     def _get_csep_format(self):
         n = len(self.catalog)
-        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.csep_dtype)
+        csep_catalog = numpy.zeros(n, dtype=ZMAPCatalog.dtype)
 
         # ToDo instead of iterating we should use self.catalog['timestamp'].astype('datetime64[ms]') and split this
         for i, event in enumerate(self.catalog):
@@ -1164,5 +1181,5 @@ class JmaCsvCatalog(AbstractBaseCatalog):
                                minute,
                                second)
 
-        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
+        return ZMAPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 

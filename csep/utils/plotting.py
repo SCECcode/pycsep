@@ -15,7 +15,7 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.calc import bin1d_vec
-from csep.utils.time import datetime_to_utc_epoch
+from csep.utils.time_utils import datetime_to_utc_epoch
 
 
 
@@ -974,7 +974,7 @@ def plot_global_forecast(forecast, catalog=None, name=None):
     m.drawparallels(numpy.arange(-90.,120.,15.), labels=[1,1,0,1], linewidth= 0.0, fontsize = 13)
     m.drawmeridians(numpy.arange(0.,360.,40.), labels=[1,1,1,1], linewidth= 0.0, fontsize = 13)
     x, y = m(forecast.longitudes(), forecast.latitudes())
-    cbar = ax.scatter(x, y, s = 2, c = numpy.log10(forecast.spatial_counts), cmap = 'inferno', edgecolor='')
+    cbar = ax.scatter(x, y, s = 2, c = numpy.log10(forecast.spatial_counts()), cmap = 'inferno', edgecolor='')
     a = fig.colorbar(cbar, orientation = 'horizontal', shrink = 0.5, pad = 0.01)
     if catalog is not None:
         x, y = m(catalog.get_longitudes(), catalog.get_latitudes())

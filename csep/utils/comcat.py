@@ -19,7 +19,7 @@ from enum import Enum
 import sys
 
 # 3rd party imports
-from csep.utils.time import HistoricTime
+from csep.utils.time_utils import HistoricTime
 import numpy as np
 import pandas as pd
 import dateutil
@@ -40,6 +40,7 @@ URL_TEMPLATE = ('https://earthquake.usgs.gov/earthquakes/feed'
 SEARCH_DETAIL_TEMPLATE = ('https://earthquake.usgs.gov/fdsnws/event/1/query'
                           '?format=geojson&eventid=%s&'
                           'includesuperseded=%s&includedeleted=%s')
+
 
 class VersionOption(Enum):
     LAST = 1
@@ -752,6 +753,8 @@ class DetailEvent(object):
                 focal = self.getProducts('focal-mechanism')[0]
                 edict.update(_get_focal_mechanism_info(focal))
 
+        # dependency on obspy for this function that we might not use
+        #
         if get_all_magnitudes:
             phase_data = self.getProducts('phase-data')[0]
             phase_url = phase_data.getContentURL('quakeml.xml')

@@ -27,4 +27,4 @@ class JobStatus(str, Enum):
 min_mw = 2.5
 max_mw = 8.95
 dmw = 0.1
-CSEP_MW_BINS = numpy.arange(min_mw, max_mw, dmw)
+CSEP_MW_BINS = numpy.arange(min_mw, max_mw+dmw/2, dmw)
