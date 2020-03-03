@@ -376,13 +376,13 @@ def t_test(observation, forecast_1, forecast_2, model_name_1='None', model_name_
     X2 = numpy.log(forecast_2)      #Log of every element of Forecast 2
     
     #Information Gain, using Equation (17)  of Rhoades et al. 2011
-    Information_Gain = (numpy.sum(X1 - X2) - (N1-N2)) / N   #I beleieve, N is Total no. of Earthquakes here. 
+    Information_Gain = (numpy.sum(X1 - X2) - (N1-N2)) / N
                                 
       
         
     #Compute variance of (X1-X2) using Equation (18)  of Rhoades et al. 2011
-    first_term =  (numpy.sum(numpy.power((X1 - X2), 2))) / (N-1)    #I believe N is No. of Bins (nbins)  here?? So replacing N by bins
-    second_term =   numpy.power(numpy.sum(X1 - X2), 2) / (numpy.power(N,2) - N)   #nbins in place of N
+    first_term =  (numpy.sum(numpy.power((X1 - X2), 2))) / (N-1)
+    second_term =   numpy.power(numpy.sum(X1 - X2), 2) / (numpy.power(N,2) - N)
     forecast_variance = first_term - second_term 
      
     forecast_std = numpy.sqrt(forecast_variance)  
@@ -393,8 +393,8 @@ def t_test(observation, forecast_1, forecast_2, model_name_1='None', model_name_
     t_critical = scipy.stats.t.ppf(1-(0.05/2), df)   #Assuming 2-Tail Distribution  for 2 tail, divide 0.05/2.
 
     #Computing Information Gain Interval. 
-    IG_lower = Information_Gain - (t_critical*forecast_std / numpy.sqrt(N))  #Assuming N = nbins here.
-    IG_upper = Information_Gain + (t_critical*forecast_std / numpy.sqrt(N))  #Assuming N = nbins here.
+    IG_lower = Information_Gain - (t_critical*forecast_std / numpy.sqrt(N))
+    IG_upper = Information_Gain + (t_critical*forecast_std / numpy.sqrt(N))
     
     #If T value greater than T critical, Then both Lower and Upper Confidence Interval limits will be greater than Zero. 
     # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2. 
