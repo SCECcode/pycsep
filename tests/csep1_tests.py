@@ -475,7 +475,7 @@ def t_test(gridded_forecast_1, gridded_forecast_2, observed_catalog):
 
 
 def multiple_t_tests(observation, dic_forecast_1, list_dic_forecast_2):
-    
+
     """ 
     We compare Forecast of Model 1 and with all the Forecasts given in "dic_forecast_2. 
     It considers Forecast 1 as a benchmark and computes T statistics and Informatuion Gain to see which is better. 
@@ -519,7 +519,10 @@ def multiple_t_tests(observation, dic_forecast_1, list_dic_forecast_2):
         forecast_2 = list_dic_forecast_2[i]["forecast"]
         
         out = t_test(observation, forecast_1, forecast_2, model_name_1, model_name_2)
-        output_dic_list.append(out)
+        #When we want to Call the Adapted function to EvaluationResult, use the below line.
+        #out = t_test(gridded_forecast_1, gridded_forecast_2, observed_catalog):
+        
+        output_dic_list.append(out) # See this line, if EvaluationResult class is being used.
         
     return output_dic_list
 
