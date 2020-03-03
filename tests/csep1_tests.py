@@ -409,6 +409,71 @@ def t_test(observation, forecast_1, forecast_2, model_name_1='None', model_name_
     return t_test_eval
 
 
+def t_test(gridded_forecast_1, gridded_forecast_2, observed_catalog):
+    """
+    Computes T test statistic by comparing Forecast 1 and Forecast 2 Catalogs
+
+    We compare Forecasat of Model 1 and with Forecast of Model 2. Information Gain is computed, which is then employed to compute T statistic.
+    Confidence interval of Information Gain can be computed using T_critical
+
+    Args
+     Gridded_forecast_1: Forecast of a model_1 (Grided) (Numpy Array)
+                A forecast has to be in terms of Average Number of Events in Each Bin
+                It can be anything greater than zero
+    Gridded_forecast_2: Forecast of model_2 (Grided) (Numpy Array)
+                A forecast has to be in terms of Average Number of Events in Each Bin
+                It can be anything greater than zero
+    observation_Catalog: Observed (Grided) seismicity (Numpy Array):
+                An Observation has to be observed seismicity in each Bin
+                It has to be a either zero or positive integer only (No Floating Point)
+
+
+    Returns
+     evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+    # Some Pre Calculations -  Because they are being used repeatedly.
+    N = numpy.sum(observed_catalog)  # Total number of observed earthquakes
+    N1 = numpy.sum(gridded_forecast_1)  # Total number of Forecasted earthquakes by Model 1
+    N2 = numpy.sum(gridded_forecast_2)  # Total number of Forecasted earthquakes by Model 2
+    X1 = numpy.log(gridded_forecast_1)  # Log of every element of Forecast 1
+    X2 = numpy.log(gridded_forecast_2)  # Log of every element of Forecast 2
+
+    # Information Gain, using Equation (17)  of Rhoades et al. 2011
+    Information_Gain = (numpy.sum(X1 - X2) - (N1 - N2)) / N
+
+    # Compute variance of (X1-X2) using Equation (18)  of Rhoades et al. 2011
+    first_term = (numpy.sum(numpy.power((X1 - X2), 2))) / (N - 1)
+    second_term = numpy.power(numpy.sum(X1 - X2), 2) / (numpy.power(N, 2) - N)
+    forecast_variance = first_term - second_term
+
+    forecast_std = numpy.sqrt(forecast_variance)
+    t_statistic = Information_Gain / (forecast_std / numpy.sqrt(N))
+
+    # Obtaining the Criticial Value of T from T distribution.
+    df = N - 1
+    t_critical = scipy.stats.t.ppf(1 - (0.05 / 2), df)  # Assuming 2-Tail Distribution  for 2 tail, divide 0.05/2.
+
+    # Computing Information Gain Interval.
+    IG_lower = Information_Gain - (t_critical * forecast_std / numpy.sqrt(N))
+    IG_upper = Information_Gain + (t_critical * forecast_std / numpy.sqrt(N))
+
+    # If T value greater than T critical, Then both Lower and Upper Confidence Interval limits will be greater than Zero.
+    # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2.
+
+    # storing this for later
+    result = EvaluationResult()
+    result.name = 'T-Test'
+    result.test_distribution = [t_statistic, t_critical]
+    result.observed_statistic = [IG_lower, IG_upper]
+    result.quantile = Information_Gain
+    result.sim_name = [gridded_forecast_1.name, gridded_forecast_2.name]
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast_1.magnitudes)
+
+    return result
+
+
 def multiple_t_tests(observation, dic_forecast_1, list_dic_forecast_2):
     
     """ 
