@@ -14,7 +14,7 @@ from csep1_tests import _m_test_prep
 from csep1_tests import _s_test_prep
 from csep1_tests import _conditional_l_test_prep
 from csep1_tests import w_test_single_sample
-
+from csep1_tests import t_test
 class TestGriddedForecastTests(unittest.TestCase):
     
 
@@ -122,8 +122,26 @@ class TestGriddedForecastTests(unittest.TestCase):
         expected_output = {'z_statistic': -0.6684710290340584, 'probability': 0.5038329688781412}
         print('W Test: Running Unit Test')
         self.assertEqual(w_test_single_sample(x, median), expected_output, 'Failed W Test')
-       
-        
+
+    def test_t_test(self):
+        """
+        This function tests the T test
+        It compares the T_statistic, Information Gain, its upper and lower limits.
+        """
+        FA = numpy.array([[8, 2], [3, 5]])
+        FB = numpy.array([[6, 4], [2, 8]])
+        Obs = numpy.array([[5, 8], [4, 2]])
+
+        t_test_expected = {'t_critical': 2.10092204024096,
+                           't_statistic': 1.5385261717159382,
+                           'information_gain': 0.08052612477654024,
+                           'ig_lower': -0.029435677283374914,
+                           'ig_upper': 0.19048792683645538}
+
+        print('T Test: Running Unit Test')
+        self.assertEqual(t_test(FA, FB, numpy.sum(Obs)), t_test_expected, 'Failed T Test')
+
+
 if __name__ == '__main__':
     unittest.main() 
 
