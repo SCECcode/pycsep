@@ -128,9 +128,9 @@ class TestGriddedForecastTests(unittest.TestCase):
         This function tests the T test
         It compares the T_statistic, Information Gain, its upper and lower limits.
         """
-        FA = numpy.array([[8, 2], [3, 5]])
-        FB = numpy.array([[6, 4], [2, 8]])
-        Obs = numpy.array([[5, 8], [4, 2]])
+        forecast_A = numpy.array([[8, 2], [3, 5]])
+        forecast_B = numpy.array([[6, 4], [2, 8]])
+        obs = numpy.array([[5, 8], [4, 2]])
 
         t_test_expected = {'t_critical': 2.10092204024096,
                            't_statistic': 1.5385261717159382,
@@ -139,7 +139,7 @@ class TestGriddedForecastTests(unittest.TestCase):
                            'ig_upper': 0.19048792683645538}
 
         print('T Test: Running Unit Test')
-        self.assertEqual(t_test(FA, FB, numpy.sum(Obs)), t_test_expected, 'Failed T Test')
+        self.assertEqual(t_test(forecast_A, forecast_B, numpy.sum(obs)), t_test_expected, 'Failed T Test')
 
 
 if __name__ == '__main__':
