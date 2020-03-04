@@ -691,9 +691,9 @@ def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_si
 
     Args:
         gridded_forecast: csep.core.forecasts.MarkedGriddedDataSet
-        observed_catalog: csep.core.catalogs.Catalog
+        observed_catalog: csep.core.catalogs.AbstractBaseCatalog
         num_simulations (int): number of simulations used to compute the quantile score
-        seed (int): used fore reproducibility
+        seed (int): used for reproducibility
 
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult

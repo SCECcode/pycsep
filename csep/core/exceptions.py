@@ -6,3 +6,6 @@ class CSEPEvaluationException(Exception):
 
 class CSEPException(Exception):
     pass
+
+class CSEPValueException(Exception):
+    pass

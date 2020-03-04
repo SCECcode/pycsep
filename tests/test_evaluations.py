@@ -1,7 +1,12 @@
-import numpy
+import os
 import unittest
 from csep.core.evaluations import *
 from csep.core.evaluations import _simulate_catalog
+
+def get_datadir():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(root_dir, 'artifacts', 'Testing')
+    return data_dir
 
 
 class MockCatalog:
@@ -18,7 +23,6 @@ class MockCatalog:
 
     def get_number_of_events(self):
         return self.val
-
 
 class TestNTest:
     '''
@@ -142,3 +146,5 @@ class TestPoissonLikelihood(unittest.TestCase):
 
         # calculated by hand given the expected catalog
         self.assertEqual(simulated_ll[0], -7.178053830347945)
+
+

@@ -18,7 +18,6 @@ from csep.utils.calc import bin1d_vec
 from csep.utils.time import datetime_to_utc_epoch
 
 
-
 """
 This module contains plotting routines that generate figures for the stochastic event sets produced from
 CSEP2 experiments.
@@ -986,7 +985,6 @@ def plot_global_forecast(forecast, catalog=None, name=None):
     a.set_label('{}\nlog$_{{10}}$(EQs / (0.1$^o$ x 0.1$^o$)'.format(name), size = 18)
     return ax
 
-
 def _get_marker_style(result):
     """Returns matplotlib marker style as fmt string"""
     if result.observed < result.p5 or result.observed > result.p95:
@@ -996,7 +994,6 @@ def _get_marker_style(result):
         # green circle
         fmt = 'go'
     return fmt
-
 
 def plot_consistency_test(results, plot_args=None):
     """ Plots results from CSEP1 Number test following the CSEP1 convention.
