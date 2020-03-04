@@ -1,7 +1,8 @@
 import os
 import unittest
 from csep.core.evaluations import *
-from csep.core.evaluations import _simulate_catalog
+from csep.core.csep1_tests import _simulate_catalog, poisson_likelihood_test
+
 
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
