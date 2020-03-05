@@ -34,11 +34,13 @@ within in the python environment.
     `python3 -m venv csep`  
     `source csep/bin/activate`  
     `cd ..`  
-    `pip3 install numpy` (Because of obspy and another reason for using conda)  
+    `pip3 install numpy` (Because of obspy and another reason for using conda)
     `pip3 install -r requirements.txt`
     
-    Note: There is an issue installing Cartopy on MacOS with Proj >=6.0.0 and will be addressed in 0.18 release of Cartopy. If this package,
-    is needed please manually install or use Conda instructions above.
+    Note: There is an issue installing Cartopy on MacOS with Proj >=6.0.0 and will be addressed in 0.18 release of Cartopy. 
+    If this package is needed please manually install or use Conda instructions above. Additionally, if you choose the 
+    manual build, you might need to resolve build issues as they arise. This is usually caused by not having the proper 
+    python statics installed to build the binary packages or poorly written setup.py scripts from other packages.
     
 3. Navigate to repo `cd csep2` (If you are not already there...)
 4. Install editable version of package `pip install -e .`

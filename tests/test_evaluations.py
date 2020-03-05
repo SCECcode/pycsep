@@ -214,6 +214,6 @@ class TestPoissonLikelihood(unittest.TestCase):
         # forecast and observation are the same, sum(np.log(poisson(1, 1))) = -4
         self.assertEqual(obs_ll, -4)
 
-        # calculated by hand given the expected catalog
+        # calculated by hand given the expected catalog, see explanation in zechar et al., 2010.
         self.assertEqual(simulated_ll[0], -7.178053830347945)
 
