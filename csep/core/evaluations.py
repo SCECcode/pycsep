@@ -1,14 +1,11 @@
 import time
 
 import numpy
+import scipy.stats
 
-from csep.utils.stats import cumulative_square_diff, binned_ecdf, sup_dist
+from csep.utils.stats import cumulative_square_diff, binned_ecdf, sup_dist, poisson_inverse_cdf, get_quantiles, poisson_log_likelihood
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils import flat_map_to_ndarray
-
-
-# implementing plotting routines as functions
-from csep.utils.stats import get_quantiles
 
 
 class EvaluationResult:

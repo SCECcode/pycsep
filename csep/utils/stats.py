@@ -170,7 +170,7 @@ def get_quantiles(sim_counts, obs_count):
     return delta_1, delta_2
 
 
-def _poisson_log_likelihood(observation, forecast):
+def poisson_log_likelihood(observation, forecast):
     """Wrapper around scipy to compute the Poisson log-likelihood
 
     Args:
@@ -183,17 +183,16 @@ def _poisson_log_likelihood(observation, forecast):
     return numpy.log(scipy.stats.poisson.pmf(observation, forecast))
 
 
-def _poisson_inverse_cdf(random_matrix, forecast):
+def poisson_inverse_cdf(random_matrix, lam):
     """Wrapper around scipy inverse poisson cdf to compute new forecast using
         actual forecast and random numbers between 0 and 1
 
     Args:
         random_matrix: Matrix of dimenions equal to forecast, containing random
                        numbers between 0 and 1.
-        forecast: Actual Forecast of a Model (Grided)
+        lam: vector of parameters for poisson distribution
 
     Returns:
-        A new forecast which is the realization of Actual forecast
+        sample from the poisson distribution
     """
-
-    return scipy.stats.poisson.ppf(random_matrix, forecast)
+    return scipy.stats.poisson.ppf(random_matrix, lam)

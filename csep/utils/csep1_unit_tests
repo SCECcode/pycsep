@@ -126,7 +126,9 @@ class TestGriddedForecastTests(unittest.TestCase):
     def test_t_test(self):
         """
         This function tests the T test
-        It compares the T_statistic, Information Gain, its upper and lower limits.
+        It compares the T_statistic, Information Gain, its upper and lower limits. Values were computed manually following
+        the equations from
+
         """
         forecast_A = numpy.array([[8, 2], [3, 5]])
         forecast_B = numpy.array([[6, 4], [2, 8]])

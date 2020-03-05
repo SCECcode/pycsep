@@ -34,9 +34,11 @@ def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0
     if gridded_forecast1.data.shape != gridded_forecast2.data.shape:
         raise CSEPValueException("Forecast shapes should match!")
 
+    # needs some pre-processing to put the forecasts in the context that is required for the t-test. this is different
+    # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
+
     # call the primative version operating on ndarray
-    out = csep1_t_test_ndarray(gridded_forecast1.data, gridded_forecast2.data,
-                                                                                observed_catalog.event_count, alpha=alpha)
+    out = csep1_t_test_ndarray(gridded_forecast1.data, gridded_forecast2.data, observed_catalog.event_count, alpha=alpha)
 
     # storing this for later
     result = EvaluationResult()
@@ -168,6 +170,7 @@ def csep1_w_test_ndarray(x, m=0):
 
     return w_test_eval
 
+
 def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog):
     
     """
@@ -200,18 +203,20 @@ def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog):
                  'z_statistic' : Z statistic computed between forecast 1 and forecast 2,
                  'probablity': Probablity value}
     """
-    N = observed_catalog.event_count      #Sum of all the observed earthquakes
-    N1 = gridded_forecast1.event_count          #Total number of Forecasted earthquakes by Model 1
-    N2 = gridded_forecast2.event_count          #Total number of Forecasted earthquakes by Model 2
-    X1 = numpy.log(gridded_forecast1.data)      #Log of every element of Forecast 1
-    X2 = numpy.log(gridded_forecast2.data)      #Log of every element of Forecast 2
+    N = observed_catalog.event_count            # Sum of all the observed earthquakes
+    N1 = gridded_forecast1.event_count          # Total number of Forecasted earthquakes by Model 1
+    N2 = gridded_forecast2.event_count          # Total number of Forecasted earthquakes by Model 2
+    X1 = numpy.log(gridded_forecast1.data)      # Log of every element of Forecast 1
+    X2 = numpy.log(gridded_forecast2.data)      # Log of every element of Forecast 2
     
     median_value = (N1 - N2) / N
     
     diff = X1 - X2
+
+    # same pre-preprocessing needs to occur for the w-test and the t-test
     
     # w_test is One Sample Wilcoxon Signed Rank Test. It accepts the data only in 1D array.
-    x = diff.ravel()  #Converting 2D Difference to 1D
+    x = diff.ravel()  # Converting 2D Difference to 1D
     
     w_test_dic = csep1_w_test_ndarray(x, median_value)
 
