@@ -17,7 +17,7 @@ from csep.utils.calc import discretize
 from csep.utils.comcat import SummaryEvent
 from csep.core.repositories import Repository, repo_builder
 from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException
-from csep.utils.spatial import bin_catalog_spatial_counts
+from csep.utils.spatial import _bin_catalog_spatial_counts
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
@@ -511,7 +511,7 @@ class AbstractBaseCatalog(LoggingMixin):
             catalog[i] = tuple(event)
         return catalog
 
-    def spatial_event_counts(self):
+    def spatial_counts(self):
         """
         This function is bad and should be broken up into multiple parts. In general, it works by circumscribing the
         polygons with a bounding box. Inside the bounding box is assumed to follow a regular Cartesian grid.
@@ -533,12 +533,13 @@ class AbstractBaseCatalog(LoggingMixin):
 
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned rates without region information.")
-        output = csep.utils.spatial.bin_catalog_spatial_counts(self.get_longitudes(),
-                                                               self.get_latitudes(),
-                                                               self.region.num_nodes,
-                                                               self.region.bitmask,
-                                                               self.region.xs,
-                                                               self.region.ys)
+        output = csep.utils.spatial._bin_catalog_spatial_counts(self.get_longitudes(),
+                                                                self.get_latitudes(),
+                                                                self.region.num_nodes,
+                                                                self.region.mask,
+                                                                self.region.idx_map,
+                                                                self.region.xs,
+                                                                self.region.ys)
         return output
 
     def spatial_event_probability(self):
@@ -548,22 +549,23 @@ class AbstractBaseCatalog(LoggingMixin):
 
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned probabilities without region information.")
-        output = csep.utils.spatial.bin_catalog_probability(self.get_longitudes(),
-                                                               self.get_latitudes(),
-                                                               len(self.region.polygons),
-                                                               self.region.bitmask,
-                                                               self.region.xs,
-                                                               self.region.ys)
+        output = csep.utils.spatial._bin_catalog_probability(self.get_longitudes(),
+                                                             self.get_latitudes(),
+                                                             len(self.region.polygons),
+                                                             self.region.mask,
+                                                             self.region.idx_map,
+                                                             self.region.xs,
+                                                             self.region.ys)
         return output
 
-    def binned_magnitude_counts(self, bins=CSEP_MW_BINS, retbins=False):
+    def magnitude_counts(self, bins=CSEP_MW_BINS, retbins=False):
         out = numpy.zeros(len(bins))
         if self.event_count == 0:
             if retbins:
                 return (bins, out)
             else:
                 return out
-        idx = bin1d_vec(self.get_magnitudes(), bins)
+        idx = bin1d_vec(self.get_magnitudes(), bins, right_continuous=True)
         numpy.add.at(out, idx, 1)
         if retbins:
             return (bins, out)
@@ -598,14 +600,15 @@ class AbstractBaseCatalog(LoggingMixin):
             return numpy.zeros((n_poly, n_mws))
 
         # compute if not
-        output = csep.utils.spatial.bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
-                                                                        self.get_latitudes(),
-                                                                        self.get_magnitudes(),
-                                                                        self.region.num_nodes,
-                                                                        self.region.bitmask,
-                                                                        self.region.xs,
-                                                                        self.region.ys,
-                                                                        self.region.magnitudes)
+        output = csep.utils.spatial._bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
+                                                                         self.get_latitudes(),
+                                                                         self.get_magnitudes(),
+                                                                         self.region.num_nodes,
+                                                                         self.region.mask,
+                                                                         self.region.idx_map,
+                                                                         self.region.xs,
+                                                                         self.region.ys,
+                                                                         self.region.magnitudes)
         return output
 
     def length_in_seconds(self):

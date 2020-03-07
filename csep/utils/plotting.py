@@ -421,7 +421,7 @@ def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
     return ax
 
 def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
-    bin_edges, obs_hist = obs.binned_magnitude_counts(retbins=True)
+    bin_edges, obs_hist = obs.magnitude_counts(retbins=True)
     n_obs = numpy.sum(obs_hist)
     event_counts = numpy.sum(ses_data, axis=1)
     # normalize all histograms by counts in each

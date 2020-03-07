@@ -27,7 +27,7 @@ def func_inverse(x, y, val, kind='nearest', **kwargs):
     f = scipy.interpolate.interp1d(x, y, kind=kind, **kwargs)
     return f(val)
 
-def discretize(data, bin_edges):
+def discretize(data, bin_edges, right_continuous=False):
     """
     returns array with len(bin_edges) consisting of the discretized values from each bin.
     instead of returning the counts of each bin, this will return an array with values
@@ -41,25 +41,26 @@ def discretize(data, bin_edges):
     if bin_edges[1] < bin_edges[0]:
         raise ValueError("bin_edges must be increasing")
     data = numpy.array(data)
-    idx = bin1d_vec(data, bin_edges)
+    idx = bin1d_vec(data, bin_edges, right_continuous=right_continuous)
     if numpy.any(idx == -1):
         raise CSEPException("Discretized values should all be within bin_edges")
     x_new = bin_edges[idx]
     return x_new
 
-def bin1d_vec(p, bins):
+def bin1d_vec(p, bins, right_continuous=False):
     """Efficient implementation of binning routine on 1D Cartesian Grid.
 
     Returns the indices of the points into bins. Bins are inclusive on the lower bound
     and exclusive on the upper bound. In the case where a point does not fall within the bins a -1
     will be returned. The last bin extends to infinity.
 
-
     Args:
         p (array-like): Point(s) to be placed into b
+        bins (array-like): bins to considering for binning, must be monotonically increasing
+        right_continuous (bool): if true, consider last bin extending to infinity
 
     Returns:
-        idx (array-like):
+        idx (array-like): indexes hashed into grid
 
     Raises:
         ValueError:
@@ -70,11 +71,13 @@ def bin1d_vec(p, bins):
     if h < 0:
         raise ValueError("grid spacing must be positive.")
     idx = numpy.floor((p + eps - a0) / h)
-    try:
-        idx[(idx >= len(bins) - 1)] = len(bins)-1
-        idx = idx.astype(numpy.int)
-    except TypeError:
-        if idx < 0:
-            raise ValueError("index must be greater than 0.")
-        idx = numpy.int(idx)
+    if right_continuous:
+        # set upper bin index to last
+        idx[(idx >= len(bins) - 1)] = len(bins) - 1
+        idx[(idx < 0)] = -1
+    else:
+        # if outside set to nan
+        idx[((idx < 0) | (idx >= len(bins) - 1))] = -1
+    idx = idx.astype(numpy.int)
+
     return idx

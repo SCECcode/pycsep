@@ -11,10 +11,10 @@ import scipy.stats
 
 from csep.core.evaluations import EvaluationResult
 from csep.core.exceptions import CSEPValueException
-from csep.utils.stats import _poisson_log_likelihood
+from csep.utils.stats import poisson_log_likelihood, poisson_inverse_cdf
 
 
-def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0.05):
+def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0.05, scale=True):
     """
 
     Args:
@@ -22,6 +22,7 @@ def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0
         gridded_forecast_2 (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
         observed_catalog (csep.core.catalogs.AbstractBaseCatalog): number of observed earthquakes, should be whole number and >= zero.
         alpha (float): tolerance level for the type-i error rate of the statistical test
+        scale (bool): if true, scale forecasted rates down to a single day
 
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult
@@ -36,9 +37,12 @@ def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0
 
     # needs some pre-processing to put the forecasts in the context that is required for the t-test. this is different
     # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
+    target_event_rate_forecast1, nf1 = gridded_forecast1.target_event_rates(scale=scale)
+    target_event_rate_forecast2, nf2 = gridded_forecast2.target_event_rates(scale=scale)
 
     # call the primative version operating on ndarray
-    out = csep1_t_test_ndarray(gridded_forecast1.data, gridded_forecast2.data, observed_catalog.event_count, alpha=alpha)
+    out = csep1_t_test_ndarray(target_event_rate_forecast1, target_event_rate_forecast2, observed_catalog.event_count, nf1, nf2,
+                               alpha=alpha)
 
     # storing this for later
     result = EvaluationResult()
@@ -53,7 +57,7 @@ def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0
     return result
 
 
-def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, alpha=0.05):
+def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, n_f1, n_f2, alpha=0.05):
     """ Computes T test statistic by comparing two gridded forecasts specified as numpy arrays.
 
     We compare Forecast from Model 1 and with Forecast of Model 2. Information Gain is computed, which is then employed
@@ -73,8 +77,8 @@ def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, 
     """
     # Some Pre Calculations -  Because they are being used repeatedly.
     N = n_obs  # Total number of observed earthquakes
-    N1 = numpy.sum(gridded_forecast_data1)  # Total number of forecasted earthquakes by Model 1
-    N2 = numpy.sum(gridded_forecast_data2)  # Total number of forecasted earthquakes by Model 2
+    N1 = n_f1 # Total number of forecasted earthquakes by Model 1
+    N2 = n_f2  # Total number of forecasted earthquakes by Model 2
     X1 = numpy.log(gridded_forecast_data1)  # Log of every element of Forecast 1
     X2 = numpy.log(gridded_forecast_data2)  # Log of every element of Forecast 2
 
@@ -171,7 +175,7 @@ def csep1_w_test_ndarray(x, m=0):
     return w_test_eval
 
 
-def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog):
+def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=True):
     
     """
     Calculate the Single Sample Wilcoxon signed-rank test for "log(gridded_forecast1(i))-log(gridded_forecast2(i))".
@@ -203,17 +207,30 @@ def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog):
                  'z_statistic' : Z statistic computed between forecast 1 and forecast 2,
                  'probablity': Probablity value}
     """
-    N = observed_catalog.event_count            # Sum of all the observed earthquakes
-    N1 = gridded_forecast1.event_count          # Total number of Forecasted earthquakes by Model 1
-    N2 = gridded_forecast2.event_count          # Total number of Forecasted earthquakes by Model 2
-    X1 = numpy.log(gridded_forecast1.data)      # Log of every element of Forecast 1
-    X2 = numpy.log(gridded_forecast2.data)      # Log of every element of Forecast 2
-    
-    median_value = (N1 - N2) / N
-    
-    diff = X1 - X2
-
     # same pre-preprocessing needs to occur for the w-test and the t-test
+
+    # some defensive programming
+    if gridded_forecast1.magnitudes != gridded_forecast2.magnitudes:
+        raise CSEPValueException("Magnitude ranges must match on forecasts!")
+
+    if gridded_forecast1.data.shape != gridded_forecast2.data.shape:
+        raise CSEPValueException("Forecast shapes should match!")
+
+    # needs some pre-processing to put the forecasts in the context that is required for the t-test. this is different
+    # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
+    target_event_rate_forecast1, _ = gridded_forecast1.target_event_rates(scale=scale)
+    target_event_rate_forecast2, _ = gridded_forecast2.target_event_rates(scale=scale)
+
+    N = observed_catalog.event_count  # Sum of all the observed earthquakes
+    N1 = gridded_forecast1.event_count  # Total number of Forecasted earthquakes by Model 1
+    N2 = gridded_forecast2.event_count  # Total number of Forecasted earthquakes by Model 2
+    X1 = numpy.log(target_event_rate_forecast1)  # Log of every element of Forecast 1
+    X2 = numpy.log(target_event_rate_forecast2)  # Log of every element of Forecast 2
+
+    # this ratio is the same as long as we scale all the forecasts and catalog rates by the same value
+    median_value = (N1 - N2) / N
+
+    diff = X1 - X2
     
     # w_test is One Sample Wilcoxon Signed Rank Test. It accepts the data only in 1D array.
     x = diff.ravel()  # Converting 2D Difference to 1D
@@ -240,6 +257,9 @@ def _simulate_catalog(num_events, sampling_weights, sort_args, sim_fore, random_
     # generate uniformly distributed random numbers in [0,1), this
     if random_numbers is None:
         random_numbers = numpy.random.rand(num_events)
+    else:
+        # TODO: ensure that random numbers are all between 0 and 1.
+        pass
 
     # reset simulation array to zero, but don't reallocate
     sim_fore.fill(0)
@@ -253,78 +273,82 @@ def _simulate_catalog(num_events, sampling_weights, sort_args, sim_fore, random_
     return sim_fore
 
 
-def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, seed=None):
+def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, seed=None, random_numbers=None, use_observed_counts=True):
     """
     Computes the likelihood-test from CSEP using an efficient simulation based approach.
-
     Args:
         forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
         observed_data (numpy.ndarray): same format as observation.
+        num_simulations: default number of simulations to use for likelihood based simulations
+        seed: used for reproducibility of the prng
+        random_numbers (list): can supply an explicit list of random numbers, primarily used for software testing
+        use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson distrubtion
     """
-
-    # forecast_data should be event counts
     expected_forecast_count = numpy.sum(forecast_data)
 
-    # used to determine where simulated earthquake shoudl be placed
+    # used to determine where simulated earthquake should be placed
     sampling_weights = numpy.cumsum(forecast_data.ravel()) / expected_forecast_count
+
+    # indices to provided sorted array
     sort_args = numpy.argsort(sampling_weights)
 
     # data structures to store results
-    sim_fore = numpy.empty(sampling_weights.shape)
+    sim_fore = numpy.zeros(sampling_weights.shape)
     simulated_ll = []
 
     # observed joint log-likelihood
-    obs_ll = numpy.sum(_poisson_log_likelihood(observed_data, forecast_data))
+    obs_ll = numpy.sum(poisson_log_likelihood(observed_data, forecast_data))
 
     for idx in range(num_simulations):
-        sim_fore = _simulate_catalog(expected_forecast_count, sampling_weights, sort_args, sim_fore, seed=seed)
+
+        # used for conditional-likelihood, magnitude, and spatial tests to isolate the rate-component of the forecasts.
+        if use_observed_counts:
+            num_events_to_simulate = numpy.sum(observed_data)
+        else:
+            num_events_to_simulate = poisson_inverse_cdf(expected_forecast_count)
+
+        sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sort_args, sim_fore, seed=seed, random_numbers=random_numbers)
 
         # compute joint log-likelihood from simulation
-        current_ll = numpy.sum(_poisson_log_likelihood(sim_fore, forecast_data.ravel()))
+        current_ll = numpy.sum(poisson_log_likelihood(sim_fore, forecast_data.ravel()))
 
         simulated_ll.append(current_ll)
 
     # quantile score
     qs = numpy.sum(simulated_ll <= obs_ll) / num_simulations
 
+    # float, float, list
     return qs, obs_ll, simulated_ll
 
 
-def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None):
+def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
     """
     Performs the conditional likelihood test on Gridded Forecast using an Observed Catalog. This test normalizes the forecast so the forecasted rate
     are consistent with the observations. This modification eliminates the strong impact differences in the number distribution have on the
     forecasted rates.
-
-    The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
     transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
     gridded forecasts that supply their forecasts as rates.
-
     Args:
-        gridded_forecast: csep.core.forecasts.MarkedGriddedDataSet
-        observed_catalog: csep.core.catalogs.AbstractBaseCatalog
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
         num_simulations (int): number of simulations used to compute the quantile score
-        seed (int): used for reproducibility
-
+        seed (int): used fore reproducibility, and testing
+        random_numbers (list): random numbers used to override the random number generation. injection point for testing.
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
-
-    # storing this for later
-    result = EvaluationResult()
-
-    # scale forecast to observed event count
-    scaling_factor = observed_catalog.event_count / gridded_forecast.event_count
-    gridded_forecast.scale(scaling_factor)
 
     # grid catalog onto spatial grid
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
     # simply call likelihood test on catalog data and forecast
     qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
-                                                       num_simulations=num_simulations, seed=seed)
+                                                       num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
+                                                       use_observed_counts=True)
 
-    # populate result
+    # populate result data structure
+    result = EvaluationResult()
     result.test_distribution = simulated_ll
     result.name = 'CL-Test'
     result.observed_statistic = obs_ll
@@ -336,16 +360,151 @@ def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_si
 
     return result
 
+def csep1_magnitude_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
+    """
+    Performs the Magnitude Test on a Gridded Forecast using an observed catalog.
+
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (list): random numbers used to override the random number generation. injection point for testing.
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    gridded_catalog_data = observed_catalog.magnitude_counts(bins=gridded_forecast.magnitudes)
+
+    # simply call likelihood test on catalog data and forecast
+    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.magnitude_counts(), gridded_catalog_data,
+                                                       num_simulations=num_simulations,
+                                                       seed=seed,
+                                                       random_numbers=random_numbers,
+                                                       use_observed_counts=True)
+
+    # populate result data structure
+    result = EvaluationResult()
+    result.test_distribution = simulated_ll
+    result.name = 'M-Test'
+    result.observed_statistic = obs_ll
+    result.quantile = qs
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+def csep1_spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
+    """
+    Performs the Spatial Test on the Forecast using the Observed Catalogs.
+
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (list): random numbers used to override the random number generation. injection point for testing.
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    gridded_catalog_data = observed_catalog.spatial_counts()
+
+    # simply call likelihood test on catalog data and forecast
+    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.spatial_counts(), gridded_catalog_data,
+                                                       num_simulations=num_simulations,
+                                                       seed=seed,
+                                                       random_numbers=random_numbers,
+                                                       use_observed_counts=True)
+
+    # populate result data structure
+    result = EvaluationResult()
+    result.test_distribution = simulated_ll
+    result.name = 'S-Test'
+    result.observed_statistic = obs_ll
+    result.quantile = qs
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+def csep1_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
+    """
+    Performs the likelihood test on Gridded Forecast using an Observed Catalog.
+
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (list): random numbers used to override the random number generation.
+                               injection point for testing.
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
+
+    # simply call likelihood test on catalog data and forecast
+    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
+                                                       num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
+                                                       use_observed_counts=False)
+
+    # populate result data structure
+    result = EvaluationResult()
+    result.test_distribution = simulated_ll
+    result.name = 'L-Test'
+    result.observed_statistic = obs_ll
+    result.quantile = qs
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+def csep1_number_test_ndarray(fore_cnt, obs_cnt, epsilon=1e-6):
+    """ Computes delta1 and delta2 values from the csep1 number test.
+    Args:
+        fore_cnt (float): parameter of poisson distribution coming from expected value of the forecast
+        obs_cnt (float): count of earthquakes observed during the testing period.
+        epsilon (float): tolerance level to satisfy the requirements of two-sided p-value
+    Returns
+        result (tuple): (delta1, delta2)
+    """
+    delta1 = 1.0 - scipy.stats.poisson.cdf(obs_cnt - epsilon, fore_cnt)
+    delta2 = scipy.stats.poisson.cdf(obs_cnt + epsilon, fore_cnt)
+    return delta1, delta2
 
 def csep1_number_test(gridded_forecast, observed_catalog):
     """
     @asim
     Computes Number (N) test for Observed and Forecasts. Both data sets are expected to be in terms of event counts.
-
     We find the Total number of events in Observed Catalog and Forecasted Catalogs. Which are then employed to compute the probablities of
        (i) At least no. of events (delta 1)
        (ii) At most no. of events (delta 2) assuming the possionian distribution.
-
     Args:
         observation: Observed (Grided) seismicity (Numpy Array):
                     An Observation has to be Number of Events in Each Bin
@@ -353,7 +512,6 @@ def csep1_number_test(gridded_forecast, observed_catalog):
         forecast:   Forecast of a Model (Grided) (Numpy Array)
                     A forecast has to be in terms of Average Number of Events in Each Bin
                     It can be anything greater than zero
-
     Returns:
         out (tuple): (delta_1, delta_2)
     """
@@ -366,9 +524,9 @@ def csep1_number_test(gridded_forecast, observed_catalog):
     fore_cnt = gridded_forecast.event_count
 
     epsilon = 1e-6
+
     # stores the actual result of the number test
-    delta1 = 1.0 - scipy.stats.poisson.cdf(obs_cnt - epsilon, fore_cnt)
-    delta2 = scipy.stats.poisson.cdf(obs_cnt + epsilon, fore_cnt)
+    delta1, delta2 = csep1_number_test_ndarray(fore_cnt, obs_cnt, epsilon=epsilon)
 
     # store results
     result.test_distribution = 'poisson'
