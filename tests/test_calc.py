@@ -24,10 +24,10 @@ class TestBin1d(unittest.TestCase):
         expected = [0, 0, 0, 1, 2]
         self.assertListEqual(test.tolist(), expected)
 
-    def test_upper_limit(self):
+    def test_upper_limit_right_continuous(self):
         data = [40, 40, 40]
         bin_edges = [0, 10, 20, 30]
-        test = bin1d_vec(data, bin_edges)
+        test = bin1d_vec(data, bin_edges, right_continuous=True)
         expected = [3, 3, 3]
         self.assertListEqual(test.tolist(), expected)
 
@@ -37,3 +37,11 @@ class TestBin1d(unittest.TestCase):
         test = bin1d_vec(data, bin_edges)
         expected = [0]
         self.assertListEqual(test.tolist(), expected)
+
+    def test_less_and_greater_than(self):
+        data = [-1, 35]
+        bin_edges = [0, 10, 20, 30]
+        test = bin1d_vec(data, bin_edges)
+        expected = [-1, -1]
+        self.assertListEqual(test.tolist(), expected)
+

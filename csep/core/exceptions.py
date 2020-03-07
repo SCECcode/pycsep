@@ -9,3 +9,6 @@ class CSEPCatalogException(Exception):
 
 class CSEPException(Exception):
     pass
+
+class CSEPValueException(Exception):
+    pass

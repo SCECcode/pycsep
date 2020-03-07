@@ -4,7 +4,7 @@ import datetime
 import xml.etree.ElementTree as ET
 
 from csep.core.evaluations import *
-from csep.core.evaluations import _simulate_catalog
+from csep.core.csep1_tests import _simulate_catalog, csep1_number_test, poisson_likelihood_test
 from csep.core.catalogs import ZMAPCatalog
 from csep.core.forecasts import GriddedForecast
 from csep.utils.readers import read_csep1_zmap_ascii

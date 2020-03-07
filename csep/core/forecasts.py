@@ -6,7 +6,9 @@ import datetime
 from csep.utils.log import LoggingMixin
 from csep.utils.spatial import CartesianGrid2D
 from csep.utils.basic_types import Polygon
+from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year
+from csep.core.catalogs import AbstractBaseCatalog
 
 class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
@@ -66,6 +68,22 @@ class GriddedDataSet(LoggingMixin):
     def polygons(self):
         return self.region.polygons
 
+    def get_index_of(self, lons, lats):
+        """ Returns the index of lons, lats in self.region.polygons.
+
+        See csep.utils.spatial.CartesianGrid2D for more details.
+
+        Args:
+            lons: ndarray-like
+            lats: ndarray-like
+
+        Returns:
+            idx: ndarray-like
+
+        Raises:
+            ValueError: if lons or lats are outside of the region.
+        """
+        return self.region.get_index_of(lons, lats)
 
     def scale(self, val, in_place=False):
         """Scales forecast by floating point value.
@@ -133,6 +151,24 @@ class MarkedGriddedDataSet(GriddedDataSet):
     def magnitude_counts(self):
         return numpy.sum(self.data, axis=0)
 
+    def get_magnitude_index(self, mags):
+        """ Returns the indices into the magnitude bins corresponding to the values in mags.
+
+        Note: the right-most bin is treated as extending to infinity.
+
+        Args:
+            mags (array-like): list of magnitudes
+
+        Returns:
+            idm (array-like): indices corresponding to mags
+
+        Raises:
+            ValueError
+        """
+        idm = bin1d_vec(mags, self.magnitudes)
+        if numpy.any(idm == -1):
+            raise ValueError("mags outside the range of forecast magnitudes.")
+        return idm
 
 class GriddedForecast(MarkedGriddedDataSet):
 
@@ -171,11 +207,88 @@ class GriddedForecast(MarkedGriddedDataSet):
             return self
 
         fore_dur = decimal_year(self.end_time) - decimal_year(self.start_time)
+
         # we are adding one day, bc tests are considered to occur at the end of the day specified by test_datetime.
         test_date_dec = decimal_year(test_datetime + datetime.timedelta(1))
         fore_frac = (test_date_dec - decimal_year(self.start_time)) / fore_dur
         res = self.scale(fore_frac, in_place=in_place)
         return res
+
+    def target_event_rates(self, target_catalog, scale=True):
+        """ Generates data set of target event rates given a target catalog.
+
+        The catalog should already be scaled to the same length as the forecast time horizon. Explicit checks for these
+        cases are not conducted in this function.
+
+        If scale=True then the target event rates will be scaled down to the rates for one day. This choice of time
+        can be made without a loss of generality. Please see Rhoades, D. A., D. Schorlemmer, M. C. Gerstenberger,
+        A. Christophersen, J. D. Zechar, and M. Imoto (2011). Efficient testing of earthquake forecasting models,
+        Acta Geophys 59 728-747.
+
+        Args:
+            target_catalog (csep.core.catalog.AbstractBaseCatalog): catalog containing target events
+            scale (bool): if true, rates will be scaled to one day.
+
+        Returns:
+            (np.ndarray, expected_event_count)
+
+        """
+        if not isinstance(target_catalog, AbstractBaseCatalog):
+            raise TypeError("target_catalog must be csep.core.catalog.AbstractBaseCatalog class.")
+
+        if scale:
+            # first get copy so we dont contaminate the rates of the forecast, this can be quite large for global files
+            # if we run into memory problems, we can implement a sparse form of the forecast.
+            data = numpy.copy(self.data)
+
+            # straight-forward implementation, relies on correct start and end time
+            elapsed_days = (self.end_time - self.start_time).days
+
+            # scale the data down to days
+            data = data / elapsed_days
+
+        else:
+            # just pull reference to stored data
+            data = self.data
+
+        # get longitudes and latitudes of target events
+        lons = target_catalog.get_longitudes()
+        lats = target_catalog.get_latitudes()
+        mags = target_catalog.get_magnitudes()
+
+        # this array does not keep track of any location anymore. however, it can be computed using the catalog again.
+        rates = self.get_rates(lons, lats, mags, data=data)
+        return rates, numpy.sum(data)
+
+
+    def get_rates(self, lons, lats, mags, data=None):
+        """ Returns the rate associated with a longitude, latitude, and magnitude.
+
+        Args:
+            lon: longitude of interest
+            lat: latitude of interest
+            mag: magnitude of interest
+            data: optional, if not none then use this data value provided along with the
+
+        Returns:
+            rates (float or ndarray)
+
+        Raises:
+            RuntimeError: lons lats and mags must be the same length
+
+        """
+        if len(lons) != len(lats) and len(lats) != len(mags):
+            raise RuntimeError("lons, lats, and mags must have the same length.")
+        # get index of lon and lat value, if lats, lons, not in region raise value error
+        idx = self.get_index_of(lons, lats)
+        # get index of magnitude bins, if lats, lons, not in region raise value error
+        idm = self.get_magnitude_index(mags)
+        # retrieve rates from internal data structure
+        if not data:
+            rates = self.data[idx,idm]
+        else:
+            rates = data[idx,idm]
+        return rates
 
     @classmethod
     def from_custom(cls, afunc, start_date, end_date, name=None, time_horizon=None, *args, **kwargs):

@@ -125,11 +125,19 @@ class Polygon:
         return str(self.origin)
 
     def contains(self, points):
-        """ Returns a bool array which is True if the path contains the corresponding point."""
-        return self.path.contains_points(points)
+        """ Returns a bool array which is True if the path contains the corresponding point.
+
+        Args:
+            points: 2d numpy array
+
+        """
+        nd_points = np.array(points)
+        if nd_points.ndim == 1:
+            nd_points = nd_points.reshape(1,-1)
+        return self.path.contains_points(nd_points)
 
     def centroid(self):
-        """ return the cetroid of the polygon."""
+        """ return the centroid of the polygon."""
         c0, c1 = 0, 0
         k = len(self.points)
         for p in self.points:

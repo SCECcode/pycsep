@@ -279,14 +279,14 @@ def pseudo_likelihood_test(stochastic_event_sets, observation, apprx_rate_densit
     # integrating, assuming that all cats in ses have same region
     region = stochastic_event_sets[0].region
     expected_cond_count = numpy.sum(apprx_rate_density) * region.dh * region.dh * time_interval
-    gridded_obs = observation.spatial_event_counts()
+    gridded_obs = observation.spatial_counts()
     name = 'L-Test'
 
     # build likelihood distribution from ses
     test_distribution = []
     t0 = time.time()
     for i, catalog in enumerate(stochastic_event_sets):
-        gridded_cat = catalog.spatial_event_counts()
+        gridded_cat = catalog.spatial_counts()
          # compute likelihood for each event, ignoring areas with 0 expectation
         gridded_cat_ma = numpy.ma.masked_where(gridded_cat == 0, gridded_cat)
         apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_cat_ma.mask)
@@ -353,7 +353,7 @@ def spatial_test(stochastic_event_sets, observation, apprx_rate_density, time_in
     test_distribution = []
     # this could be io based if iterator is passed
     for catalog in stochastic_event_sets:
-        gridded_rate_cat = catalog.spatial_event_counts() / time_interval
+        gridded_rate_cat = catalog.spatial_counts() / time_interval
         # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio
         normalizing_factor = observation.event_count / catalog.event_count
         gridded_rate_cat_norm = normalizing_factor * gridded_rate_cat
@@ -364,7 +364,7 @@ def spatial_test(stochastic_event_sets, observation, apprx_rate_density, time_in
         test_distribution.append(likelihood)
 
     # compute psuedo-likelihood for comcat
-    gridded_obs_rate = observation.spatial_event_counts() / time_interval
+    gridded_obs_rate = observation.spatial_counts() / time_interval
     gridded_obs_rate_ma = numpy.ma.masked_where(gridded_obs_rate == 0, gridded_obs_rate)
     apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_obs_rate_ma.mask)
     comcat_likelihood = numpy.ma.sum(gridded_obs_rate_ma * numpy.ma.log10(apprx_rate_density_ma))
@@ -462,7 +462,7 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     region = stochastic_event_sets[0].region
     n_cat = len(stochastic_event_sets)
     expected_cond_count = numpy.sum(apprx_rate_density) * region.dh * region.dh * time_interval
-    gridded_obs = observation.spatial_event_counts()
+    gridded_obs = observation.spatial_counts()
     n_obs = observation.get_number_of_events()
 
     # build likelihood distribution from ses
@@ -470,7 +470,7 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     test_distribution_spatial = numpy.empty(n_cat)
     t0 = time.time()
     for i, catalog in enumerate(stochastic_event_sets):
-        gridded_cat = catalog.spatial_event_counts()
+        gridded_cat = catalog.spatial_counts()
         # compute likelihood for each event, ignoring areas with 0 expectation,
         lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density, expected_cond_count, n_obs)
         # store results
@@ -577,10 +577,10 @@ def interevent_distance_test(stochastic_event_sets, observation):
 
 def total_event_rate_distribution_test(stochastic_event_sets, observation):
     # get data that we need
-    terd = [cat.spatial_event_counts() for cat in stochastic_event_sets]
+    terd = [cat.spatial_counts() for cat in stochastic_event_sets]
 
     # get inter-event times from catalog
-    obs_terd = observation.spatial_event_counts()
+    obs_terd = observation.spatial_counts()
 
     # compute distribution statistics
     test_distribution, d_obs, quantile = _distribution_test(terd, obs_terd)
@@ -618,177 +618,3 @@ def bvalue_test(stochastic_event_sets, observation):
     return result
 
 
-def _simulate_catalog(num_events, sampling_weights, sort_args, sim_fore, random_numbers=None, seed=None):
-    if seed is not None:
-        numpy.random.seed(seed)
-
-    # generate uniformly distributed random numbers in [0,1), this
-    if random_numbers is None:
-        random_numbers = numpy.random.rand(num_events)
-    else:
-        # TODO: ensure that random numbers are all between 0 and 1.
-        pass
-
-    # reset simulation array to zero, but don't reallocate
-    sim_fore.fill(0)
-
-    # find insertion points using binary search inserting to satisfy a[i-1] <= v < a[i]
-    pnts = numpy.searchsorted(sampling_weights, random_numbers, sorter=sort_args, side='right')
-
-    # create simulated catalog
-    numpy.add.at(sim_fore, pnts, 1)
-
-    return sim_fore
-
-
-def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, seed=None, random_numbers=None, use_observed_counts=True):
-    """
-    Computes the likelihood-test from CSEP using an efficient simulation based approach.
-
-    Args:
-        forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
-        observed_data (numpy.ndarray): same format as observation.
-        num_simulations: default number of simulations to use for likelihood based simulations
-        seed: used for reproducibility of the prng
-        random_numbers (list): can supply an explicit list of random numbers, primarily used for software testing
-        use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson distrubtion
-    """
-    expected_forecast_count = numpy.sum(forecast_data)
-
-    # used to determine where simulated earthquake should be placed
-    sampling_weights = numpy.cumsum(forecast_data.ravel()) / expected_forecast_count
-
-    # indices to provided sorted array
-    sort_args = numpy.argsort(sampling_weights)
-
-    # data structures to store results
-    sim_fore = numpy.zeros(sampling_weights.shape)
-    simulated_ll = []
-
-    # observed joint log-likelihood
-    obs_ll = numpy.sum(poisson_log_likelihood(observed_data, forecast_data))
-
-    for idx in range(num_simulations):
-
-        # used for conditional-likelihood, magnitude, and spatial tests to isolate the rate-component of the forecasts.
-        if use_observed_counts:
-            num_events_to_simulate = numpy.sum(observed_data)
-        else:
-            num_events_to_simulate = poisson_inverse_cdf(expected_forecast_count)
-
-        sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sort_args, sim_fore, seed=seed, random_numbers=random_numbers)
-
-        # compute joint log-likelihood from simulation
-        current_ll = numpy.sum(poisson_log_likelihood(sim_fore, forecast_data.ravel()))
-
-        simulated_ll.append(current_ll)
-
-    # quantile score
-    qs = numpy.sum(simulated_ll <= obs_ll) / num_simulations
-
-    # float, float, list
-    return qs, obs_ll, simulated_ll
-
-
-def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
-    """
-    Performs the conditional likelihood test on Gridded Forecast using an Observed Catalog. This test normalizes the forecast so the forecasted rate
-    are consistent with the observations. This modification eliminates the strong impact differences in the number distribution have on the
-    forecasted rates.
-
-    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
-    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
-    gridded forecasts that supply their forecasts as rates.
-
-    Args:
-        gridded_forecast: csep.core.forecasts.GriddedForecast
-        observed_catalog: csep.core.catalogs.Catalog
-        num_simulations (int): number of simulations used to compute the quantile score
-        seed (int): used fore reproducibility, and testing
-        random_numbers (list): random numbers used to override the random number generation. injection point for testing.
-
-    Returns:
-        evaluation_result: csep.core.evaluations.EvaluationResult
-    """
-
-    # grid catalog onto spatial grid
-    gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
-
-    # simply call likelihood test on catalog data and forecast
-    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
-                                                       num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
-                                                       use_observed_counts=True)
-
-    # populate result data structure
-    result = EvaluationResult()
-    result.test_distribution = simulated_ll
-    result.name = 'CL-Test'
-    result.observed_statistic = obs_ll
-    result.quantile = qs
-    result.sim_name = gridded_forecast.name
-    result.obs_name = observed_catalog.name
-    result.status = 'normal'
-    result.min_mw = numpy.min(gridded_forecast.magnitudes)
-
-    return result
-
-def _csep1_number_test(fore_cnt, obs_cnt, epsilon=1e-6):
-    """ Computes delta1 and delta2 values from the csep1 number test.
-
-    Args:
-        fore_cnt (float): parameter of poisson distribution coming from expected value of the forecast
-        obs_cnt (float): count of earthquakes observed during the testing period.
-        epsilon (float): tolerance level to satisfy the requirements of two-sided p-value
-
-    Returns
-        result (tuple): (delta1, delta2)
-    """
-    delta1 = 1.0 - scipy.stats.poisson.cdf(obs_cnt - epsilon, fore_cnt)
-    delta2 = scipy.stats.poisson.cdf(obs_cnt + epsilon, fore_cnt)
-    return delta1, delta2
-
-def csep1_number_test(gridded_forecast, observed_catalog):
-    """
-    @asim
-    Computes Number (N) test for Observed and Forecasts. Both data sets are expected to be in terms of event counts.
-
-    We find the Total number of events in Observed Catalog and Forecasted Catalogs. Which are then employed to compute the probablities of
-       (i) At least no. of events (delta 1)
-       (ii) At most no. of events (delta 2) assuming the possionian distribution.
-
-    Args:
-        observation: Observed (Grided) seismicity (Numpy Array):
-                    An Observation has to be Number of Events in Each Bin
-                    It has to be a either zero or positive integer only (No Floating Point)
-        forecast:   Forecast of a Model (Grided) (Numpy Array)
-                    A forecast has to be in terms of Average Number of Events in Each Bin
-                    It can be anything greater than zero
-
-    Returns:
-        out (tuple): (delta_1, delta_2)
-    """
-    result = EvaluationResult()
-
-    # observed count
-    obs_cnt = observed_catalog.event_count
-
-    # forecasts provide the expeceted number of events during the time horizon of the forecast
-    fore_cnt = gridded_forecast.event_count
-
-    epsilon = 1e-6
-
-    # stores the actual result of the number test
-    delta1, delta2 = _csep1_number_test(fore_cnt, obs_cnt, epsilon=epsilon)
-
-    # store results
-    result.test_distribution = 'poisson'
-    result.name = 'N-Test'
-    result.observed_statistic = obs_cnt
-    result.quantile = (delta1, delta2)
-    result.sim_name = gridded_forecast.name
-    result.obs_name = observed_catalog.name
-    result.status = 'normal'
-    result.min_mw = numpy.min(gridded_forecast.magnitudes)
-    result.fore_cnt = fore_cnt
-
-    return result

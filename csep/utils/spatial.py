@@ -22,10 +22,12 @@ class CartesianGrid2D:
         self.polygons = polygons
         self.dh = dh
         self.name = name
-        a, xs, ys = build_bitmask_vec(self.polygons, dh)
-        # bitmask is 2d numpy array with 2d shape (xs, ys), dim=0 is the mapping from 2d to polygon dim=1 maps the index
+        a, xs, ys = _build_bitmask_vec(self.polygons, dh)
+        # mask is 2d numpy array with 2d shape (xs, ys), dim=0 is the mask and dim=1 maps the index from 2d to polygons
         # note: might consider changing this, but it requires less constraints on how the polygons are defined.
-        self.bitmask = a
+        self.mask = a[:,:,0]
+        # contains the mapping from polygon_index to the mask
+        self.idx_map = a[:,:,1]
         # index values of polygons array into the 2d cartesian grid, based on the midpoint.
         self.xs = xs
         self.ys = ys
@@ -37,6 +39,7 @@ class CartesianGrid2D:
     def get_index_of(self, lons, lats):
         """
         Returns the index of lons, lats in self.polygons
+
         Args:
             lons: ndarray-like
             lats: ndarray-like
@@ -44,11 +47,15 @@ class CartesianGrid2D:
         Returns:
             idx: ndarray-like
         """
-        idx = bin1d_vec(lons, self.xs)
-        idy = bin1d_vec(lats, self.ys)
-        return self.bitmask[idy, idx, 1].astype(numpy.int)
+        idx = bin1d_vec(numpy.array(lons), self.xs)
+        idy = bin1d_vec(numpy.array(lats), self.ys)
+        if numpy.any(idx == -1) or numpy.any(idy == -1):
+            raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
+        if numpy.any(self.mask[idy,idx] == 1):
+            raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
+        return self.idx_map[idy,idx].astype(numpy.int)
 
-    def get_location_of(self, idx):
+    def get_location_of(self, indices):
         """
         Returns the polygon associated with the index idx.
 
@@ -59,12 +66,14 @@ class CartesianGrid2D:
             Polygon
 
         """
-        idx = list(idx)
-        midpoints = numpy.array([self.polygons[int(ix)].centroid() for ix in idx])
-        return midpoints[:,0], midpoints[:,1]
+        indices = list(indices)
+        polys = [self.polygons[idx] for idx in indices]
+        return polys
 
     def get_masked(self, lons, lats):
         """Returns bool array lons and lats are not included in the spatial region.
+
+        # idea: consider moving this function to the catalog class.
 
         .. note:: The ordering of lons and lats should correspond to the ordering of the lons and lats in the catalog.
 
@@ -78,7 +87,7 @@ class CartesianGrid2D:
 
         idx = bin1d_vec(lons, self.xs)
         idy = bin1d_vec(lats, self.ys)
-        return self.bitmask[idy, idx, 0].astype(bool)
+        return self.mask[idy, idx].astype(bool)
 
     def get_cartesian(self, data):
         """Returns 2d ndrray representation of the data set, corresponding to the bounding box.
@@ -87,13 +96,13 @@ class CartesianGrid2D:
             data:
         """
         assert len(data) == len(self.polygons)
-        results = numpy.zeros(self.bitmask.shape[:2])
+        results = numpy.zeros(self.mask.shape[:2])
         ny = len(self.ys)
         nx = len(self.xs)
         for i in range(ny):
             for j in range(nx):
-                if self.bitmask[i, j, 0] == 0:
-                    idx = int(self.bitmask[i, j, 1])
+                if self.mask[i, j] == 0:
+                    idx = int(self.idx_map[i, j])
                     results[i, j] = data[idx]
                 else:
                     results[i, j] = numpy.nan
@@ -131,6 +140,9 @@ def grid_spacing(vertices):
     Returns:
         dh: grid spacing
 
+    Raises:
+        ValueError
+
     """
     # get first two vertices
     a = vertices[0]
@@ -138,6 +150,8 @@ def grid_spacing(vertices):
     # compute both differences, because unless point is the same one is bound to be the dh
     d1 = numpy.abs(b[0] - a[0])
     d2 = numpy.abs(b[1] - a[1])
+    if not numpy.allclose(d1, d2):
+        raise ValueError("grid spacing must be regular for cartesian grid.")
     dh = numpy.max([d1, d2])
     # this would happen if the same point is repeated twice
     if dh == 0:
@@ -165,7 +179,7 @@ def california_relm_region(filepath=None, dh_scale=1):
         raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
 
     if filepath is None:
-        # use default file path from python pacakge
+        # use default file path from python package
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'csep-forecast-template-M5.xml')
     csep_template = os.path.expanduser(filepath)
@@ -294,9 +308,9 @@ def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
     """
     return list(map(lambda x: compute_vertex(x, dh, tol=tol), origin_points))
 
-def build_bitmask_vec(polygons, dh):
+def _build_bitmask_vec(polygons, dh):
     """
-    same as build bitmask but using vectorized calls to bin1d
+    same as build mask but using vectorized calls to bin1d
     """
     # build bounding box of set of polygons based on origins
     nd_origins = numpy.array([poly.origin for poly in polygons])
@@ -317,28 +331,29 @@ def build_bitmask_vec(polygons, dh):
     # set up mask array, 1 is index 0 is mask
     a = numpy.ones([len(ys), len(xs), 2])
 
+    # set all indices to nan
+    a[:,:,1] = numpy.nan
+
     # bin1d returns the index of polygon within the cartesian grid
     idx = bin1d_vec(midpoints[:, 0], xs)
     idy = bin1d_vec(midpoints[:, 1], ys)
 
     for i in range(len(polygons)):
-
-        # store index of polygon
+        # store index of polygon in dim=1
         a[idy[i], idx[i], 1] = int(i)
-
-        # build bitmask, if statement is confusing.
+        # build mask in dim=0; here we masked values are 1
         if idx[i] >= 0 and idy[i] >= 0:
             a[idy[i], idx[i], 0] = 0
 
     return a, xs, ys
 
-def bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, bitmask, binx, biny, mag_bins):
+def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins):
     """
     Returns a list of event counts as ndarray with shape (n_poly, n_cat) where each value
     represents the event counts within the polygon.
 
-    Using [:, :, 1] index of the bitmask, we store the mapping between the index of n_poly and
-    that polygon in the bitmask. Additionally, the polygons are ordered such that the index of n_poly
+    Using [:, :, 1] index of the mask, we store the mapping between the index of n_poly and
+    that polygon in the mask. Additionally, the polygons are ordered such that the index of n_poly
     in the result corresponds to the index of the polygons.
 
     Eventually, we can make a structure that could contain both of these, but the trade-offs will need
@@ -346,73 +361,70 @@ def bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, bitmask, binx,
     """
 
     # index in cartesian grid for events in catalog. note, this has a different index than the
-    # vector of polygons. this mapping is stored in [:,:,1] index of bitmask
-    ny, nx, _ = bitmask.shape
+    # vector of polygons. this mapping is stored in [:,:,1] index of mask
     # index in 2d grid
     idx = bin1d_vec(lons, binx)
     idy = bin1d_vec(lats, biny)
-    mags = bin1d_vec(mags, mag_bins)
+    mags = bin1d_vec(mags, mag_bins, right_continuous=True)
     # start with zero event counts in each bin
     event_counts = numpy.zeros((n_poly, len(mag_bins)))
     # does not seem that we can vectorize this part
     for i in range(idx.shape[0]):
-        # we store the index of that polygon in array [:, :, 1], flag is [:,:,0]
-        if not bitmask[idy[i], idx[i], 0]:
-            # getting spatial bin from bitmask
-            hash_idx = int(bitmask[idy[i], idx[i], 1])
+        if not mask[idy[i], idx[i]] and idy[i] != -1 and idx[i] != -1 and mags[i] != -1:
+            # getting spatial bin from mask
+            hash_idx = int(idx_map[idy[i], idx[i]])
             mag_idx = mags[i]
             # update event counts in that polygon
-            event_counts[(hash_idx, mag_idx)]+=1
+            event_counts[(hash_idx, mag_idx)] += 1
     return event_counts
 
-def bin_catalog_spatial_counts(lons, lats, n_poly, bitmask, binx, biny):
+def _bin_catalog_spatial_counts(lons, lats, n_poly, mask, idx_map, binx, biny):
     """
     Returns a list of event counts as ndarray with shape (n_poly) where each value
     represents the event counts within the polygon.
 
-    Using [:, :, 1] index of the bitmask, we store the mapping between the index of n_poly and
-    that polygon in the bitmask. Additionally, the polygons are ordered such that the index of n_poly
+    Using [:, :, 1] index of the mask, we store the mapping between the index of n_poly and
+    that polygon in the mask. Additionally, the polygons are ordered such that the index of n_poly
     in the result corresponds to the index of the polygons.
 
     We can make a structure that could contain both of these, but the trade-offs will need
     to be compared against performance.
     """
     ai, bi = binx, biny
-    # index in cartesian grid for events in catalog. note, this has a different index than the
-    # vector of polygons. this mapping is stored in [:,:,1] index of bitmask
+    # will return negative
     idx = bin1d_vec(lons, ai)
     idy = bin1d_vec(lats, bi)
+    # bin1d returns -1 if outside the region
+    bad = (idx == -1) | (idy == -1) | (mask[idy,idx] == 1)
+    # this can be memory optimized by keeping short list and storing index, only for case where n/2 events
     event_counts = numpy.zeros(n_poly)
-    # [:,:,1] is a mapping from the polygon array to cartesian grid
-    hash_idx=bitmask[idy,idx,1].astype(int)
-    # this line seems redundant. need unit testing before merging to master.
-    hash_idx[bitmask[idy,idx,0] != 0] = 0
+    # selecting the indexes into polygons correspoding to lons and lats within the grid
+    hash_idx = idx_map[idy[~bad],idx[~bad]].astype(int)
+    # aggregate in counts
     numpy.add.at(event_counts, hash_idx, 1)
     return event_counts
 
-def bin_catalog_probability(lons, lats, n_poly, bitmask, binx, biny):
+def _bin_catalog_probability(lons, lats, n_poly, mask, idx_map, binx, biny):
     """
     Returns a list of event counts as ndarray with shape (n_poly) where each value
     represents the event counts within the polygon.
 
-    Using [:, :, 1] index of the bitmask, we store the mapping between the index of n_poly and
-    that polygon in the bitmask. Additionally, the polygons are ordered such that the index of n_poly
+    Using [:, :, 1] index of the mask, we store the mapping between the index of n_poly and
+    that polygon in the mask. Additionally, the polygons are ordered such that the index of n_poly
     in the result corresponds to the index of the polygons.
 
     We can make a structure that could contain both of these, but the trade-offs will need
     to be compared against performance.
     """
     ai, bi = binx, biny
-    # index in cartesian grid for events in catalog. note, this has a different index than the
-    # vector of polygons. this mapping is stored in [:,:,1] index of bitmask
+    # returns -1 if outside of the bbox
     idx = bin1d_vec(lons, ai)
     idy = bin1d_vec(lats, bi)
+    bad = (idx == -1) | (idy == -1) | (mask[idy, idx] == 1)
     event_counts = numpy.zeros(n_poly)
     # [:,:,1] is a mapping from the polygon array to cartesian grid
-    hash_idx=bitmask[idy,idx,1].astype(int)
-    # this line seems redundant, because lons/lats should be removed if outside of polygon. need unit testing before merging to master.
-    hash_idx[bitmask[idy,idx,0] != 0] = 0
-    # dont accumulate just set to one
+    hash_idx = idx_map[idy[~bad],idx[~bad]].astype(int)
+    # dont accumulate just set to one for probability
     event_counts[hash_idx] = 1
     return event_counts
 
