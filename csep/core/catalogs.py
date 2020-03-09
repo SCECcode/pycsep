@@ -1084,7 +1084,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         updated by -tb to create proper JST timestamp strings instead of separate
         columns for year, month, days, hours, minutes (all int), and seconds (.2 digit floats)
 
-    :var event_dtype: numpy.dtype description of JMA CSV catalog format:
+    :var dtype: numpy.dtype description of JMA CSV catalog format:
             - timestamp: milli(sic!)seconds as bigint
             - longitude, latitude: regular coordinates as float64
             - depth: kilometers as float64
