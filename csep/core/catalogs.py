@@ -1132,7 +1132,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         n = len(self.catalog)
         csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.csep_dtype)
 
-        # ToDo instead of iterating we should use self.catalog['timestamp'].astype('datetime64[ms]') and split this
+        # ToDo instead of iterating we should use self.catalog['timestamp'].astype('datetime64[ms]') and split this...!?
         for i, event in enumerate(self.catalog):
             dt = epoch_time_to_utc_datetime(event['timestamp'])
             year = dt.year
