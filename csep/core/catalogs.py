@@ -1088,7 +1088,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         except:
             raise
         else:
-            self._update_catalog_stats()
+            self.update_catalog_stats()
 
         return self
 
