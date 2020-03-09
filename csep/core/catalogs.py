@@ -1094,7 +1094,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         the 200% used space
     """
 
-    event_dtype = numpy.dtype([
+    dtype = numpy.dtype([
         ('timestamp', 'i8'),
         ('longitude', 'f8'),
         ('latitude', 'f8'),
@@ -1116,7 +1116,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
 
         try:
             self.catalog = numpy.genfromtxt(self.filename, delimiter=';', names=True, skip_header=0,
-                         dtype=self.event_dtype, invalid_raise=True, loose=False, converters={0: parseDateString})
+                                            dtype=self.dtype, invalid_raise=True, loose=False, converters={0: parseDateString})
         except:
             raise
         else:
