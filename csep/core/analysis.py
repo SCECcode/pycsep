@@ -16,7 +16,7 @@ import seaborn as sns
 from csep import load_stochastic_event_sets, load_comcat
 from csep.utils import current_git_hash
 from csep.utils.constants import SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_WEEK, CSEP_MW_BINS
-from csep.utils.time import epoch_time_to_utc_datetime, datetime_to_utc_epoch, millis_to_days, utc_now_epoch
+from csep.utils.time_utils import epoch_time_to_utc_datetime, datetime_to_utc_epoch, millis_to_days, utc_now_epoch
 from csep.utils.spatial import masked_region, california_relm_region
 from csep.utils.basic_types import Polygon, seq_iter, AdaptiveHistogram
 from csep.utils.scaling_relationships import WellsAndCoppersmith
@@ -30,7 +30,7 @@ from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_like
     plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_distribution_test, plot_spatial_dataset, \
     plot_probability_test
 from csep.utils.calc import bin1d_vec
-from csep.utils.stats import get_quantiles, cumulative_square_diff, sup_dist, sup_dist_na
+from csep.utils.stats import get_quantiles, cumulative_square_diff, sup_dist
 from csep.core.catalogs import ComcatCatalog
 from csep.core.repositories import FileSystem
 
@@ -93,7 +93,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     rupture_length = WellsAndCoppersmith.mag_length_strike_slip(event.magnitude) * 1000
     aftershock_polygon = Polygon.from_great_circle_radius((event.longitude, event.latitude),
                                                           3*rupture_length, num_points=100)
-    aftershock_region = masked_region(california_relm_region(), aftershock_polygon)
+    aftershock_region = masked_region(california_relm_region(dh_scale=4), aftershock_polygon)
 
     # event timing
     event_time = event.time.replace(tzinfo=datetime.timezone.utc)
@@ -547,7 +547,7 @@ class MagnitudeTest(AbstractProcessingTask):
         mags = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            binned_mags = cat_filt.binned_magnitude_counts()
+            binned_mags = cat_filt.magnitude_counts()
             mags.append(binned_mags)
         # data shape (n_cat, n_mw, n_mw_bins)
         self.data.append(mags)
@@ -563,7 +563,7 @@ class MagnitudeTest(AbstractProcessingTask):
             if obs_filt.event_count == 0:
                 print(f"Skipping {mw} in Magnitude test because no observed events.")
                 continue
-            obs_histogram = obs_filt.binned_magnitude_counts()
+            obs_histogram = obs_filt.magnitude_counts()
             n_obs_events = numpy.sum(obs_histogram)
             mag_counts_all = numpy.array(self.data)
             # get the union histogram, simply the sum over all catalogs, (n_cat, n_mw)
@@ -631,7 +631,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         counts = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            gridded_counts = cat_filt.spatial_event_counts()
+            gridded_counts = cat_filt.spatial_counts()
             counts.append(gridded_counts)
         # we want to aggregate the counts in each bin to preserve memory
         if len(self.data) == 0:
@@ -652,7 +652,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.event_count
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            gridded_cat = cat_filt.spatial_event_counts()
+            gridded_cat = cat_filt.spatial_counts()
             lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density[i,:], expected_cond_count[i], n_obs)
             lhs[i] = lh
             lhs_norm[i] = lh_norm
@@ -673,7 +673,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             # get observed likelihood
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.get_number_of_events()
-            gridded_obs = obs_filt.spatial_event_counts()
+            gridded_obs = obs_filt.spatial_counts()
             obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density[i,:], expected_cond_count[i], n_obs)
             # determine outcome of evaluation, check for infinity
             _, quantile_likelihood = get_quantiles(test_distribution_likelihood[:,i], obs_lh)
@@ -859,7 +859,7 @@ class MagnitudeHistogram(AbstractProcessingTask):
         if self.calc:
             # always compute this for the lowest magnitude, above this is redundant
             cat_filt = catalog.filter(f'magnitude > {self.mws[0]}')
-            binned_mags = cat_filt.binned_magnitude_counts()
+            binned_mags = cat_filt.magnitude_counts()
             self.data.append(binned_mags)
 
     def post_process(self, obs, args=None):
@@ -926,7 +926,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.event_count
             cat_filt = catalog.filter(f'magnitude > {mw}')
-            gridded_cat = cat_filt.spatial_event_counts()
+            gridded_cat = cat_filt.spatial_counts()
             lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density, expected_cond_count[i], n_obs)
             lhs[i] = lh
             lhs_norm[i] = lh_norm
@@ -954,7 +954,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
 
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.get_number_of_events()
-            gridded_obs = obs_filt.spatial_event_counts()
+            gridded_obs = obs_filt.spatial_counts()
             obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density, expected_cond_count[i],
                                                       n_obs)
             # determine outcome of evaluation, check for infinity
@@ -1176,13 +1176,13 @@ class TotalEventRateDistribution(AbstractProcessingTask):
         if not self.name:
             self.name = catalog.name
         # compute stuff from catalog
-        gridded_counts = catalog.spatial_event_counts()
+        gridded_counts = catalog.spatial_counts()
         self.data.add(gridded_counts)
 
     def process_again(self, catalog, args=()):
         # we dont actually need to do this if we are caching the data
         _, n_cat, _, _ = args
-        cat_counts = catalog.spatial_event_counts()
+        cat_counts = catalog.spatial_counts()
         cat_disc = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(cat_counts, self.data.bins)
         numpy.add.at(cat_disc, idx, 1)
@@ -1194,7 +1194,7 @@ class TotalEventRateDistribution(AbstractProcessingTask):
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
         obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
-        obs_terd = obs_filt.spatial_event_counts()
+        obs_terd = obs_filt.spatial_counts()
         obs_disc_terd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(obs_terd, self.data.bins)
         numpy.add.at(obs_disc_terd, idx, 1)
@@ -1319,7 +1319,7 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
             counts = []
             for mw in self.mws:
                 cat_filt = catalog.filter(f'magnitude > {mw}')
-                counts.append(cat_filt.spatial_event_counts())
+                counts.append(cat_filt.spatial_counts())
             # we want to aggregate the counts in each bin to preserve memory
             if len(self.data) == 0:
                 self.data = numpy.array(counts)
@@ -1340,7 +1340,7 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
             obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
             if obs_filt.event_count == 0:
                 continue
-            gridded_obs = obs_filt.spatial_event_counts()
+            gridded_obs = obs_filt.spatial_counts()
             gridded_obs_ma = numpy.ma.masked_where(gridded_obs == 0, gridded_obs)
             apprx_rate_density_ma = numpy.ma.array(apprx_rate_density[i,:], mask=gridded_obs_ma.mask)
             likelihood = gridded_obs_ma * numpy.ma.log10(apprx_rate_density_ma) / obs_filt.event_count
@@ -1533,7 +1533,7 @@ class ApproximateRatePlot(AbstractProcessingTask):
             counts = []
             for mw in self.mws:
                 cat_filt = catalog.filter(f'magnitude > {mw}')
-                gridded_counts = cat_filt.spatial_event_counts()
+                gridded_counts = cat_filt.spatial_counts()
                 counts.append(gridded_counts)
             # we want to aggregate the counts in each bin to preserve memory
             if len(self.data) == 0:
@@ -1592,7 +1592,7 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
             tolerance = 0.05 * n_obs
             if cat_filt.event_count <= n_obs + tolerance \
                 and cat_filt.event_count >= n_obs - tolerance:
-                self.data[mw].append(cat_filt.spatial_event_counts())
+                self.data[mw].append(cat_filt.spatial_counts())
 
     def post_process(self, obs, args=None):
         _, time_horizon, _, n_cat = args

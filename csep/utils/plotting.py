@@ -1,8 +1,10 @@
 from collections import defaultdict
 
 import matplotlib
+import scipy.stats
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
+from mpl_toolkits.basemap import Basemap
 
 import time
 import numpy
@@ -13,7 +15,8 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.calc import bin1d_vec
-from csep.utils.time import datetime_to_utc_epoch
+from csep.utils.time_utils import datetime_to_utc_epoch
+
 
 """
 This module contains plotting routines that generate figures for the stochastic event sets produced from
@@ -418,7 +421,7 @@ def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
     return ax
 
 def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
-    bin_edges, obs_hist = obs.binned_magnitude_counts(retbins=True)
+    bin_edges, obs_hist = obs.magnitude_counts(retbins=True)
     n_obs = numpy.sum(obs_hist)
     event_counts = numpy.sum(ses_data, axis=1)
     # normalize all histograms by counts in each
@@ -563,11 +566,12 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     clim = plot_args.get('clim', None)
     clabel = plot_args.get('clabel', '')
     filename = plot_args.get('filename', None)
+    cmap = plot_args.get('cmap', None)
 
     fig = pyplot.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
     lons, lats = numpy.meshgrid(region.xs, region.ys)
-    im = ax.pcolormesh(lons, lats, gridded)
+    im = ax.pcolormesh(lons, lats, gridded, cmap=cmap)
     ax.set_extent(extent)
     ax.coastlines(color='black', resolution='110m', linewidth=1)
     ax.add_feature(cartopy.feature.STATES)
@@ -575,8 +579,6 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     # colorbar options
     cbar = fig.colorbar(im, ax=ax)
     cbar.set_label(clabel)
-    # matplotlib.cm.get_cmap().set_bad(color='white')
-    # matplotlib.cm.get_cmap().set_under(color='gray')
     # gridlines options
     gl = ax.gridlines(draw_labels=True, alpha=0.5)
     gl.xlines = False
@@ -950,4 +952,79 @@ def plot_probability_test(evaluation_result, axes=None, plot_args=None, show=Tru
     if show:
         pyplot.show()
 
+    return ax
+
+def plot_global_forecast(forecast, catalog=None, name=None):
+    """
+    Creates global plot from a forecast using a Robin projection. This should be used as a quick and dirty plot and probably
+    will not suffice for publication quality figures.
+
+    Args:
+        forecast (csep.core.forecasts.MarkedGriddedDataSet): marked gridded data set
+        catalog (csep.core.catalog.AbstractBaseCatalog):  catalog base class
+        name (str): name of the catalog
+
+    Returns:
+
+    """
+    fig, ax = pyplot.subplots(figsize=(18,11))
+    m = Basemap(projection='robin', lon_0= -180, resolution='c')
+    m.drawcoastlines(color = 'lightgrey', linewidth = 1.5)
+    m.drawparallels(numpy.arange(-90.,120.,15.), labels=[1,1,0,1], linewidth= 0.0, fontsize = 13)
+    m.drawmeridians(numpy.arange(0.,360.,40.), labels=[1,1,1,1], linewidth= 0.0, fontsize = 13)
+    x, y = m(forecast.longitudes(), forecast.latitudes())
+    cbar = ax.scatter(x, y, s = 2, c = numpy.log10(forecast.spatial_counts()), cmap = 'inferno', edgecolor='')
+    a = fig.colorbar(cbar, orientation = 'horizontal', shrink = 0.5, pad = 0.01)
+    if catalog is not None:
+        x, y = m(catalog.get_longitudes(), catalog.get_latitudes())
+        ax.scatter(x, y, color='black')
+    a.ax.tick_params(labelsize = 14)
+    a.ax.tick_params(labelsize = 14)
+    if name is None:
+        name='Global Forecast'
+    a.set_label('{}\nlog$_{{10}}$(EQs / (0.1$^o$ x 0.1$^o$)'.format(name), size = 18)
+    return ax
+
+def _get_marker_style(result):
+    """Returns matplotlib marker style as fmt string"""
+    if result.observed < result.p5 or result.observed > result.p95:
+        # red square
+        fmt = 'rs'
+    else:
+        # green circle
+        fmt = 'go'
+    return fmt
+
+def plot_consistency_test(results, plot_args=None):
+    """ Plots results from CSEP1 Number test following the CSEP1 convention.
+
+    Args:
+        results: N_Test_Result namedtuple storing test results (see above).
+    """
+    fig, ax = pyplot.subplots()
+
+    for index, res in enumerate(results):
+        # errobar expects err to be relative to 'x'
+        # compute p5 and p95
+        if res.test_distribution == 'poisson':
+            p5 = scipy.stats.poisson.ppf(0.05, res.fore_cnt)
+            p95 = scipy.stats.poisson.ppf(0.95, res.fore_cnt)
+        else:
+            p5 = numpy.percentile(res.test_distribution, 5)
+            p95 = numpy.percentile(res.test_distribution, 95)
+        low = res.observed - p5
+        high = p95 - res.observed
+        ax.errorbar(res.observed, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(res), capsize=4,
+                    ecolor='black')
+    ax.set_yticklabels([res.sim_name for res in results])
+    ax.set_yticks(numpy.arange(len(results)))
+
+    # parse plot arguments, more can be added here
+    if plot_args is None:
+        plot_args = {}
+    title = plot_args.get('title', 'CSEP1 Consistency Test')
+    xlabel = plot_args.get('xlabel', 'X')
+
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
     return ax

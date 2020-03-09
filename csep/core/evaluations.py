@@ -1,22 +1,17 @@
-from collections import namedtuple
-
 import time
 
 import numpy
+import scipy.stats
 
-from csep.utils.stats import cumulative_square_diff, binned_ecdf, sup_dist
+from csep.utils.stats import cumulative_square_diff, binned_ecdf, sup_dist, poisson_inverse_cdf, get_quantiles, poisson_log_likelihood
 from csep.utils.constants import CSEP_MW_BINS
-from csep.utils import flat_map_to_ndarray, current_git_hash
-
-# implementing plotting routines as functions
-from csep.utils.stats import get_quantiles
-
+from csep.utils import flat_map_to_ndarray
 
 
 class EvaluationResult:
 
     def __init__(self, test_distribution=None, name=None, observed_statistic=None, quantile=None, status="",
-                       obs_catalog_repr='', sim_name=None, obs_name=None, min_mw=None):
+                       obs_catalog_repr='', sim_name=None, obs_name=None, min_mw=None, fore_cnt=None):
         """
         Stores the result of an evaluation.
 
@@ -38,6 +33,7 @@ class EvaluationResult:
         self.obs_catalog_repr = obs_catalog_repr
         self.sim_name = sim_name
         self.obs_name = obs_name
+        self.fore_cnt = fore_cnt
         self.min_mw = min_mw
 
     def to_dict(self):
@@ -50,7 +46,8 @@ class EvaluationResult:
             'observed_statistic': self.observed_statistic,
             'test_distribution': list(self.test_distribution),
             'status': self.status,
-            'min_mw': self.min_mw
+            'min_mw': self.min_mw,
+            'fore_cnt': self.fore_cnt
         }
         return adict
 
@@ -74,8 +71,8 @@ class EvaluationResult:
             obs_name=adict['obs_name'],
             obs_catalog_repr=adict['obs_catalog_repr'],
             status=adict['status'],
-            min_mw=adict['min_mw'])
-
+            min_mw=adict['min_mw'],
+            fore_cnt=adict['fore_cnt'])
         return new
 
 class EvaluationConfiguration:
@@ -282,14 +279,14 @@ def pseudo_likelihood_test(stochastic_event_sets, observation, apprx_rate_densit
     # integrating, assuming that all cats in ses have same region
     region = stochastic_event_sets[0].region
     expected_cond_count = numpy.sum(apprx_rate_density) * region.dh * region.dh * time_interval
-    gridded_obs = observation.spatial_event_counts()
+    gridded_obs = observation.spatial_counts()
     name = 'L-Test'
 
     # build likelihood distribution from ses
     test_distribution = []
     t0 = time.time()
     for i, catalog in enumerate(stochastic_event_sets):
-        gridded_cat = catalog.spatial_event_counts()
+        gridded_cat = catalog.spatial_counts()
          # compute likelihood for each event, ignoring areas with 0 expectation
         gridded_cat_ma = numpy.ma.masked_where(gridded_cat == 0, gridded_cat)
         apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_cat_ma.mask)
@@ -356,7 +353,7 @@ def spatial_test(stochastic_event_sets, observation, apprx_rate_density, time_in
     test_distribution = []
     # this could be io based if iterator is passed
     for catalog in stochastic_event_sets:
-        gridded_rate_cat = catalog.spatial_event_counts() / time_interval
+        gridded_rate_cat = catalog.spatial_counts() / time_interval
         # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio
         normalizing_factor = observation.event_count / catalog.event_count
         gridded_rate_cat_norm = normalizing_factor * gridded_rate_cat
@@ -367,7 +364,7 @@ def spatial_test(stochastic_event_sets, observation, apprx_rate_density, time_in
         test_distribution.append(likelihood)
 
     # compute psuedo-likelihood for comcat
-    gridded_obs_rate = observation.spatial_event_counts() / time_interval
+    gridded_obs_rate = observation.spatial_counts() / time_interval
     gridded_obs_rate_ma = numpy.ma.masked_where(gridded_obs_rate == 0, gridded_obs_rate)
     apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_obs_rate_ma.mask)
     comcat_likelihood = numpy.ma.sum(gridded_obs_rate_ma * numpy.ma.log10(apprx_rate_density_ma))
@@ -465,7 +462,7 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     region = stochastic_event_sets[0].region
     n_cat = len(stochastic_event_sets)
     expected_cond_count = numpy.sum(apprx_rate_density) * region.dh * region.dh * time_interval
-    gridded_obs = observation.spatial_event_counts()
+    gridded_obs = observation.spatial_counts()
     n_obs = observation.get_number_of_events()
 
     # build likelihood distribution from ses
@@ -473,7 +470,7 @@ def combined_likelihood_and_spatial(stochastic_event_sets, observation, apprx_ra
     test_distribution_spatial = numpy.empty(n_cat)
     t0 = time.time()
     for i, catalog in enumerate(stochastic_event_sets):
-        gridded_cat = catalog.spatial_event_counts()
+        gridded_cat = catalog.spatial_counts()
         # compute likelihood for each event, ignoring areas with 0 expectation,
         lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density, expected_cond_count, n_obs)
         # store results
@@ -580,10 +577,10 @@ def interevent_distance_test(stochastic_event_sets, observation):
 
 def total_event_rate_distribution_test(stochastic_event_sets, observation):
     # get data that we need
-    terd = [cat.spatial_event_counts() for cat in stochastic_event_sets]
+    terd = [cat.spatial_counts() for cat in stochastic_event_sets]
 
     # get inter-event times from catalog
-    obs_terd = observation.spatial_event_counts()
+    obs_terd = observation.spatial_counts()
 
     # compute distribution statistics
     test_distribution, d_obs, quantile = _distribution_test(terd, obs_terd)
@@ -619,3 +616,5 @@ def bvalue_test(stochastic_event_sets, observation):
                               sim_name=stochastic_event_sets[0].name,
                               obs_name=observation.name)
     return result
+
+

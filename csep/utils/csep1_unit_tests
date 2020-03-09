@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jan 27 14:38:30 2020
+Implementation of Unit Test for L Test
+@author: khawaja
+"""
+import numpy
+import unittest
+from csep1_tests import n_test
+from csep1_tests import poisson_log_likelihood
+from csep1_tests import _forecast_realization_inverse_cdf
+from csep1_tests import _m_test_prep
+from csep1_tests import _s_test_prep
+from csep1_tests import _conditional_l_test_prep
+from csep1_tests import w_test_single_sample
+from csep1_tests import t_test
+class TestGriddedForecastTests(unittest.TestCase):
+    
+
+    def test_n_test(self):
+        forecast =numpy.zeros((10,10))+0.0015
+        forecast /= numpy.size(forecast)
+        observation = numpy.zeros((10,10))
+        expected_output = {'delta1':1.0,'delta2':0.9985011244377109,'model_name':'Unittesting'}
+        print('N Test: Running Unit Test')
+        self.assertEqual(n_test(observation, forecast,'Unittesting'), expected_output, 'Failed N Test')
+        
+    def test_l_lest(self):
+        
+        """
+        L Test is bisected in 03 independent Steps. 
+        #Step 1: Test the Likelihood between Actual Observation and Actual Forecast
+        #Step 2: Test the Generation of Realization of Forecast by providing Random Matrix
+        #Step 3: Test applied to check the Quantile Score on Eq. 15 of Zechar et al, 2010 
+        """
+        observation = numpy.array([[5, 8],[4, 2]])
+        forecast = numpy.array([[8, 2],[3,5]])
+        random_matrix = numpy.array([[0.2, 0.4],[0.6, 0.8]])
+        num_simulations = 1
+        Actual_log_Likelihood = numpy.array([[-2.3902840343828666,-7.059425458265689],
+                              [-1.7836046756755066,-2.474271355691745]])
+        ll_actual=-13.707585524015807
+        forecast_realization = numpy.array([[6., 1.],[3., 7.]])
+        ll_simulations = -7.16447335862158
+        Quantile_score = 0
+        
+        print('L Test: Step 1, Running NUMPY Test')
+        numpy.testing.assert_array_equal(poisson_log_likelihood(observation, forecast), Actual_log_Likelihood,'Failed L Test: Actual Likelihood Testing Failed')
+        
+        print('L Test: Step 2, Running NUMPY Test')
+        numpy.testing.assert_array_equal(_forecast_realization_inverse_cdf(random_matrix, forecast), forecast_realization, 'Failed L Test: Simulated Forecast Likelihood Test')
+        
+        print('L Test: Step 3, Running Unit Test')
+        self.assertEqual((numpy.sum(ll_simulations <= ll_actual) / num_simulations), Quantile_score,'Failed L Test: Quantile Score Testing')
+      
+        
+    def test_m_test_partial(self):
+        """
+        The first step of M Test is to prepare observation and forecast according to the definition of M Test. 
+        Then Second step is just same as L Test.
+        So we write Unit test to check only the output of M_Test_Prep() 
+        """
+        observation = numpy.array([[5, 8],[4, 2]])
+        forecast = numpy.array([[8, 2],[3,5]])
+        
+        observation_magbins = numpy.array([9, 10])
+        norm_forecast_magbins = numpy.array([11, 7])*19/18
+        
+        print('M Test: Observation Preparation, Running NUMPY Test')
+        numpy.testing.assert_array_equal(_m_test_prep(observation,forecast)[0],observation_magbins,'M Test: Failed Row Summation of Observation')
+        print('M Test: Forecast Preparation, Running NUMPY Test')
+        numpy.testing.assert_array_equal(_m_test_prep(observation,forecast)[1],norm_forecast_magbins,'M Test: Failed Row Summation or Normalization of Forecast')
+        
+        
+    def test_s_test_partial(self):
+        """
+        The first step of M Test is to prepare observation and forecast according to the definition of M Test. 
+        Then Second step is just same as L Test.
+        So we write Unit test to check only the output of M_Test_Prep() 
+        """
+        observation = numpy.array([[5, 8],[4, 2]])
+        forecast = numpy.array([[8, 2],[3,5]])
+        
+        observation_spacebins = numpy.array([13, 6])
+        norm_forecast_spacebins = numpy.array([10, 8])*19/18
+        
+        prep_obs = _s_test_prep(observation,forecast)[0]
+        prep_fcst = _s_test_prep(observation,forecast)[1]
+        
+        print('S Test: Observation Preparation, Running NUMPY Test')
+        numpy.testing.assert_array_equal(prep_obs,observation_spacebins,'S Test: Failed Row Summation of Observation')
+        print('S Test: Forecast Preparation, Running NUMPY Test')
+        numpy.testing.assert_array_equal(prep_fcst,norm_forecast_spacebins,'S Test: Failed Row Summation or Normalization of Forecast')
+  
+    def test_conditional_l_test_partial(self):
+        """
+        The first step of Conditional L Test is to prepare observation and forecast according to the definition of Conditional L Test. 
+        Then Second step is just same as L Test.
+        So we write Unit test to check only the output of conditional_l_test_prep() 
+        """
+        observation = numpy.array([[5, 8],[4, 2]])
+        forecast = numpy.array([[8, 2],[3,5]])
+        
+        norm_forecast = forecast*19/18
+        prep_fcst = _conditional_l_test_prep(observation,forecast)
+        
+        print('Conditional L Test: Forecast Normalization, Running NUMPY Test')
+        numpy.testing.assert_array_equal(prep_fcst,norm_forecast,'Conditional L Test: Failed Forecast Normalization')
+        
+        
+    def test_w_test(self):
+        """
+        This function tests w test.
+        There are two outputs of w test. Z_statistic and the probability value.
+        """
+        x = numpy.array([35.5,   44.5,  39.8,  33.3,  51.4,  51.3,  30.5,  48.9,   42.1,   40.3, 46.8,   38.0, 40.1,
+                         36.8,  39.3,  65.4, 42.6,  42.8,  59.8,   52.4, 26.2,   60.9,  45.6,  27.1,  47.3,  36.6,
+                         55.6,  45.1,   52.2,   43.5])
+        median = 45
+       
+        expected_output = {'z_statistic': -0.6684710290340584, 'probability': 0.5038329688781412}
+        print('W Test: Running Unit Test')
+        self.assertEqual(w_test_single_sample(x, median), expected_output, 'Failed W Test')
+
+    def test_t_test(self):
+        """
+        This function tests the T test
+        It compares the T_statistic, Information Gain, its upper and lower limits. Values were computed manually following
+        the equations from
+
+        """
+        forecast_A = numpy.array([[8, 2], [3, 5]])
+        forecast_B = numpy.array([[6, 4], [2, 8]])
+        obs = numpy.array([[5, 8], [4, 2]])
+
+        t_test_expected = {'t_critical': 2.10092204024096,
+                           't_statistic': 1.5385261717159382,
+                           'information_gain': 0.08052612477654024,
+                           'ig_lower': -0.029435677283374914,
+                           'ig_upper': 0.19048792683645538}
+
+        print('T Test: Running Unit Test')
+        self.assertEqual(t_test(forecast_A, forecast_B, numpy.sum(obs)), t_test_expected, 'Failed T Test')
+
+
+if __name__ == '__main__':
+    unittest.main() 
+

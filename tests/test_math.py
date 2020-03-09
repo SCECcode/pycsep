@@ -86,6 +86,12 @@ class TestDigitize(unittest.TestCase):
         expected = [0, 1, 0, 3, 3]
         self.assertListEqual(test.tolist(), expected)
 
+    def test_upper_bound_equal_right_continuous(self):
+        data = [4.0]
+        test = discretize(data, self.bin_edges, right_continuous=True)
+        expected = [4]
+        self.assertListEqual(test.tolist(), expected)
+
     def test_upper_bound_equal(self):
         data = [4.0]
         with pytest.raises(CSEPException):
