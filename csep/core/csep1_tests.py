@@ -56,7 +56,6 @@ def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0
     result.min_mw = numpy.min(gridded_forecast1.magnitudes)
     return result
 
-
 def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, n_f1, n_f2, alpha=0.05):
     """ Computes T test statistic by comparing two gridded forecasts specified as numpy arrays.
 
@@ -105,7 +104,6 @@ def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, 
     # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2.
     return {'t_statistic': t_statistic, 't_critical': t_critical, 'information_gain': information_gain,
             'ig_lower': ig_lower, 'ig_upper': ig_upper}
-
 
 def csep1_w_test_ndarray(x, m=0):
     
@@ -173,7 +171,6 @@ def csep1_w_test_ndarray(x, m=0):
                     'probability': prob }
 
     return w_test_eval
-
 
 def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=True):
     
@@ -249,7 +246,6 @@ def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=T
     result.min_mw = numpy.min(gridded_forecast1.magnitudes)
     return result
 
-
 def _simulate_catalog(num_events, sampling_weights, sort_args, sim_fore, random_numbers=None, seed=None):
     if seed is not None:
         numpy.random.seed(seed)
@@ -271,7 +267,6 @@ def _simulate_catalog(num_events, sampling_weights, sort_args, sim_fore, random_
     numpy.add.at(sim_fore, pnts, 1)
 
     return sim_fore
-
 
 def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, seed=None, random_numbers=None, use_observed_counts=True):
     """
@@ -319,7 +314,6 @@ def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
 
     # float, float, list
     return qs, obs_ll, simulated_ll
-
 
 def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
     """
