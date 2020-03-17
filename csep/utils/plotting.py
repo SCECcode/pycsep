@@ -985,46 +985,109 @@ def plot_global_forecast(forecast, catalog=None, name=None):
     a.set_label('{}\nlog$_{{10}}$(EQs / (0.1$^o$ x 0.1$^o$)'.format(name), size = 18)
     return ax
 
-def _get_marker_style(result):
+def _get_marker_style(obs_stat, p, one_sided_lower=True):
     """Returns matplotlib marker style as fmt string"""
-    if result.observed < result.p5 or result.observed > result.p95:
-        # red square
-        fmt = 'rs'
+    if obs_stat < p[0] or obs_stat > p[1]:
+        # red circle
+        fmt = 'ro'
     else:
-        # green circle
-        fmt = 'go'
+        # green square
+        fmt = 'gs'
+    if one_sided_lower:
+        if obs_stat < p[0]:
+            fmt = 'ro'
+        else:
+            fmt = 'gs'
     return fmt
+
+def plot_comparison_test(results, plot_args=None):
+    """Plots list of T-Test or W-Test Results"""
+    if plot_args is None:
+        plot_args = {}
+    title = plot_args.get('title', 'CSEP1 Consistency Test')
+    xlabel = plot_args.get('xlabel', 'X')
+    ylabel = plot_args.get('ylabel', 'Y')
+    normalize = plot_args.get('normalize', False)
+    one_sided_lower = plot_args.get('one_sided_lower', False)
+
+    fig, ax = plt.subplots()
+    ax.axhline(y=0, linestyle='--', color='black')
+    for index, result in enumerate(results):
+        ylow = result.observed_statistic - result.test_distribution[0]
+        yhigh = result.test_distribution[1] - result.observed_statistic
+        ax.errorbar(index, result.observed_statistic, yerr=np.array([[ylow, yhigh]]).T, color='black', capsize=4)
+        ax.plot(index, result.observed_statistic, 'ok')
+    ax.set_xticklabels([res.sim_name[0] for res in results])
+    ax.set_xticks(np.arange(len(results)))
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    return ax
+
 
 def plot_consistency_test(results, plot_args=None):
     """ Plots results from CSEP1 Number test following the CSEP1 convention.
 
     Args:
-        results: N_Test_Result namedtuple storing test results (see above).
+        results: list storing test results (see above).
+        plot_args: optional argument containing a dictionary of plotting arguments
     """
+    # this fails if results is not iterable
+    results = list(results)
     fig, ax = pyplot.subplots()
-
-    for index, res in enumerate(results):
-        # errobar expects err to be relative to 'x'
-        # compute p5 and p95
-        if res.test_distribution == 'poisson':
-            p5 = scipy.stats.poisson.ppf(0.05, res.fore_cnt)
-            p95 = scipy.stats.poisson.ppf(0.95, res.fore_cnt)
-        else:
-            p5 = numpy.percentile(res.test_distribution, 5)
-            p95 = numpy.percentile(res.test_distribution, 95)
-        low = res.observed - p5
-        high = p95 - res.observed
-        ax.errorbar(res.observed, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(res), capsize=4,
-                    ecolor='black')
-    ax.set_yticklabels([res.sim_name for res in results])
-    ax.set_yticks(numpy.arange(len(results)))
-
     # parse plot arguments, more can be added here
     if plot_args is None:
         plot_args = {}
     title = plot_args.get('title', 'CSEP1 Consistency Test')
     xlabel = plot_args.get('xlabel', 'X')
-
+    normalize = plot_args.get('normalize', False)
+    one_sided_lower = plot_args.get('one_sided_lower', False)
+    xlims = []
+    for index, res in enumerate(results):
+        # handle analytical distributions first
+        if res.test_distribution == 'poisson':
+            plow = scipy.stats.poisson.ppf(0.025, res.fore_cnt)
+            phigh = scipy.stats.poisson.ppf(0.975, res.fore_cnt)
+            observed_statistic = res.observed_statistic
+        # emprical distributions
+        else:
+            if normalize:
+                test_distribution = numpy.array(res.test_distribution) - res.observed_statistic
+                observed_statistic = 0
+            else:
+                test_distribution = numpy.array(res.test_distribution)
+                observed_statistic = res.observed_statistic
+            # compute distribution depending on type of test
+            if one_sided_lower:
+                plow = numpy.percentile(test_distribution, 5)
+                phigh = numpy.percentile(test_distribution, 100)
+            else:
+                plow = numpy.percentile(test_distribution, 2.5)
+                phigh = numpy.percentile(test_distribution, 97.5)
+        low = observed_statistic - plow
+        high = phigh - observed_statistic
+        ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(observed_statistic, (plow, phigh)), capsize=4,
+                    ecolor='black')
+        # determine the limits to use
+        xlims.append((plow, phigh, observed_statistic))
+        # we want to only extent the distribution where it falls outside of it in the acceptable tail
+        if one_sided_lower:
+            if observed_statistic >= plow and phigh < observed_statistic:
+                # draw dashed line to infinity
+                xt = numpy.linspace(phigh, 99999, 100)
+                yt = numpy.ones(100) * index
+                ax.plot(xt, yt, '--k')
+    ax.set_xlim(*_get_axis_limits(xlims))
+    ax.set_yticklabels([res.sim_name for res in results])
+    ax.set_yticks(numpy.arange(len(results)))
     ax.set_title(title)
     ax.set_xlabel(xlabel)
+    ax.figure.tight_layout()
     return ax
+
+def _get_axis_limits(pnts, border=0.05):
+    """Returns a tuple of x_min and x_max given points on plot."""
+    x_min = numpy.min(pnts)
+    x_max = numpy.max(pnts)
+    xd = (x_max - x_min)*border
+    return (x_min-xd, x_max+xd)

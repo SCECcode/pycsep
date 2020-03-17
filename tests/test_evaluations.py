@@ -131,9 +131,8 @@ class TestPoissonLikelihood(unittest.TestCase):
         sampling_weights = numpy.cumsum(self.forecast_data.ravel()) / expected_forecast_count
 
         # this is taken from the test likelihood function
-        sort_args = numpy.argsort(sampling_weights)
         sim_fore = numpy.empty(sampling_weights.shape)
-        sim_fore = _simulate_catalog(num_events, sampling_weights, sort_args, sim_fore,
+        sim_fore = _simulate_catalog(num_events, sampling_weights, sim_fore,
                                      random_numbers=self.random_matrix)
 
         # final statement
@@ -141,7 +140,7 @@ class TestPoissonLikelihood(unittest.TestCase):
 
     def test_likelihood(self):
         qs, obs_ll, simulated_ll = poisson_likelihood_test(self.forecast_data, self.observed_data, num_simulations=1,
-                                                           seed=0)
+                                                           random_numbers=self.random_matrix, use_observed_counts=True)
 
         # very basic result to pass "laugh" test
         self.assertEqual(qs, 1)
