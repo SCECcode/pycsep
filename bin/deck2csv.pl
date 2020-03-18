@@ -2,6 +2,7 @@
 
 # JMA REDC.DECK fomat ¤«¤é ¿Ì¸»¾ðÊó¤ò¼è¤ê½Ð¤¹¥¹¥¯¥ê¥×¥È
 # 98.10.22 tsuru
+# updated to create CSV format hypocenter file. -tb 2020-02-13 (tb@gfz.pm)
 
 # printf("year;month;day;hour;minute;second;longitude;latitude;depth;magnitude\n");
 
