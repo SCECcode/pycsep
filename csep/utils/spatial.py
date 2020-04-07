@@ -129,6 +129,37 @@ class CartesianGrid2D:
     def from_dict(cls, adict):
         raise NotImplementedError("Todo!")
 
+    @classmethod
+    def from_origins(cls, origins, magnitudes=None, name=None):
+        """Creates instance of class from 2d numpy.array of lon/lat origins.
+
+        Note: Grid spacing should be constant in the entire region. This condition is not explicitly checked for for performance
+        reasons.
+
+        Args:
+            origins (numpy.ndarray like): [:,0] = lons and [:,1] = lats
+            magnitudes (numpy.array like): optional, if provided will bind magnitude information to the class.
+
+        Returns:
+            cls
+        """
+        # ensure we can access the lons and lats
+        try:
+            lons = origins[:,0]
+            lats = origins[:,1]
+        except (TypeError):
+            raise TypeError("origins must be of type numpy.array or be numpy array like.")
+
+        # dh must be regular, no explicit checking. should consider
+        dh2 = numpy.abs(lons[1]-lons[0])
+        dh1 = numpy.abs(lats[1]-lats[0])
+        dh = numpy.max([dh1,dh2])
+
+        region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(origins, dh)], dh, name=name)
+        if magnitudes is not None:
+            region.magnitudes = magnitudes
+        return region
+
 
 def grid_spacing(vertices):
     """
@@ -195,7 +226,7 @@ def california_relm_region(filepath=None, dh_scale=1):
     return relm_region
 
 
-def global_region(dh=0.1, name="global"):
+def global_region(dh=0.1, name="global", magnitudes=None):
     """ Creates a global region used for evaluating gridded forecasts on the global scale.
 
     The gridded region corresponds to the
@@ -211,6 +242,8 @@ def global_region(dh=0.1, name="global"):
     lons = numpy.arange(-180, 179.9 + dh/2, dh)
     coords = itertools.product(lons,lats)
     region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name)
+    if magnitudes is not None:
+        region.magnitudes = magnitudes
     return region
 
 

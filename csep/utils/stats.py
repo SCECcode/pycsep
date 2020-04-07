@@ -1,5 +1,6 @@
 import numpy
 import scipy.stats
+import scipy.special
 
 def sup_dist(cdf1, cdf2):
     """
@@ -182,6 +183,22 @@ def poisson_log_likelihood(observation, forecast):
     """
     return numpy.log(scipy.stats.poisson.pmf(observation, forecast))
 
+
+def poisson_joint_log_likelihood_ndarray(target_event_log_rates, target_observations, n_fore):
+    """ This takes advantage that only bins where target events occur contribute to the overall joint-likelihood.
+
+    Args:
+        target_event_forecast:
+        target_observations:
+        n_fore:
+
+    Returns:
+
+    """
+    log_target_event_rates = numpy.sum(target_event_log_rates)
+    # gamma(n) = loggamma(n+1)
+    discrete_penalty_term = numpy.sum(scipy.special.loggamma(target_observations+1))
+    return log_target_event_rates - discrete_penalty_term - n_fore
 
 def poisson_inverse_cdf(random_matrix, lam):
     """Wrapper around scipy inverse poisson cdf to compute new forecast using

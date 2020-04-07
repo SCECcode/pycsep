@@ -8,14 +8,15 @@ Created on Thu Jan 23 20:06:58 2020
 """
 import numpy
 import scipy.stats
+import time
 
 from csep.core.evaluations import EvaluationResult
 from csep.core.exceptions import CSEPValueException
-from csep.utils.stats import poisson_log_likelihood, poisson_inverse_cdf
+from csep.utils.stats import poisson_log_likelihood, poisson_inverse_cdf, poisson_joint_log_likelihood_ndarray
 
 
-def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0.05, scale=True):
-    """
+def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0.05, scale=False):
+    """ Computes the t-test for gridded earthquake forecasts.
 
     Args:
         gridded_forecast_1 (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
@@ -28,20 +29,13 @@ def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
 
-    # some defensive programming
-    if gridded_forecast1.magnitudes != gridded_forecast2.magnitudes:
-        raise CSEPValueException("Magnitude ranges must match on forecasts!")
-
-    if gridded_forecast1.data.shape != gridded_forecast2.data.shape:
-        raise CSEPValueException("Forecast shapes should match!")
-
     # needs some pre-processing to put the forecasts in the context that is required for the t-test. this is different
     # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
-    target_event_rate_forecast1, nf1 = gridded_forecast1.target_event_rates(scale=scale)
-    target_event_rate_forecast2, nf2 = gridded_forecast2.target_event_rates(scale=scale)
+    target_event_rate_forecast1, n_fore1 = gridded_forecast1.target_event_rates(observed_catalog, scale=scale)
+    target_event_rate_forecast2, n_fore2 = gridded_forecast2.target_event_rates(observed_catalog, scale=scale)
 
     # call the primative version operating on ndarray
-    out = csep1_t_test_ndarray(target_event_rate_forecast1, target_event_rate_forecast2, observed_catalog.event_count, nf1, nf2,
+    out = csep1_t_test_ndarray(target_event_rate_forecast1, target_event_rate_forecast2, observed_catalog.event_count, n_fore1, n_fore2,
                                alpha=alpha)
 
     # storing this for later
@@ -49,157 +43,37 @@ def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0
     result.name = 'T-Test'
     result.test_distribution = (out['ig_lower'], out['ig_upper'])
     result.observed_statistic = out['information_gain']
-    result.quantile = (out['t_stat'], out['t_crit'])
+    result.quantile = (out['t_statistic'], out['t_critical'])
     result.sim_name = (gridded_forecast1.name, gridded_forecast2.name)
     result.obs_name = observed_catalog.name
     result.status = 'normal'
     result.min_mw = numpy.min(gridded_forecast1.magnitudes)
     return result
 
-
-def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, n_f1, n_f2, alpha=0.05):
-    """ Computes T test statistic by comparing two gridded forecasts specified as numpy arrays.
-
-    We compare Forecast from Model 1 and with Forecast of Model 2. Information Gain is computed, which is then employed
-    to compute T statistic. Confidence interval of Information Gain can be computed using T_critical. For a complete explanation
-    see Rhoades, D. A., et al., (2011). Efficient testing of earthquake forecasting models. Acta Geophysica, 59(4), 728-747.
-    doi:10.2478/s11600-011-0013-5
-
-    Args:
-        gridded_forecast_1 (numpy.ndarray): nd-array storing gridded rates
-        gridded_forecast_2 (numpy.ndarray): nd-array storing gridded rates
-        n_obs (float, int, numpy.ndarray): number of observed earthquakes, should be whole number and >= zero.
-        alpha (float): tolerance level for the type-i error rate of the statistical test
-
-    Returns:
-        out (dict): relevant statistics from the t-test
-
-    """
-    # Some Pre Calculations -  Because they are being used repeatedly.
-    N = n_obs  # Total number of observed earthquakes
-    N1 = n_f1 # Total number of forecasted earthquakes by Model 1
-    N2 = n_f2  # Total number of forecasted earthquakes by Model 2
-    X1 = numpy.log(gridded_forecast_data1)  # Log of every element of Forecast 1
-    X2 = numpy.log(gridded_forecast_data2)  # Log of every element of Forecast 2
-
-    # Information Gain, using Equation (17)  of Rhoades et al. 2011
-    information_gain = (numpy.sum(X1 - X2) - (N1 - N2)) / N
-
-    # Compute variance of (X1-X2) using Equation (18)  of Rhoades et al. 2011
-    first_term = (numpy.sum(numpy.power((X1 - X2), 2))) / (N - 1)
-    second_term = numpy.power(numpy.sum(X1 - X2), 2) / (numpy.power(N, 2) - N)
-    forecast_variance = first_term - second_term
-
-    forecast_std = numpy.sqrt(forecast_variance)
-    t_statistic = information_gain / (forecast_std / numpy.sqrt(N))
-
-    # Obtaining the Critical Value of T from T distribution.
-    df = N - 1
-    t_critical = scipy.stats.t.ppf(1 - (alpha / 2), df)  # Assuming 2-Tail Distribution  for 2 tail, divide 0.05/2.
-
-    # Computing Information Gain Interval.
-    ig_lower = information_gain - (t_critical * forecast_std / numpy.sqrt(N))
-    ig_upper = information_gain + (t_critical * forecast_std / numpy.sqrt(N))
-
-    # If T value greater than T critical, Then both Lower and Upper Confidence Interval limits will be greater than Zero.
-    # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2.
-    return {'t_statistic': t_statistic, 't_critical': t_critical, 'information_gain': information_gain,
-            'ig_lower': ig_lower, 'ig_upper': ig_upper}
-
-
-def csep1_w_test_ndarray(x, m=0):
-    
-    """
-    Calculate the Single Sample Wilcoxon signed-rank test.
-    This method is based on collecting a number of samples from a population with unknown median, m.   
-    The Wilcoxon One Sample Signed-Rank test is the non parametric version of the t-test.
-    It is based on ranks and because of that, the location parameter is not here the mean but the median.
-    This test allows to test the null hypothesis that the sample median is equal to a given value provided by the user.
-    If we designate m to be the assumed median of the sample:
-    Null hypothesis (simplified): The population from which the data were sampled is symmetric about the Given value (m).
-    Alternative hypothesis (simplified, two-sided): The population from which the data were sampled is not symmetric around m. 
-    
-    Parameters
-       
-    Args
-    x:   1D vector. For CSEP it has to be [log(forecat_1) - log(forecast_2)]
-                An Observation has to be observed seismicity in each Bin
-    m:   Designated mean value. For CSEP it to be (Sum of expectation of forecast_1 - Sum of expectation of forecast_2) / total no. of bins (I assume bins)
-    
-    Returns
-    A dictionary of following elements
-                {'z_statistic': Value of Z statistic, considering two-side test,
-                 'probablity': Probablity value }
-    """
-    # compute median differences
-    d = x - m
-
-    # remove zero values
-    d = numpy.compress(numpy.not_equal(d, 0), d, axis=-1)
-
-    count = len(d)
-    if count < 10:
-        numpy.warnings.warn("Sample size too small for normal approximation.")
-
-    # compute ranks
-    r = scipy.stats.rankdata(abs(d))
-    r_plus = numpy.sum((d > 0) * r, axis=0)
-    r_minus = numpy.sum((d < 0) * r, axis=0)
-
-    # for "two-sided", choose minimum of both
-    t = min(r_plus, r_minus)
-   
-    # Correction to be introduced
-    mn = count * (count + 1.) * 0.25
-    se = count * (count + 1.) * (2. * count + 1.)
-
-    replist, repnum = scipy.stats.find_repeats(r)
-    if repnum.size != 0:
-        # Correction for repeated elements.
-        se -= 0.5 * (repnum * (repnum * repnum - 1)).sum()
-
-    se = numpy.sqrt(se / 24)
-
-    # compute statistic and p-value using normal approximation
-    #  z = (T - mn - d) / se Continuity correction. But We are not considering continuity correction.
-    z = (t - mn) / se
-    
-    # 2, is multiplied for "two-sided" distribution
-    prob = 2. * scipy.stats.distributions.norm.sf(abs(z))
-
-    #Accept the NULL Hypothesis [Median(Xi-Yi) = Given value]. If probability is greater than 0.05
-    #If Probability is smaller than 0.05, Reject the NULL Hypothesis, that Median(Xi-Yi) != Given Value
-    w_test_eval = { 'z_statistic' : z,
-                    'probability': prob }
-
-    return w_test_eval
-
-
-def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=True):
-    
+def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=False):
     """
     Calculate the Single Sample Wilcoxon signed-rank test for "log(gridded_forecast1(i))-log(gridded_forecast2(i))".
     This test allows to test the null hypothesis that the median of Sample (X1(i)-X2(i)) is equal to a (N1-N2)/nbins.
-    where, N1, N2 = Sum of expected values of Forecast_1 and Forecast_2, respectively. 
+    where, N1, N2 = Sum of expected values of Forecast_1 and Forecast_2, respectively.
     {Note: I assume N=Total No of bins here (nbins)} for Rhodes et al. 2011 (Page 741).
-    The Wilcoxon signed-rank test tests the null hypothesis that difference of Xi and Yi come from the same distribution. 
+    The Wilcoxon signed-rank test tests the null hypothesis that difference of Xi and Yi come from the same distribution.
     In particular, it tests whether the distribution of the differences is symmetric around given mean.
-    
+
     Parameters
-        
+
     Args
     observation:Observed (Grided) seismicity (Numpy Array):
                 An Observation has to be observed seismicity in each Bin
                 It has to be a either zero or positive integer only (No Floating Point)
     gridded_forecast1: Forecast of a model_1 (Grided) (Numpy Array)
-                A forecast has to be in terms of Average Number of Events in Each Bin 
+                A forecast has to be in terms of Average Number of Events in Each Bin
                 It can be anything greater than zero
     gridded_forecast2: Forecast of model_2 (Grided) (Numpy Array)
-                A forecast has to be in terms of Average Number of Events in Each Bin 
+                A forecast has to be in terms of Average Number of Events in Each Bin
                 It can be anything greater than zero
     model_1:    The name of Model 1, with whom the comparision will be drawn
     model_2:    The name of second model, which will be compared with Model 1
-    
+
     Returns
     A dictionary of following elements
                 {'model_name_1': Name of Model 1,
@@ -209,17 +83,11 @@ def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=T
     """
     # same pre-preprocessing needs to occur for the w-test and the t-test
 
-    # some defensive programming
-    if gridded_forecast1.magnitudes != gridded_forecast2.magnitudes:
-        raise CSEPValueException("Magnitude ranges must match on forecasts!")
-
-    if gridded_forecast1.data.shape != gridded_forecast2.data.shape:
-        raise CSEPValueException("Forecast shapes should match!")
 
     # needs some pre-processing to put the forecasts in the context that is required for the t-test. this is different
     # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
-    target_event_rate_forecast1, _ = gridded_forecast1.target_event_rates(scale=scale)
-    target_event_rate_forecast2, _ = gridded_forecast2.target_event_rates(scale=scale)
+    target_event_rate_forecast1, _ = gridded_forecast1.target_event_rates(observed_catalog, scale=scale)
+    target_event_rate_forecast2, _ = gridded_forecast2.target_event_rates(observed_catalog, scale=scale)
 
     N = observed_catalog.event_count  # Sum of all the observed earthquakes
     N1 = gridded_forecast1.event_count  # Total number of Forecasted earthquakes by Model 1
@@ -231,10 +99,10 @@ def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=T
     median_value = (N1 - N2) / N
 
     diff = X1 - X2
-    
+
     # w_test is One Sample Wilcoxon Signed Rank Test. It accepts the data only in 1D array.
     x = diff.ravel()  # Converting 2D Difference to 1D
-    
+
     w_test_dic = csep1_w_test_ndarray(x, median_value)
 
     # configure test result
@@ -242,261 +110,12 @@ def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=T
     result.name = 'W-Test'
     result.test_distribution = 'normal'
     result.observed_statistic = w_test_dic['z_statistic']
-    result.quantile = w_test_dic['prob']
+    result.quantile = w_test_dic['probability']
     result.sim_name = (gridded_forecast1.name, gridded_forecast2.name)
     result.obs_name = observed_catalog.name
     result.status = 'normal'
     result.min_mw = numpy.min(gridded_forecast1.magnitudes)
     return result
-
-
-def _simulate_catalog(num_events, sampling_weights, sort_args, sim_fore, random_numbers=None, seed=None):
-    if seed is not None:
-        numpy.random.seed(seed)
-
-    # generate uniformly distributed random numbers in [0,1), this
-    if random_numbers is None:
-        random_numbers = numpy.random.rand(num_events)
-    else:
-        # TODO: ensure that random numbers are all between 0 and 1.
-        pass
-
-    # reset simulation array to zero, but don't reallocate
-    sim_fore.fill(0)
-
-    # find insertion points using binary search inserting to satisfy a[i-1] <= v < a[i]
-    pnts = numpy.searchsorted(sampling_weights, random_numbers, sorter=sort_args, side='right')
-
-    # create simulated catalog
-    numpy.add.at(sim_fore, pnts, 1)
-
-    return sim_fore
-
-
-def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, seed=None, random_numbers=None, use_observed_counts=True):
-    """
-    Computes the likelihood-test from CSEP using an efficient simulation based approach.
-    Args:
-        forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
-        observed_data (numpy.ndarray): same format as observation.
-        num_simulations: default number of simulations to use for likelihood based simulations
-        seed: used for reproducibility of the prng
-        random_numbers (list): can supply an explicit list of random numbers, primarily used for software testing
-        use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson distrubtion
-    """
-    expected_forecast_count = numpy.sum(forecast_data)
-
-    # used to determine where simulated earthquake should be placed
-    sampling_weights = numpy.cumsum(forecast_data.ravel()) / expected_forecast_count
-
-    # indices to provided sorted array
-    sort_args = numpy.argsort(sampling_weights)
-
-    # data structures to store results
-    sim_fore = numpy.zeros(sampling_weights.shape)
-    simulated_ll = []
-
-    # observed joint log-likelihood
-    obs_ll = numpy.sum(poisson_log_likelihood(observed_data, forecast_data))
-
-    for idx in range(num_simulations):
-
-        # used for conditional-likelihood, magnitude, and spatial tests to isolate the rate-component of the forecasts.
-        if use_observed_counts:
-            num_events_to_simulate = numpy.sum(observed_data)
-        else:
-            num_events_to_simulate = poisson_inverse_cdf(expected_forecast_count)
-
-        sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sort_args, sim_fore, seed=seed, random_numbers=random_numbers)
-
-        # compute joint log-likelihood from simulation
-        current_ll = numpy.sum(poisson_log_likelihood(sim_fore, forecast_data.ravel()))
-
-        simulated_ll.append(current_ll)
-
-    # quantile score
-    qs = numpy.sum(simulated_ll <= obs_ll) / num_simulations
-
-    # float, float, list
-    return qs, obs_ll, simulated_ll
-
-
-def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
-    """
-    Performs the conditional likelihood test on Gridded Forecast using an Observed Catalog. This test normalizes the forecast so the forecasted rate
-    are consistent with the observations. This modification eliminates the strong impact differences in the number distribution have on the
-    forecasted rates.
-    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
-    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
-    gridded forecasts that supply their forecasts as rates.
-    Args:
-        gridded_forecast: csep.core.forecasts.GriddedForecast
-        observed_catalog: csep.core.catalogs.Catalog
-        num_simulations (int): number of simulations used to compute the quantile score
-        seed (int): used fore reproducibility, and testing
-        random_numbers (list): random numbers used to override the random number generation. injection point for testing.
-    Returns:
-        evaluation_result: csep.core.evaluations.EvaluationResult
-    """
-
-    # grid catalog onto spatial grid
-    gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
-
-    # simply call likelihood test on catalog data and forecast
-    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
-                                                       num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
-                                                       use_observed_counts=True)
-
-    # populate result data structure
-    result = EvaluationResult()
-    result.test_distribution = simulated_ll
-    result.name = 'CL-Test'
-    result.observed_statistic = obs_ll
-    result.quantile = qs
-    result.sim_name = gridded_forecast.name
-    result.obs_name = observed_catalog.name
-    result.status = 'normal'
-    result.min_mw = numpy.min(gridded_forecast.magnitudes)
-
-    return result
-
-def csep1_magnitude_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
-    """
-    Performs the Magnitude Test on a Gridded Forecast using an observed catalog.
-
-    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
-    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
-    gridded forecasts that supply their forecasts as rates.
-
-    Args:
-        gridded_forecast: csep.core.forecasts.GriddedForecast
-        observed_catalog: csep.core.catalogs.Catalog
-        num_simulations (int): number of simulations used to compute the quantile score
-        seed (int): used fore reproducibility, and testing
-        random_numbers (list): random numbers used to override the random number generation. injection point for testing.
-
-    Returns:
-        evaluation_result: csep.core.evaluations.EvaluationResult
-    """
-
-    # grid catalog onto spatial grid
-    gridded_catalog_data = observed_catalog.magnitude_counts(bins=gridded_forecast.magnitudes)
-
-    # simply call likelihood test on catalog data and forecast
-    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.magnitude_counts(), gridded_catalog_data,
-                                                       num_simulations=num_simulations,
-                                                       seed=seed,
-                                                       random_numbers=random_numbers,
-                                                       use_observed_counts=True)
-
-    # populate result data structure
-    result = EvaluationResult()
-    result.test_distribution = simulated_ll
-    result.name = 'M-Test'
-    result.observed_statistic = obs_ll
-    result.quantile = qs
-    result.sim_name = gridded_forecast.name
-    result.obs_name = observed_catalog.name
-    result.status = 'normal'
-    result.min_mw = numpy.min(gridded_forecast.magnitudes)
-
-    return result
-
-def csep1_spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
-    """
-    Performs the Spatial Test on the Forecast using the Observed Catalogs.
-
-    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
-    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
-    gridded forecasts that supply their forecasts as rates.
-
-    Args:
-        gridded_forecast: csep.core.forecasts.GriddedForecast
-        observed_catalog: csep.core.catalogs.Catalog
-        num_simulations (int): number of simulations used to compute the quantile score
-        seed (int): used fore reproducibility, and testing
-        random_numbers (list): random numbers used to override the random number generation. injection point for testing.
-
-    Returns:
-        evaluation_result: csep.core.evaluations.EvaluationResult
-    """
-
-    # grid catalog onto spatial grid
-    gridded_catalog_data = observed_catalog.spatial_counts()
-
-    # simply call likelihood test on catalog data and forecast
-    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.spatial_counts(), gridded_catalog_data,
-                                                       num_simulations=num_simulations,
-                                                       seed=seed,
-                                                       random_numbers=random_numbers,
-                                                       use_observed_counts=True)
-
-    # populate result data structure
-    result = EvaluationResult()
-    result.test_distribution = simulated_ll
-    result.name = 'S-Test'
-    result.observed_statistic = obs_ll
-    result.quantile = qs
-    result.sim_name = gridded_forecast.name
-    result.obs_name = observed_catalog.name
-    result.status = 'normal'
-    result.min_mw = numpy.min(gridded_forecast.magnitudes)
-
-    return result
-
-def csep1_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
-    """
-    Performs the likelihood test on Gridded Forecast using an Observed Catalog.
-
-    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
-    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
-    gridded forecasts that supply their forecasts as rates.
-
-    Args:
-        gridded_forecast: csep.core.forecasts.GriddedForecast
-        observed_catalog: csep.core.catalogs.Catalog
-        num_simulations (int): number of simulations used to compute the quantile score
-        seed (int): used fore reproducibility, and testing
-        random_numbers (list): random numbers used to override the random number generation.
-                               injection point for testing.
-
-    Returns:
-        evaluation_result: csep.core.evaluations.EvaluationResult
-    """
-
-    # grid catalog onto spatial grid
-    gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
-
-    # simply call likelihood test on catalog data and forecast
-    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
-                                                       num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
-                                                       use_observed_counts=False)
-
-    # populate result data structure
-    result = EvaluationResult()
-    result.test_distribution = simulated_ll
-    result.name = 'L-Test'
-    result.observed_statistic = obs_ll
-    result.quantile = qs
-    result.sim_name = gridded_forecast.name
-    result.obs_name = observed_catalog.name
-    result.status = 'normal'
-    result.min_mw = numpy.min(gridded_forecast.magnitudes)
-
-    return result
-
-def csep1_number_test_ndarray(fore_cnt, obs_cnt, epsilon=1e-6):
-    """ Computes delta1 and delta2 values from the csep1 number test.
-    Args:
-        fore_cnt (float): parameter of poisson distribution coming from expected value of the forecast
-        obs_cnt (float): count of earthquakes observed during the testing period.
-        epsilon (float): tolerance level to satisfy the requirements of two-sided p-value
-    Returns
-        result (tuple): (delta1, delta2)
-    """
-    delta1 = 1.0 - scipy.stats.poisson.cdf(obs_cnt - epsilon, fore_cnt)
-    delta2 = scipy.stats.poisson.cdf(obs_cnt + epsilon, fore_cnt)
-    return delta1, delta2
 
 def csep1_number_test(gridded_forecast, observed_catalog):
     """
@@ -540,3 +159,382 @@ def csep1_number_test(gridded_forecast, observed_catalog):
     result.fore_cnt = fore_cnt
 
     return result
+
+def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
+    """
+    Performs the conditional likelihood test on Gridded Forecast using an Observed Catalog. This test normalizes the forecast so the forecasted rate
+    are consistent with the observations. This modification eliminates the strong impact differences in the number distribution have on the
+    forecasted rates.
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (numpy.ndarray): random numbers used to override the random number generation. injection point for testing.
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
+
+    # simply call likelihood test on catalog data and forecast
+    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
+                                                       num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
+                                                       use_observed_counts=True)
+
+    # populate result data structure
+    result = EvaluationResult()
+    result.test_distribution = simulated_ll
+    result.name = 'CL-Test'
+    result.observed_statistic = obs_ll
+    result.quantile = qs
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+def csep1_magnitude_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
+    """
+    Performs the Magnitude Test on a Gridded Forecast using an observed catalog.
+
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (numpy.ndarray): random numbers used to override the random number generation. injection point for testing.
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    gridded_catalog_data = observed_catalog.magnitude_counts(bins=gridded_forecast.magnitudes)
+
+    # simply call likelihood test on catalog data and forecast
+    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.magnitude_counts(), gridded_catalog_data,
+                                                       num_simulations=num_simulations,
+                                                       seed=seed,
+                                                       random_numbers=random_numbers,
+                                                       use_observed_counts=True)
+
+    # populate result data structure
+    result = EvaluationResult()
+    result.test_distribution = simulated_ll
+    result.name = 'M-Test'
+    result.observed_statistic = obs_ll
+    result.quantile = qs
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+def csep1_spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
+    """
+    Performs the Spatial Test on the Forecast using the Observed Catalogs.
+
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (numpy.ndarray): random numbers used to override the random number generation. injection point for testing.
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    gridded_catalog_data = observed_catalog.spatial_counts()
+
+    # simply call likelihood test on catalog data and forecast
+    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.spatial_counts(), gridded_catalog_data,
+                                                       num_simulations=num_simulations,
+                                                       seed=seed,
+                                                       random_numbers=random_numbers,
+                                                       use_observed_counts=True)
+
+    # populate result data structure
+    result = EvaluationResult()
+    result.test_distribution = simulated_ll
+    result.name = 'S-Test'
+    result.observed_statistic = obs_ll
+    result.quantile = qs
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+def csep1_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
+    """
+    Performs the likelihood test on Gridded Forecast using an Observed Catalog.
+
+    Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
+    transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
+    gridded forecasts that supply their forecasts as rates.
+
+    Args:
+        gridded_forecast: csep.core.forecasts.GriddedForecast
+        observed_catalog: csep.core.catalogs.Catalog
+        num_simulations (int): number of simulations used to compute the quantile score
+        seed (int): used fore reproducibility, and testing
+        random_numbers (numpy.ndarray): random numbers used to override the random number generation.
+                               injection point for testing.
+
+    Returns:
+        evaluation_result: csep.core.evaluations.EvaluationResult
+    """
+
+    # grid catalog onto spatial grid
+    gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
+
+    # simply call likelihood test on catalog data and forecast
+    qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
+                                                       num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
+                                                       use_observed_counts=False)
+
+    # populate result data structure
+    result = EvaluationResult()
+    result.test_distribution = simulated_ll
+    result.name = 'L-Test'
+    result.observed_statistic = obs_ll
+    result.quantile = qs
+    result.sim_name = gridded_forecast.name
+    result.obs_name = observed_catalog.name
+    result.status = 'normal'
+    result.min_mw = numpy.min(gridded_forecast.magnitudes)
+
+    return result
+
+def csep1_number_test_ndarray(fore_cnt, obs_cnt, epsilon=1e-6):
+    """ Computes delta1 and delta2 values from the csep1 number test.
+    Args:
+        fore_cnt (float): parameter of poisson distribution coming from expected value of the forecast
+        obs_cnt (float): count of earthquakes observed during the testing period.
+        epsilon (float): tolerance level to satisfy the requirements of two-sided p-value
+    Returns
+        result (tuple): (delta1, delta2)
+    """
+    delta1 = 1.0 - scipy.stats.poisson.cdf(obs_cnt - epsilon, fore_cnt)
+    delta2 = scipy.stats.poisson.cdf(obs_cnt + epsilon, fore_cnt)
+    return delta1, delta2
+
+def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, n_f1, n_f2, alpha=0.05):
+    """ Computes T test statistic by comparing two gridded forecasts specified as numpy arrays.
+
+    We compare Forecast from Model 1 and with Forecast of Model 2. Information Gain is computed, which is then employed
+    to compute T statistic. Confidence interval of Information Gain can be computed using T_critical. For a complete explanation
+    see Rhoades, D. A., et al., (2011). Efficient testing of earthquake forecasting models. Acta Geophysica, 59(4), 728-747.
+    doi:10.2478/s11600-011-0013-5
+
+    Args:
+        gridded_forecast_1 (numpy.ndarray): nd-array storing gridded rates
+        gridded_forecast_2 (numpy.ndarray): nd-array storing gridded rates
+        n_obs (float, int, numpy.ndarray): number of observed earthquakes, should be whole number and >= zero.
+        alpha (float): tolerance level for the type-i error rate of the statistical test
+
+    Returns:
+        out (dict): relevant statistics from the t-test
+
+    """
+    # Some Pre Calculations -  Because they are being used repeatedly.
+    N = n_obs  # Total number of observed earthquakes
+    N1 = n_f1  # Total number of forecasted earthquakes by Model 1
+    N2 = n_f2  # Total number of forecasted earthquakes by Model 2
+    X1 = numpy.log(gridded_forecast_data1)  # Log of every element of Forecast 1
+    X2 = numpy.log(gridded_forecast_data2)  # Log of every element of Forecast 2
+
+    # Information Gain, using Equation (17)  of Rhoades et al. 2011
+    information_gain = (numpy.sum(X1 - X2) - (N1 - N2)) / N
+
+    # Compute variance of (X1-X2) using Equation (18)  of Rhoades et al. 2011
+    first_term = (numpy.sum(numpy.power((X1 - X2), 2))) / (N - 1)
+    second_term = numpy.power(numpy.sum(X1 - X2), 2) / (numpy.power(N, 2) - N)
+    forecast_variance = first_term - second_term
+
+    forecast_std = numpy.sqrt(forecast_variance)
+    t_statistic = information_gain / (forecast_std / numpy.sqrt(N))
+
+    # Obtaining the Critical Value of T from T distribution.
+    df = N - 1
+    t_critical = scipy.stats.t.ppf(1 - (alpha / 2), df)  # Assuming 2-Tail Distribution  for 2 tail, divide 0.05/2.
+
+    # Computing Information Gain Interval.
+    ig_lower = information_gain - (t_critical * forecast_std / numpy.sqrt(N))
+    ig_upper = information_gain + (t_critical * forecast_std / numpy.sqrt(N))
+
+    # If T value greater than T critical, Then both Lower and Upper Confidence Interval limits will be greater than Zero.
+    # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2.
+    return {'t_statistic': t_statistic, 't_critical': t_critical, 'information_gain': information_gain,
+            'ig_lower': ig_lower, 'ig_upper': ig_upper}
+
+def csep1_w_test_ndarray(x, m=0):
+    """
+    Calculate the Single Sample Wilcoxon signed-rank test.
+    This method is based on collecting a number of samples from a population with unknown median, m.
+    The Wilcoxon One Sample Signed-Rank test is the non parametric version of the t-test.
+    It is based on ranks and because of that, the location parameter is not here the mean but the median.
+    This test allows to test the null hypothesis that the sample median is equal to a given value provided by the user.
+    If we designate m to be the assumed median of the sample:
+    Null hypothesis (simplified): The population from which the data were sampled is symmetric about the Given value (m).
+    Alternative hypothesis (simplified, two-sided): The population from which the data were sampled is not symmetric around m.
+
+    Parameters
+
+    Args
+    x:   1D vector. For CSEP it has to be [log(forecat_1) - log(forecast_2)]
+                An Observation has to be observed seismicity in each Bin
+    m:   Designated mean value. For CSEP it to be (Sum of expectation of forecast_1 - Sum of expectation of forecast_2) / total no. of bins (I assume bins)
+
+    Returns
+    A dictionary of following elements
+                {'z_statistic': Value of Z statistic, considering two-side test,
+                 'probablity': Probablity value }
+    """
+    # compute median differences
+    d = x - m
+
+    # remove zero values
+    d = numpy.compress(numpy.not_equal(d, 0), d, axis=-1)
+
+    count = len(d)
+    if count < 10:
+        numpy.warnings.warn("Sample size too small for normal approximation.")
+
+    # compute ranks
+    r = scipy.stats.rankdata(abs(d))
+    r_plus = numpy.sum((d > 0) * r, axis=0)
+    r_minus = numpy.sum((d < 0) * r, axis=0)
+
+    # for "two-sided", choose minimum of both
+    t = min(r_plus, r_minus)
+
+    # Correction to be introduced
+    mn = count * (count + 1.) * 0.25
+    se = count * (count + 1.) * (2. * count + 1.)
+
+    replist, repnum = scipy.stats.find_repeats(r)
+    if repnum.size != 0:
+        # Correction for repeated elements.
+        se -= 0.5 * (repnum * (repnum * repnum - 1)).sum()
+
+    se = numpy.sqrt(se / 24)
+
+    # compute statistic and p-value using normal approximation
+    #  z = (T - mn - d) / se Continuity correction. But We are not considering continuity correction.
+    z = (t - mn) / se
+
+    # 2, is multiplied for "two-sided" distribution
+    prob = 2. * scipy.stats.distributions.norm.sf(abs(z))
+
+    # Accept the NULL Hypothesis [Median(Xi-Yi) = Given value]. If probability is greater than 0.05
+    # If Probability is smaller than 0.05, Reject the NULL Hypothesis, that Median(Xi-Yi) != Given Value
+    w_test_eval = {'z_statistic': z,
+                   'probability': prob}
+
+    return w_test_eval
+
+def _simulate_catalog(num_events, sampling_weights, sim_fore, random_numbers=None, seed=None):
+    if seed is not None:
+        numpy.random.seed(seed)
+
+    # generate uniformly distributed random numbers in [0,1), this
+    if random_numbers is None:
+        random_numbers = numpy.random.rand(num_events)
+    else:
+        # TODO: ensure that random numbers are all between 0 and 1.
+        pass
+
+    # reset simulation array to zero, but don't reallocate
+    sim_fore.fill(0)
+
+    # find insertion points using binary search inserting to satisfy a[i-1] <= v < a[i]
+    pnts = numpy.searchsorted(sampling_weights, random_numbers, side='right')
+
+    # create simulated catalog by adding to the original locations
+    numpy.add.at(sim_fore, pnts, 1)
+    assert sim_fore.sum() == num_events, "simulated the wrong number of events!"
+
+    return sim_fore
+
+def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, seed=None, random_numbers=None, use_observed_counts=True):
+    """
+    Computes the likelihood-test from CSEP using an efficient simulation based approach.
+    Args:
+        forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
+        observed_data (numpy.ndarray): same format as observation.
+        num_simulations: default number of simulations to use for likelihood based simulations
+        seed: used for reproducibility of the prng
+        random_numbers (numpy.ndarray): can supply an explicit list of random numbers, primarily used for software testing
+        use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson distrubtion
+    """
+
+    # used to determine where simulated earthquake should be placed, by definition of cumsum these are sorted
+    sampling_weights = numpy.cumsum(forecast_data.ravel()) / numpy.sum(forecast_data)
+
+    # data structures to store results
+    sim_fore = numpy.zeros(sampling_weights.shape)
+    simulated_ll = []
+    n_obs = numpy.sum(observed_data)
+    n_fore = numpy.sum(forecast_data)
+
+    # used for conditional-likelihood, magnitude, and spatial tests to isolate the rate-component of the forecasts.
+    if use_observed_counts:
+        scale = n_obs / n_fore
+        expected_forecast_count = int(n_obs)
+        log_bin_expectations = numpy.log(forecast_data.ravel() * scale)
+    else:
+        expected_forecast_count = numpy.sum(forecast_data)
+        log_bin_expectations = numpy.log(forecast_data.ravel())
+
+    # gets the 1d indices to bins that contain target events, these indexes perform copies and not views into the array
+    target_idx = numpy.nonzero(observed_data.ravel())
+    observed_data_nonzero = observed_data.ravel()[target_idx]
+    target_event_forecast = log_bin_expectations[target_idx] * observed_data_nonzero
+
+    # main simulation step in this loop
+    for idx in range(num_simulations):
+        if use_observed_counts:
+            num_events_to_simulate = expected_forecast_count
+        else:
+            num_events_to_simulate = int(numpy.random.poisson(expected_forecast_count))
+
+        sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore, random_numbers=random_numbers, seed=seed)
+
+        # compute joint log-likelihood from simulation
+        sim_target_idx = numpy.nonzero(sim_fore)
+        sim_obs_nonzero = sim_fore[sim_target_idx]
+        sim_target_event_forecast = log_bin_expectations[sim_target_idx] * sim_obs_nonzero
+        current_ll = poisson_joint_log_likelihood_ndarray(sim_target_event_forecast, sim_obs_nonzero, expected_forecast_count)
+        simulated_ll.append(current_ll)
+
+        # just be verbose
+        if (idx + 1) % 100 == 0:
+            print(f'... {idx + 1} catalogs simulated.')
+
+    # observed joint log-likelihood
+    obs_ll = poisson_joint_log_likelihood_ndarray(target_event_forecast, observed_data_nonzero, expected_forecast_count)
+
+    # quantile score
+    qs = numpy.sum(simulated_ll <= obs_ll) / num_simulations
+
+    # float, float, list
+    return qs, obs_ll, simulated_ll
