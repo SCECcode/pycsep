@@ -1,3 +1,5 @@
+import collections
+
 import numpy as np
 import matplotlib
 import matplotlib.path
@@ -174,4 +176,10 @@ class Polygon:
         endlon, endlat, backaz = geod.fwd(center_lons, center_lats, azim, radius)
         return cls(np.column_stack([endlon,endlat]))
 
-
+def transpose_dict(adict):
+    """Transposes a dict of dicts to regroup the data."""
+    out = collections.defaultdict(dict)
+    for k,v in adict.items():
+        for ik,iv in v.items():
+            out[ik][k] = iv
+    return out

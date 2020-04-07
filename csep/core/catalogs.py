@@ -572,7 +572,7 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             return out
 
-    def spatial_magnitude_counts(self):
+    def spatial_magnitude_counts(self, mag_bins=None):
         """
         This function is bad and should be broken up into multiple parts. In general, it works by circumscribing the
         polygons with a bounding box. Inside the bounding box is assumed to follow a regular Cartesian grid.
@@ -599,6 +599,14 @@ class AbstractBaseCatalog(LoggingMixin):
             n_mws = self.region.num_mag_bins
             return numpy.zeros((n_poly, n_mws))
 
+        if mag_bins is None:
+            try:
+                # a forecast is a type of region, but region does not need a magnitude
+                mag_bins = self.region.magnitudes
+            except AttributeError:
+                # use default magnitude bins from csep
+                mag_bins = CSEP_MW_BINS
+
         # compute if not
         output = csep.utils.spatial._bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
                                                                          self.get_latitudes(),
@@ -608,7 +616,7 @@ class AbstractBaseCatalog(LoggingMixin):
                                                                          self.region.idx_map,
                                                                          self.region.xs,
                                                                          self.region.ys,
-                                                                         self.region.magnitudes)
+                                                                         mag_bins)
         return output
 
     def length_in_seconds(self):

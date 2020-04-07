@@ -85,7 +85,7 @@ class GriddedDataSet(LoggingMixin):
         """
         return self.region.get_index_of(lons, lats)
 
-    def scale(self, val, in_place=False):
+    def scale(self, val, in_place=True):
         """Scales forecast by floating point value.
 
         Args:
@@ -119,9 +119,8 @@ class MarkedGriddedDataSet(GriddedDataSet):
 
     """
 
-    def __init__(self, magnitudes=None, time_horizon=None, *args, **kwargs):
+    def __init__(self, magnitudes=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.time_horizon = time_horizon
         self.magnitudes = magnitudes
 
     @property
@@ -165,14 +164,14 @@ class MarkedGriddedDataSet(GriddedDataSet):
         Raises:
             ValueError
         """
-        idm = bin1d_vec(mags, self.magnitudes)
+        idm = bin1d_vec(mags, self.magnitudes, right_continuous=True)
         if numpy.any(idm == -1):
             raise ValueError("mags outside the range of forecast magnitudes.")
         return idm
 
 class GriddedForecast(MarkedGriddedDataSet):
 
-    def __init__(self, start_time, end_time, *args, **kwargs):
+    def __init__(self, start_time=None, end_time=None, *args, **kwargs):
         """
         Constructor for GriddedForecast class
 
@@ -230,7 +229,7 @@ class GriddedForecast(MarkedGriddedDataSet):
             scale (bool): if true, rates will be scaled to one day.
 
         Returns:
-            (np.ndarray, expected_event_count)
+            out (tuple): target_event_rates, n_fore. target event rates are the
 
         """
         if not isinstance(target_catalog, AbstractBaseCatalog):
@@ -260,7 +259,6 @@ class GriddedForecast(MarkedGriddedDataSet):
         rates = self.get_rates(lons, lats, mags, data=data)
         return rates, numpy.sum(data)
 
-
     def get_rates(self, lons, lats, mags, data=None):
         """ Returns the rate associated with a longitude, latitude, and magnitude.
 
@@ -268,14 +266,13 @@ class GriddedForecast(MarkedGriddedDataSet):
             lon: longitude of interest
             lat: latitude of interest
             mag: magnitude of interest
-            data: optional, if not none then use this data value provided along with the
+            data: optional, if not none then use this data value provided with the forecast
 
         Returns:
             rates (float or ndarray)
 
         Raises:
             RuntimeError: lons lats and mags must be the same length
-
         """
         if len(lons) != len(lats) and len(lats) != len(mags):
             raise RuntimeError("lons, lats, and mags must have the same length.")
@@ -284,21 +281,22 @@ class GriddedForecast(MarkedGriddedDataSet):
         # get index of magnitude bins, if lats, lons, not in region raise value error
         idm = self.get_magnitude_index(mags)
         # retrieve rates from internal data structure
-        if not data:
+        if data is not None:
             rates = self.data[idx,idm]
         else:
             rates = data[idx,idm]
         return rates
 
     @classmethod
-    def from_custom(cls, afunc, start_date, end_date, name=None, time_horizon=None, *args, **kwargs):
+    def from_custom(cls, func, func_args=(), **kwargs):
         """Creates MarkedGriddedDataSet class from custom parsing function.
 
         Custom parsing function should return a tuple containing the forecast data as appropriate numpy.ndarray and
-        region class. We can only rely on some heuristics to ensure that these classes are set up appropriately.  """
-        data, region, magnitudes = afunc(*args, **kwargs)
+        region class. We can only rely on some heuristics to ensure that these classes are set up appropriately.
+        """
+        data, region, magnitudes = func(*func_args)
         # try to ensure that data are region are compatible with one another, but we can only rely on heuristics
-        return cls(start_date, end_date, data=data, region=region, magnitudes=magnitudes, name=name, time_horizon=time_horizon)
+        return cls(data=data, region=region, magnitudes=magnitudes, **kwargs)
 
     @classmethod
     def from_csep1_ascii(cls, ascii_fname, start_date, end_date):
