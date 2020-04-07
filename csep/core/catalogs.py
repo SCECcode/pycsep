@@ -1133,6 +1133,27 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         """
         return self.catalog['timestamp']
 
+    def get_datetimes(self):
+        """
+        Retrieves numpy.array of epoch milli(sic!)seconds from JMA eventset.
+
+        Returns:
+            list: python datetime objects
+        """
+        datetimes = []
+        for _idx, _val in enumerate(self.catalog['timestamp'] / 1000.):
+            datetimes.append(datetime.datetime.fromtimestamp(_val))
+        return datetimes
+        """
+        # ToDo why not this way?
+        # Can we consider the datetimes and timedeltas stable?
+        datetimes = numpy.ndarray(len(self.catalog), dtype='datetime64')
+        datetimes.fill(numpy.nan)
+        for _idx, _val in numpy.ndenumerate(self.catalog['timestamp']):
+            datetimes[_idx[0]] = datetime.datetime.fromtimestamp(_val / 1000.)
+        return datetimes
+        """
+
     def get_magnitudes(self):
         """
         Retrieves numpy.array of magnitudes from JMA eventset.
