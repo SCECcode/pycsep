@@ -25,3 +25,8 @@ install:
   - python setup.py install
 script:
   - ./run_tests.sh
+  
+after_script:
+  - pip install pytest pytest-cov
+  - pytest --cov=./
+  - bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'
