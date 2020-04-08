@@ -3,7 +3,9 @@ version: 2
 
 python:
   version: 3.6
-  requirements: docs/requirements.txt
+  install:
+    - requirements: docs/requirements.txt
+  system_packages: true
   
 build:
   image: latest
