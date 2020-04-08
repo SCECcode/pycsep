@@ -1171,6 +1171,15 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         """
         return self.catalog['magnitude']
 
+    def get_depths(self):
+        """
+        Retrieves numpy.array of depths from JMA eventset.
+
+        Returns:
+            numpy.array: of depths
+        """
+        return self.catalog['depth']
+
     def get_longitudes(self):
         """
         Retrieves numpy.array of longitudes from JMA eventset.
