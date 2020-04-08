@@ -18,14 +18,12 @@ install:
   - conda update -q conda
   # Useful for debugging any issues with conda
   - conda info -a
-
   # Replace dep1 dep2 ... with your dependencies
   - conda env create -f requirements.yml
   - conda activate csep-dev
   - python setup.py install
 script:
   - ./run_tests.sh
-  
 after_script:
   - pip install pytest pytest-cov
   - pytest --cov=./
