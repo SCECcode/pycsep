@@ -6,7 +6,7 @@ python:
   install:
     - requirements: docs/requirements.txt
     - method: pip
-        path: .
+      path: .
   system_packages: true
   
 build:
