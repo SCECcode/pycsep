@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.com/SCECcode/csep2.svg?branch=dev)](https://travis-ci.com/SCECcode/csep2)
 [![Documentation Status](https://readthedocs.org/projects/csep/badge/?version=latest)](https://csep.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/SCECcode/csep2/branch/dev/graph/badge.svg)](https://codecov.io/gh/SCECcode/csep2)
 
 The PyCSEP tools help earthquake forecast model developers evaluate their forecasts with the goal of understanding
 earthquake predictability.
