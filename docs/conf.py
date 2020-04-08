@@ -15,7 +15,7 @@
 import os
 import sys
 # from unittest.mock import MagicMock
-# sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('..'))
 
 # mock class for dealing with packages that need to be installed via conda forge
 # class Mock(MagicMock):
