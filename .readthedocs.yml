@@ -1,8 +1,12 @@
 # Required
 version: 2
 
-conda:
-  environment: requirements.yml
+python:
+  version: 3.6
+  requirements: docs/requirements.txt
+  
+build:
+  image: latest
 
 sphinx:
   builder: html
