@@ -14,14 +14,14 @@
 #
 import os
 import sys
-# from unittest.mock import MagicMock
+from unittest.mock import MagicMock
 sys.path.insert(0, os.path.abspath('..'))
 
 # mock class for dealing with packages that need to be installed via conda forge
-# class Mock(MagicMock):
-#     @classmethod
-#     def __getattr__(cls, name):
-#         return MagicMock()
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
 
 # -- Project information -----------------------------------------------------
 
@@ -37,8 +37,8 @@ release = 'v0.1-dev'
 
 
 # -- General configuration ---------------------------------------------------
-# MOCK_MODULES = ['libcomcat', 'docker']
-# sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+MOCK_MODULES = ['mpl_toolkits.basemap']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
 # If your documentation needs a minimal Sphinx version, state it here.
