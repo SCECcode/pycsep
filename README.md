@@ -26,7 +26,7 @@ within in the python environment.
 2. Create environment for installation
     * [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended):  
     `conda env create -f requirements.yaml`  
-    `conda activate csep`  
+    `conda activate csep-dev`  
     
     Note: If you want to go back to your default environment use the command `conda deactivate`.
 
@@ -36,8 +36,8 @@ within in the python environment.
     `cd csep2`  
     `mkdir venv`  
     `cd venv`  
-    `python3 -m venv csep`  
-    `source csep/bin/activate`  
+    `python3 -m venv csep-dev`  
+    `source csep-dev/bin/activate`  
     `cd ..`  
     `pip3 install numpy` (Because of obspy and scipy)  
     `pip3 install wheel`  
