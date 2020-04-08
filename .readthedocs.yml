@@ -1,13 +1,13 @@
 # Required
 version: 2
 
+conda:
+  environment: requirements.yml
+
 python:
-  version: 3.6
   install:
-    - requirements: docs/requirements.txt
     - method: pip
       path: .
-  system_packages: true
   
 build:
   image: latest
