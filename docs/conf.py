@@ -37,7 +37,7 @@ release = 'v0.1-dev'
 
 
 # -- General configuration ---------------------------------------------------
-MOCK_MODULES = []
+MOCK_MODULES = ['mpl_toolkits.basemap']
 sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 
