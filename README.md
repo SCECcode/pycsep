@@ -1,5 +1,8 @@
 # PyCSEP: Collaboratory for the Study of Earthquake Predictability
 
+[![Build Status](https://travis-ci.com/SCECcode/csep2.svg?branch=dev)](https://travis-ci.com/SCECcode/csep2)
+[![Documentation Status](https://readthedocs.org/projects/csep/badge/?version=latest)](https://csep.readthedocs.io/en/latest/?badge=latest)
+
 The PyCSEP tools help earthquake forecast model developers evaluate their forecasts with the goal of understanding
 earthquake predictability.
 
