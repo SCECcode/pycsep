@@ -74,6 +74,7 @@ def load_catalog(type=None, format='native', **kwargs):
         raise ValueError('format must be either "native" or "csep!')
     return return_val
 
+
 def load_comcat(start_time, end_time, min_magnitude=2.50,
                 min_latitude=31.50, max_latitude=43.00,
                 min_longitude=-125.40, max_longitude=-113.10, region=None, verbose=True):

@@ -1,4 +1,4 @@
-name: csep
+name: csep-dev
 channels:
   - conda-forge
   - defaults

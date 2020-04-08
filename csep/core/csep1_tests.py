@@ -11,8 +11,7 @@ import scipy.stats
 import time
 
 from csep.core.evaluations import EvaluationResult
-from csep.core.exceptions import CSEPValueException
-from csep.utils.stats import poisson_log_likelihood, poisson_inverse_cdf, poisson_joint_log_likelihood_ndarray
+from csep.utils.stats import poisson_joint_log_likelihood_ndarray
 
 
 def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0.05, scale=False):
@@ -119,7 +118,7 @@ def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=F
 
 def csep1_number_test(gridded_forecast, observed_catalog):
     """
-    @asim
+    author: @asim
     Computes Number (N) test for Observed and Forecasts. Both data sets are expected to be in terms of event counts.
     We find the Total number of events in Observed Catalog and Forecasted Catalogs. Which are then employed to compute the probablities of
        (i) At least no. of events (delta 1)
@@ -148,7 +147,7 @@ def csep1_number_test(gridded_forecast, observed_catalog):
     delta1, delta2 = csep1_number_test_ndarray(fore_cnt, obs_cnt, epsilon=epsilon)
 
     # store results
-    result.test_distribution = 'poisson'
+    result.test_distribution = ('poisson', fore_cnt)
     result.name = 'N-Test'
     result.observed_statistic = obs_cnt
     result.quantile = (delta1, delta2)
@@ -156,7 +155,6 @@ def csep1_number_test(gridded_forecast, observed_catalog):
     result.obs_name = observed_catalog.name
     result.status = 'normal'
     result.min_mw = numpy.min(gridded_forecast.magnitudes)
-    result.fore_cnt = fore_cnt
 
     return result
 
@@ -306,7 +304,7 @@ def csep1_likelihood_test(gridded_forecast, observed_catalog, num_simulations=10
     # grid catalog onto spatial grid
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
-    # simply call likelihood test on catalog data and forecast
+    # simply call likelihood test on catalog and forecast
     qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
                                                        num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
                                                        use_observed_counts=False)
@@ -363,7 +361,7 @@ def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, 
     X2 = numpy.log(gridded_forecast_data2)  # Log of every element of Forecast 2
 
     # Information Gain, using Equation (17)  of Rhoades et al. 2011
-    information_gain = (numpy.sum(X1 - X2) - (N1 - N2)) / N
+    information_gain = (numpy.sum(X1 - X2) - ((N1 - N2) / N)) / N
 
     # Compute variance of (X1-X2) using Equation (18)  of Rhoades et al. 2011
     first_term = (numpy.sum(numpy.power((X1 - X2), 2))) / (N - 1)
@@ -383,8 +381,11 @@ def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, 
 
     # If T value greater than T critical, Then both Lower and Upper Confidence Interval limits will be greater than Zero.
     # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2.
-    return {'t_statistic': t_statistic, 't_critical': t_critical, 'information_gain': information_gain,
-            'ig_lower': ig_lower, 'ig_upper': ig_upper}
+    return {'t_statistic': t_statistic,
+            't_critical': t_critical,
+            'information_gain': information_gain,
+            'ig_lower': ig_lower,
+            'ig_upper': ig_upper}
 
 def csep1_w_test_ndarray(x, m=0):
     """
@@ -496,7 +497,7 @@ def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
     n_obs = numpy.sum(observed_data)
     n_fore = numpy.sum(forecast_data)
 
-    # used for conditional-likelihood, magnitude, and spatial tests to isolate the rate-component of the forecasts.
+    # used for conditional-likelihood, magnitude, and spatial tests to normalize the rate-component of the forecasts.
     if use_observed_counts:
         scale = n_obs / n_fore
         expected_forecast_count = int(n_obs)
@@ -507,6 +508,8 @@ def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
 
     # gets the 1d indices to bins that contain target events, these indexes perform copies and not views into the array
     target_idx = numpy.nonzero(observed_data.ravel())
+
+    # these operations perform copies
     observed_data_nonzero = observed_data.ravel()[target_idx]
     target_event_forecast = log_bin_expectations[target_idx] * observed_data_nonzero
 
@@ -519,11 +522,15 @@ def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
 
         sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore, random_numbers=random_numbers, seed=seed)
 
-        # compute joint log-likelihood from simulation
+        # compute joint log-likelihood from simulation by leveraging that only cells with target events contribute to likelihood
         sim_target_idx = numpy.nonzero(sim_fore)
         sim_obs_nonzero = sim_fore[sim_target_idx]
         sim_target_event_forecast = log_bin_expectations[sim_target_idx] * sim_obs_nonzero
+
+        # compute joint log-likelihood
         current_ll = poisson_joint_log_likelihood_ndarray(sim_target_event_forecast, sim_obs_nonzero, expected_forecast_count)
+
+        # append to list of simulated log-likelihoods
         simulated_ll.append(current_ll)
 
         # just be verbose

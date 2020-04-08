@@ -30,7 +30,7 @@ TODO: Add ability to plot annotations from multiple catalogs. Esp, for plot_hist
 IDEA: Same concept mentioned in evaluations might apply here. The plots could be a common class that might provide
       more control to the end user.
 IDEA: Since plotting functions are usable by these classes only that don't implement iter routines, maybe make them a class
-      method. like catalog.plot_thing()
+      method. like data.plot_thing()
 """
 
 def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, show=False):
@@ -74,7 +74,7 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
     ax.set_ylabel('Cumulative Event Count')
     ax.set_title(title)
     # pyplot.subplots_adjust(right=0.75)
-    # annotate the plot with information from catalog
+    # annotate the plot with information from data
     # ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     # save figure
     filename = plot_args.get('filename', None)
@@ -139,7 +139,7 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
     med_counts = numpy.percentile(summed_counts, 50, axis=0)
     second_quar = numpy.percentile(summed_counts, 75, axis=0)
     nine_fifth = numpy.percentile(summed_counts, 95, axis=0)
-    # compute median for comcat catalog
+    # compute median for comcat data
     obs_binned_counts = numpy.zeros(n_bins)
     inds = bin1d_vec(observation.get_epoch_times(), time_bins)
     for j in range(observation.event_count):
@@ -175,7 +175,7 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
     ax.set_ylabel('Cumulative Event Count')
     ax.set_title(title)
     pyplot.subplots_adjust(right=0.75)
-    # annotate the plot with information from catalog
+    # annotate the plot with information from data
     # ax.annotate(str(observation), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     # save figure
     filename = plot_args.get('filename', None)
@@ -190,12 +190,12 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
 
 def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=False, plot_args={}, **kwargs):
     """
-    Plots magnitude versus linear time for an earthquake catalog.
+    Plots magnitude versus linear time for an earthquake data.
 
     Catalog class must implement get_magnitudes() and get_datetimes() in order for this function to work correctly.
 
     Args:
-        catalog (:class:`~csep.core.catalogs.AbstractBaseCatalog`): catalog to visualize
+        catalog (:class:`~csep.core.catalogs.AbstractBaseCatalog`): data to visualize
 
     Returns:
         (tuple): fig and axes handle
@@ -238,10 +238,10 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=F
     ax.set_ylabel('Magnitude')
     fig.tight_layout()
 
-    # # annotate the plot with information from catalog
-    # if catalog is not None:
+    # # annotate the plot with information from data
+    # if data is not None:
     #     try:
-    #         ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    #         ax.annotate(str(data), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     #     except:
     #         pass
 
@@ -261,7 +261,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     Plots histogram of single statistic for stochastic event sets and observations. The function will behave differently
     depending on the inumpyuts.
 
-    Simulated should always be either a list or numpy.array where there would be one value per catalog in the stochastic event
+    Simulated should always be either a list or numpy.array where there would be one value per data in the stochastic event
     set. Observation could either be a scalar or a numpy.array/list. If observation is a scale a vertical line would be
     plotted, if observation is iterable a second histogram would be plotted.
 
@@ -408,8 +408,8 @@ def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
     ax.set_ylabel(ylabel)
     ax.legend(loc=legend_loc)
 
-    # if catalog is not None:
-    #     ax.annotate(str(catalog), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
+    # if data is not None:
+    #     ax.annotate(str(data), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
 
     if filename is not None:
         fig.savefig(filename + '.pdf')
@@ -961,10 +961,11 @@ def plot_global_forecast(forecast, catalog=None, name=None):
 
     Args:
         forecast (csep.core.forecasts.MarkedGriddedDataSet): marked gridded data set
-        catalog (csep.core.catalog.AbstractBaseCatalog):  catalog base class
-        name (str): name of the catalog
+        catalog (csep.core.data.AbstractBaseCatalog):  data base class
+        name (str): name of the data
 
     Returns:
+        axes
 
     """
     fig, ax = pyplot.subplots(figsize=(18,11))
@@ -972,7 +973,7 @@ def plot_global_forecast(forecast, catalog=None, name=None):
     m.drawcoastlines(color = 'lightgrey', linewidth = 1.5)
     m.drawparallels(numpy.arange(-90.,120.,15.), labels=[1,1,0,1], linewidth= 0.0, fontsize = 13)
     m.drawmeridians(numpy.arange(0.,360.,40.), labels=[1,1,1,1], linewidth= 0.0, fontsize = 13)
-    x, y = m(forecast.longitudes(), forecast.latitudes())
+    x, y = m(forecast.get_longitudes(), forecast.get_longitudes())
     cbar = ax.scatter(x, y, s = 2, c = numpy.log10(forecast.spatial_counts()), cmap = 'inferno', edgecolor='')
     a = fig.colorbar(cbar, orientation = 'horizontal', shrink = 0.5, pad = 0.01)
     if catalog is not None:
@@ -1007,25 +1008,25 @@ def plot_comparison_test(results, plot_args=None):
     title = plot_args.get('title', 'CSEP1 Consistency Test')
     xlabel = plot_args.get('xlabel', 'X')
     ylabel = plot_args.get('ylabel', 'Y')
-    normalize = plot_args.get('normalize', False)
-    one_sided_lower = plot_args.get('one_sided_lower', False)
 
-    fig, ax = plt.subplots()
+    fig, ax = pyplot.subplots()
     ax.axhline(y=0, linestyle='--', color='black')
     for index, result in enumerate(results):
         ylow = result.observed_statistic - result.test_distribution[0]
         yhigh = result.test_distribution[1] - result.observed_statistic
-        ax.errorbar(index, result.observed_statistic, yerr=np.array([[ylow, yhigh]]).T, color='black', capsize=4)
+        ax.errorbar(index, result.observed_statistic, yerr=numpy.array([[ylow, yhigh]]).T, color='black', capsize=4)
         ax.plot(index, result.observed_statistic, 'ok')
     ax.set_xticklabels([res.sim_name[0] for res in results])
-    ax.set_xticks(np.arange(len(results)))
+    ax.set_xticks(numpy.arange(len(results)))
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
+    fig.tight_layout()
     return ax
 
-
 def plot_consistency_test(results, plot_args=None):
+    # todo: make normalize and one_side_lower function arguments
+
     """ Plots results from CSEP1 Number test following the CSEP1 convention.
 
     Args:
@@ -1044,12 +1045,12 @@ def plot_consistency_test(results, plot_args=None):
     one_sided_lower = plot_args.get('one_sided_lower', False)
     xlims = []
     for index, res in enumerate(results):
-        # handle analytical distributions first
-        if res.test_distribution == 'poisson':
-            plow = scipy.stats.poisson.ppf(0.025, res.fore_cnt)
-            phigh = scipy.stats.poisson.ppf(0.975, res.fore_cnt)
+        # handle analytical distributions first, they are all in the form ['name', parameters].
+        if res.test_distribution[0] == 'poisson':
+            plow = scipy.stats.poisson.ppf(0.025, res.test_distribution[1])
+            phigh = scipy.stats.poisson.ppf(0.975, res.test_distribution[1])
             observed_statistic = res.observed_statistic
-        # emprical distributions
+            # emprical distributions
         else:
             if normalize:
                 test_distribution = numpy.array(res.test_distribution) - res.observed_statistic
@@ -1064,6 +1065,7 @@ def plot_consistency_test(results, plot_args=None):
             else:
                 plow = numpy.percentile(test_distribution, 2.5)
                 phigh = numpy.percentile(test_distribution, 97.5)
+
         low = observed_statistic - plow
         high = phigh - observed_statistic
         ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(observed_statistic, (plow, phigh)), capsize=4,
@@ -1083,6 +1085,7 @@ def plot_consistency_test(results, plot_args=None):
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.figure.tight_layout()
+    fig.tight_layout()
     return ax
 
 def _get_axis_limits(pnts, border=0.05):
@@ -1091,3 +1094,4 @@ def _get_axis_limits(pnts, border=0.05):
     x_max = numpy.max(pnts)
     xd = (x_max - x_min)*border
     return (x_min-xd, x_max+xd)
+

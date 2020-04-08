@@ -121,10 +121,10 @@ class TestGriddedForecastTests(unittest.TestCase):
         obs = numpy.array([[5, 8], [4, 2]])
 
         t_test_expected = {'t_critical': 2.10092204024096,
-                           't_statistic': 1.5385261717159382,
-                           'information_gain': 0.08052612477654024,
-                           'ig_lower': -0.029435677283374914,
-                           'ig_upper': 0.19048792683645538}
+                           't_statistic':  -0.3667739164511052,
+                           'information_gain': -0.019196866913210455,
+                           'ig_lower': -0.1291586689731256,
+                           'ig_upper': 0.0907649351467047}
 
         print('T Test: Running Unit Test')
         self.assertEqual(csep1_t_test_ndarray(forecast_A, forecast_B, numpy.sum(obs), forecast_A.sum(), forecast_B.sum()), t_test_expected, 'Failed T Test')

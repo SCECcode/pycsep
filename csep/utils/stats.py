@@ -185,20 +185,24 @@ def poisson_log_likelihood(observation, forecast):
 
 
 def poisson_joint_log_likelihood_ndarray(target_event_log_rates, target_observations, n_fore):
-    """ This takes advantage that only bins where target events occur contribute to the overall joint-likelihood.
+    """ This takes advantage that only bins where target events occur contribute to the overall joint-likelihood. In cells,
+    where zero events occur the penalty comes from the expected number of events from the forecast.
+
+    Note: log(w!) = 0
 
     Args:
-        target_event_forecast:
-        target_observations:
-        n_fore:
+        target_event_log_rates: natural log of bin rates where target events occurred
+        target_observations: counts of target events
+        n_fore: expected number from the forecasts
 
     Returns:
+        joint_log_likelihood
 
     """
-    log_target_event_rates = numpy.sum(target_event_log_rates)
-    # gamma(n) = loggamma(n+1)
+    sum_log_target_event_rates = numpy.sum(target_event_log_rates)
+    # factorial(n) = loggamma(n+1)
     discrete_penalty_term = numpy.sum(scipy.special.loggamma(target_observations+1))
-    return log_target_event_rates - discrete_penalty_term - n_fore
+    return sum_log_target_event_rates - discrete_penalty_term - n_fore
 
 def poisson_inverse_cdf(random_matrix, lam):
     """Wrapper around scipy inverse poisson cdf to compute new forecast using

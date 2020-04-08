@@ -184,7 +184,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                 for name, calc in data_products.items():
                     version = eval_config.get_evaluation_version(name)
                     if calc.version != version or force_plot_all:
-                        calc.process_catalog(copy.copy(cat_filt))
+                        calc.process(copy.copy(cat_filt))
                 tens_exp = numpy.floor(numpy.log10(i + 1))
                 if (i + 1) % 10 ** tens_exp == 0:
                     t1 = time.time()
@@ -293,7 +293,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
         md.add_sub_heading('Visual Overview of Forecast', 1,
                 "These plots show qualitative comparisons between the forecast "
-                f"and the target catalog obtained from ComCat. Plots contain events within {numpy.round(millis_to_days(end_epoch-origin_epoch))} days "
+                f"and the target data obtained from ComCat. Plots contain events within {numpy.round(millis_to_days(end_epoch-origin_epoch))} days "
                 f"of the forecast start time and within {numpy.round(3*rupture_length/1000)} kilometers from the epicenter of the mainshock.  \n  \n"
                 "All catalogs are processed using a time-dependent magnitude of completeness from Helmstetter et al., (2006).\n")
 
@@ -391,8 +391,8 @@ class AbstractProcessingTask:
         basename = f"{plot_id}_mw_{str(mw).replace('.','p')}".lower()
         return os.path.join(dir, basename)
 
-    def process_catalog(self, catalog):
-        raise NotImplementedError('must implement process_catalog()!')
+    def process(self, data):
+        raise NotImplementedError('must implement process()!')
 
     def process_again(self, catalog, args=()):
         """ This function defaults to pass unless the method needs to read through the data twice. """
@@ -483,7 +483,7 @@ class NumberTest(AbstractProcessingTask):
         super().__init__(**kwargs)
         self.mws = [2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0]
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
         if not self.name:
             self.name = catalog.name
         counts = []
@@ -540,7 +540,7 @@ class MagnitudeTest(AbstractProcessingTask):
         self.mws = [2.5, 3.0, 3.5, 4.0]
         self.version = 2
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
         if not self.name:
             self.name = catalog.name
         # optimization: always compute this for the lowest magnitude, above this is redundant
@@ -621,13 +621,13 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         self.fnames['l-test'] = []
         self.fnames['s-test'] = []
 
-    def process_catalog(self, catalog):
-        # grab stuff from catalog that we might need later
+    def process(self, catalog):
+        # grab stuff from data that we might need later
         if not self.region:
             self.region = catalog.region
         if not self.name:
             self.name = catalog.name
-        # compute stuff from catalog
+        # compute stuff from data
         counts = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude > {mw}')
@@ -776,7 +776,7 @@ class CumulativeEventPlot(AbstractProcessingTask):
         # always make bins from start to end of catalog
         return numpy.arange(self.origin_epoch, self.end_epoch+dt/2, dt), dt
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
         counts = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude > {mw}')
@@ -851,7 +851,7 @@ class MagnitudeHistogram(AbstractProcessingTask):
         self.calc = calc
         self.archive = False
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
         """ this can share data with the Magnitude test, hence self.calc
         """
         if not self.name:
@@ -899,8 +899,8 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
         self.fnames['s-test'] = []
         self.needs_two_passes = True
 
-    def process_catalog(self, catalog):
-        # grab stuff from catalog that we might need later
+    def process(self, catalog):
+        # grab stuff from data that we might need later
         if not self.region:
             self.region = catalog.region
         if not self.name:
@@ -1047,7 +1047,7 @@ class InterEventTimeDistribution(AbstractProcessingTask):
         self.normed_data = numpy.array([])
         self.version = 2
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
         if self.name is None:
             self.name = catalog.name
         cat_ietd = catalog.get_inter_event_times()
@@ -1109,7 +1109,7 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
         self.normed_data = numpy.array([])
         self.version = 2
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
         """ not nice on the memorys. """
         if self.name is None:
             self.name = catalog.name
@@ -1128,7 +1128,7 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
         self.test_distribution.append(sup_dist(self.normed_data, disc_iedd_normed))
 
     def post_process(self, obs, args=None):
-        # get inter-event times from catalog
+        # get inter-event times from data
         obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
         obs_iedd = obs_filt.get_inter_event_distances()
         obs_disc_iedd = numpy.zeros(len(self.data.bins))
@@ -1169,8 +1169,8 @@ class TotalEventRateDistribution(AbstractProcessingTask):
         self.test_distribution = []
         self.version = 2
 
-    def process_catalog(self, catalog):
-        # grab stuff from catalog that we might need later
+    def process(self, catalog):
+        # grab stuff from data that we might need later
         if not self.region:
             self.region = catalog.region
         if not self.name:
@@ -1229,7 +1229,7 @@ class BValueTest(AbstractProcessingTask):
         super().__init__(**kwargs)
         self.version = 2
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
         if not self.name:
             self.name = catalog.name
         cat_filt = catalog.filter(f'magnitude > {self.mws[0]}', in_place=False)
@@ -1269,7 +1269,7 @@ class MedianMagnitudeTest(AbstractProcessingTask):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
         if not self.name:
             self.name = catalog.name
         cat_filt = catalog.filter(f'magnitude > {self.mws[0]}', in_place=False)
@@ -1308,14 +1308,14 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
         super().__init__(**kwargs)
         self.calc = calc
 
-    def process_catalog(self, catalog):
-        # grab stuff from catalog that we might need later
+    def process(self, catalog):
+        # grab stuff from data that we might need later
         if not self.region:
             self.region = catalog.region
         if not self.name:
             self.name = catalog.name
         if self.calc:
-            # compute stuff from catalog
+            # compute stuff from data
             counts = []
             for mw in self.mws:
                 cat_filt = catalog.filter(f'magnitude > {mw}')
@@ -1377,13 +1377,13 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         self.fnames = []
         self.version = 3
 
-    def process_catalog(self, catalog):
-        # grab stuff from catalog that we might need later
+    def process(self, catalog):
+        # grab stuff from data that we might need later
         if not self.region:
             self.region = catalog.region
         if not self.name:
             self.name = catalog.name
-        # compute stuff from catalog
+        # compute stuff from data
         counts = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude > {mw}')
@@ -1468,14 +1468,14 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
         self.region=None
         self.archive=False
 
-    def process_catalog(self, catalog):
-        # grab stuff from catalog that we might need later
+    def process(self, catalog):
+        # grab stuff from data that we might need later
         if not self.region:
             self.region = catalog.region
         if not self.name:
             self.name = catalog.name
         if self.calc:
-            # compute stuff from catalog
+            # compute stuff from data
             counts = []
             for mw in self.mws:
                 cat_filt = catalog.filter(f'magnitude > {mw}')
@@ -1522,14 +1522,14 @@ class ApproximateRatePlot(AbstractProcessingTask):
         self.region=None
         self.archive = False
 
-    def process_catalog(self, catalog):
-        # grab stuff from catalog that we might need later
+    def process(self, catalog):
+        # grab stuff from data that we might need later
         if not self.region:
             self.region = catalog.region
         if not self.name:
             self.name = catalog.name
         if self.calc:
-            # compute stuff from catalog
+            # compute stuff from data
             counts = []
             for mw in self.mws:
                 cat_filt = catalog.filter(f'magnitude > {mw}')
@@ -1578,15 +1578,15 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
         self.data = defaultdict(list)
         self.archive = False
 
-    def process_catalog(self, catalog):
+    def process(self, data):
         if self.name is None:
-            self.name = catalog.name
+            self.name = data.name
 
         if self.region is None:
-            self.region = catalog.region
+            self.region = data.region
         """ collects all catalogs conforming to n_obs in a dict"""
         for mw in self.mws:
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = data.filter(f'magnitude > {mw}')
             obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)
             n_obs = obs_filt.event_count
             tolerance = 0.05 * n_obs
@@ -1645,7 +1645,7 @@ class ConditionalMagnitudeVersusTime(AbstractProcessingTask):
             obs_filt = obs.filter(f'magnitude > {mw}')
             self.n_obs.append(obs_filt.event_count)
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
 
         for i, mw in enumerate(self.mws):
             cat_filt = catalog.filter(f'magntiude > {mw}')
@@ -1658,7 +1658,7 @@ class CatalogMeanStabilityAnalysis(AbstractProcessingTask):
         self.calc = False
         self.mws = [2.5, 3.5, 4.5, 5.5, 6.5, 7.5]
 
-    def process_catalog(self, catalog):
+    def process(self, catalog):
         if not self.name:
             self.name = catalog.name
         counts = []
