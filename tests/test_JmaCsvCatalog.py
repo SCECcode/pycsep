@@ -42,7 +42,7 @@ def test_JmaCsvCatalog_loading():
     _datetimes.fill(numpy.nan)
 
     for _idx, _val in enumerate(_dummy):
-        _datetimes[_idx] = 1000 * _val.timestamp()
+        _datetimes[_idx] = round(1000. * _val.timestamp())
 
     numpy.testing.assert_allclose(_datetimes, _JmaCsvCatalogObject.catalog['timestamp'],
                                   err_msg='timestamp mismatch',

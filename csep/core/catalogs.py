@@ -1120,7 +1120,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         _tsTpl = '%Y-%m-%dT%H:%M:%S.%f%z'
 
         # helper function to parse the timestamps:
-        parseDateString = lambda x: int(1000 * datetime.datetime.strptime(x.decode('utf-8'), _tsTpl).timestamp())
+        parseDateString = lambda x: round(1000. * datetime.datetime.strptime(x.decode('utf-8'), _tsTpl).timestamp())
 
         try:
             self.catalog = numpy.genfromtxt(self.filename, delimiter=';', names=True, skip_header=0,
