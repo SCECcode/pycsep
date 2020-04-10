@@ -48,7 +48,7 @@ def test_JmaCsvCatalog_loading():
                                   err_msg='timestamp mismatch',
                                   verbose=True, rtol=0, atol=0)
 
-    _ZMAPCatalogObject = _JmaCsvCatalogObject._get_csep_format()
+    _ZMAPCatalogObject = _JmaCsvCatalogObject.get_csep_format()
     assert len(_ZMAPCatalogObject.catalog) == len(_JmaCsvCatalogObject.catalog)
     numpy.testing.assert_allclose(_ZMAPCatalogObject.get_magnitudes(), _JmaCsvCatalogObject.get_magnitudes(),
                                   err_msg='ZMAPCatalog magnitudes differ from JmaCsvCatalog magnitudes',
