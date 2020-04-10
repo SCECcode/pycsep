@@ -1,4 +1,4 @@
-name: csep
+name: csep-dev
 channels:
   - conda-forge
   - defaults
@@ -17,3 +17,4 @@ dependencies:
   - vcrpy=2.0.1
   - gitpython=3.0.8
   - six=1.14.0
+  - pytest-cov=2.8.1

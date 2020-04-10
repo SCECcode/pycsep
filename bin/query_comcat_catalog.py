@@ -15,7 +15,7 @@ start = datetime.datetime(1985,1,1,0,0,0,0)
 now = datetime.datetime.now()
 
 t0 = time.time()
-print('Fetching comcat catalog...')
+print('Fetching ComCat catalog...')
 try:
     comcat = ComcatCatalog(start_time = start, end_time = now,
                            min_magnitude = 2.5, max_magnitude = 10.0,

@@ -41,6 +41,7 @@ class AbstractBaseCatalog(LoggingMixin):
                  min_longitude=None, max_longitude=None,
                  start_time=None, end_time=None):
 
+        super().__init__()
         self.filename = filename
         self.catalog_id = catalog_id
         self.format = format
@@ -208,7 +209,7 @@ class AbstractBaseCatalog(LoggingMixin):
         """
         raise NotImplementedError('write_catalog not implemented.')
 
-    def get_dataframe(self, with_datetime=False):
+    def as_dataframe(self, with_datetime=False):
         """
         Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
 
@@ -233,12 +234,12 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region is not None:
             df['region_id'] = self.region.get_index_of(self.get_longitudes(), self.get_latitudes())
         # bin magnitudes
-        df['mag_id'] = self.get_mag_id(CSEP_MW_BINS)
+        df['mag_id'] = self.get_mag_idx(CSEP_MW_BINS)
         # set index as datetime
         return df
 
-    def get_mag_id(self, mag_bins):
-        return bin1d_vec(self.get_magnitudes(), mag_bins)
+    def get_mag_idx(self, mag_bins):
+        return bin1d_vec(self.get_magnitudes(), mag_bins, right_continuous=True)
 
     def get_number_of_events(self):
         """
@@ -1198,7 +1199,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         """
         return self.catalog['latitude']
 
-    def _get_csep_format(self):
+    def get_csep_format(self):
         n = len(self.catalog)
         csep_catalog = numpy.zeros(n, dtype=ZMAPCatalog.dtype)
 

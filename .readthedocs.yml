@@ -1,0 +1,18 @@
+# Required
+version: 2
+
+conda:
+  environment: requirements.yml
+
+python:
+  install:
+    - method: pip
+      path: .
+  
+build:
+  image: latest
+
+sphinx:
+  builder: html
+  configuration: docs/conf.py
+  fail_on_warning: true

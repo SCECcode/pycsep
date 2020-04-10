@@ -11,8 +11,7 @@ import scipy.stats
 import time
 
 from csep.core.evaluations import EvaluationResult
-from csep.core.exceptions import CSEPValueException
-from csep.utils.stats import poisson_log_likelihood, poisson_inverse_cdf, poisson_joint_log_likelihood_ndarray
+from csep.utils.stats import poisson_joint_log_likelihood_ndarray
 
 
 def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0.05, scale=False):
@@ -51,38 +50,32 @@ def csep1_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0
     return result
 
 def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=False):
-    """
-    Calculate the Single Sample Wilcoxon signed-rank test for "log(gridded_forecast1(i))-log(gridded_forecast2(i))".
-    This test allows to test the null hypothesis that the median of Sample (X1(i)-X2(i)) is equal to a (N1-N2)/nbins.
+    """ Calculate the Single Sample Wilcoxon signed-rank test between two gridded forecasts.
+
+    This test allows to test the null hypothesis that the median of Sample (X1(i)-X2(i)) is equal to a (N1-N2) / N_obs.
     where, N1, N2 = Sum of expected values of Forecast_1 and Forecast_2, respectively.
-    {Note: I assume N=Total No of bins here (nbins)} for Rhodes et al. 2011 (Page 741).
+
     The Wilcoxon signed-rank test tests the null hypothesis that difference of Xi and Yi come from the same distribution.
     In particular, it tests whether the distribution of the differences is symmetric around given mean.
 
     Parameters
 
-    Args
-    observation:Observed (Grided) seismicity (Numpy Array):
+    Args:
+        gridded_forecast1: Forecast of a model_1 (Grided) (Numpy Array)
+                A forecast has to be in terms of Average Number of Events in Each Bin
+                It can be anything greater than zero
+
+        gridded_forecast2: Forecast of model_2 (Grided) (Numpy Array)
+                A forecast has to be in terms of Average Number of Events in Each Bin
+                It can be anything greater than zero
+
+        observation: Observed (Grided) seismicity (Numpy Array):
                 An Observation has to be observed seismicity in each Bin
                 It has to be a either zero or positive integer only (No Floating Point)
-    gridded_forecast1: Forecast of a model_1 (Grided) (Numpy Array)
-                A forecast has to be in terms of Average Number of Events in Each Bin
-                It can be anything greater than zero
-    gridded_forecast2: Forecast of model_2 (Grided) (Numpy Array)
-                A forecast has to be in terms of Average Number of Events in Each Bin
-                It can be anything greater than zero
-    model_1:    The name of Model 1, with whom the comparision will be drawn
-    model_2:    The name of second model, which will be compared with Model 1
 
     Returns
-    A dictionary of following elements
-                {'model_name_1': Name of Model 1,
-                 'model_name_2': Name of Model 2,
-                 'z_statistic' : Z statistic computed between forecast 1 and forecast 2,
-                 'probablity': Probablity value}
+        out: csep.core.evaluations.EvaluationResult
     """
-    # same pre-preprocessing needs to occur for the w-test and the t-test
-
 
     # needs some pre-processing to put the forecasts in the context that is required for the t-test. this is different
     # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
@@ -118,19 +111,22 @@ def csep1_w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=F
     return result
 
 def csep1_number_test(gridded_forecast, observed_catalog):
-    """
-    @asim
+    """Computes "N-Test" on a gridded forecast.
+    author: @asim
+
     Computes Number (N) test for Observed and Forecasts. Both data sets are expected to be in terms of event counts.
     We find the Total number of events in Observed Catalog and Forecasted Catalogs. Which are then employed to compute the probablities of
-       (i) At least no. of events (delta 1)
-       (ii) At most no. of events (delta 2) assuming the possionian distribution.
+    (i) At least no. of events (delta 1)
+    (ii) At most no. of events (delta 2) assuming the poissonian distribution.
+
     Args:
-        observation: Observed (Grided) seismicity (Numpy Array):
+        observation: Observed (Gridded) seismicity (Numpy Array):
                     An Observation has to be Number of Events in Each Bin
                     It has to be a either zero or positive integer only (No Floating Point)
-        forecast:   Forecast of a Model (Grided) (Numpy Array)
+        forecast:   Forecast of a Model (Gridded) (Numpy Array)
                     A forecast has to be in terms of Average Number of Events in Each Bin
                     It can be anything greater than zero
+
     Returns:
         out (tuple): (delta_1, delta_2)
     """
@@ -148,7 +144,7 @@ def csep1_number_test(gridded_forecast, observed_catalog):
     delta1, delta2 = csep1_number_test_ndarray(fore_cnt, obs_cnt, epsilon=epsilon)
 
     # store results
-    result.test_distribution = 'poisson'
+    result.test_distribution = ('poisson', fore_cnt)
     result.name = 'N-Test'
     result.observed_statistic = obs_cnt
     result.quantile = (delta1, delta2)
@@ -156,24 +152,26 @@ def csep1_number_test(gridded_forecast, observed_catalog):
     result.obs_name = observed_catalog.name
     result.status = 'normal'
     result.min_mw = numpy.min(gridded_forecast.magnitudes)
-    result.fore_cnt = fore_cnt
 
     return result
 
 def csep1_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None):
-    """
-    Performs the conditional likelihood test on Gridded Forecast using an Observed Catalog. This test normalizes the forecast so the forecasted rate
-    are consistent with the observations. This modification eliminates the strong impact differences in the number distribution have on the
-    forecasted rates.
+    """Performs the conditional likelihood test on Gridded Forecast using an Observed Catalog.
+
+    This test normalizes the forecast so the forecasted rate are consistent with the observations. This modification
+    eliminates the strong impact differences in the number distribution have on the forecasted rates.
+
     Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
     transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
     gridded forecasts that supply their forecasts as rates.
+
     Args:
         gridded_forecast: csep.core.forecasts.GriddedForecast
         observed_catalog: csep.core.catalogs.Catalog
         num_simulations (int): number of simulations used to compute the quantile score
         seed (int): used fore reproducibility, and testing
         random_numbers (numpy.ndarray): random numbers used to override the random number generation. injection point for testing.
+
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
@@ -306,7 +304,7 @@ def csep1_likelihood_test(gridded_forecast, observed_catalog, num_simulations=10
     # grid catalog onto spatial grid
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
-    # simply call likelihood test on catalog data and forecast
+    # simply call likelihood test on catalog and forecast
     qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
                                                        num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
                                                        use_observed_counts=False)
@@ -326,10 +324,12 @@ def csep1_likelihood_test(gridded_forecast, observed_catalog, num_simulations=10
 
 def csep1_number_test_ndarray(fore_cnt, obs_cnt, epsilon=1e-6):
     """ Computes delta1 and delta2 values from the csep1 number test.
+
     Args:
         fore_cnt (float): parameter of poisson distribution coming from expected value of the forecast
         obs_cnt (float): count of earthquakes observed during the testing period.
         epsilon (float): tolerance level to satisfy the requirements of two-sided p-value
+
     Returns
         result (tuple): (delta1, delta2)
     """
@@ -363,7 +363,7 @@ def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, 
     X2 = numpy.log(gridded_forecast_data2)  # Log of every element of Forecast 2
 
     # Information Gain, using Equation (17)  of Rhoades et al. 2011
-    information_gain = (numpy.sum(X1 - X2) - (N1 - N2)) / N
+    information_gain = (numpy.sum(X1 - X2) - ((N1 - N2) / N)) / N
 
     # Compute variance of (X1-X2) using Equation (18)  of Rhoades et al. 2011
     first_term = (numpy.sum(numpy.power((X1 - X2), 2))) / (N - 1)
@@ -383,12 +383,15 @@ def csep1_t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, 
 
     # If T value greater than T critical, Then both Lower and Upper Confidence Interval limits will be greater than Zero.
     # If above Happens, Then It means that Forecasting Model 1 is better than Forecasting Model 2.
-    return {'t_statistic': t_statistic, 't_critical': t_critical, 'information_gain': information_gain,
-            'ig_lower': ig_lower, 'ig_upper': ig_upper}
+    return {'t_statistic': t_statistic,
+            't_critical': t_critical,
+            'information_gain': information_gain,
+            'ig_lower': ig_lower,
+            'ig_upper': ig_upper}
 
 def csep1_w_test_ndarray(x, m=0):
-    """
-    Calculate the Single Sample Wilcoxon signed-rank test.
+    """ Calculate the Single Sample Wilcoxon signed-rank test for an ndarray.
+
     This method is based on collecting a number of samples from a population with unknown median, m.
     The Wilcoxon One Sample Signed-Rank test is the non parametric version of the t-test.
     It is based on ranks and because of that, the location parameter is not here the mean but the median.
@@ -397,17 +400,13 @@ def csep1_w_test_ndarray(x, m=0):
     Null hypothesis (simplified): The population from which the data were sampled is symmetric about the Given value (m).
     Alternative hypothesis (simplified, two-sided): The population from which the data were sampled is not symmetric around m.
 
-    Parameters
+    Args:
+        x:   1D vector of paired differences.
+        m:   Designated median value.
 
-    Args
-    x:   1D vector. For CSEP it has to be [log(forecat_1) - log(forecast_2)]
-                An Observation has to be observed seismicity in each Bin
-    m:   Designated mean value. For CSEP it to be (Sum of expectation of forecast_1 - Sum of expectation of forecast_2) / total no. of bins (I assume bins)
-
-    Returns
-    A dictionary of following elements
-                {'z_statistic': Value of Z statistic, considering two-side test,
-                 'probablity': Probablity value }
+    Returns:
+        dict: {'z_statistic': Value of Z statistic, considering two-side test,
+               'probablity': Probablity value }
     """
     # compute median differences
     d = x - m
@@ -496,7 +495,7 @@ def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
     n_obs = numpy.sum(observed_data)
     n_fore = numpy.sum(forecast_data)
 
-    # used for conditional-likelihood, magnitude, and spatial tests to isolate the rate-component of the forecasts.
+    # used for conditional-likelihood, magnitude, and spatial tests to normalize the rate-component of the forecasts.
     if use_observed_counts:
         scale = n_obs / n_fore
         expected_forecast_count = int(n_obs)
@@ -507,6 +506,8 @@ def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
 
     # gets the 1d indices to bins that contain target events, these indexes perform copies and not views into the array
     target_idx = numpy.nonzero(observed_data.ravel())
+
+    # these operations perform copies
     observed_data_nonzero = observed_data.ravel()[target_idx]
     target_event_forecast = log_bin_expectations[target_idx] * observed_data_nonzero
 
@@ -519,11 +520,15 @@ def poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
 
         sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore, random_numbers=random_numbers, seed=seed)
 
-        # compute joint log-likelihood from simulation
+        # compute joint log-likelihood from simulation by leveraging that only cells with target events contribute to likelihood
         sim_target_idx = numpy.nonzero(sim_fore)
         sim_obs_nonzero = sim_fore[sim_target_idx]
         sim_target_event_forecast = log_bin_expectations[sim_target_idx] * sim_obs_nonzero
+
+        # compute joint log-likelihood
         current_ll = poisson_joint_log_likelihood_ndarray(sim_target_event_forecast, sim_obs_nonzero, expected_forecast_count)
+
+        # append to list of simulated log-likelihoods
         simulated_ll.append(current_ll)
 
         # just be verbose

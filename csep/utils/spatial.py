@@ -73,9 +73,9 @@ class CartesianGrid2D:
     def get_masked(self, lons, lats):
         """Returns bool array lons and lats are not included in the spatial region.
 
-        # idea: consider moving this function to the catalog class.
+        # idea: consider moving this function to the data class.
 
-        .. note:: The ordering of lons and lats should correspond to the ordering of the lons and lats in the catalog.
+        .. note:: The ordering of lons and lats should correspond to the ordering of the lons and lats in the data.
 
         Args:
             lons: array-like
@@ -393,7 +393,7 @@ def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map
     to be compared against performance.
     """
 
-    # index in cartesian grid for events in catalog. note, this has a different index than the
+    # index in cartesian grid for events in data. note, this has a different index than the
     # vector of polygons. this mapping is stored in [:,:,1] index of mask
     # index in 2d grid
     idx = bin1d_vec(lons, binx)

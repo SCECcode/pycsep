@@ -1,5 +1,9 @@
 # PyCSEP: Collaboratory for the Study of Earthquake Predictability
 
+[![Build Status](https://travis-ci.com/SCECcode/csep2.svg?branch=dev)](https://travis-ci.com/SCECcode/csep2)
+[![Documentation Status](https://readthedocs.org/projects/csep/badge/?version=latest)](https://csep.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/SCECcode/csep2/branch/dev/graph/badge.svg)](https://codecov.io/gh/SCECcode/csep2)
+
 The PyCSEP tools help earthquake forecast model developers evaluate their forecasts with the goal of understanding
 earthquake predictability.
 
@@ -23,7 +27,7 @@ within in the python environment.
 2. Create environment for installation
     * [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended):  
     `conda env create -f requirements.yaml`  
-    `conda activate csep`  
+    `conda activate csep-dev`  
     
     Note: If you want to go back to your default environment use the command `conda deactivate`.
 
@@ -33,8 +37,8 @@ within in the python environment.
     `cd csep2`  
     `mkdir venv`  
     `cd venv`  
-    `python3 -m venv csep`  
-    `source csep/bin/activate`  
+    `python3 -m venv csep-dev`  
+    `source csep-dev/bin/activate`  
     `cd ..`  
     `pip3 install numpy` (Because of obspy and scipy)  
     `pip3 install wheel`  

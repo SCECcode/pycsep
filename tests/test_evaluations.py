@@ -30,6 +30,7 @@ class MockCatalog:
     def get_number_of_events(self):
         return self.val
 
+
 class TestCatalogBasedNTest:
     '''
     n-test returns two values, delta_1 and delta_2
@@ -95,6 +96,7 @@ class TestCatalogBasedNTest:
         assert numpy.isclose(result.quantile[0], 1.0)
         assert numpy.isclose(result.quantile[1], 0.0)
 
+
 class TestPoissonLikelihood(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -138,16 +140,23 @@ class TestPoissonLikelihood(unittest.TestCase):
         # final statement
         numpy.testing.assert_allclose(expected_catalog, sim_fore)
 
+        # test again to ensure that fill works properply
+        sim_fore = _simulate_catalog(num_events, sampling_weights, sim_fore,
+                                     random_numbers=self.random_matrix)
+
+        # final statement
+        numpy.testing.assert_allclose(expected_catalog, sim_fore)
+
     def test_likelihood(self):
         qs, obs_ll, simulated_ll = poisson_likelihood_test(self.forecast_data, self.observed_data, num_simulations=1,
                                                            random_numbers=self.random_matrix, use_observed_counts=True)
 
         # very basic result to pass "laugh" test
-        self.assertEqual(qs, 1)
+        numpy.testing.assert_allclose(qs, 1)
 
         # forecast and observation are the same, sum(np.log(poisson(1, 1))) = -4
-        self.assertEqual(obs_ll, -4)
+        numpy.testing.assert_allclose(obs_ll, -4)
 
-        # calculated by hand given the expected catalog, see explanation in zechar et al., 2010.
-        self.assertEqual(simulated_ll[0], -7.178053830347945)
+        # calculated by hand given the expected data, see explanation in zechar et al., 2010.
+        numpy.testing.assert_allclose(simulated_ll[0], -7.178053830347945)
 

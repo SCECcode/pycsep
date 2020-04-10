@@ -38,9 +38,15 @@ class GriddedDataSet(LoggingMixin):
             time_horizon:
         """
         super().__init__()
+
+        # note: do not access this member through _data, always use .data.
         self._data = data
         self.region = region
         self.name = name
+
+        # this value lets us scale the forecast without much additional memory constraints and makes the calls
+        # idempotent
+        self._scale = 1
 
     @property
     def data(self):
@@ -50,18 +56,32 @@ class GriddedDataSet(LoggingMixin):
         a look up table as part of the region class. The magnitude bins used are stored as directly as an attribute of
         class.
         """
-        return self._data
+        return self._data * self._scale
 
     @property
     def event_count(self):
         return numpy.sum(self.data)
 
-    @property
-    def latitudes(self):
+    def spatial_counts(self, cartesian=False):
+        """
+        Integrates over magnitudes to return the spatial version of the forecast.
+
+        Args:
+            cartesian (bool): if true, will return a 2d grid representing the bounding box of the forecast
+
+        Returns:
+            ndarray containing the count in each bin
+
+        """
+        if cartesian:
+            return self.region.get_cartesian(self.data)
+        else:
+            return self.data
+
+    def get_latitudes(self):
         return self.region.origins()[:,1]
 
-    @property
-    def longitudes(self):
+    def get_longitudes(self):
         return self.region.origins()[:,0]
 
     @property
@@ -85,23 +105,17 @@ class GriddedDataSet(LoggingMixin):
         """
         return self.region.get_index_of(lons, lats)
 
-    def scale(self, val, in_place=True):
+    def scale(self, val):
         """Scales forecast by floating point value.
 
         Args:
-            val: int, float, or ndarray. This value multiplicatively scale the values in forecast.
+            val: int, float, or ndarray. This value multiplicatively scale the values in forecast. Use a value of
+                 1 to recover original value of the forecast.
 
         Raises:
             ValueError: must be int, float, or ndarray
         """
-        if not isinstance(val, (int, float, numpy.ndarray)):
-            raise ValueError("scaling value must be (int, float, or numpy.ndarray).")
-        if not in_place:
-            new = copy.deepcopy(self)
-            new._data *= val
-            return new
-        else:
-            self._data *= val
+        self._scale = val
         return self
 
     def to_dict(self):
@@ -110,7 +124,6 @@ class GriddedDataSet(LoggingMixin):
     @classmethod
     def from_dict(cls, adict):
         raise NotImplementedError()
-
 
 class MarkedGriddedDataSet(GriddedDataSet):
     """
@@ -210,13 +223,13 @@ class GriddedForecast(MarkedGriddedDataSet):
         # we are adding one day, bc tests are considered to occur at the end of the day specified by test_datetime.
         test_date_dec = decimal_year(test_datetime + datetime.timedelta(1))
         fore_frac = (test_date_dec - decimal_year(self.start_time)) / fore_dur
-        res = self.scale(fore_frac, in_place=in_place)
+        res = self.scale(fore_frac)
         return res
 
     def target_event_rates(self, target_catalog, scale=True):
-        """ Generates data set of target event rates given a target catalog.
+        """ Generates data set of target event rates given a target data.
 
-        The catalog should already be scaled to the same length as the forecast time horizon. Explicit checks for these
+        The data should already be scaled to the same length as the forecast time horizon. Explicit checks for these
         cases are not conducted in this function.
 
         If scale=True then the target event rates will be scaled down to the rates for one day. This choice of time
@@ -225,7 +238,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         Acta Geophys 59 728-747.
 
         Args:
-            target_catalog (csep.core.catalog.AbstractBaseCatalog): catalog containing target events
+            target_catalog (csep.core.data.AbstractBaseCatalog): data containing target events
             scale (bool): if true, rates will be scaled to one day.
 
         Returns:
@@ -233,7 +246,7 @@ class GriddedForecast(MarkedGriddedDataSet):
 
         """
         if not isinstance(target_catalog, AbstractBaseCatalog):
-            raise TypeError("target_catalog must be csep.core.catalog.AbstractBaseCatalog class.")
+            raise TypeError("target_catalog must be csep.core.data.AbstractBaseCatalog class.")
 
         if scale:
             # first get copy so we dont contaminate the rates of the forecast, this can be quite large for global files
@@ -255,11 +268,12 @@ class GriddedForecast(MarkedGriddedDataSet):
         lats = target_catalog.get_latitudes()
         mags = target_catalog.get_magnitudes()
 
-        # this array does not keep track of any location anymore. however, it can be computed using the catalog again.
+        # this array does not keep track of any location anymore. however, it can be computed using the data again.
         rates = self.get_rates(lons, lats, mags, data=data)
+        # we return the sum of data, bc data might be scaled within this function
         return rates, numpy.sum(data)
 
-    def get_rates(self, lons, lats, mags, data=None):
+    def get_rates(self, lons, lats, mags, data=None, ret_inds=False):
         """ Returns the rate associated with a longitude, latitude, and magnitude.
 
         Args:
@@ -281,11 +295,15 @@ class GriddedForecast(MarkedGriddedDataSet):
         # get index of magnitude bins, if lats, lons, not in region raise value error
         idm = self.get_magnitude_index(mags)
         # retrieve rates from internal data structure
-        if data is not None:
+        if data is None:
             rates = self.data[idx,idm]
         else:
             rates = data[idx,idm]
-        return rates
+        if ret_inds:
+            return rates, (idx, idm)
+        else:
+            return rates
+
 
     @classmethod
     def from_custom(cls, func, func_args=(), **kwargs):
