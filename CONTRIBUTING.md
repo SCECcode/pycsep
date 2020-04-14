@@ -15,7 +15,7 @@ answer some questions.
 
 Pull requests are great! Please submit them to us! Here's how:
 
-1. Fork the repo.
+1. Fork the repo. [Some helping info](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/working-with-forks)
 2. Make a new branch. For features/additions base your new branch at `dev`.
 3. Add a test! Only pull requests for documentation and refactoring do not require a test.
 4. Make sure the tests pass. Run `./run_tests.sh` in the top-level directory of the repo.
