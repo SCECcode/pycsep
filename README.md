@@ -16,7 +16,7 @@ PyCSEP should:
 
 ## Installing PyCSEP
 
-This package must be installed from GitHub until an offical release is made available on PyPI and Conda-Forge.
+This package must be installed from [GitHub](https://github.com/SCECcode/csep2) until an offical release is made available on PyPI and Conda-Forge.
 We recommend making a virtual environment to ensure there are no conflicts in dependencies.
 
 This installation will be editable and used for development. This way any changes made to the package will be usable
@@ -61,3 +61,12 @@ Additionally, you can run the test suite by navigating to the project root direc
 
 With this editable installation you can freely edit the package and have the changes propagate to the python 
 installation.
+
+### Note for Ubuntu Linux users
+
+If you need to install this package on a Linux system we recommend to use a Ubuntu Linux v18.04 LTS based system.
+The prerequsites for using this package by venv are the linux packages:
+  * `build-essential`
+  * `python3-dev`
+  * `python3-venv`
+  * `python3-pip`
