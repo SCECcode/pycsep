@@ -51,6 +51,8 @@ within in the python environment.
     manual build, you might need to resolve build issues as they arise. This is usually caused by [not having the proper 
     python statics installed](https://stackoverflow.com/questions/21530577/fatal-error-python-h-no-such-file-or-directory) to build the binary packages or poorly written setup.py scripts from other packages.
     
+    Also python 3.7 is required.
+    
 3. Navigate to repo `cd csep2` (If you are not already there...)
 4. Install editable version of package `pip install -e .`
 

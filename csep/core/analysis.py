@@ -141,6 +141,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         comcat = catalog_repo.load(ComcatCatalog(query=False))
         comcat = comcat.filter(f'origin_time >= {origin_epoch}').filter(f'origin_time < {end_epoch}')
         comcat = comcat.filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
+        print(comcat)
 
     # define products to compute on simulation, this could be extracted
     data_products = {

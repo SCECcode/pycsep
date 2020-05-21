@@ -93,6 +93,15 @@ def create_utc_datetime(datetime):
     assert datetime.tzinfo is None
     return datetime.replace(tzinfo=datetime.timezone.utc)
 
+def parse_string_format(time_string):
+    """ Fixes some difficulties with different time formats """
+    format = "%Y-%m-%d %H:%M:%S"
+    if '.' in time_string:
+        format = "%Y-%m-%d %H:%M:%S.%f"
+    if time_string[-6] == '+':
+        format = format + "%z"
+    return format
+
 class Specifier(str):
     """Model %Y and such in `strftime`'s format string."""
     def __new__(cls, *args):

@@ -59,6 +59,13 @@ class TestBin1d(unittest.TestCase):
         expected = [0]
         self.assertListEqual(test.tolist(), expected)
 
+    def test_bin1d_vec9(self):
+        data = [-118.97999999]
+        bin_edges = [-119.0, -118.98, -118.96]
+        test = bin1d_vec(data, bin_edges)
+        expected = [1]
+        self.assertListEqual(test.tolist(), expected)
+
     def test_bin1d_vec_int(self):
         data = [1, 3, 5, 10, 20]
         bin_edges = [0, 10, 20, 30]

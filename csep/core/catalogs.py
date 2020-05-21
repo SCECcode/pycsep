@@ -10,7 +10,7 @@ import pyproj
 
 # CSEP Imports
 import csep
-from csep.utils.time_utils import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, millis_to_days
+from csep.utils.time_utils import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, millis_to_days, parse_string_format
 from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
@@ -922,22 +922,16 @@ class ComcatCatalog(AbstractBaseCatalog):
         date_accessed = adict.get('date_accessed', None)
 
         if start_time is not None:
-            try:
-                start_time=strptime_to_utc_datetime(start_time)
-            except:
-                start_time=strptime_to_utc_datetime(start_time, format="%Y-%m-%d %H:%M:%S")
+            format = parse_string_format(start_time)
+            strptime_to_utc_datetime(start_time, format=format)
 
         if end_time is not None:
-            try:
-                end_time = strptime_to_utc_datetime(end_time)
-            except:
-                end_time = strptime_to_utc_datetime(end_time, format="%Y-%m-%d %H:%M:%S")
+            format = parse_string_format(end_time)
+            strptime_to_utc_datetime(end_time, format=format)
 
         if date_accessed is not None:
-            try:
-                date_accessed = strptime_to_utc_datetime(date_accessed)
-            except:
-                date_accessed = strptime_to_utc_datetime(date_accessed, format="%Y-%m-%d %H:%M:%S")
+            format = parse_string_format(date_accessed)
+            strptime_to_utc_datetime(date_accessed, format=format)
 
         out = cls(catalog=catalog,
                   start_time=start_time, end_time=end_time,
