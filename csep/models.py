@@ -25,7 +25,7 @@ class Event:
     def from_dict(cls, adict):
         return cls(id=adict['id'],
                   magnitude=adict['magnitude'],
-                  latitude=adict['magnitude'],
+                  latitude=adict['latitude'],
                   longitude=adict['longitude'],
                   time=epoch_time_to_utc_datetime(adict['time']))
 
