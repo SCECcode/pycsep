@@ -121,7 +121,7 @@ class CartesianGrid2D:
         adict = {
             'name': str(self.name),
             'dh': float(self.dh),
-            'polygons': [{'lat': float(origin[1]), 'lon': float(origin[0])} for origin in self.polygons.origin]
+            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
         }
         return adict
 

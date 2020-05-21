@@ -33,9 +33,10 @@ from csep.utils.calc import bin1d_vec
 from csep.utils.stats import get_quantiles, cumulative_square_diff, sup_dist
 from csep.core.catalogs import ComcatCatalog
 from csep.core.repositories import FileSystem
+from csep.models import Event
 
 def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_dir=None, generate_markdown=True, catalog_repo=None, save_results=False,
-                               force_plot_all=False, skip_processing=False, name='Forecast'):
+                               force_plot_all=False, skip_processing=False, event_repo=None, name='Forecast'):
     """
     computes all csep consistency tests for simulation located in sim_dir with event_id
 
@@ -84,11 +85,15 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         n_cat = u3etas_config['numSimulations']
 
     # download comcat information, sometimes times out but usually doesn't fail twice in a row
-
-    try:
-        event = get_event_by_id(event_id)
-    except:
-        event = get_event_by_id(event_id)
+    if event_repo is not None:
+        print("Using event information stored instead of accessing ComCat.")
+        event_repo = FileSystem(url=event_repo)
+        event = event_repo.load(Event())
+    else:
+        try:
+            event = get_event_by_id(event_id)
+        except:
+            event = get_event_by_id(event_id)
 
     # filter to aftershock radius
     rupture_length = WellsAndCoppersmith.mag_length_strike_slip(event.magnitude) * 1000
