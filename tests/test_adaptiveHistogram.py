@@ -18,7 +18,6 @@ class TestAdaptiveHistogram(TestCase):
         data = [0.25, 0.34, 0.24, 0.26]
         gridded.add(data)
         gridded.add(data)
-        print(gridded.data)
         self.assertTrue(np.allclose(gridded.data.tolist(), [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2, 0]))
         self.assertTrue(np.allclose(gridded.bins.tolist(), [0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.30, 0.31, 0.32, 0.33, 0.34, 0.35]))
 

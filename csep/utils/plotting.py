@@ -865,12 +865,12 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
     # supply fixed arguments to plots
     # might want to add other defaults here
     filename = plot_args.get('filename', None)
-    fixed_plot_args = {'xlabel': 'Normalized Pseudo Likelihood',
-                       'ylabel': 'Number of Catalogs',
-                       'obs_label': evaluation_result.obs_name,
+    fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
-
+    plot_args.get('xlabel', 'Normalized Pseudo Likelihood')
+    plot_args.get('ylabel', 'Number of catalogs')
+    title = plot_args.get('title', 'CSEP2 Spatial Test')
     bins = plot_args.get('bins', 'auto')
     percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
@@ -888,7 +888,7 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
                     xy=(0.2, 0.6),
                     fontsize=14)
 
-    title = plot_args.get('title', 'CSEP2 Spatial Test')
+
     ax.set_title(title, fontsize=14)
 
     if filename is not None:

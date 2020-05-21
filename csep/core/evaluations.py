@@ -6,7 +6,7 @@ from csep.utils import flat_map_to_ndarray
 class EvaluationResult:
 
     def __init__(self, test_distribution=None, name=None, observed_statistic=None, quantile=None, status="",
-                       obs_catalog_repr='', sim_name=None, obs_name=None, min_mw=None, fore_cnt=None):
+                       obs_catalog_repr='', sim_name=None, obs_name=None, min_mw=None):
         """
         Stores the result of an evaluation.
 
@@ -28,10 +28,13 @@ class EvaluationResult:
         self.obs_catalog_repr = obs_catalog_repr
         self.sim_name = sim_name
         self.obs_name = obs_name
-        # self.fore_cnt = fore_cnt
         self.min_mw = min_mw
 
     def to_dict(self):
+        try:
+            td_list = self.test_distribution.tolist()
+        except AttributeError:
+            td_list = list(self.test_distribution)
         adict = {
             'name': self.name,
             'sim_name': self.sim_name,
@@ -39,10 +42,9 @@ class EvaluationResult:
             'obs_catalog_repr': self.obs_catalog_repr,
             'quantile': self.quantile,
             'observed_statistic': self.observed_statistic,
-            'test_distribution': list(self.test_distribution),
+            'test_distribution': td_list,
             'status': self.status,
             'min_mw': self.min_mw
-            # 'fore_cnt': self.fore_cnt
         }
         return adict
 
@@ -67,7 +69,6 @@ class EvaluationResult:
             obs_catalog_repr=adict['obs_catalog_repr'],
             status=adict['status'],
             min_mw=adict['min_mw'])
-            # fore_cnt=adict['fore_cnt'])
         return new
 
 class EvaluationConfiguration:

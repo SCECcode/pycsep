@@ -1,5 +1,7 @@
 import time
 from csep.core.catalogs import UCERF3Catalog, ZMAPCatalog, ComcatCatalog
+from csep.core.evaluations import EvaluationResult
+from csep.core.repositories import FileSystem
 
 # change type to catalog_
 def load_stochastic_event_sets(type=None, format='native', **kwargs):
@@ -98,3 +100,13 @@ def load_comcat(start_time, end_time, min_magnitude=2.50,
         print(f"Found {comcat.get_number_of_events()} events in the Comcat catalog.")
         print(f'Proceesing Catalogs.')
     return comcat
+
+def load_evaluation_result(fname):
+    """ Load evaluation result stored as json file. Very quick and very dirty
+
+    Returns:
+
+    """
+    repo = FileSystem(url=fname)
+    result = repo.load(EvaluationResult())
+    return result
