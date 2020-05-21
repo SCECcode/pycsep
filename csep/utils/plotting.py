@@ -386,7 +386,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         pyplot.show()
     return ax
 
-def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
+def plot_ecdf(x, ecdf, axes=None, xv=None, show=False, plot_args = {}):
     """
     Plots empirical cumulative distribution function.
     """
@@ -400,7 +400,11 @@ def plot_ecdf(x, ecdf, xv=None, show=False, plot_args = {}):
     filename = plot_args.get('filename', None)
 
     # make figure
-    fig, ax = pyplot.subplots()
+    if axes == None:
+        fig, ax = pyplot.subplots()
+    else:
+        ax = axes
+        fig = axes.figure
     ax.plot(x, ecdf, label=sim_label)
     if xv:
         ax.axvline(x=xv, color='black', linestyle='--', label=obs_label)
@@ -465,8 +469,8 @@ def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
     ax.plot(bin_edges_plot, obs_hist, '.k', markersize=10, label=obs_label)
     ax.legend(loc='upper right')
     ax.set_xlim(xlim)
-    ax.set_xlabel('Mw')
-    ax.set_ylabel('Count')
+    ax.set_xlabel('Magnitude')
+    ax.set_ylabel('Event count per magnitude bin')
     ax.set_title(title)
     # ax.annotate(str(comcat), xycoords='axes fraction', xy=xycoords, fontsize=10, annotation_clip=False)
     # pyplot.subplots_adjust(right=0.75)
@@ -551,7 +555,7 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     """
 
     Args:
-        gridded: 1d numpy array with vals according to region
+        gridded: 2d numpy array with vals according to region,
         region: CartesianGrid2D class
         plot_args: arguments to various matplotlib functions.
 
@@ -617,8 +621,8 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
     # supply fixed arguments to plots
     # might want to add other defaults here
     filename = plot_args.get('filename', None)
-    xlabel = plot_args.get('xlabel', 'Event Count in Catalog')
-    ylabel = plot_args.get('ylabel', 'Number of Catalogs')
+    xlabel = plot_args.get('xlabel', 'Event count of catalog')
+    ylabel = plot_args.get('ylabel', 'Number of catalogs')
     xy = plot_args.get('xy', (0.5, 0.3))
 
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
@@ -1030,7 +1034,7 @@ def plot_consistency_test(results, plot_args=None):
     """ Plots results from CSEP1 Number test following the CSEP1 convention.
 
     Args:
-        results: list storing test results (see above).
+        results: list storing test results  csep.core.evaluations.EvaluationResult.
         plot_args: optional argument containing a dictionary of plotting arguments
     """
     # this fails if results is not iterable

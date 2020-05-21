@@ -24,8 +24,8 @@ from csep.utils.comcat import get_event_by_id
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.file import get_relative_path, mkdirs, copy_file
 from csep.utils.documents import MarkdownReport
-from csep.core.evaluations import EvaluationResult, EvaluationConfiguration, _compute_likelihood, \
-    _compute_spatial_statistic
+from csep.core.evaluations import EvaluationResult, EvaluationConfiguration
+from csep.utils.calc import _compute_likelihood, _compute_spatial_statistic
 from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_likelihood_test, plot_spatial_test, \
     plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_distribution_test, plot_spatial_dataset, \
     plot_probability_test
@@ -84,6 +84,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         n_cat = u3etas_config['numSimulations']
 
     # download comcat information, sometimes times out but usually doesn't fail twice in a row
+
     try:
         event = get_event_by_id(event_id)
     except:
@@ -106,7 +107,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         time_delta = 1000*24*60*60*int(end_epoch)
         end_epoch = origin_epoch + time_delta
 
-    # convert epoch time (millis) to days
+    # convert epoch time (millis) to years
     time_horizon = (end_epoch - origin_epoch) / SECONDS_PER_ASTRONOMICAL_YEAR / 1000
 
     # Download comcat catalog, if it fails its usually means it timed out, so just try again
@@ -158,7 +159,6 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     meta_repo = FileSystem(url=metadata_fname)
     try:
         eval_config = meta_repo.load(EvaluationConfiguration())
-
     except IOError:
         print('Unable to load metadata file due to filesystem error or file not existing. Replotting everything by default.')
         eval_config = EvaluationConfiguration()
@@ -193,7 +193,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                     break
                 loaded += 1
         except Exception as e:
-            print(f'Failed loading at catalog {i+1} with {str(e)}. This may happen if the simulation is incomplete\nProceeding to finalize plots')
+            print(f'Failed loading at catalog {i+1} with {str(e)}. This may happen normally if the simulation is incomplete\nProceeding to finalize plots')
             n_cat = loaded
 
         t2 = time.time()
@@ -280,7 +280,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     else:
         print('Skip processing flag enabled so skipping straight to report generation.')
 
-    # create the notebook for results
+    # create the notebook for results, but this should really be a part of the processing task as to support an arbitrary
+    # set of inputs. right now this is hard-coded to support these types of analysis
     if generate_markdown:
         md = MarkdownReport('README.md')
 
@@ -295,24 +296,33 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                 "These plots show qualitative comparisons between the forecast "
                 f"and the target data obtained from ComCat. Plots contain events within {numpy.round(millis_to_days(end_epoch-origin_epoch))} days "
                 f"of the forecast start time and within {numpy.round(3*rupture_length/1000)} kilometers from the epicenter of the mainshock.  \n  \n"
-                "All catalogs are processed using a time-dependent magnitude of completeness from Helmstetter et al., (2006).\n")
+                "All catalogs (synthetic and observed) are processed using the time-dependent magnitude of completeness model from Helmstetter et al., (2006).\n")
 
 
         md.add_result_figure('Cumulative Event Counts', 2, list(map(get_relative_path, eval_config.get_fnames('cum-plot'))), ncols=2,
-                             text="Percentiles for cumulative event counts are aggregated within one-day bins.  \n")
+                             text="Percentiles for cumulative event counts are aggregated within one-day bins. \n")
 
-        md.add_result_figure('Magnitude Histogram', 2, list(map(get_relative_path, eval_config.get_fnames('mag-hist'))))
+        md.add_result_figure('Magnitude Histogram', 2, list(map(get_relative_path, eval_config.get_fnames('mag-hist'))),
+                             text="Forecasted magnitude number distribution compared with the observed magnitude number "
+                                  "distribution from ComCat. The forecasted number distribution in each magnitude bin is "
+                                  "shown using a box and whisker plot. The box indicates the 95th percentile range and the "
+                                  "whiskers indicate the minimum and maximum values. The horizontal line indicates the median.\n")
 
-        md.add_result_figure('Approximate Rate Density with Observations', 2, list(map(get_relative_path, eval_config.get_fnames('arp-plot'))), ncols=2)
+        md.add_result_figure('Approximate Rate Density with Observations', 2, list(map(get_relative_path, eval_config.get_fnames('arp-plot'))), ncols=2,
+                             text="The approximate rate density is computed from the expected number of events within a spatial cell and normalized over "
+                                  "the time horizon of the forecast and the area of the spatial cell.\n")
 
         md.add_result_figure('Conditional Rate Density', 2, list(map(get_relative_path, eval_config.get_fnames('carp-plot'))), ncols=2,
-                             text="Plots are conditioned on number of target events ± 5%\n")
+                             text="Plots are conditioned on number of target events ± 5%, and can be used to create "
+                                  "statistical tests conditioned on the number of observed events. In general, these plots will tend to "
+                                  "be undersampled with respect to the entire distribution from the forecast.\n")
 
         md.add_result_figure('Spatial Probability Plot', 2,
                              list(map(get_relative_path, eval_config.get_fnames('prob-plot'))), ncols=2,
-                             text="Probability of one or more events occuring in the spatial cells. ")
+                             text="Probability of one or more events occuring in an individual spatial cell. This figure shows another way of "
+                                  "visualizing the spatial distribution of a forecast.")
 
-        md.add_sub_heading('CSEP Consistency Tests', 1, "<b>Note</b>: These tests are explained in detail by Savran et al. (In prep).\n")
+        md.add_sub_heading('CSEP Consistency Tests', 1, "<b>Note</b>: These tests are explained in detail by Savran et al., (In review).\n")
 
         md.add_result_figure('Number Test', 2, list(map(get_relative_path, eval_config.get_fnames('n-test'))),
                              text="The number test compares the earthquake counts within the forecast region aginst observations from the"
@@ -320,9 +330,9 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
         md.add_result_figure('Magnitude Test', 2, list(map(get_relative_path, eval_config.get_fnames('m-test'))),
                              text="The magnitude test computes the sum of squared residuals between normalized "
-                                  "incremental Magnitude-Number distributions."
+                                  "incremental magnitude number distributions."
                                   " The test distribution is built from statistics scored between individal catalogs and the"
-                                  " expected Magnitude-Number distribution of the forecast.\n")
+                                  " expected magnitude number distribution of the forecast.\n")
 
         md.add_result_figure('Likelihood Test', 2, list(map(get_relative_path, eval_config.get_fnames('l-test')['l-test'])),
                              text="The likelihood tests uses a statistic based on the continuous point-process "
@@ -331,10 +341,11 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
                                   "probability of observing an event selected at random from the forecast. "
                                   "Event log-likelihoods are aggregated for each event in the catalog. This "
                                   "approximation to the continuous rate-density is unconditional in the sense that it does "
-                                  "not consider the number of target events.\n")
+                                  "not consider the number of target events. Additionally, we do not include the magnitude component "
+                                  "of the forecast to minimize the amount of undersampling present in these simulations.\n")
 
         md.add_result_figure('Probability Test', 2, list(map(get_relative_path, eval_config.get_fnames('prob-test'))),
-                             text="This test uses the probability map to build the test distribution and the observed "
+                             text="This test uses a probability map to build the test distribution and the observed "
                                   "statistic. Unlike the pseudo-likelihood based tests, the test statistic is built "
                                   "by summing probabilities associated with cells where earthquakes occurred once. In effect,"
                                   "two simulations that have the exact same spatial distribution, but different numbers of events "
@@ -372,9 +383,11 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
 
 class AbstractProcessingTask:
-    def __init__(self, data=None, name=None):
+    def __init__(self, data=None, name=None, min_mw=2.5):
         self.data = data or []
+        # to-be deprecated
         self.mws = [2.5, 3.0, 3.5, 4.0, 4.5]
+        self.min_mw = min_mw
         self.name = name
         self.ax = []
         self.fnames = []
@@ -476,6 +489,10 @@ class AbstractProcessingTask:
                     success = True
         return success
 
+    def store_data(self, dir):
+        """ Store the intermediate data used to calculate the results for the evaluations. """
+        raise NotImplementedError
+
 
 class NumberTest(AbstractProcessingTask):
 
@@ -488,7 +505,7 @@ class NumberTest(AbstractProcessingTask):
             self.name = catalog.name
         counts = []
         for mw in self.mws:
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = catalog.filter(f'magnitude >= {mw}')
             counts.append(cat_filt.event_count)
         self.data.append(counts)
 
@@ -498,7 +515,7 @@ class NumberTest(AbstractProcessingTask):
         results = {}
         data = numpy.array(self.data)
         for i, mw in enumerate(self.mws):
-            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
             observation_count = obs_filt.event_count
             # get delta_1 and delta_2 values
             delta_1, delta_2 = get_quantiles(data[:,i], observation_count)
@@ -527,7 +544,7 @@ class NumberTest(AbstractProcessingTask):
                 bins = 3
             n_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'n_test')
             _ = plot_number_test(result, show=show, plot_args={'percentile': 95,
-                                                                'title': f'Number-Test\nMw > {mw}',
+                                                                'title': f'Number Test, M{mw}+',
                                                                 'bins': bins,
                                                                 'filename': n_test_fname})
             self.fnames.append(n_test_fname)
@@ -546,7 +563,7 @@ class MagnitudeTest(AbstractProcessingTask):
         # optimization: always compute this for the lowest magnitude, above this is redundant
         mags = []
         for mw in self.mws:
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = catalog.filter(f'magnitude >= {mw}')
             binned_mags = cat_filt.magnitude_counts()
             mags.append(binned_mags)
         # data shape (n_cat, n_mw, n_mw_bins)
@@ -559,7 +576,7 @@ class MagnitudeTest(AbstractProcessingTask):
         for i, mw in enumerate(self.mws):
             test_distribution = []
             # get observed magnitude counts
-            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
             if obs_filt.event_count == 0:
                 print(f"Skipping {mw} in Magnitude test because no observed events.")
                 continue
@@ -578,7 +595,7 @@ class MagnitudeTest(AbstractProcessingTask):
                 scale = n_obs_events / n_events
                 catalog_histogram = mag_counts_all[j,i,:] * scale
 
-                test_distribution.append(cumulative_square_diff(numpy.log10(catalog_histogram + 1), numpy.log10(scaled_union_histogram+1)))
+                test_distribution.append(cumulative_square_diff(numpy.log10(catalog_histogram+1), numpy.log10(scaled_union_histogram+1)))
             # compute statistic from the observation
             obs_d_statistic = cumulative_square_diff(numpy.log10(obs_histogram+1), numpy.log10(scaled_union_histogram+1))
             # score evaluation
@@ -601,7 +618,7 @@ class MagnitudeTest(AbstractProcessingTask):
         for mw, result in results.items():
             m_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'm-test')
             plot_args = {'percentile': 95,
-                         'title': f'Magnitude-Test\nMw>{mw}',
+                         'title': f'Magnitude Test, M{mw}+',
                          'bins': 'auto',
                          'filename': m_test_fname}
             _ = plot_magnitude_test(result, show=False, plot_args=plot_args)
@@ -620,6 +637,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         self.fnames = {}
         self.fnames['l-test'] = []
         self.fnames['s-test'] = []
+        self.version = 2
 
     def process(self, catalog):
         # grab stuff from data that we might need later
@@ -630,7 +648,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         # compute stuff from data
         counts = []
         for mw in self.mws:
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = catalog.filter(f'magnitude >= {mw}')
             gridded_counts = cat_filt.spatial_counts()
             counts.append(gridded_counts)
         # we want to aggregate the counts in each bin to preserve memory
@@ -645,13 +663,14 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         apprx_rate_density = self.data / self.region.dh / self.region.dh / time_horizon / n_cat
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
 
-        # unfortunately, we need to iterate twice through the catalogs for this.
+        # unfortunately, we need to iterate twice through the catalogs for this, unless we start pre-processing everything
+        # and storing approximate cell-wise rates
         lhs = numpy.zeros(len(self.mws))
         lhs_norm = numpy.zeros(len(self.mws))
         for i, mw in enumerate(self.mws):
-            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
             n_obs = obs_filt.event_count
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = catalog.filter(f'magnitude >= {mw}')
             gridded_cat = cat_filt.spatial_counts()
             lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density[i,:], expected_cond_count[i], n_obs)
             lhs[i] = lh
@@ -671,20 +690,34 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         # prepare results for each mw
         for i, mw in enumerate(self.mws):
             # get observed likelihood
-            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
             n_obs = obs_filt.get_number_of_events()
             gridded_obs = obs_filt.spatial_counts()
             obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density[i,:], expected_cond_count[i], n_obs)
+            # if obs_lh is -numpy.inf, recompute but only for indexes where obs and simulated are non-zero
+            # this should really be split into two different processing tasks
+            message = "normal"
+            if obs_lh == -numpy.inf or obs_lh_norm == -numpy.inf:
+                idx_good_sim = apprx_rate_density[i,:] != 0
+                idx_good_obs = gridded_obs != 0
+                idx_good = numpy.logical_or(idx_good_sim, idx_good_obs)
+                new_ard = apprx_rate_density[i, idx_good]
+                new_gridded_obs = gridded_obs[idx_good]
+                new_exp_count = numpy.sum(new_ard) * self.region.dh * self.region.dh * time_horizon
+                new_n_obs = numpy.sum(new_gridded_obs)
+                print(f"Found -inf as the observed likelihood score for M{self.mws[i]}+. "
+                      f"Assuming event(s) occurred in undersampled region of forecast.\n"
+                      f"Recomputing with {new_n_obs} events after removing {n_obs-new_n_obs} events.")
+                obs_lh, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, new_exp_count, new_n_obs)
+                message = "undersampled"
             # determine outcome of evaluation, check for infinity
             _, quantile_likelihood = get_quantiles(test_distribution_likelihood[:,i], obs_lh)
             _, quantile_spatial = get_quantiles(test_distribution_spatial[:,i], obs_lh_norm)
-            # Signals outcome of test
-            message = "normal"
             # Deal with case with cond. rate. density func has zeros. Keep value but flag as being
-            # either normal and wrong or udetermined (undersampled)
+            # either normal and wrong or undetermined/undersampled
             if numpy.isclose(quantile_likelihood, 0.0) or numpy.isclose(quantile_likelihood, 1.0):
                 # undetermined failure of the test
-                if numpy.isinf(obs_lh):
+                if numpy.isinf(obs_lh) or numpy.isnan(obs_lh):
                     # Build message
                     message = "undetermined"
             # build evaluation result
@@ -700,7 +733,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             # find out if there are issues with the test
             if numpy.isclose(quantile_spatial, 0.0) or numpy.isclose(quantile_spatial, 1.0):
                 # undetermined failure of the test
-                if numpy.isinf(obs_lh_norm):
+                if numpy.isinf(obs_lh_norm) or numpy.isnan(obs_lh_norm):
                     # Build message
                     message = "undetermined"
 
@@ -726,7 +759,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             # plot likelihood test
             l_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'l-test')
             plot_args = {'percentile': 95,
-                         'title': f'Pseudo-Likelihood Test\nMw > {mw}',
+                         'title': f'Pseudo-Likelihood Test, M{mw}+',
                          'bins': 'auto',
                          'filename': l_test_fname}
             _ = plot_likelihood_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
@@ -779,7 +812,7 @@ class CumulativeEventPlot(AbstractProcessingTask):
     def process(self, catalog):
         counts = []
         for mw in self.mws:
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = catalog.filter(f'magnitude >= {mw}')
             n_events = cat_filt.catalog.shape[0]
             ses_origin_time = cat_filt.get_epoch_times()
             inds = bin1d_vec(ses_origin_time, self.time_bins)
@@ -801,7 +834,7 @@ class CumulativeEventPlot(AbstractProcessingTask):
         # compute median for comcat catalog
         obs_counts = []
         for mw in self.mws:
-            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
             obs_binned_counts = numpy.zeros(self.n_bins)
             inds = bin1d_vec(obs_filt.get_epoch_times(), self.time_bins)
             for j in range(obs_filt.event_count):
@@ -837,8 +870,8 @@ class CumulativeEventPlot(AbstractProcessingTask):
         # get values from plotting args
         for i, mw in enumerate(self.mws):
             cum_counts_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'cum_counts')
-            plot_args = {'title': f'Cumulative Event Counts\nMw > {mw}',
-                         'xlabel': 'Days Since Start of Forecast',
+            plot_args = {'title': f'Cumulative event counts, M{mw}+',
+                         'xlabel': 'Days since start of forecast',
                          'filename': cum_counts_fname}
             ax = plot_cumulative_events_versus_time_dev(xdata, ydata[:,i,:], obs_data[i,:], plot_args, show=False)
             # self.ax.append(ax)
@@ -858,7 +891,7 @@ class MagnitudeHistogram(AbstractProcessingTask):
             self.name = catalog.name
         if self.calc:
             # always compute this for the lowest magnitude, above this is redundant
-            cat_filt = catalog.filter(f'magnitude > {self.mws[0]}')
+            cat_filt = catalog.filter(f'magnitude >= {self.mws[0]}')
             binned_mags = cat_filt.magnitude_counts()
             self.data.append(binned_mags)
 
@@ -871,12 +904,12 @@ class MagnitudeHistogram(AbstractProcessingTask):
         mag_hist_fname = AbstractProcessingTask._build_filename(plot_dir, self.mws[0], 'mag_hist')
         plot_args = {
              'xlim': [self.mws[0], numpy.max(CSEP_MW_BINS)],
-             'title': f"Magnitude Histogram\nMw > {self.mws[0]}",
+             'title': f"Magnitude Histogram, M{self.mws[0]}+",
              'sim_label': self.name,
              'obs_label': self.obs.name,
              'filename': mag_hist_fname
         }
-        obs_filt = self.obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        obs_filt = self.obs.filter(f'magnitude >= {self.mws[0]}', in_place=False)
         # data (n_sim, n_mag, n_mw_bins)
         ax = plot_magnitude_histogram_dev(numpy.array(self.data)[:,0,:], obs_filt, plot_args, show=False)
         # self.ax.append(ax)
@@ -923,9 +956,9 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
             # convert to rate density
             apprx_rate_density = apprx_rate_density / self.region.dh / self.region.dh / time_horizon
 
-            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
             n_obs = obs_filt.event_count
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = catalog.filter(f'magnitude >= {mw}')
             gridded_cat = cat_filt.spatial_counts()
             lh, lh_norm = _compute_likelihood(gridded_cat, apprx_rate_density, expected_cond_count[i], n_obs)
             lhs[i] = lh
@@ -952,7 +985,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
             # convert to rate density
             apprx_rate_density = apprx_rate_density / self.region.dh / self.region.dh / time_horizon
 
-            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
             n_obs = obs_filt.get_number_of_events()
             gridded_obs = obs_filt.spatial_counts()
             obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density, expected_cond_count[i],
@@ -1065,7 +1098,7 @@ class InterEventTimeDistribution(AbstractProcessingTask):
 
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
-        obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        obs_filt = obs.filter(f'magnitude >= {self.mws[0]}', in_place=False)
         obs_ietd = obs_filt.get_inter_event_times()
         obs_disc_ietd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(obs_ietd, self.data.bins)
@@ -1088,10 +1121,10 @@ class InterEventTimeDistribution(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         ietd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'ietd_test')
         _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
-                                                                   'title': f'Inter-event Time Distribution Test\nMw > {results.min_mw}',
+                                                                   'title': f'Inter-event Time Distribution Test, M{results.min_mw}+',
                                                                    'bins': 'auto',
                                                                    'xlabel': "D* Statistic",
-                                                                   'ylabel': r"P(X $\leq$ x)",
+                                                                   'ylabel': r"Number of catalogs",
                                                                    'filename': ietd_test_fname})
         self.fnames.append(ietd_test_fname)
 
@@ -1129,7 +1162,7 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
 
     def post_process(self, obs, args=None):
         # get inter-event times from data
-        obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        obs_filt = obs.filter(f'magnitude >= {self.mws[0]}', in_place=False)
         obs_iedd = obs_filt.get_inter_event_distances()
         obs_disc_iedd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(obs_iedd, self.data.bins)
@@ -1152,10 +1185,10 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         iedd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'iedd_test')
         _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
-                                                                   'title': f'Inter-event Distance Distribution Test\nMw > {results.min_mw}',
+                                                                   'title': f'Inter-event Distance Distribution Test, M{results.min_mw}+',
                                                                    'bins': 'auto',
-                                                                   'xlabel': "D* Statistic",
-                                                                   'ylabel': r"P(X $\leq$ x)",
+                                                                   'xlabel': "D* statistic",
+                                                                   'ylabel': r"Number of catalogs",
                                                                    'filename': iedd_test_fname})
         self.fnames.append(iedd_test_fname)
 
@@ -1193,7 +1226,7 @@ class TotalEventRateDistribution(AbstractProcessingTask):
 
     def post_process(self, obs, args=None):
         # get inter-event times from catalog
-        obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        obs_filt = obs.filter(f'magnitude >= {self.mws[0]}', in_place=False)
         obs_terd = obs_filt.spatial_counts()
         obs_disc_terd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(obs_terd, self.data.bins)
@@ -1216,10 +1249,10 @@ class TotalEventRateDistribution(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         terd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'terd_test')
         _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
-                                                                  'title': f'Total Event Rate Distribution-Test\nMw > {results.min_mw}',
+                                                                  'title': f'Total Event Rate Distribution-Test, M{results.min_mw}+',
                                                                   'bins': 'auto',
                                                                   'xlabel': "D* Statistic",
-                                                                  'ylabel': r"P(X $\leq$ x)",
+                                                                  'ylabel': r"Number of catalogs",
                                                                   'filename': terd_test_fname})
         self.fnames.append(terd_test_fname)
 
@@ -1232,13 +1265,13 @@ class BValueTest(AbstractProcessingTask):
     def process(self, catalog):
         if not self.name:
             self.name = catalog.name
-        cat_filt = catalog.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        cat_filt = catalog.filter(f'magnitude >= {self.mws[0]}', in_place=False)
         self.data.append(cat_filt.get_bvalue(reterr=False))
 
     def post_process(self, obs, args=None):
         _ = args
         data = numpy.array(self.data)
-        obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        obs_filt = obs.filter(f'magnitude >= {self.mws[0]}', in_place=False)
         obs_bval = obs_filt.get_bvalue(reterr=False)
         # get delta_1 and delta_2 values
         _, delta_2 = get_quantiles(data, obs_bval)
@@ -1257,9 +1290,9 @@ class BValueTest(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         bv_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'bv_test')
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
-                                                             'title': f"B-Value Distribution Test\nMw > {results.min_mw}",
+                                                             'title': f"B-Value Distribution Test, M{results.min_mw}+",
                                                              'bins': 'auto',
-                                                             'xlabel': 'b-Value',
+                                                             'xlabel': 'b-value',
                                                              'xy': (0.2, 0.65),
                                                              'filename': bv_test_fname})
         self.fnames.append(bv_test_fname)
@@ -1272,13 +1305,13 @@ class MedianMagnitudeTest(AbstractProcessingTask):
     def process(self, catalog):
         if not self.name:
             self.name = catalog.name
-        cat_filt = catalog.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        cat_filt = catalog.filter(f'magnitude >= {self.mws[0]}', in_place=False)
         self.data.append(numpy.median(cat_filt.get_magnitudes()))
 
     def post_process(self, obs, args=None):
         _ = args
         data = numpy.array(self.data)
-        obs_filt = obs.filter(f'magnitude > {self.mws[0]}', in_place=False)
+        obs_filt = obs.filter(f'magnitude >= {self.mws[0]}', in_place=False)
         observation_count = float(numpy.median(obs_filt.get_magnitudes()))
         # get delta_1 and delta_2 values
         _, delta_2 = get_quantiles(data, observation_count)
@@ -1318,7 +1351,7 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
             # compute stuff from data
             counts = []
             for mw in self.mws:
-                cat_filt = catalog.filter(f'magnitude > {mw}')
+                cat_filt = catalog.filter(f'magnitude >= {mw}')
                 counts.append(cat_filt.spatial_counts())
             # we want to aggregate the counts in each bin to preserve memory
             if len(self.data) == 0:
@@ -1337,7 +1370,7 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
 
         results = []
         for i, mw in enumerate(self.mws):
-            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
             if obs_filt.event_count == 0:
                 continue
             gridded_obs = obs_filt.spatial_counts()
@@ -1355,16 +1388,16 @@ class SpatialLikelihoodPlot(AbstractProcessingTask):
             try:
                 ax = plot_spatial_dataset(results[i,:,:],
                                           self.region,
-                                          plot_args={'clabel': r'Pseudo Likelihood Per Event',
+                                          plot_args={'clabel': r'Pseudo Spatial Likelihood Per Event',
                                                      'clim': [-0.1, 0],
-                                                     'title': f'Likelihood Plot with Observations\nMw > {mw}'})
+                                                     'title': f'Likelihood Plot with Observations, M{mw}+'})
                 like_plot = AbstractProcessingTask._build_filename(plot_dir, mw, 'like-plot')
                 ax.figure.savefig(like_plot + '.pdf')
                 ax.figure.savefig(like_plot + '.png')
                 # self.ax.append(ax)
                 self.fnames.append(like_plot)
             except IndexError:
-                print(f'Skipping plotting of Mw: {mw}, results not found for this magnitude')
+                print(f'Skipping plotting of Mw: {mw}, results not found for this magnitude.')
 
 
 class SpatialProbabilityTest(AbstractProcessingTask):
@@ -1386,7 +1419,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         # compute stuff from data
         counts = []
         for mw in self.mws:
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = catalog.filter(f'magnitude >= {mw}')
             gridded_counts = cat_filt.spatial_event_probability()
             counts.append(gridded_counts)
         # we want to aggregate the counts in each bin to preserve memory
@@ -1403,7 +1436,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         # unfortunately, we need to iterate twice through the catalogs for this.
         probs = numpy.zeros(len(self.mws))
         for i, mw in enumerate(self.mws):
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = catalog.filter(f'magnitude >= {mw}')
             gridded_cat = cat_filt.spatial_event_probability()
             prob = _compute_spatial_statistic(gridded_cat, prob_map[i, :])
             probs[i] = prob
@@ -1417,7 +1450,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
         # prepare results for each mw
         for i, mw in enumerate(self.mws):
             # get observed likelihood
-            obs_filt = obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
             if obs_filt.event_count == 0:
                 print(f'Skipping Probability test for Mw {mw} because no events in observed catalog.')
                 continue
@@ -1453,9 +1486,9 @@ class SpatialProbabilityTest(AbstractProcessingTask):
             # plot likelihood test
             prob_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob-test')
             plot_args = {'percentile': 95,
-                         'title': f'Probability Test\nMw > {mw}',
+                         'title': f'Probability Test, M{mw}+',
                          'bins': 'auto',
-                         'xlabel': 'log10(Probability)',
+                         'xlabel': 'log10(probability of observing 1 or more event per spatial cell)',
                          'filename': prob_test_fname}
             _ = plot_probability_test(result, axes=None, plot_args=plot_args, show=show)
             self.fnames.append(prob_test_fname)
@@ -1478,7 +1511,7 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
             # compute stuff from data
             counts = []
             for mw in self.mws:
-                cat_filt = catalog.filter(f'magnitude > {mw}')
+                cat_filt = catalog.filter(f'magnitude >= {mw}')
                 gridded_counts = cat_filt.spatial_event_probability()
                 counts.append(gridded_counts)
             # we want to aggregate the counts in each bin to preserve memory
@@ -1499,7 +1532,7 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
         prob = numpy.log10(numpy.array(self.data) / self.n_cat)
         for i, mw in enumerate(self.mws):
             # compute expected rate density
-            obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = self.obs.filter(f'magnitude >= {mw}', in_place=False)
             plot_data = self.region.get_cartesian(prob[i,:])
             ax = plot_spatial_dataset(plot_data,
                                       self.region,
@@ -1507,7 +1540,7 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
                                                            '\n'
                                                            f'within {self.region.dh}°x{self.region.dh}° cells',
                                                  'clim': [-5, 0],
-                                                 'title': f'Spatial Probability Plot\nMw > {mw}'})
+                                                 'title': f'Spatial Probability Plot, M{mw}+'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
             crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob_obs')
             ax.figure.savefig(crd_fname + '.png')
@@ -1522,17 +1555,17 @@ class ApproximateRatePlot(AbstractProcessingTask):
         self.region=None
         self.archive = False
 
-    def process(self, catalog):
+    def process(self, data):
         # grab stuff from data that we might need later
         if not self.region:
-            self.region = catalog.region
+            self.region = data.region
         if not self.name:
-            self.name = catalog.name
+            self.name = data.name
         if self.calc:
             # compute stuff from data
             counts = []
             for mw in self.mws:
-                cat_filt = catalog.filter(f'magnitude > {mw}')
+                cat_filt = data.filter(f'magnitude >= {mw}')
                 gridded_counts = cat_filt.spatial_counts()
                 counts.append(gridded_counts)
             # we want to aggregate the counts in each bin to preserve memory
@@ -1554,21 +1587,123 @@ class ApproximateRatePlot(AbstractProcessingTask):
 
         for i, mw in enumerate(self.mws):
             # compute expected rate density
-            obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = self.obs.filter(f'magnitude >= {mw}', in_place=False)
             plot_data = self.region.get_cartesian(crd[i,:])
             ax = plot_spatial_dataset(plot_data,
                                       self.region,
-                                      plot_args={'clabel': r'Log$_{10}$ Approximate Rate Density'
+                                      plot_args={'clabel': r'Log$_{10}$ Approximate rate density'
                                                            '\n'
-                                                           f'(Expected Events per year per {self.region.dh}°x{self.region.dh}°)',
+                                                           f'(Expected events per year per {self.region.dh}°x{self.region.dh}°)',
                                                  'clim': [0, 5],
-                                                 'title': f'Approximate Rate Density with Observations\nMw > {mw}'})
+                                                 'title': f'Approximate Rate Density with Observations, M{mw}+'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
             crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'crd_obs')
             ax.figure.savefig(crd_fname + '.png')
             ax.figure.savefig(crd_fname + '.pdf')
             # self.ax.append(ax)
             self.fnames.append(crd_fname)
+
+
+class ApproximateRateDensity(AbstractProcessingTask):
+    def __init__(self, calc=True, **kwargs):
+        super().__init__(**kwargs)
+        self.calc = calc
+        self.region = None
+        self.archive = False
+        self.magnitude_dh = None
+
+    def process(self, catalog):
+        # grab stuff from data that we might need later
+        if not self.region:
+            self.region = catalog.region
+        if not self.name:
+            self.name = catalog.name
+        if not self.magnitude_dh:
+            mag_dh = self.region.magnitudes[1] - self.region.magnitudes[0]
+            self.mag_dh = mag_dh
+        if self.calc:
+            # compute stuff from data
+            gridded_counts = catalog.spatial_magnitude_counts()
+            # we want to aggregate the counts in each bin to preserve memory
+            if len(self.data) == 0:
+                self.data = numpy.array(gridded_counts)
+            else:
+                self.data += numpy.array(gridded_counts)
+
+    def post_process(self, obs, args=()):
+        """ store things for later """
+        self.obs = obs
+        _, time_horizon, _, n_cat = args
+        self.time_horizon = time_horizon
+        self.n_cat = n_cat
+        self.crd = numpy.array(self.data) / self.region.dh / self.region.dh / self.time_horizon / self.mag_dh / self.n_cat
+        return None
+
+    def plot(self, results, plot_dir, plot_args=None, show=False):
+        # compute expected rate density
+        plot_data = numpy.log10(self.region.get_cartesian(self.crd))
+        ax = plot_spatial_dataset(plot_data,
+                                  self.region,
+                                  plot_args={'clabel': r'Log$_{10}$ Approximate Rate Density'
+                                                       '\n'
+                                                       f'(Expected Events per year per {self.region.dh}°x{self.region.dh}°) per {self.mag_dh} Mw',
+                                             'clim': [0, 5],
+                                             'title': f'Approximate Rate Density with Observations, M{self.min_mw}+'})
+        ax.scatter(self.obs.get_longitudes(), self.obs.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
+        crd_fname = AbstractProcessingTask._build_filename(plot_dir, self.min_mw, 'crd_obs')
+        ax.figure.savefig(crd_fname + '.png')
+        ax.figure.savefig(crd_fname + '.pdf')
+        # self.ax.append(ax)
+        self.fnames.append(crd_fname)
+
+
+class ApproximateSpatialRateDensity(AbstractProcessingTask):
+    def __init__(self, calc=True, **kwargs):
+        super().__init__(**kwargs)
+        self.calc = calc
+        self.region = None
+        self.archive = False
+
+    def process(self, catalog):
+        # grab stuff from data that we might need later
+        if not self.region:
+            self.region = catalog.region
+        if not self.name:
+            self.name = catalog.name
+        if self.calc:
+            # compute stuff from data
+            gridded_counts = catalog.spatial_counts()
+            # we want to aggregate the counts in each bin to preserve memory
+            if len(self.data) == 0:
+                self.data = numpy.array(gridded_counts)
+            else:
+                self.data += numpy.array(gridded_counts)
+
+    def post_process(self, obs, args=()):
+        """ store things for later """
+        self.obs = obs
+        _, time_horizon, _, n_cat = args
+        self.time_horizon = time_horizon
+        self.n_cat = n_cat
+        self.crd = numpy.array(self.data) / self.region.dh / self.region.dh / self.time_horizon / self.n_cat
+        return None
+
+    def plot(self, results, plot_dir, plot_args=None, show=False):
+        # compute expected rate density
+        plot_data = numpy.log10(self.region.get_cartesian(self.crd))
+        ax = plot_spatial_dataset(plot_data,
+                                  self.region,
+                                  plot_args={'clabel': r'Log$_{10}$ Approximate Rate Density'
+                                                       '\n'
+                                                       f'(Expected Events per year per {self.region.dh}°x{self.region.dh}°)',
+                                             'clim': [0, 5],
+                                             'title': f'Approximate Rate Density with Observations, M{self.min_mw}+'})
+        ax.scatter(self.obs.get_longitudes(), self.obs.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
+        crd_fname = AbstractProcessingTask._build_filename(plot_dir, self.min_mw, 'crd_obs')
+        ax.figure.savefig(crd_fname + '.png')
+        ax.figure.savefig(crd_fname + '.pdf')
+        # self.ax.append(ax)
+        self.fnames.append(crd_fname)
 
 
 class ConditionalApproximateRatePlot(AbstractProcessingTask):
@@ -1586,8 +1721,8 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
             self.region = data.region
         """ collects all catalogs conforming to n_obs in a dict"""
         for mw in self.mws:
-            cat_filt = data.filter(f'magnitude > {mw}')
-            obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)
+            cat_filt = data.filter(f'magnitude >= {mw}')
+            obs_filt = self.obs.filter(f'magnitude >= {mw}', in_place=False)
             n_obs = obs_filt.event_count
             tolerance = 0.05 * n_obs
             if cat_filt.event_count <= n_obs + tolerance \
@@ -1604,7 +1739,7 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
         # compute conditional approximate rate density
         for i, mw in enumerate(self.mws):
             # compute expected rate density
-            obs_filt = self.obs.filter(f'magnitude > {mw}', in_place=False)
+            obs_filt = self.obs.filter(f'magnitude >= {mw}', in_place=False)
             if obs_filt.event_count == 0:
                 continue
 
@@ -1622,7 +1757,7 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
                                                            '\n'
                                       f'(Expected Events per year per {self.region.dh}°x{self.region.dh}°)',
                                                  'clim': [0, 5],
-                                                 'title': f'Conditional Approximate Rate Density with Observations\nMw > {mw}'})
+                                                 'title': f'Conditional Approximate Rate Density with Observations, M{mw}+'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40,
                        edgecolors='black')
             crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'cond_rates')
@@ -1642,7 +1777,7 @@ class ConditionalMagnitudeVersusTime(AbstractProcessingTask):
         self.saved_catalog = None
 
         for mw in self.mws:
-            obs_filt = obs.filter(f'magnitude > {mw}')
+            obs_filt = obs.filter(f'magnitude >= {mw}')
             self.n_obs.append(obs_filt.event_count)
 
     def process(self, catalog):
@@ -1663,7 +1798,7 @@ class CatalogMeanStabilityAnalysis(AbstractProcessingTask):
             self.name = catalog.name
         counts = []
         for mw in self.mws:
-            cat_filt = catalog.filter(f'magnitude > {mw}')
+            cat_filt = catalog.filter(f'magnitude >= {mw}')
             counts.append(cat_filt.event_count)
         self.data.append(counts)
 

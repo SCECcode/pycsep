@@ -104,15 +104,14 @@ class TestPoissonLikelihood(unittest.TestCase):
         self.seed = 0
         numpy.random.seed(self.seed)
         # used for posterity
-        self.random_matrix = numpy.random.rand(2, 2)
+        self.random_matrix = numpy.random.rand(1, 4)
         self.forecast_data = numpy.array([[1, 1], [1, 1]])
         self.observed_data = numpy.array([[1, 1], [1, 1]])
 
     def test_simulate_catalog(self):
         # expecting the sampling weights to be [0.25, 0.5, 0.75, 1.0]
         # assuming the random numbers are equal to thhe following:
-        random_numbers = numpy.array([[0.5488135, 0.71518937],
-                                      [0.60276338, 0.54488318]])
+        random_numbers = numpy.array([[0.5488135, 0.71518937, 0.60276338, 0.54488318]])
 
         num_events = 4
 

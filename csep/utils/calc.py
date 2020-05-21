@@ -2,6 +2,8 @@ import numpy
 import numpy as np
 import scipy.interpolate
 from csep.core.exceptions import CSEPException
+from csep.utils.stats import binned_ecdf, sup_dist, get_quantiles
+from csep.utils import flat_map_to_ndarray
 
 
 def nearest_index(array, value):
@@ -73,11 +75,96 @@ def bin1d_vec(p, bins, right_continuous=False):
     idx = numpy.floor((p + eps - a0) / h)
     if right_continuous:
         # set upper bin index to last
-        idx[(idx >= len(bins) - 1)] = len(bins) - 1
-        idx[(idx < 0)] = -1
+        try:
+            idx[(idx >= len(bins) - 1)] = len(bins) - 1
+            idx[(idx < 0)] = -1
+        except (TypeError):
+            if idx >= len(bins) - 1:
+                idx = len(bins) - 1
     else:
         # if outside set to nan
-        idx[((idx < 0) | (idx >= len(bins) - 1))] = -1
+        try:
+            idx[((idx < 0) | (idx >= len(bins) - 1))] = -1
+        except (TypeError):
+            if idx < 0 or idx >= len(bins) - 1:
+                idx = -1
     idx = idx.astype(numpy.int)
 
     return idx
+
+
+def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
+    # compute pseudo likelihood
+    idx = gridded_data != 0
+
+    # this value is: -inf obs at idx and no apprx_rate_density
+    #                -expected_cond_count if no target earthquakes
+    likelihood = numpy.sum(gridded_data[idx] * numpy.log10(apprx_rate_density[idx])) - expected_cond_count
+
+    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio.
+    normalizing_factor = n_obs / expected_cond_count
+    n_cat = numpy.sum(gridded_data)
+    norm_apprx_rate_density = apprx_rate_density * normalizing_factor
+
+    # value could be: -inf if no value in apprx_rate_dens
+    #                  nan if n_cat is 0 and above condition holds
+    #                  inf if n_cat is 0
+    likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log10(norm_apprx_rate_density[idx])) / n_cat
+
+    return (likelihood, likelihood_norm)
+
+def _compute_approximate_likelihood(gridded_data, apprx_forecasted_rate):
+    """ Computes the approximate likelihood from Rhoades et al., 2011; Equation 4
+
+    Args:
+        gridded_data (ndarray): observed counts on spatial grid
+        mean_rate_density (ndarray): mean rates from forecast
+
+    Notes:
+        Mean rates from the forecast are assumed to not have any zeros.
+    """
+    n_obs = np.sum(gridded_data)
+    return numpy.sum(gridded_data*np.log10(apprx_forecasted_rate)) - n_obs
+
+def _compute_spatial_statistic(gridded_data, log10_probability_map):
+    """
+    aggregates the log1
+    Args:
+        gridded_data:
+        log10_probability_map:
+    """
+    # returns a unique set of indexes corresponding to cells where earthquakes occurred
+    idx = numpy.unique(numpy.argwhere(gridded_data))
+    return numpy.sum(log10_probability_map[idx])
+
+
+def _distribution_test(stochastic_event_set_data, observation_data):
+
+    # for cached files want to write this with memmap
+    union_catalog = flat_map_to_ndarray(stochastic_event_set_data)
+    min_time = 0.0
+    max_time = numpy.max([numpy.max(numpy.ceil(union_catalog)), numpy.max(numpy.ceil(observation_data))])
+
+    # build test_distribution with 100 data points
+    num_points = 100
+    tms = numpy.linspace(min_time, max_time, num_points, endpoint=True)
+
+    # get combined ecdf and obs ecdf
+    combined_ecdf = binned_ecdf(union_catalog, tms)
+    obs_ecdf = binned_ecdf(observation_data, tms)
+
+    # build test distribution
+    n_cat = len(stochastic_event_set_data)
+    test_distribution = []
+    for i in range(n_cat):
+        test_ecdf = binned_ecdf(stochastic_event_set_data[i], tms)
+        # indicates there were zero events in catalog
+        if test_ecdf is not None:
+            d = sup_dist(test_ecdf[1], combined_ecdf[1])
+            test_distribution.append(d)
+    d_obs = sup_dist(obs_ecdf[1], combined_ecdf[1])
+
+    # score evaluation
+    _, quantile = get_quantiles(test_distribution, d_obs)
+
+    return test_distribution, d_obs, quantile

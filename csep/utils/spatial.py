@@ -119,9 +119,9 @@ class CartesianGrid2D:
 
     def to_dict(self):
         adict = {
-            'name': self.name,
-            'dh': self.dh,
-            'polygons': [{'lat': origin[1], 'lon': origin[0]} for origin in self.polygons.origin]
+            'name': str(self.name),
+            'dh': float(self.dh),
+            'polygons': [{'lat': float(origin[1]), 'lon': float(origin[0])} for origin in self.polygons.origin]
         }
         return adict
 
@@ -150,10 +150,10 @@ class CartesianGrid2D:
         except (TypeError):
             raise TypeError("origins must be of type numpy.array or be numpy array like.")
 
-        # dh must be regular, no explicit checking. should consider
+        # dh must be regular, no explicit checking.
         dh2 = numpy.abs(lons[1]-lons[0])
         dh1 = numpy.abs(lats[1]-lats[0])
-        dh = numpy.max([dh1,dh2])
+        dh = numpy.max([dh1, dh2])
 
         region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(origins, dh)], dh, name=name)
         if magnitudes is not None:
@@ -225,7 +225,6 @@ def california_relm_region(filepath=None, dh_scale=1):
     relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name="california")
     return relm_region
 
-
 def global_region(dh=0.1, name="global", magnitudes=None):
     """ Creates a global region used for evaluating gridded forecasts on the global scale.
 
@@ -245,7 +244,6 @@ def global_region(dh=0.1, name="global", magnitudes=None):
     if magnitudes is not None:
         region.magnitudes = magnitudes
     return region
-
 
 def parse_csep_template(xml_filename):
     """

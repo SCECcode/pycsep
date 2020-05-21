@@ -607,6 +607,7 @@ class AbstractBaseCatalog(LoggingMixin):
             except AttributeError:
                 # use default magnitude bins from csep
                 mag_bins = CSEP_MW_BINS
+                self.region.magnitudes = mag_bins
 
         # compute if not
         output = csep.utils.spatial._bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
@@ -705,7 +706,7 @@ class UCERF3Catalog(AbstractBaseCatalog):
         super().__init__(**kwargs)
 
     @classmethod
-    def load_catalogs(cls, filename=None, filters=(), **kwargs):
+    def load_catalogs(cls, filename=None, filters=(), filter_spatial=False, **kwargs):
         """
         Loads catalogs based on the merged binary file format of UCERF3. File format is described at
         https://scec.usc.edu/scecpedia/CSEP2_Storing_Stochastic_Event_Sets#Introduction.
@@ -729,8 +730,14 @@ class UCERF3Catalog(AbstractBaseCatalog):
                 catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
                 # add column that stores catalog_id in case we want to store in database
                 u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
-                # generator function, maybe apply filters here
+                # apply filters here
+                if filters:
+                    u3_catalog = u3_catalog.filter(filters)
+                if filter_spatial:
+                    # this could throw and error, do we catch it or make the calcs fail?
+                    u3_catalog = u3_catalog.filter_spatial(u3_catalog.region)
                 yield u3_catalog
+
 
     def get_datetimes(self):
         """
@@ -1027,6 +1034,9 @@ class ComcatCatalog(AbstractBaseCatalog):
 
     def get_epoch_times(self):
         return self.catalog['origin_time']
+
+    def get_depths(self):
+        return self.catalog['depth']
 
     def _get_catalog_as_ndarray(self):
         """

@@ -1,6 +1,7 @@
 import time
 from csep.core.catalogs import UCERF3Catalog, ZMAPCatalog, ComcatCatalog
 
+# change type to catalog_
 def load_stochastic_event_sets(type=None, format='native', **kwargs):
     """
     Factory function to load stochastic event sets.
@@ -15,7 +16,7 @@ def load_stochastic_event_sets(type=None, format='native', **kwargs):
         (generator): :class:`~csep.core.catalogs.AbstractBaseCatalog`
 
     """
-    if type not in ('ucerf3'):
+    if type not in ('ucerf3',):
         raise ValueError("type must be one of the following: (ucerf3)")
 
     # use mapping to dispatch to correct function
@@ -26,18 +27,18 @@ def load_stochastic_event_sets(type=None, format='native', **kwargs):
     # dispatch to proper loading function
     result = mapping[type](**kwargs)
 
-    # convert to csep format
+    # factory function to load catalogs from different classes
     while True:
         try:
             catalog = next(result)
         except StopIteration:
-            raise
+            return
         except Exception:
             raise
         if format == 'native':
-            yield(catalog)
+            yield catalog
         elif format == 'csep':
-            yield(catalog.get_csep_format())
+            yield catalog.get_csep_format()
         else:
             raise ValueError('format must be either "native" or "csep!')
 

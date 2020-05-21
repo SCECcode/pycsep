@@ -66,7 +66,6 @@ def binned_ecdf(x, vals):
     cdf = numpy.array(list(map(lambda val: less_equal_ecdf(x, val, cdf=(ex, ey)), vals)))
     return vals, cdf
 
-
 def ecdf(x):
     """
     Compute the ecdf of vector x. This does not contain zero, should be equal to 1 in the last value
@@ -81,7 +80,6 @@ def ecdf(x):
     xs = numpy.sort(x)
     ys = numpy.arange(1, len(x) + 1) / float(len(x))
     return xs, ys
-
 
 def greater_equal_ecdf(x, val, cdf=()):
     """
@@ -112,7 +110,6 @@ def greater_equal_ecdf(x, val, cdf=()):
         return 1.0
     return eyc[numpy.searchsorted(ex, val)]
 
-
 def less_equal_ecdf(x, val, cdf=()):
     """
     Given val return P(x ≤ val).
@@ -139,7 +136,6 @@ def less_equal_ecdf(x, val, cdf=()):
     # uses numpy implementation of binary search
     return ey[numpy.searchsorted(ex, val, side='right') - 1]
 
-
 def min_or_none(x):
     """
     Given an array x, returns the min value. If x = [], returns None.
@@ -148,7 +144,6 @@ def min_or_none(x):
         return None
     else:
         return numpy.min(x)
-
 
 def max_or_none(x):
     """
@@ -159,7 +154,6 @@ def max_or_none(x):
     else:
         return numpy.max(x)
 
-
 def get_quantiles(sim_counts, obs_count):
     """
     Direct call using ndarray. Useful for optimizing calls to multiprocessing pools.
@@ -169,7 +163,6 @@ def get_quantiles(sim_counts, obs_count):
     # delta 2 prob of observing at most n_obs events given the catalog
     delta_2 = less_equal_ecdf(sim_counts, obs_count)
     return delta_1, delta_2
-
 
 def poisson_log_likelihood(observation, forecast):
     """Wrapper around scipy to compute the Poisson log-likelihood
@@ -182,7 +175,6 @@ def poisson_log_likelihood(observation, forecast):
         Log-Liklihood values of between binned-observations and binned-forecasts
     """
     return numpy.log(scipy.stats.poisson.pmf(observation, forecast))
-
 
 def poisson_joint_log_likelihood_ndarray(target_event_log_rates, target_observations, n_fore):
     """ This takes advantage that only bins where target events occur contribute to the overall joint-likelihood. In cells,

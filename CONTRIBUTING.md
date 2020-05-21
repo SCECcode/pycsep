@@ -10,6 +10,7 @@ answer some questions.
 * Download and install git
 * Read the git documentation
 * Install a development version of PyCSEP
+* If you haven't worked with Git Forks before, make sure to read the documentation linked below.
 
 ## Submitting a Pull Request
 
@@ -43,7 +44,7 @@ If you want to submit a bug report, please provide the information below:
 * If this broke in a recent update, please tell us when it used to work.
 
 ## Additional Resources
-
+* [Working with Git Forks](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/working-with-forks)
 * [Style Guide](http://google.github.io/styleguide/pyguide.html)
 * [Docs or it doesn’t exist](https://lukeplant.me.uk/blog/posts/docs-or-it-doesnt-exist/)
 * Performance Tips:

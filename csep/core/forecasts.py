@@ -1,7 +1,6 @@
 import itertools
 
 import numpy
-import copy
 import datetime
 from csep.utils.log import LoggingMixin
 from csep.utils.spatial import CartesianGrid2D
@@ -196,7 +195,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         self.start_time = start_time
         self.end_time = end_time
 
-    def scale_to_test_date(self, test_datetime, in_place=True):
+    def scale_to_test_date(self, test_datetime):
         """ Scales forecast data by the fraction of the date.
 
         Uses the concept of decimal years to keep track of leap years. See the csep.utils.time_utils.decimal_year for
@@ -304,7 +303,6 @@ class GriddedForecast(MarkedGriddedDataSet):
         else:
             return rates
 
-
     @classmethod
     def from_custom(cls, func, func_args=(), **kwargs):
         """Creates MarkedGriddedDataSet class from custom parsing function.
@@ -351,3 +349,36 @@ class GriddedForecast(MarkedGriddedDataSet):
         # create / return class
         gds = cls(start_date, end_date, magnitudes=mws, name=ascii_fname[:-4], region=region, data=rates)
         return gds
+
+# class CatalogForecast:
+#
+#     def __init__(self, catalogs=(), region=None, magnitudes=CSEP_MW_BINS):
+#         self.catalogs = catalogs or []
+#         self.region = region
+#         self.magnitudes = magnitudes
+#         self.apprx_rate_density = None
+#         self.apprx_rate_density = None
+#         self.origin_epoch = None
+#         self.end_epoch = None
+#
+#     @property
+#     def mean_rate_forecast(self):
+#         return
+#
+#     @property
+#     def num_mag_bins(self):
+#         return
+#
+#     @property
+#     def num_nodes(self):
+#         return
+#
+#     def spatial_counts(self):
+#         pass
+#
+#     def magnitude_counts(self):
+#         pass
+#
+#     def spatial_magnitude_counts(self):
+#         pass
+
