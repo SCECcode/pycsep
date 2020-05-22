@@ -71,7 +71,7 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
     ax.fill_between(xdata, first_quar, second_quar, color='red', alpha=0.5, label='25%-75%')
     ax.legend(loc=legend_loc)
     ax.set_xlabel(xlabel)
-    ax.set_ylabel('Cumulative Event Count')
+    ax.set_ylabel('Cumulative event count')
     ax.set_title(title)
     # pyplot.subplots_adjust(right=0.75)
     # annotate the plot with information from data

@@ -185,7 +185,6 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         else:
             name = f'U3ETAS, M{event.magnitude} + {days_since_mainshock} days'
 
-
     # read the catalogs
     print('Begin processing catalogs', flush=True)
     t0 = time.time()
@@ -714,7 +713,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             if obs_lh == -numpy.inf or obs_lh_norm == -numpy.inf:
                 idx_good_sim = apprx_rate_density[i,:] != 0
                 idx_good_obs = gridded_obs != 0
-                idx_good = numpy.logical_or(idx_good_sim, idx_good_obs)
+                idx_good = numpy.logical_and(idx_good_sim, idx_good_obs)
                 new_ard = apprx_rate_density[i, idx_good]
                 new_gridded_obs = gridded_obs[idx_good]
                 new_exp_count = numpy.sum(new_ard) * self.region.dh * self.region.dh * time_horizon
@@ -882,12 +881,17 @@ class CumulativeEventPlot(AbstractProcessingTask):
         # get values from plotting args
         for i, mw in enumerate(self.mws):
             cum_counts_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'cum_counts')
-            plot_args = {'title': f'Cumulative event counts, M{mw}+',
+            plot_args = {'title': f'Cumulative Event Counts, M{mw}+',
                          'xlabel': 'Days since start of forecast',
                          'filename': cum_counts_fname}
             ax = plot_cumulative_events_versus_time_dev(xdata, ydata[:,i,:], obs_data[i,:], plot_args, show=False)
             # self.ax.append(ax)
             self.fnames.append(cum_counts_fname)
+
+    def store_results(self, results, dir):
+        # store quickly for numpy, because we dont have a results class to deal with this
+        fname = self._build_filename(dir, self.mws[0], 'cum_counts') + '.npy'
+        numpy.save(fname, results)
 
 
 class MagnitudeHistogram(AbstractProcessingTask):
