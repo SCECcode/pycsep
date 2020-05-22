@@ -579,9 +579,9 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     ax.set_extent(extent)
     try:
         ax.coastlines(color='black', resolution='110m', linewidth=1)
+        ax.add_feature(cartopy.feature.STATES)
     except:
-        print("Unable to plot coastlines. This might be due to no internet access, try pre-downloading the files.")
-    ax.add_feature(cartopy.feature.STATES)
+        print("Unable to plot coastlines or state boundaries. This might be due to no internet access;q!:::Q, try pre-downloading the files.")
     im.set_clim(clim)
     # colorbar options
     cbar = fig.colorbar(im, ax=ax)
