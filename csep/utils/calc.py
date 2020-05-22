@@ -104,11 +104,14 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
     # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio.
     normalizing_factor = n_obs / expected_cond_count
     n_cat = numpy.sum(gridded_data)
+
+    # cannot compute the mean if there are no target events
+    if n_cat == 0:
+        return (likelihood, numpy.nan)
     norm_apprx_rate_density = apprx_rate_density * normalizing_factor
 
     # value could be: -inf if no value in apprx_rate_dens
-    #                  nan if n_cat is 0 and above condition holds
-    #                  inf if n_cat is 0
+    #                  nan if n_cat is 0
     likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log10(norm_apprx_rate_density[idx])) / n_cat
 
     return (likelihood, likelihood_norm)

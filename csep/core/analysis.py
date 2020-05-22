@@ -699,6 +699,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
 
         test_distribution_likelihood = numpy.array(self.test_distribution_likelihood)
+        # there can be nans in the spatial distribution
         test_distribution_spatial = numpy.array(self.test_distribution_spatial)
         # prepare results for each mw
         for i, mw in enumerate(self.mws):
@@ -725,7 +726,11 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                 message = "undersampled"
             # determine outcome of evaluation, check for infinity
             _, quantile_likelihood = get_quantiles(test_distribution_likelihood[:,i], obs_lh)
-            _, quantile_spatial = get_quantiles(test_distribution_spatial[:,i], obs_lh_norm)
+            # check for nans here
+            test_distribution_spatial_1d = test_distribution_spatial[:,i]
+            if numpy.isnan(numpy.sum(test_distribution_spatial_1d)):
+                test_distribution_spatial_1d = test_distribution_spatial_1d[~numpy.isnan(test_distribution_spatial_1d)]
+            _, quantile_spatial = get_quantiles(test_distribution_spatial_1d, obs_lh_norm)
             # Deal with case with cond. rate. density func has zeros. Keep value but flag as being
             # either normal and wrong or undetermined/undersampled
             if numpy.isclose(quantile_likelihood, 0.0) or numpy.isclose(quantile_likelihood, 1.0):
