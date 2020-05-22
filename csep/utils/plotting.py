@@ -256,7 +256,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=F
     return ax
 
 def plot_histogram(simulated, observation, bins='fd', percentile=None,
-                   show=False, axes=None, catalog=None, plot_args={}):
+                   show=False, axes=None, catalog=None, plot_args=None):
     """
     Plots histogram of single statistic for stochastic event sets and observations. The function will behave differently
     depending on the inumpyuts.
@@ -284,7 +284,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         axis: matplolib axes handle
     """
     # Plotting
-
+    plot_args = plot_args or {}
     chained = False
     figsize = plot_args.get('figsize', None)
     if axes is not None:
@@ -866,12 +866,11 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
     # might want to add other defaults here
     filename = plot_args.get('filename', None)
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
-                       'sim_label': evaluation_result.sim_name}
+                       'sim_label': evaluation_result.sim_name,
+                       'xlabel': 'Normalized pseudo likelihood',
+                       'ylabel': 'Number of catalogs'}
     plot_args.update(fixed_plot_args)
-    plot_args.get('xlabel', 'Normalized Pseudo Likelihood')
-    plot_args.get('ylabel', 'Number of catalogs')
     title = plot_args.get('title', 'CSEP2 Spatial Test')
-    bins = plot_args.get('bins', 'auto')
     percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,

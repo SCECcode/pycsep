@@ -766,7 +766,6 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             l_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'l-test')
             plot_args = {'percentile': 95,
                          'title': f'Pseudo-Likelihood Test, M{mw}+',
-                         'bins': 'auto',
                          'filename': l_test_fname}
             _ = plot_likelihood_test(result_tuple[0], axes=None, plot_args=plot_args, show=show)
 
@@ -781,8 +780,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             # plot spatial test
             s_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 's-test')
             plot_args = {'percentile': 95,
-                         'title': f'Spatial Test\nMw > {mw}',
-                         'bins': 'auto',
+                         'title': f'Spatial Test, M{mw}+',
                          'filename': s_test_fname}
             _ = plot_spatial_test(result_tuple[1], axes=None, plot_args=plot_args, show=False)
             self.fnames['s-test'].append(s_test_fname)
