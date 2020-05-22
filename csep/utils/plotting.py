@@ -577,7 +577,10 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     lons, lats = numpy.meshgrid(region.xs, region.ys)
     im = ax.pcolormesh(lons, lats, gridded, cmap=cmap)
     ax.set_extent(extent)
-    ax.coastlines(color='black', resolution='110m', linewidth=1)
+    try:
+        ax.coastlines(color='black', resolution='110m', linewidth=1)
+    except:
+        print("Unable to plot coastlines. This might be due to no internet access, try pre-downloading the files.")
     ax.add_feature(cartopy.feature.STATES)
     im.set_clim(clim)
     # colorbar options
