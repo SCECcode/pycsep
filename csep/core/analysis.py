@@ -36,7 +36,7 @@ from csep.core.repositories import FileSystem
 from csep.models import Event
 
 def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_dir=None, generate_markdown=True, catalog_repo=None, save_results=False,
-                               force_plot_all=False, skip_processing=False, event_repo=None, name='Forecast'):
+                               force_plot_all=False, skip_processing=False, event_repo=None, name=''):
     """
     computes all csep consistency tests for simulation located in sim_dir with event_id
 
@@ -178,6 +178,14 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         print(f'Computing {v.__class__.__name__}')
     print('\n')
 
+    if not name:
+        days_since_mainshock = numpy.round((origin_epoch - event_epoch) / SECONDS_PER_DAY / 1000)
+        if u3etas_config['griddedOnly']:
+            name = f'NoFaults, M{event.magnitude} + {days_since_mainshock} days'
+        else:
+            name = f'U3ETAS, M{event.magnitude} + {days_since_mainshock} days'
+
+
     # read the catalogs
     print('Begin processing catalogs', flush=True)
     t0 = time.time()
@@ -187,8 +195,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         try:
             for i, cat in enumerate(u3):
                 cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
-                for name, calc in data_products.items():
-                    version = eval_config.get_evaluation_version(name)
+                for task_name, calc in data_products.items():
+                    version = eval_config.get_evaluation_version(task_name)
                     if calc.version != version or force_plot_all:
                         calc.process(copy.copy(cat_filt))
                 tens_exp = numpy.floor(numpy.log10(i + 1))
@@ -219,11 +227,11 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
 
         # old iterator is expired, need new one
         t2 = time.time()
-        u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name='UCERF3-ETAS', region=aftershock_region)
+        u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name=name, region=aftershock_region)
         for i, cat in enumerate(u3):
             cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
-            for name, calc in data_products.items():
-                version = eval_config.get_evaluation_version(name)
+            for task_name, calc in data_products.items():
+                version = eval_config.get_evaluation_version(task_name)
                 if calc.version != version or force_plot_all:
                     calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
             # if we failed earlier, just stop there again
@@ -246,9 +254,9 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         if save_results:
             mkdirs(results_dir)
 
-        for name, calc in data_products.items():
-            print(f'Finalizing calculations for {name} and plotting')
-            version = eval_config.get_evaluation_version(name)
+        for task_name, calc in data_products.items():
+            print(f'Finalizing calculations for {task_name} and plotting')
+            version = eval_config.get_evaluation_version(task_name)
             if calc.version != version or force_plot_all:
                 result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
                 # plot, and store in plot_dir
@@ -267,13 +275,13 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         eval_config.compute_time = utc_now_epoch()
         eval_config.catalog_file = catalog_fname
         eval_config.forecast_file = filename
-        eval_config.forecast_name = 'UCERF3-ETAS'
+        eval_config.forecast_name = name
         eval_config.n_cat = n_cat
         eval_config.eval_start_epoch = origin_epoch
         eval_config.eval_end_epoch = end_epoch
         eval_config.git_hash = current_git_hash()
-        for name, calc in data_products.items():
-            eval_config.update_version(name, calc.version, calc.fnames)
+        for task_name, calc in data_products.items():
+            eval_config.update_version(task_name, calc.version, calc.fnames)
         # save new meta data
         meta_repo.save(eval_config.to_dict())
 
@@ -1492,7 +1500,8 @@ class SpatialProbabilityTest(AbstractProcessingTask):
             plot_args = {'percentile': 95,
                          'title': f'Probability Test, M{mw}+',
                          'bins': 'auto',
-                         'xlabel': 'log10(probability of observing 1 or more event per spatial cell)',
+                         'xlabel': 'Spatial probability statistic',
+                         'ylabel': 'Number of catalogs',
                          'filename': prob_test_fname}
             _ = plot_probability_test(result, axes=None, plot_args=plot_args, show=show)
             self.fnames.append(prob_test_fname)

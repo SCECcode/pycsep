@@ -29,7 +29,7 @@ if __name__ == "__main__":
     optional.add_argument("--save_results", action='store_true', help="True/False to store evaluation results as json documents.")
     optional.add_argument("--force_replot", action='store_true', help="True/False Force replotting of all figures.")
     optional.add_argument("--skip_processing", action='store_true', help="True/False flag to skip evaluations to generate report.")
-    optional.add_argument("--name", default=False, help="Name of the forecast does not have to be Unique")
+    optional.add_argument("--name", default="", type=str, help="Name of the forecast does not have to be Unique")
     args = parser.parse_args()
 
     ucerf3_consistency_testing(args.sim_dir, args.event_id, args.eval_days,

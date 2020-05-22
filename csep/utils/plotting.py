@@ -810,8 +810,8 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
     # supply fixed arguments to plots
     # might want to add other defaults here
     filename = plot_args.get('filename', None)
-    fixed_plot_args = {'xlabel': 'Pseudo Likelihood',
-                       'ylabel': 'Number of Catalogs',
+    fixed_plot_args = {'xlabel': 'Pseudo likelihood',
+                       'ylabel': 'Number of catalogs',
                        'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
