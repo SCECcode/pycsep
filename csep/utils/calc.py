@@ -89,7 +89,6 @@ def bin1d_vec(p, bins, right_continuous=False):
             if idx < 0 or idx >= len(bins) - 1:
                 idx = -1
     idx = idx.astype(numpy.int)
-
     return idx
 
 

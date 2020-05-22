@@ -53,10 +53,10 @@ class TestBin1d(unittest.TestCase):
         self.assertListEqual(test.tolist(), expected)
 
     def test_bin1d_vec8(self):
-        data = [-118.98999999]
+        data = [-118.9600000001]
         bin_edges = [-119.0, -118.98, -118.96]
         test = bin1d_vec(data, bin_edges)
-        expected = [0]
+        expected = [1]
         self.assertListEqual(test.tolist(), expected)
 
     def test_bin1d_vec9(self):
@@ -78,6 +78,13 @@ class TestBin1d(unittest.TestCase):
         bin_edges = [0, 10, 20, 30]
         test = bin1d_vec(data, bin_edges, right_continuous=True)
         expected = [3, 3, 3]
+        self.assertListEqual(test.tolist(), expected)
+
+    def test_upper_limit_not_continuous(self):
+        data = [30, 30, 30]
+        bin_edges = [0, 10, 20, 30]
+        test = bin1d_vec(data, bin_edges)
+        expected = [-1, -1, -1]
         self.assertListEqual(test.tolist(), expected)
 
     def test_lower_limit(self):

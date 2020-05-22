@@ -372,7 +372,19 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def filter(self, statements, in_place=True):
         """
-        Filters the catalog based on value.
+        Filters the catalog based on value. This function takes about 60% of the run-time for processing UCERF3-ETAS
+        simulations, so likely all other simulations. Implementations should try and limit how often this function
+        will be called. Profiling calculations places these operations at 12.4 ms ± 242 µs per loop (mean ± std. dev. of 7 runs, 100 loops each).
+        Extrapolating this to an 100000 catalog stochastic event set will result in filtering times of about 20 minutes. This does
+        not include any other calculations.
+
+        High-level optimizations in the processing classes should take place as well. The first candidate is that magnitudes
+        should not be packed into the same instance of the processing class. This causes potentially slow operations along
+        mis-aligned axes. See https://scipy-lectures.org/advanced/optimizing/index.html for more information on this issue.
+
+        The optimal solution would be to port these 'kernel' calculations into CPython, so processing happens at the event
+        level as opposed to the catalog level. Right now everything is taking place using numpy functions which operate on the catalogs
+        as ndarrays instead of individual events.
 
         Args:
             statements (str, iter): logical statements to evaluate, e.g., ['magnitude > 4.0', 'year >= 1995']
@@ -381,15 +393,6 @@ class AbstractBaseCatalog(LoggingMixin):
             self: instance of AbstractBaseCatalog, so that this function can be chained.
 
         """
-        filters=[]
-        # if we got a single string
-        if isinstance(statements, six.string_types):
-            filters.append(statements)
-        # if we got list of strings, not the most secure because we aren't checking each item of the list
-        elif isinstance(statements, (list, tuple)):
-            filters=list(statements)
-        else:
-            raise ValueError('statements should be either a string or list or tuple of strings')
         # progamatically assign operators
         operators = {'>': operator.gt,
                      '<': operator.lt,
@@ -397,10 +400,18 @@ class AbstractBaseCatalog(LoggingMixin):
                      '<=': operator.le,
                      '==': operator.eq}
         # filter catalogs, implied logical and
-        filtered = numpy.copy(self.catalog)
-        for filter in filters:
-            name, oper, value = filter.split(' ')
-            filtered = filtered[operators[oper](filtered[name], float(value))]
+        if isinstance(statements, six.string_types):
+            name, oper, value = statements.split(' ')
+            filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
+        elif isinstance(statements, (list, tuple)):
+            # slower but at the convenience of not having to call multiple times
+            filters = list(statements)
+            filtered = numpy.copy(self.catalog)
+            for filter in filters:
+                name, oper, value = filter.split(' ')
+                filtered = filtered[operators[oper](filtered[name], float(value))]
+        else:
+            raise ValueError('statements should be either a string or list or tuple of strings')
         # can return new instance of class or original instance
         if in_place:
             self.catalog = filtered
