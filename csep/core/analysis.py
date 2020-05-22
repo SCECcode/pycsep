@@ -1452,7 +1452,8 @@ class SpatialProbabilityTest(AbstractProcessingTask):
     def process_again(self, catalog, args=()):
         # we dont actually need to do this if we are caching the data
         time_horizon, n_cat, end_epoch, obs = args
-        prob_map = numpy.log10(self.data / n_cat)
+        with numpy.errstate(divide='ignore'):
+            prob_map = numpy.log10(self.data / n_cat)
 
         # unfortunately, we need to iterate twice through the catalogs for this.
         probs = numpy.zeros(len(self.mws))
@@ -1466,7 +1467,8 @@ class SpatialProbabilityTest(AbstractProcessingTask):
     def post_process(self, obs, args=None):
         cata_iter, time_horizon, end_epoch, n_cat = args
         results = {}
-        prob_map = numpy.log10(self.data / n_cat)
+        with numpy.errstate(divide='ignore'):
+            prob_map = numpy.log10(self.data / n_cat)
         test_distribution_prob = numpy.array(self.test_distribution)
         # prepare results for each mw
         for i, mw in enumerate(self.mws):
@@ -1551,7 +1553,8 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
         return None
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        prob = numpy.log10(numpy.array(self.data) / self.n_cat)
+        with numpy.errstate(divide='ignore'):
+            prob = numpy.log10(numpy.array(self.data) / self.n_cat)
         for i, mw in enumerate(self.mws):
             # compute expected rate density
             obs_filt = self.obs.filter(f'magnitude >= {mw}', in_place=False)
@@ -1605,7 +1608,8 @@ class ApproximateRatePlot(AbstractProcessingTask):
         return None
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        crd = numpy.log10(numpy.array(self.data) / self.region.dh / self.region.dh / self.time_horizon / self.n_cat)
+        with numpy.errstate(divide='ignore'):
+            crd = numpy.log10(numpy.array(self.data) / self.region.dh / self.region.dh / self.time_horizon / self.n_cat)
 
         for i, mw in enumerate(self.mws):
             # compute expected rate density
@@ -1658,12 +1662,14 @@ class ApproximateRateDensity(AbstractProcessingTask):
         _, time_horizon, _, n_cat = args
         self.time_horizon = time_horizon
         self.n_cat = n_cat
-        self.crd = numpy.array(self.data) / self.region.dh / self.region.dh / self.time_horizon / self.mag_dh / self.n_cat
+        with numpy.errstate(divide='ignore'):
+            self.crd = numpy.array(self.data) / self.region.dh / self.region.dh / self.time_horizon / self.mag_dh / self.n_cat
         return None
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
         # compute expected rate density
-        plot_data = numpy.log10(self.region.get_cartesian(self.crd))
+        with numpy.errstate(divide='ignore'):
+            plot_data = numpy.log10(self.region.get_cartesian(self.crd))
         ax = plot_spatial_dataset(plot_data,
                                   self.region,
                                   plot_args={'clabel': r'Log$_{10}$ Approximate Rate Density'
@@ -1712,7 +1718,8 @@ class ApproximateSpatialRateDensity(AbstractProcessingTask):
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
         # compute expected rate density
-        plot_data = numpy.log10(self.region.get_cartesian(self.crd))
+        with numpy.errstate(divide='ignore'):
+            plot_data = numpy.log10(self.region.get_cartesian(self.crd))
         ax = plot_spatial_dataset(plot_data,
                                   self.region,
                                   plot_args={'clabel': r'Log$_{10}$ Approximate Rate Density'
@@ -1771,7 +1778,8 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
 
             # compute conditional approximate rate
             mean_rates = numpy.mean(rates, axis=0)
-            crd = numpy.log10(mean_rates / self.region.dh / self.region.dh / self.time_horizon)
+            with numpy.errstate(divide='ignore'):
+                crd = numpy.log10(mean_rates / self.region.dh / self.region.dh / self.time_horizon)
             plot_data = self.region.get_cartesian(crd)
             ax = plot_spatial_dataset(plot_data,
                                       self.region,
