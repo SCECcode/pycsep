@@ -705,6 +705,9 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         for i, mw in enumerate(self.mws):
             # get observed likelihood
             obs_filt = obs.filter(f'magnitude >= {mw}', in_place=False)
+            if obs_filt.event_count == 0:
+                print(f'Skipping pseudo-likelihood based tests for M{mw}+ because no events in observed catalog.')
+                continue
             n_obs = obs_filt.get_number_of_events()
             gridded_obs = obs_filt.spatial_counts()
             obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density[i,:], expected_cond_count[i], n_obs)
@@ -715,13 +718,17 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                 idx_good_sim = apprx_rate_density[i,:] != 0
                 idx_good_obs = gridded_obs != 0
                 idx_good = numpy.logical_and(idx_good_sim, idx_good_obs)
-                new_ard = apprx_rate_density[i, idx_good]
                 new_gridded_obs = gridded_obs[idx_good]
-                new_exp_count = numpy.sum(new_ard) * self.region.dh * self.region.dh * time_horizon
                 new_n_obs = numpy.sum(new_gridded_obs)
                 print(f"Found -inf as the observed likelihood score for M{self.mws[i]}+. "
                       f"Assuming event(s) occurred in undersampled region of forecast.\n"
-                      f"Recomputing with {new_n_obs} events after removing {n_obs-new_n_obs} events.")
+                      f"Recomputing with {new_n_obs} events after removing {n_obs - new_n_obs} events.")
+                if new_n_obs == 0:
+                    print(f'Skipping pseudo-likelihood based tests for M{mw}+ because no events in observed catalog '
+                          f'after correcting for under-sampling in forecast.')
+                    continue
+                new_ard = apprx_rate_density[i, idx_good]
+                new_exp_count = numpy.sum(new_ard) * self.region.dh * self.region.dh * time_horizon
                 obs_lh, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, new_exp_count, new_n_obs)
                 message = "undersampled"
 
@@ -750,7 +757,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             else:
                 _, quantile_spatial = get_quantiles(test_distribution_spatial_1d, obs_lh_norm)
 
-            result_spatial = EvaluationResult(test_distribution=test_distribution_spatial[:,i],
+            result_spatial = EvaluationResult(test_distribution=test_distribution_spatial_1d,
                                           name='S-Test',
                                           observed_statistic=obs_lh_norm,
                                           quantile=quantile_spatial,
@@ -1104,9 +1111,9 @@ class InterEventTimeDistribution(AbstractProcessingTask):
         disc_ietd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(cat_ietd, self.data.bins)
         numpy.add.at(disc_ietd, idx, 1)
-        disc_ietd_normed = numpy.cumsum(disc_ietd) / numpy.trapz(disc_ietd)
+        disc_ietd_normed = numpy.cumsum(disc_ietd) / numpy.sum(disc_ietd)
         if self.normed_data.size == 0:
-            self.normed_data = numpy.cumsum(self.data.data) / numpy.trapz(self.data.data)
+            self.normed_data = numpy.cumsum(self.data.data) / numpy.sum(self.data.data)
         self.test_distribution.append(sup_dist(self.normed_data, disc_ietd_normed))
 
     def post_process(self, obs, args=None):
@@ -1168,9 +1175,9 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
         disc_iedd = numpy.zeros(len(self.data.bins))
         idx = bin1d_vec(cat_iedd, self.data.bins)
         numpy.add.at(disc_iedd, idx, 1)
-        disc_iedd_normed = numpy.cumsum(disc_iedd) / numpy.trapz(disc_iedd)
+        disc_iedd_normed = numpy.cumsum(disc_iedd) / numpy.sum(disc_iedd)
         if self.normed_data.size == 0:
-            self.normed_data = numpy.cumsum(self.data.data) / numpy.trapz(self.data.data)
+            self.normed_data = numpy.cumsum(self.data.data) / numpy.sum(self.data.data)
         self.test_distribution.append(sup_dist(self.normed_data, disc_iedd_normed))
 
     def post_process(self, obs, args=None):
@@ -1408,7 +1415,10 @@ class SpatialProbabilityTest(AbstractProcessingTask):
             gridded_obs = obs_filt.spatial_event_probability()
             obs_prob = _compute_spatial_statistic(gridded_obs, prob_map[i, :])
             # determine outcome of evaluation, check for infinity
-            _, quantile_likelihood = get_quantiles(test_distribution_prob[:, i], obs_prob)
+            test_1d = test_distribution_prob[:,i]
+            if numpy.isnan(numpy.sum(test_1d)):
+                test_1d = test_1d[~numpy.isnan(test_1d)]
+            _, quantile_likelihood = get_quantiles(test_1d, obs_prob)
             # Signals outcome of test
             message = "normal"
             # Deal with case with cond. rate. density func has zeros. Keep value but flag as being
@@ -1416,10 +1426,10 @@ class SpatialProbabilityTest(AbstractProcessingTask):
             if numpy.isclose(quantile_likelihood, 0.0) or numpy.isclose(quantile_likelihood, 1.0):
                 # undetermined failure of the test
                 if numpy.isinf(obs_prob):
-                    # Build message
+                    # Build message, should maybe try sampling procedure from pseudo-likelihood based tests
                     message = "undetermined"
             # build evaluation result
-            result_prob = EvaluationResult(test_distribution=test_distribution_prob[:, i],
+            result_prob = EvaluationResult(test_distribution=test_1d,
                                                  name='Prob-Test',
                                                  observed_statistic=obs_prob,
                                                  quantile=quantile_likelihood,

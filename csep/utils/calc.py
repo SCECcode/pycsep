@@ -98,16 +98,19 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
 
     # this value is: -inf obs at idx and no apprx_rate_density
     #                -expected_cond_count if no target earthquakes
-    with numpy.errstate(divide='ignore'):
-        likelihood = numpy.sum(gridded_data[idx] * numpy.log10(apprx_rate_density[idx])) - expected_cond_count
-
-    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio.
-    normalizing_factor = n_obs / expected_cond_count
     n_cat = numpy.sum(gridded_data)
+    if n_cat == 0:
+        return(-expected_cond_count, numpy.nan)
+    else:
+        with numpy.errstate(divide='ignore'):
+            likelihood = numpy.sum(gridded_data[idx] * numpy.log10(apprx_rate_density[idx])) - expected_cond_count
+
 
     # cannot compute the spatial statistic score if there are no target events or forecast is computed undersampled
-    if n_cat == 0 or n_obs == 0 or expected_cond_count == 0:
+    if n_obs == 0 or expected_cond_count == 0:
         return (likelihood, numpy.nan)
+    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio.
+    normalizing_factor = n_obs / expected_cond_count
     norm_apprx_rate_density = apprx_rate_density * normalizing_factor
 
     # value could be: -inf if no value in apprx_rate_dens
@@ -138,6 +141,10 @@ def _compute_spatial_statistic(gridded_data, log10_probability_map):
         log10_probability_map:
     """
     # returns a unique set of indexes corresponding to cells where earthquakes occurred
+    # this should implement similar logic to the spatial tests wrt undersampling.
+    # techincally, if there are are target eqs you can't compute this statistic.
+    if numpy.sum(gridded_data) == 0:
+        return numpy.nan
     idx = numpy.unique(numpy.argwhere(gridded_data))
     return numpy.sum(log10_probability_map[idx])
 
