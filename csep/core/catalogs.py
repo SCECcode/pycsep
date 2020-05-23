@@ -462,18 +462,25 @@ class AbstractBaseCatalog(LoggingMixin):
 
         # compute critical time for efficiency
         t_crit_days = 10 ** -((mc - m_main + 4.5) / 0.75)
-        t_crit_millis = t_crit_days * 1000 * 60 * 60
+        t_crit_millis = t_crit_days * 1000 * 60 * 60 * 24
 
         times = self.get_epoch_times()
         mws = self.get_magnitudes()
 
-        # catalogs are stored stored by time
+        # catalogs are stored stored by milliseconds
         t_crit_epoch = t_crit_millis + event_epoch
+
+        # another short-circuit, again assumes that catalogs are sorted in time
+        if times[0] > t_crit_epoch:
+            return self
 
         # this is used to index the array, starting with accepting all events
         filter = numpy.ones(self.event_count, dtype=numpy.bool)
         for i, (mw, time) in enumerate(zip(mws, times)):
-            if time > t_crit_epoch or time < event_epoch:
+            # we can break bc events are sorted in time
+            if time > t_crit_epoch:
+                break
+            if time < event_epoch:
                 continue
             time_from_mshock_in_days = millis_to_days(time - event_epoch)
             mct = compute_mct(time_from_mshock_in_days, m_main)
