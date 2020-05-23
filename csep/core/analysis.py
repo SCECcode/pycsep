@@ -724,20 +724,10 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                       f"Recomputing with {new_n_obs} events after removing {n_obs-new_n_obs} events.")
                 obs_lh, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, new_exp_count, new_n_obs)
                 message = "undersampled"
+
             # determine outcome of evaluation, check for infinity
             _, quantile_likelihood = get_quantiles(test_distribution_likelihood[:,i], obs_lh)
-            # check for nans here
-            test_distribution_spatial_1d = test_distribution_spatial[:,i]
-            if numpy.isnan(numpy.sum(test_distribution_spatial_1d)):
-                test_distribution_spatial_1d = test_distribution_spatial_1d[~numpy.isnan(test_distribution_spatial_1d)]
-            _, quantile_spatial = get_quantiles(test_distribution_spatial_1d, obs_lh_norm)
-            # Deal with case with cond. rate. density func has zeros. Keep value but flag as being
-            # either normal and wrong or undetermined/undersampled
-            if numpy.isclose(quantile_likelihood, 0.0) or numpy.isclose(quantile_likelihood, 1.0):
-                # undetermined failure of the test
-                if numpy.isinf(obs_lh) or numpy.isnan(obs_lh):
-                    # Build message
-                    message = "undetermined"
+
             # build evaluation result
             result_likelihood = EvaluationResult(test_distribution=test_distribution_likelihood[:,i],
                                                  name='L-Test',
@@ -748,15 +738,17 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                                                  obs_catalog_repr=obs.date_accessed,
                                                  sim_name=self.name,
                                                  obs_name=obs.name)
-            # find out if there are issues with the test
-            if numpy.isclose(quantile_spatial, 0.0) or numpy.isclose(quantile_spatial, 1.0):
-                # undetermined failure of the test
-                if numpy.isinf(obs_lh_norm) or numpy.isnan(obs_lh_norm):
-                    # Build message
-                    message = "undetermined"
 
-            if n_obs == 0:
-                message = 'not-valid'
+            # check for nans here
+            test_distribution_spatial_1d = test_distribution_spatial[:,i]
+            if numpy.isnan(numpy.sum(test_distribution_spatial_1d)):
+                test_distribution_spatial_1d = test_distribution_spatial_1d[~numpy.isnan(test_distribution_spatial_1d)]
+
+            if n_obs == 0 or numpy.isnan(obs_lh_norm):
+                message = "not-valid"
+                quantile_spatial = -1
+            else:
+                _, quantile_spatial = get_quantiles(test_distribution_spatial_1d, obs_lh_norm)
 
             result_spatial = EvaluationResult(test_distribution=test_distribution_spatial[:,i],
                                           name='S-Test',
