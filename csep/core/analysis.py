@@ -650,7 +650,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         self.fnames = {}
         self.fnames['l-test'] = []
         self.fnames['s-test'] = []
-        self.version = 2
+        self.version = 3
 
     def process(self, catalog):
         # grab stuff from data that we might need later
@@ -729,7 +729,10 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                     continue
                 new_ard = apprx_rate_density[i, idx_good]
                 new_exp_count = numpy.sum(new_ard) * self.region.dh * self.region.dh * time_horizon
-                obs_lh, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, new_exp_count, new_n_obs)
+
+                # we need to use the old n_obs here, because if we normalize the ard to a different value the observed
+                # statistic will not be computed correctly.
+                obs_lh, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, new_exp_count, n_obs)
                 message = "undersampled"
 
             # determine outcome of evaluation, check for infinity
@@ -1414,7 +1417,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
                 continue
             gridded_obs = obs_filt.spatial_event_probability()
             obs_prob = _compute_spatial_statistic(gridded_obs, prob_map[i, :])
-            # determine outcome of evaluation, check for infinity
+            # determine outcome of evaluation, check for infinity will go here...
             test_1d = test_distribution_prob[:,i]
             if numpy.isnan(numpy.sum(test_1d)):
                 test_1d = test_1d[~numpy.isnan(test_1d)]
