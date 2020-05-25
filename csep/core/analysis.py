@@ -712,13 +712,10 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
             gridded_obs = obs_filt.spatial_counts()
             obs_lh, obs_lh_norm = _compute_likelihood(gridded_obs, apprx_rate_density[i,:], expected_cond_count[i], n_obs)
             # if obs_lh is -numpy.inf, recompute but only for indexes where obs and simulated are non-zero
-            # this should really be split into two different processing tasks
             message = "normal"
             if obs_lh == -numpy.inf or obs_lh_norm == -numpy.inf:
                 idx_good_sim = apprx_rate_density[i,:] != 0
-                idx_good_obs = gridded_obs != 0
-                idx_good = numpy.logical_and(idx_good_sim, idx_good_obs)
-                new_gridded_obs = gridded_obs[idx_good]
+                new_gridded_obs = gridded_obs[idx_good_sim]
                 new_n_obs = numpy.sum(new_gridded_obs)
                 print(f"Found -inf as the observed likelihood score for M{self.mws[i]}+. "
                       f"Assuming event(s) occurred in undersampled region of forecast.\n"
@@ -727,12 +724,10 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                     print(f'Skipping pseudo-likelihood based tests for M{mw}+ because no events in observed catalog '
                           f'after correcting for under-sampling in forecast.')
                     continue
-                new_ard = apprx_rate_density[i, idx_good]
-                new_exp_count = numpy.sum(new_ard) * self.region.dh * self.region.dh * time_horizon
-
+                new_ard = apprx_rate_density[i,idx_good_sim]
                 # we need to use the old n_obs here, because if we normalize the ard to a different value the observed
                 # statistic will not be computed correctly.
-                obs_lh, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, new_exp_count, n_obs)
+                obs_lh, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, expected_cond_count[i], n_obs)
                 message = "undersampled"
 
             # determine outcome of evaluation, check for infinity
