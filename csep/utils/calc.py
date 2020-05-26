@@ -84,9 +84,9 @@ def bin1d_vec(p, bins, right_continuous=False):
     else:
         # if outside set to nan
         try:
-            idx[((idx < 0) | (idx >= len(bins) - 1))] = -1
+            idx[((idx < 0) | (idx >= len(bins)))] = -1
         except (TypeError):
-            if idx < 0 or idx >= len(bins) - 1:
+            if idx < 0 or idx >= len(bins):
                 idx = -1
     idx = idx.astype(numpy.int)
     return idx

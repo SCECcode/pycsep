@@ -84,7 +84,7 @@ class TestBin1d(unittest.TestCase):
         data = [30, 30, 30]
         bin_edges = [0, 10, 20, 30]
         test = bin1d_vec(data, bin_edges)
-        expected = [-1, -1, -1]
+        expected = [3, 3, 3]
         self.assertListEqual(test.tolist(), expected)
 
     def test_lower_limit(self):
@@ -95,9 +95,9 @@ class TestBin1d(unittest.TestCase):
         self.assertListEqual(test.tolist(), expected)
 
     def test_less_and_greater_than(self):
-        data = [-1, 35]
+        data = [-1, 35, 40]
         bin_edges = [0, 10, 20, 30]
         test = bin1d_vec(data, bin_edges)
-        expected = [-1, -1]
+        expected = [-1, 3, -1]
         self.assertListEqual(test.tolist(), expected)
 

@@ -93,7 +93,7 @@ class TestDigitize(unittest.TestCase):
         self.assertListEqual(test.tolist(), expected)
 
     def test_upper_bound_equal(self):
-        data = [4.0]
+        data = [5.0]
         with pytest.raises(CSEPException):
             discretize(data, self.bin_edges)
 

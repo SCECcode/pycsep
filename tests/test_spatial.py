@@ -82,10 +82,16 @@ class TestCartesian2D(unittest.TestCase):
         self.assertEqual(test_flag, 1)
 
         test_flag = self.cart_grid.mask[-1,1]
-        self.assertEqual(test_flag, 1)
+        self.assertEqual(test_flag, 0)
+
+        test_flag = self.cart_grid.mask[1, -1]
+        self.assertEqual(test_flag, 0)
 
         test_flag = self.cart_grid.mask[2,2]
         self.assertEqual(test_flag, 0)
+
+        test_flag = self.cart_grid.mask[-1, -1]
+        self.assertEqual(test_flag, 1)
 
     def test_get_index_of_outside_bbox(self):
         test = (-0.05, -0.05)
