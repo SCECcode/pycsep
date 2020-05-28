@@ -218,7 +218,7 @@ def csep1_magnitude_test(gridded_forecast, observed_catalog, num_simulations=100
     """
 
     # grid catalog onto spatial grid
-    gridded_catalog_data = observed_catalog.magnitude_counts(bins=gridded_forecast.magnitudes)
+    gridded_catalog_data = observed_catalog.magnitude_counts(mag_bins=gridded_forecast.magnitudes)
 
     # simply call likelihood test on catalog data and forecast
     qs, obs_ll, simulated_ll = poisson_likelihood_test(gridded_forecast.magnitude_counts(), gridded_catalog_data,

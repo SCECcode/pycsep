@@ -10,7 +10,7 @@ import pyproj
 
 # CSEP Imports
 import csep
-from csep.utils.time_utils import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, millis_to_days, parse_string_format
+from csep.utils.time_utils import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, millis_to_days, parse_string_format, days_to_millis
 from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
@@ -462,7 +462,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
         # compute critical time for efficiency
         t_crit_days = 10 ** -((mc - m_main + 4.5) / 0.75)
-        t_crit_millis = t_crit_days * 1000 * 60 * 60 * 24
+        t_crit_millis = days_to_millis(t_crit_days)
 
         times = self.get_epoch_times()
         mws = self.get_magnitudes()
@@ -577,17 +577,17 @@ class AbstractBaseCatalog(LoggingMixin):
                                                              self.region.ys)
         return output
 
-    def magnitude_counts(self, bins=CSEP_MW_BINS, retbins=False):
-        out = numpy.zeros(len(bins))
+    def magnitude_counts(self, mag_bins=CSEP_MW_BINS, retbins=False):
+        out = numpy.zeros(len(mag_bins))
         if self.event_count == 0:
             if retbins:
-                return (bins, out)
+                return (mag_bins, out)
             else:
                 return out
-        idx = bin1d_vec(self.get_magnitudes(), bins, right_continuous=True)
+        idx = bin1d_vec(self.get_magnitudes(), mag_bins, right_continuous=True)
         numpy.add.at(out, idx, 1)
         if retbins:
-            return (bins, out)
+            return (mag_bins, out)
         else:
             return out
 

@@ -49,6 +49,10 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     matplotlib.rcParams['figure.max_open_warning'] = 150
     sns.set()
 
+    # add testing magnitude bins.
+    dmag = 0.2
+    mw_bins = numpy.arange(2.5, 8.95+dmag/2, dmag)
+
     # try using two different files
     print(f"Processing simulation in {sim_dir}", flush=True)
     filename = os.path.join(sim_dir, 'results_complete.bin')
@@ -146,7 +150,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     # define products to compute on simulation, this could be extracted
     data_products = {
          'n-test': NumberTest(),
-         'm-test': MagnitudeTest(),
+         'm-test': MagnitudeTest(mag_bins=mw_bins),
          'l-test': LikelihoodAndSpatialTest(),
          'cum-plot': CumulativeEventPlot(origin_epoch, end_epoch),
          'mag-hist': MagnitudeHistogram(calc=False),
@@ -565,19 +569,26 @@ class NumberTest(AbstractProcessingTask):
 
 class MagnitudeTest(AbstractProcessingTask):
 
-    def __init__(self, **kwargs):
+    def __init__(self, bins=None, **kwargs):
         super().__init__(**kwargs)
         self.mws = [2.5, 3.0, 3.5, 4.0]
-        self.version = 2
+        self.mag_bins = bins
+        self.version = 3
 
     def process(self, catalog):
         if not self.name:
-            self.name = catalog.name
-        # optimization: always compute this for the lowest magnitude, above this is redundant
+            self.name = catalog.names
+        # magnitude mag_bins should probably be bound to the region, although we should have a SpaceMagnitudeRegion class
+        if not self.mag_bins:
+            try:
+                self.mag_bins = catalog.region.mag_bins
+            except:
+                self.mag_bins = CSEP_MW_BINS
+        # optimization idea: always compute this for the lowest magnitude, above this is redundant
         mags = []
         for mw in self.mws:
             cat_filt = catalog.filter(f'magnitude >= {mw}')
-            binned_mags = cat_filt.magnitude_counts()
+            binned_mags = cat_filt.magnitude_counts(mag_bins=self.mag_bins)
             mags.append(binned_mags)
         # data shape (n_cat, n_mw, n_mw_bins)
         self.data.append(mags)
@@ -593,7 +604,7 @@ class MagnitudeTest(AbstractProcessingTask):
             if obs_filt.event_count == 0:
                 print(f"Skipping {mw} in Magnitude test because no observed events.")
                 continue
-            obs_histogram = obs_filt.magnitude_counts()
+            obs_histogram = obs_filt.magnitude_counts(mag_bins=self.mag_bins)
             n_obs_events = numpy.sum(obs_histogram)
             mag_counts_all = numpy.array(self.data)
             # get the union histogram, simply the sum over all catalogs, (n_cat, n_mw)
@@ -637,6 +648,15 @@ class MagnitudeTest(AbstractProcessingTask):
             _ = plot_magnitude_test(result, show=False, plot_args=plot_args)
             self.fnames.append(m_test_fname)
 
+    def _build_filename(self, dir, mw, plot_id):
+        try:
+            mag_dh = self.mag_bins[1] - self.mag_bins[0]
+            mag_dh_str = f"_dmag{mag_dh:.1f}".replace('.','p').lower()
+        except:
+            mag_dh_str = ''
+        basename = f"{plot_id}_mw_{str(mw).replace('.', 'p')}{mag_dh_str}".lower()
+        return os.path.join(dir, basename)
+
 
 class LikelihoodAndSpatialTest(AbstractProcessingTask):
     def __init__(self, **kwargs):
@@ -650,7 +670,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         self.fnames = {}
         self.fnames['l-test'] = []
         self.fnames['s-test'] = []
-        self.version = 3
+        self.version = 4
 
     def process(self, catalog):
         # grab stuff from data that we might need later
@@ -673,8 +693,8 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
     def process_again(self, catalog, args=()):
         # we dont actually need to do this if we are caching the data
         time_horizon, n_cat, end_epoch, obs = args
-        apprx_rate_density = self.data / self.region.dh / self.region.dh / time_horizon / n_cat
-        expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
+        apprx_rate_density = self.data / n_cat
+        expected_cond_count = numpy.sum(apprx_rate_density, axis=1)
 
         # unfortunately, we need to iterate twice through the catalogs for this, unless we start pre-processing everything
         # and storing approximate cell-wise rates
@@ -695,8 +715,8 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         cata_iter, time_horizon, end_epoch, n_cat = args
         results = {}
 
-        apprx_rate_density = self.data / self.region.dh / self.region.dh / time_horizon / n_cat
-        expected_cond_count = numpy.sum(apprx_rate_density, axis=1) * self.region.dh * self.region.dh * time_horizon
+        apprx_rate_density = self.data / n_cat
+        expected_cond_count = numpy.sum(apprx_rate_density, axis=1)
 
         test_distribution_likelihood = numpy.array(self.test_distribution_likelihood)
         # there can be nans in the spatial distribution
@@ -1545,7 +1565,7 @@ class ApproximateRatePlot(AbstractProcessingTask):
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
         with numpy.errstate(divide='ignore'):
-            crd = numpy.log10(numpy.array(self.data) / self.region.dh / self.region.dh / self.time_horizon / self.n_cat)
+            crd = numpy.log10(numpy.array(self.data) / self.n_cat)
 
         for i, mw in enumerate(self.mws):
             # compute expected rate density
@@ -1555,8 +1575,8 @@ class ApproximateRatePlot(AbstractProcessingTask):
                                       self.region,
                                       plot_args={'clabel': r'Log$_{10}$ Approximate rate density'
                                                            '\n'
-                                                           f'(Expected events per year per {self.region.dh}°x{self.region.dh}°)',
-                                                 'clim': [0, 5],
+                                                           f'(Expected events per week per {self.region.dh}°x{self.region.dh}°)',
+                                                 'clim': [-5, 0],
                                                  'title': f'Approximate Rate Density with Observations, M{mw}+'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
             crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'crd_obs')
@@ -1731,26 +1751,6 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
             ax.figure.savefig(crd_fname + '.pdf')
                 # self.ax.append(ax)
             self.fnames.append(crd_fname)
-
-
-class ConditionalMagnitudeVersusTime(AbstractProcessingTask):
-    def __init__(self, obs, data=None, name=None):
-        super().__init__(data, name)
-
-        # we try a few different magnitudes becuase they are not guaranteed to work
-        self.mws = [2.5, 3.0, 3.5]
-        self.n_obs = []
-        self.saved_catalog = None
-
-        for mw in self.mws:
-            obs_filt = obs.filter(f'magnitude >= {mw}')
-            self.n_obs.append(obs_filt.event_count)
-
-    def process(self, catalog):
-
-        for i, mw in enumerate(self.mws):
-            cat_filt = catalog.filter(f'magntiude > {mw}')
-            n_cat = cat_filt.event_count
 
 
 class CatalogMeanStabilityAnalysis(AbstractProcessingTask):

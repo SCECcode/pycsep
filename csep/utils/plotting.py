@@ -38,7 +38,7 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
     
     
     Args:
-        xdata (ndarray): time bins for plotting shape (N,) 
+        xdata (ndarray): time bins for plotting shape (N,)
         ydata (ndarray or list like): ydata for plotting; shape (N,5) in order 2.5%Per, 25%Per, 50%Per, 75%Per, 97.5%Per
         obs_data (ndarry): same shape as xdata
         plot_args: 
@@ -631,7 +631,7 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
-    bins = plot_args.get('bins', 'auto')
+    bins = plot_args.get('mag_bins', 'auto')
     percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
