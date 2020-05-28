@@ -569,10 +569,10 @@ class NumberTest(AbstractProcessingTask):
 
 class MagnitudeTest(AbstractProcessingTask):
 
-    def __init__(self, bins=None, **kwargs):
+    def __init__(self, mag_bins=None, **kwargs):
         super().__init__(**kwargs)
         self.mws = [2.5, 3.0, 3.5, 4.0]
-        self.mag_bins = bins
+        self.mag_bins = mag_bins
         self.version = 3
 
     def process(self, catalog):
