@@ -183,7 +183,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     print('\n')
 
     if not name:
-        days_since_mainshock = numpy.round((origin_epoch - event_epoch) / SECONDS_PER_DAY / 1000)
+        days_since_mainshock = numpy.round(millis_to_days(origin_epoch - event_epoch))
         if u3etas_config['griddedOnly']:
             name = f'NoFaults, M{event.magnitude} + {days_since_mainshock} days'
         else:
@@ -577,7 +577,7 @@ class MagnitudeTest(AbstractProcessingTask):
 
     def process(self, catalog):
         if not self.name:
-            self.name = catalog.names
+            self.name = catalog.name
         # magnitude mag_bins should probably be bound to the region, although we should have a SpaceMagnitudeRegion class
         if not self.mag_bins:
             try:
@@ -696,8 +696,8 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         apprx_rate_density = numpy.array(self.data) / n_cat
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1)
 
-        # unfortunately, we need to iterate twice through the catalogs for this, unless we start pre-processing everything
-        # and storing approximate cell-wise rates
+        # unfortunately, we need to iterate twice through the catalogs for this, unless we start pre-processing
+        # everything and storing approximate cell-wise rates
         lhs = numpy.zeros(len(self.mws))
         lhs_norm = numpy.zeros(len(self.mws))
         for i, mw in enumerate(self.mws):
