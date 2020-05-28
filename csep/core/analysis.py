@@ -579,7 +579,7 @@ class MagnitudeTest(AbstractProcessingTask):
         if not self.name:
             self.name = catalog.name
         # magnitude mag_bins should probably be bound to the region, although we should have a SpaceMagnitudeRegion class
-        if not self.mag_bins:
+        if self.mag_bins is None:
             try:
                 self.mag_bins = catalog.region.mag_bins
             except:
