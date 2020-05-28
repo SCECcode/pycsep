@@ -693,7 +693,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
     def process_again(self, catalog, args=()):
         # we dont actually need to do this if we are caching the data
         time_horizon, n_cat, end_epoch, obs = args
-        apprx_rate_density = self.data / n_cat
+        apprx_rate_density = numpy.array(self.data) / n_cat
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1)
 
         # unfortunately, we need to iterate twice through the catalogs for this, unless we start pre-processing everything
@@ -715,7 +715,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         cata_iter, time_horizon, end_epoch, n_cat = args
         results = {}
 
-        apprx_rate_density = self.data / n_cat
+        apprx_rate_density = numpy.array(self.data) / n_cat
         expected_cond_count = numpy.sum(apprx_rate_density, axis=1)
 
         test_distribution_likelihood = numpy.array(self.test_distribution_likelihood)
