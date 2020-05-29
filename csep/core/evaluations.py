@@ -144,6 +144,7 @@ class EvaluationConfiguration:
         for e in self.evaluations:
             if e['name'] == name:
                 e['version'] = version
+                e['fnames'] = fnames
                 found = True
         if not found:
             self.evaluations.append({'name': name, 'version': version, 'fnames': fnames})
