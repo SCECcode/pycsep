@@ -149,9 +149,9 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
          'm-test': MagnitudeTest(),
          'l-test': LikelihoodAndSpatialTest(),
          'cum-plot': CumulativeEventPlot(origin_epoch, end_epoch),
-         'mag-hist': MagnitudeHistogram(calc=False),
-         'arp-plot': ApproximateRatePlot(calc=False),
-         'prob-plot': SpatialProbabilityPlot(calc=False),
+         'mag-hist': MagnitudeHistogram(),
+         'arp-plot': ApproximateRatePlot(),
+         'prob-plot': SpatialProbabilityPlot(),
          'prob-test': SpatialProbabilityTest(),
          'carp-plot': ConditionalApproximateRatePlot(comcat),
          'terd-test': TotalEventRateDistribution(),
@@ -172,9 +172,31 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     if eval_config.n_cat is None or n_cat > eval_config.n_cat:
         force_plot_all = True
 
+    # determine which data we are actually computing and whether the data should be shared
+    active_data_products = {}
+    for task_name, calc in data_products.items():
+        version = eval_config.get_evaluation_version(task_name)
+        if calc.version != version or force_plot_all:
+            active_data_products[task_name] = calc
+
+    # set 'calc' status on relevant items, we always share from pair[0] with pair[1]
+    calc_pairs = [('l-test','arp-plot'),
+                  ('m-test','mag-hist'),
+                  ('l-test', 'carp-plot'),
+                  ('prob-test','prob-plot')]
+
+    # this should probably be a part of the class-state when we refactor the code
+    print('Trying to determine if we can share calculation data between processing tasks...')
+    for pair in calc_pairs:
+        if set(pair).issubset(set(active_data_products.keys())):
+            class_name0 = active_data_products[pair[0]].__class__.__name__
+            class_name1 = active_data_products[pair[1]].__class__.__name__
+            print(f'Found {class_name0} and {class_name1} in workload manifest that can share data, thus skipping calculations for {class_name1}.')
+            active_data_products[pair[1]].calc = False
+
     # output some info for the user
     print(f'Will process {n_cat} catalogs from simulation\n')
-    for k, v in data_products.items():
+    for k, v in active_data_products.items():
         print(f'Computing {v.__class__.__name__}')
     print('\n')
 
@@ -194,10 +216,8 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         try:
             for i, cat in enumerate(u3):
                 cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
-                for task_name, calc in data_products.items():
-                    version = eval_config.get_evaluation_version(task_name)
-                    if calc.version != version or force_plot_all:
-                        calc.process(copy.copy(cat_filt))
+                for task_name, calc in active_data_products.items():
+                    calc.process(copy.copy(cat_filt))
                 tens_exp = numpy.floor(numpy.log10(i + 1))
                 if (i + 1) % 10 ** tens_exp == 0:
                     t1 = time.time()
@@ -213,26 +233,27 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         print(f'Finished processing catalogs in {t2-t0} seconds\n', flush=True)
 
         print('Processing catalogs again for distribution-based tests', flush=True)
-        for k, v in data_products.items():
+        for k, v in active_data_products.items():
             if v.needs_two_passes == True:
                 print(v.__class__.__name__)
         print('\n')
 
-        # share data where applicable, it would be cool if this could be optimized and hidden from this 
-        # part of the script. ie, it just knows to share the data based on some other object's logic
-        data_products['mag-hist'].data = data_products['m-test'].data
-        data_products['arp-plot'].data = data_products['l-test'].data
-        data_products['prob-plot'].data = data_products['prob-test'].data
+        # share data if needed
+        print('Sharing data between related tasks...')
+        for pair in calc_pairs:
+            if set(pair).issubset(set(active_data_products.keys())):
+                class_name0 = active_data_products[pair[0]].__class__.__name__
+                class_name1 = active_data_products[pair[1]].__class__.__name__
+                print(f'Sharing data from {class_name0} with {class_name1}.')
+                active_data_products[pair[1]].data = active_data_products[pair[0]].data
 
         # old iterator is expired, need new one
         t2 = time.time()
         u3 = load_stochastic_event_sets(filename=filename, type='ucerf3', name=name, region=aftershock_region)
         for i, cat in enumerate(u3):
             cat_filt = cat.filter(f'origin_time < {end_epoch}').filter_spatial(aftershock_region).apply_mct(event.magnitude, event_epoch)
-            for task_name, calc in data_products.items():
-                version = eval_config.get_evaluation_version(task_name)
-                if calc.version != version or force_plot_all:
-                    calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
+            for task_name, calc in active_data_products.items():
+                calc.process_again(copy.copy(cat_filt), args=(time_horizon, n_cat, end_epoch, comcat))
             # if we failed earlier, just stop there again
             tens_exp = numpy.floor(numpy.log10(i+1))
             if (i+1) % 10**tens_exp == 0:
@@ -253,18 +274,17 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         if save_results:
             mkdirs(results_dir)
 
-        for task_name, calc in data_products.items():
+        # we want to
+        for task_name, calc in active_data_products.items():
             print(f'Finalizing calculations for {task_name} and plotting')
-            version = eval_config.get_evaluation_version(task_name)
-            if calc.version != version or force_plot_all:
-                result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
-                # plot, and store in plot_dir
-                calc.plot(result, fig_dir, show=False)
+            result = calc.post_process(comcat, args=(u3, time_horizon, end_epoch, n_cat))
+            # plot, and store in plot_dir
+            calc.plot(result, fig_dir, show=False)
 
-                if save_results:
-                    # could expose this, but hard-coded for now
-                    print(f"Storing results from evaluations in {results_dir}", flush=True)
-                    calc.store_results(result, results_dir)
+            if save_results:
+                # could expose this, but hard-coded for now
+                print(f"Storing results from evaluations in {results_dir}", flush=True)
+                calc.store_results(result, results_dir)
 
         t2 = time.time()
         print(f"Evaluated forecasts in {t2-t1} seconds", flush=True)
@@ -279,7 +299,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
         eval_config.eval_start_epoch = origin_epoch
         eval_config.eval_end_epoch = end_epoch
         eval_config.git_hash = current_git_hash()
-        for task_name, calc in data_products.items():
+        for task_name, calc in active_data_products.items():
             eval_config.update_version(task_name, calc.version, calc.fnames)
         # save new meta data
         meta_repo.save(eval_config.to_dict())
@@ -1589,7 +1609,7 @@ class ApproximateRateDensity(AbstractProcessingTask):
         self.calc = calc
         self.region = None
         self.archive = False
-        self.magnitude_dh = None
+        self.mag_dh = None
 
     def process(self, catalog):
         # grab stuff from data that we might need later
@@ -1597,7 +1617,7 @@ class ApproximateRateDensity(AbstractProcessingTask):
             self.region = catalog.region
         if not self.name:
             self.name = catalog.name
-        if not self.magnitude_dh:
+        if not self.mag_dh:
             mag_dh = self.region.magnitudes[1] - self.region.magnitudes[0]
             self.mag_dh = mag_dh
         if self.calc:
