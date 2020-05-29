@@ -103,20 +103,20 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
         return(-expected_cond_count, numpy.nan)
     else:
         with numpy.errstate(divide='ignore'):
-            likelihood = numpy.sum(gridded_data[idx] * numpy.log10(apprx_rate_density[idx])) - expected_cond_count
+            likelihood = numpy.sum(gridded_data[idx] * numpy.log(apprx_rate_density[idx])) - expected_cond_count
 
 
     # cannot compute the spatial statistic score if there are no target events or forecast is computed undersampled
     if n_obs == 0 or expected_cond_count == 0:
         return (likelihood, numpy.nan)
-    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio.
-    normalizing_factor = n_obs / expected_cond_count
-    norm_apprx_rate_density = apprx_rate_density * normalizing_factor
+
+    # normalize the rate density to sum to unity
+    norm_apprx_rate_density = apprx_rate_density / numpy.sum(apprx_rate_density)
 
     # value could be: -inf if no value in apprx_rate_dens
     #                  nan if n_cat is 0
     with numpy.errstate(divide='ignore'):
-        likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log10(norm_apprx_rate_density[idx])) / n_cat
+        likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log(norm_apprx_rate_density[idx])) / n_cat
 
     return (likelihood, likelihood_norm)
 

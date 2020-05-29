@@ -640,7 +640,7 @@ class MagnitudeTest(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         # get the filename
         for mw, result in results.items():
-            m_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'm-test')
+            m_test_fname = self._build_filename(plot_dir, mw, 'm-test')
             plot_args = {'percentile': 95,
                          'title': f'Magnitude Test, M{mw}+',
                          'bins': 'auto',
@@ -670,7 +670,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
         self.fnames = {}
         self.fnames['l-test'] = []
         self.fnames['s-test'] = []
-        self.version = 4
+        self.version = 5
 
     def process(self, catalog):
         # grab stuff from data that we might need later
@@ -792,7 +792,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         for mw, result_tuple in results.items():
             # plot likelihood test
-            l_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'l-test')
+            l_test_fname = self._build_filename(plot_dir, mw, 'l-test')
             plot_args = {'percentile': 95,
                          'title': f'Pseudo-Likelihood Test, M{mw}+',
                          'filename': l_test_fname}
@@ -807,7 +807,7 @@ class LikelihoodAndSpatialTest(AbstractProcessingTask):
                 continue
 
             # plot spatial test
-            s_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 's-test')
+            s_test_fname = self._build_filename(plot_dir, mw, 's-test')
             plot_args = {'percentile': 95,
                          'title': f'Spatial Test, M{mw}+',
                          'filename': s_test_fname}
@@ -902,7 +902,7 @@ class CumulativeEventPlot(AbstractProcessingTask):
         obs_data = results['obs_data']
         # get values from plotting args
         for i, mw in enumerate(self.mws):
-            cum_counts_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'cum_counts')
+            cum_counts_fname = self._build_filename(plot_dir, mw, 'cum_counts')
             plot_args = {'title': f'Cumulative Event Counts, M{mw}+',
                          'xlabel': 'Days since start of forecast',
                          'filename': cum_counts_fname}
@@ -939,7 +939,7 @@ class MagnitudeHistogram(AbstractProcessingTask):
         self.obs = obs
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        mag_hist_fname = AbstractProcessingTask._build_filename(plot_dir, self.mws[0], 'mag_hist')
+        mag_hist_fname = self._build_filename(plot_dir, self.mws[0], 'mag_hist')
         plot_args = {
              'xlim': [self.mws[0], numpy.max(CSEP_MW_BINS)],
              'title': f"Magnitude Histogram, M{self.mws[0]}+",
@@ -1079,7 +1079,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         for mw, result_tuple in results.items():
             # plot likelihood test
-            l_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'ul-test')
+            l_test_fname = self._build_filename(plot_dir, mw, 'ul-test')
             plot_args = {'percentile': 95,
                          'title': f'Pseudo-Likelihood Test\nMw > {mw}',
                          'bins': 'fd',
@@ -1096,7 +1096,7 @@ class UniformLikelihoodCalculation(AbstractProcessingTask):
                 continue
 
             # plot spatial test
-            s_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'us-test')
+            s_test_fname = self._build_filename(plot_dir, mw, 'us-test')
             plot_args = {'percentile': 95,
                          'title': f'Spatial Test\nMw > {mw}',
                          'bins': 'fd',
@@ -1157,7 +1157,7 @@ class InterEventTimeDistribution(AbstractProcessingTask):
         return result
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        ietd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'ietd_test')
+        ietd_test_fname = self._build_filename(plot_dir, results.min_mw, 'ietd_test')
         _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
                                                                    'title': f'Inter-event Time Distribution Test, M{results.min_mw}+',
                                                                    'bins': 'auto',
@@ -1221,7 +1221,7 @@ class InterEventDistanceDistribution(AbstractProcessingTask):
         return result
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        iedd_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'iedd_test')
+        iedd_test_fname = self._build_filename(plot_dir, results.min_mw, 'iedd_test')
         _ = plot_distribution_test(results, show=False, plot_args={'percentile': 95,
                                                                    'title': f'Inter-event Distance Distribution Test, M{results.min_mw}+',
                                                                    'bins': 'auto',
@@ -1326,7 +1326,7 @@ class BValueTest(AbstractProcessingTask):
         return result
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        bv_test_fname = AbstractProcessingTask._build_filename(plot_dir, results.min_mw, 'bv_test')
+        bv_test_fname = self._build_filename(plot_dir, results.min_mw, 'bv_test')
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
                                                              'title': f"B-Value Distribution Test, M{results.min_mw}+",
                                                              'bins': 'auto',
@@ -1366,7 +1366,7 @@ class MedianMagnitudeTest(AbstractProcessingTask):
         return result
 
     def plot(self, results, plot_dir, plot_args=None, show=False):
-        mm_test_fname = AbstractProcessingTask._build_filename(plot_dir, self.mws[0], 'mm_test')
+        mm_test_fname = self._build_filename(plot_dir, self.mws[0], 'mm_test')
         _ = plot_number_test(results, show=False, plot_args={'percentile': 95,
                                                              'title': f"Median Magnitude Distribution Test\nMw > {self.mws[0]}",
                                                              'bins': 25,
@@ -1463,7 +1463,7 @@ class SpatialProbabilityTest(AbstractProcessingTask):
     def plot(self, results, plot_dir, plot_args=None, show=False):
         for mw, result in results.items():
             # plot likelihood test
-            prob_test_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob-test')
+            prob_test_fname = self._build_filename(plot_dir, mw, 'prob-test')
             plot_args = {'percentile': 95,
                          'title': f'Probability Test, M{mw}+',
                          'bins': 'auto',
@@ -1523,7 +1523,7 @@ class SpatialProbabilityPlot(AbstractProcessingTask):
                                                  'clim': [-5, 0],
                                                  'title': f'Spatial Probability Plot, M{mw}+'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
-            crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'prob_obs')
+            crd_fname = self._build_filename(plot_dir, mw, 'prob_obs')
             ax.figure.savefig(crd_fname + '.png')
             ax.figure.savefig(crd_fname + '.pdf')
             self.fnames.append(crd_fname)
@@ -1579,7 +1579,7 @@ class ApproximateRatePlot(AbstractProcessingTask):
                                                  'clim': [-5, 0],
                                                  'title': f'Approximate Rate Density with Observations, M{mw}+'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
-            crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'crd_obs')
+            crd_fname = self._build_filename(plot_dir, mw, 'crd_obs')
             ax.figure.savefig(crd_fname + '.png')
             ax.figure.savefig(crd_fname + '.pdf')
             # self.ax.append(ax)
@@ -1634,7 +1634,7 @@ class ApproximateRateDensity(AbstractProcessingTask):
                                              'clim': [0, 5],
                                              'title': f'Approximate Rate Density with Observations, M{self.min_mw}+'})
         ax.scatter(self.obs.get_longitudes(), self.obs.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
-        crd_fname = AbstractProcessingTask._build_filename(plot_dir, self.min_mw, 'crd_obs')
+        crd_fname = self._build_filename(plot_dir, self.min_mw, 'crd_obs')
         ax.figure.savefig(crd_fname + '.png')
         ax.figure.savefig(crd_fname + '.pdf')
         # self.ax.append(ax)
@@ -1684,7 +1684,7 @@ class ApproximateSpatialRateDensity(AbstractProcessingTask):
                                              'clim': [0, 5],
                                              'title': f'Approximate Rate Density with Observations, M{self.min_mw}+'})
         ax.scatter(self.obs.get_longitudes(), self.obs.get_latitudes(), marker='.', color='white', s=40, edgecolors='black')
-        crd_fname = AbstractProcessingTask._build_filename(plot_dir, self.min_mw, 'crd_obs')
+        crd_fname = self._build_filename(plot_dir, self.min_mw, 'crd_obs')
         ax.figure.savefig(crd_fname + '.png')
         ax.figure.savefig(crd_fname + '.pdf')
         # self.ax.append(ax)
@@ -1746,7 +1746,7 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
                                                  'title': f'Conditional Approximate Rate Density with Observations, M{mw}+'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40,
                        edgecolors='black')
-            crd_fname = AbstractProcessingTask._build_filename(plot_dir, mw, 'cond_rates')
+            crd_fname = self._build_filename(plot_dir, mw, 'cond_rates')
             ax.figure.savefig(crd_fname + '.png')
             ax.figure.savefig(crd_fname + '.pdf')
                 # self.ax.append(ax)
