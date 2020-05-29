@@ -49,10 +49,6 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     matplotlib.rcParams['figure.max_open_warning'] = 150
     sns.set()
 
-    # add testing magnitude bins.
-    dmag = 0.2
-    mw_bins = numpy.arange(2.5, 8.95+dmag/2, dmag)
-
     # try using two different files
     print(f"Processing simulation in {sim_dir}", flush=True)
     filename = os.path.join(sim_dir, 'results_complete.bin')
@@ -150,7 +146,7 @@ def ucerf3_consistency_testing(sim_dir, event_id, end_epoch, n_cat=None, plot_di
     # define products to compute on simulation, this could be extracted
     data_products = {
          'n-test': NumberTest(),
-         'm-test': MagnitudeTest(mag_bins=mw_bins),
+         'm-test': MagnitudeTest(),
          'l-test': LikelihoodAndSpatialTest(),
          'cum-plot': CumulativeEventPlot(origin_epoch, end_epoch),
          'mag-hist': MagnitudeHistogram(calc=False),
@@ -573,7 +569,7 @@ class MagnitudeTest(AbstractProcessingTask):
         super().__init__(**kwargs)
         self.mws = [2.5, 3.0, 3.5, 4.0]
         self.mag_bins = mag_bins
-        self.version = 3
+        self.version = 4
 
     def process(self, catalog):
         if not self.name:
@@ -1535,6 +1531,7 @@ class ApproximateRatePlot(AbstractProcessingTask):
         self.calc=calc
         self.region=None
         self.archive = False
+        self.version = 2
 
     def process(self, data):
         # grab stuff from data that we might need later
@@ -1697,6 +1694,7 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
         self.obs = obs
         self.data = defaultdict(list)
         self.archive = False
+        self.version = 2
 
     def process(self, data):
         if self.name is None:
@@ -1735,14 +1733,14 @@ class ConditionalApproximateRatePlot(AbstractProcessingTask):
             # compute conditional approximate rate
             mean_rates = numpy.mean(rates, axis=0)
             with numpy.errstate(divide='ignore'):
-                crd = numpy.log10(mean_rates / self.region.dh / self.region.dh / self.time_horizon)
+                crd = numpy.log10(mean_rates)
             plot_data = self.region.get_cartesian(crd)
             ax = plot_spatial_dataset(plot_data,
                                       self.region,
                                       plot_args={'clabel': r'Log$_{10}$ Conditional Rate Density'
                                                            '\n'
                                       f'(Expected Events per year per {self.region.dh}°x{self.region.dh}°)',
-                                                 'clim': [0, 5],
+                                                 'clim': [-5, 0],
                                                  'title': f'Conditional Approximate Rate Density with Observations, M{mw}+'})
             ax.scatter(obs_filt.get_longitudes(), obs_filt.get_latitudes(), marker='.', color='white', s=40,
                        edgecolors='black')
