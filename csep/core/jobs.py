@@ -411,6 +411,7 @@ class UCERF3Forecast(BaseTask):
 class Evaluation(BaseTask):
     pass
 
+# Register objects with the Factory
 job_builder = ObjectFactory()
 job_builder.register_builder('base', BaseTask.from_dict)
 job_builder.register_builder('ucerf3-etas', UCERF3Forecast.from_dict)
