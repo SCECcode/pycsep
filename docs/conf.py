@@ -26,8 +26,10 @@ class Mock(MagicMock):
 # -- Project information -----------------------------------------------------
 
 project = 'CSEP'
-copyright = '2018, William Savran'
 author = 'William Savran'
+
+html_show_copyright = False
+html_show_sphinx = False
 
 # The short X.Y version
 version = 'v0.1-dev'
@@ -101,7 +103,12 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ["_static"]
+
+
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+# html_css_files = [""]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
