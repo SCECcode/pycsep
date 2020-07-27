@@ -1,3 +1,5 @@
+.. _catalogs-reference:
+
 Catalogs
 ========
 
@@ -12,3 +14,9 @@ Manipulating Catalogs
 ---------------------
 
 Filler
+
+
+
+
+
+

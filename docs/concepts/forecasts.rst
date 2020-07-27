@@ -1,3 +1,5 @@
+.. _forecast-reference:
+
 Forecasts
 =========
 Information on forecasts goes here.
@@ -9,3 +11,7 @@ Catalog-based forecasts
 -----------------------
 
 Filler
+
+
+
+

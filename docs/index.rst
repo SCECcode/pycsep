@@ -9,7 +9,6 @@ PyCSEP: Tools for Earthquake Forecast Developers
     getting_started/installing
     getting_started/core_concepts
     getting_started/tutorials
-    getting_started/glossary
 
 .. toctree::
     :maxdepth: 2
@@ -28,8 +27,9 @@ PyCSEP: Tools for Earthquake Forecast Developers
     :hidden:
     :caption: Help & Reference
 
+    reference/glossary
     reference/changelog
-    reference/conduct
+    Code of Conduct<reference/conduct>
     reference/contributing
     reference/developer_notes
     reference/low_level_api
@@ -37,4 +37,36 @@ PyCSEP: Tools for Earthquake Forecast Developers
 
 *PyCSEP tools help earthquake forecast model developers evaluate their forecasts and provide the machinery to implement
 experiments within CSEP testing centers.*
+
+About
+-----
+The Collaboratory for the Study of Earthquake Predictability (CSEP) supports an international effort to conduct earthquake
+forecasting experiments. CSEP supports these activities by developing the cyberinfrastructure necessary to run earthquake
+forecasting experiments including the statistical framework required to evaluate probabilistic earthquake forecasts.
+
+The PyCSEP package is a python library that provides tools for (1) evaluating probabilistic earthquake forecasts, (2) working
+with earthquake catalogs in this context, and (3) creating visualizations. Official experiments run in CSEP testing centers
+will be implemented using the tools provided in this package.
+
+Project Goals
+-------------
+1. Help modelers become familiar with formats, procedures, and evaluations used in CSEP Testing Centers.
+2. Provide vetted software for model developers to use in their research.
+3. Provide quantative and visual tools to assess earthquake forecast quality.
+4. Promote open-science ideas by ensuring transparency and availability of scientific code and results.
+5. Curate benchmark models and data sets for modelers to conduct retrospective experiments of their forecasts.
+
+Contacting Us
+-------------
+* For general discussion and bug reports please post issues on the `PyCSEP Github <https://github.com/SCECCode/csep2>`_.
+* This project adheres to a :ref:`Contributor Code of Conduct <code-of-conduct>`. By participating you agree to follow its terms.
+
+List of Contributors
+--------------------
+* (Lead) William Savran ``wsavran [at] usc [dot] edu``
+* Muhammad Asim Khawaja
+* Thomas Beutin
+
+
+
 

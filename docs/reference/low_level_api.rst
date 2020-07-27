@@ -1,5 +1,8 @@
 Low-Level API
 =============
 
-The low level api goes here.
+Catalogs
+--------
+.. automodule:: csep.core.catalogs
+    :members:
 
