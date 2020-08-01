@@ -11,3 +11,4 @@ Cartopy==0.17.0
 vcrpy==2.0.1
 gitpython==3.0.8
 six==1.14.0
+sphinx-gallery==0.7.0

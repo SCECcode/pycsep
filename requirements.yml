@@ -19,3 +19,4 @@ dependencies:
   - six=1.14.0
   - pytest-cov=2.8.1
   - basemap=1.2.1
+  - sphinx-gallery=0.7.0
