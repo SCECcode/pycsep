@@ -1,3 +1,4 @@
+import csv
 import json
 import operator
 import datetime
@@ -21,8 +22,6 @@ from csep.utils.spatial import _bin_catalog_spatial_counts
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
-
-# Idea: should we have a single catalog object with multiple readers that all return the same object?
 
 
 class AbstractBaseCatalog(LoggingMixin):
@@ -199,15 +198,63 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.compute_stats and self._catalog is not None:
             self.update_catalog_stats()
 
-    def write_catalog(self, binary=True):
+    def write_ascii(self, filename, write_header=True, write_empty=True):
         """
-        Write catalog in bespoke format. For interoperability, ZMAPCatalog classes should be used.
-        But we don't want to force the user to use a CSEP catalog if they are working with their own format.
-        Each model might need to implement a custom reader if the file formats are different.
+        Write catalog in csep2 ascii format.
 
-        Interally, catalogs should implement some method to convert them into a pandas DataFrame.
+        This format only uses the required variables from the catalog and should work by default. It can be overwritten
+        if an event_id (or other columns should be used). By default, the routine will look for a column the catalog array
+        called 'id' and will populate the event_id column with these values. If the 'id' column is not found, then it will
+        leave this column blank
+
+        Short format description (comma separated values):
+            longitude, latitude, M, time_string format="%Y-%m-%dT%H:%M:%S.%f", depth, catalog_id, [event_id]
+
+        Args:
+            filename (str): the file location to write the the ascii catalog file
+            write_header (bool): Write header string (default true)
+            write_empty (bool): Write file event if no events in catalog
+
+        Returns:
+            NoneType
         """
-        raise NotImplementedError('write_catalog not implemented.')
+        # longitude, latitude, M, epoch_time (time in millisecond since Unix epoch in GMT), depth, catalog_id, event_id
+        header = ['lon', 'lat', 'mag', 'time_string', 'depth', 'catalog_id', 'event_id']
+        with open(filename, 'w') as outfile:
+            writer = csv.DictWriter(outfile, fieldnames=header, delimiter=',')
+            if write_header:
+                writer.writeheader()
+                if write_empty and self.event_count == 0:
+                    return
+            # create iterator from catalog columns
+            try:
+                event_ids = self.catalog['id']
+            except ValueError:
+                event_ids = [''] * self.event_count
+            row_iter = zip(self.get_longitudes(),
+                           self.get_latitudes(),
+                           self.get_magnitudes(),
+                           self.get_epoch_times(),
+                           self.get_depths(),
+                           # populate list with `self.event_count` elements with val self.catalog_id
+                           [self.catalog_id] * self.event_count,
+                           event_ids)
+            # write csv file using DictWriter interface
+            for row in row_iter:
+                try:
+                    event_id = row[6].decode('utf-8')
+                except AttributeError:
+                    event_id = row[6]
+                # create dictionary for each row
+                adict = {'lon': row[0],
+                         'lat': row[1],
+                         'mag': row[2],
+                         'time_string': str(epoch_time_to_utc_datetime(row[3]).replace(tzinfo=None)),
+                         'depth': row[4],
+                         'catalog_id': row[5],
+                         'event_id': event_id}
+                writer.writerow(adict)
+
 
     def as_dataframe(self, with_datetime=False):
         """
@@ -705,8 +752,8 @@ class ZMAPCatalog(AbstractBaseCatalog):
         return self
 
     def load_catalog(self, filename):
-        # ToDo: Write Function to Load catalog from ZMAP format
-        pass
+        # todo: Write Function to Load catalog from ZMAP format
+        raise NotImplementedError
 
 
 class UCERF3Catalog(AbstractBaseCatalog):
@@ -755,7 +802,6 @@ class UCERF3Catalog(AbstractBaseCatalog):
                     # this could throw and error, do we catch it or make the calcs fail?
                     u3_catalog = u3_catalog.filter_spatial(u3_catalog.region)
                 yield u3_catalog
-
 
     def get_datetimes(self):
         """
@@ -903,8 +949,8 @@ class ComcatCatalog(AbstractBaseCatalog):
                          ('depth', '<f4'),
                          ('magnitude','<f4')])
 
-    def __init__(self, catalog_id='Comcat', format='comcat', start_epoch=None, duration_in_years=None,
-                 date_accessed=None, query=True, compute_stats=False, extra_comcat_params={}, **kwargs):
+    def __init__(self, catalog_id='comcat', format='comcat', start_epoch=None, duration_in_years=None,
+                 date_accessed=None, query=False, compute_stats=False, extra_comcat_params={}, **kwargs):
 
         # parent class constructor
         super().__init__(catalog_id=catalog_id, format=format, compute_stats=compute_stats, **kwargs)

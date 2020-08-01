@@ -8,7 +8,14 @@ PyCSEP: Tools for Earthquake Forecast Developers
 
     getting_started/installing
     getting_started/core_concepts
-    getting_started/tutorials
+
+.. toctree::
+    :maxdepth: 2
+    :hidden:
+    :caption: Tutorials and Examples
+
+    tutorials/catalog_filtering.rst
+    tutorials/plot_gridded_forecast.rst
 
 .. toctree::
     :maxdepth: 2

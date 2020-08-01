@@ -10,5 +10,8 @@ class CSEPCatalogException(Exception):
 class CSEPException(Exception):
     pass
 
+class CSEPIOException(Exception):
+    pass
+
 class CSEPValueException(Exception):
     pass

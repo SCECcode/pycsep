@@ -26,5 +26,5 @@ Time-dependent Forecast
 .. _time-independent-forecast:
 
 Time-independent Forecast
------------------------
+-------------------------
 

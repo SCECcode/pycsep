@@ -98,3 +98,7 @@ def iterable(arg):
         isinstance(arg, collections.Iterable)
         and not isinstance(arg, six.string_types)
     )
+
+def get_file_extension(fname):
+    """ Returns the extension from a filepath string ignoring the '.' character """
+    return os.path.splitext(fname)[-1][1:]

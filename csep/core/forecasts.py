@@ -1,13 +1,16 @@
 import itertools
-
+import os
 import numpy
 import datetime
+import decimal
 from csep.utils.log import LoggingMixin
 from csep.utils.spatial import CartesianGrid2D
 from csep.utils.basic_types import Polygon
 from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year
 from csep.core.catalogs import AbstractBaseCatalog
+from csep.utils.constants import CSEP_MW_BINS
+from csep.utils.plotting import plot_spatial_dataset
 
 class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
@@ -62,8 +65,7 @@ class GriddedDataSet(LoggingMixin):
         return numpy.sum(self.data)
 
     def spatial_counts(self, cartesian=False):
-        """
-        Integrates over magnitudes to return the spatial version of the forecast.
+        """ Returns the counts (or rates) of earthquakes within each spatial bin.
 
         Args:
             cartesian (bool): if true, will return a 2d grid representing the bounding box of the forecast
@@ -251,13 +253,10 @@ class GriddedForecast(MarkedGriddedDataSet):
             # first get copy so we dont contaminate the rates of the forecast, this can be quite large for global files
             # if we run into memory problems, we can implement a sparse form of the forecast.
             data = numpy.copy(self.data)
-
             # straight-forward implementation, relies on correct start and end time
             elapsed_days = (self.end_time - self.start_time).days
-
             # scale the data down to days
             data = data / elapsed_days
-
         else:
             # just pull reference to stored data
             data = self.data
@@ -315,7 +314,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         return cls(data=data, region=region, magnitudes=magnitudes, **kwargs)
 
     @classmethod
-    def from_csep1_ascii(cls, ascii_fname, start_date, end_date):
+    def from_csep1_ascii(cls, ascii_fname, start_date=None, end_date=None):
         """ Reads Forecast file from CSEP1 ascii format.
 
         The ascii format from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:
@@ -338,7 +337,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         # csep1 stores the lat lons as min values and not (x,y) tuples
         bboxes = [tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in unique_poly]
         # the spatial cells are arranged fast in latitude, so this only works for the specific csep1 file format
-        dh = unique_poly[0,3] - unique_poly[0,2]
+        dh = float(unique_poly[0,3] - unique_poly[0,2])
         # create CarteisanGrid of points
         region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh)
         # get dims of 2d np.array
@@ -347,38 +346,47 @@ class GriddedForecast(MarkedGriddedDataSet):
         # reshape rates into correct 2d format
         rates = data[:,-2].reshape(n_poly,n_mag_bins)
         # create / return class
-        gds = cls(start_date, end_date, magnitudes=mws, name=ascii_fname[:-4], region=region, data=rates)
+        gds = cls(start_date, end_date, magnitudes=mws, name=os.path.basename(ascii_fname[:-4]), region=region, data=rates)
         return gds
 
-# class CatalogForecast:
-#
-#     def __init__(self, catalogs=(), region=None, magnitudes=CSEP_MW_BINS):
-#         self.catalogs = catalogs or []
-#         self.region = region
-#         self.magnitudes = magnitudes
-#         self.apprx_rate_density = None
-#         self.apprx_rate_density = None
-#         self.origin_epoch = None
-#         self.end_epoch = None
-#
-#     @property
-#     def mean_rate_forecast(self):
-#         return
-#
-#     @property
-#     def num_mag_bins(self):
-#         return
-#
-#     @property
-#     def num_nodes(self):
-#         return
-#
-#     def spatial_counts(self):
-#         pass
-#
-#     def magnitude_counts(self):
-#         pass
-#
-#     def spatial_magnitude_counts(self):
-#         pass
+    def plot(self, show=False, plot_args=None):
+        # no mutable function arguments
+        dh = round(self.region.dh, 5)
+        if self.start_time is None or self.end_time is None:
+            time = 'year'
+        else:
+            start = decimal_year(self.start_time)
+            end = decimal_year(self.end_time)
+            time = f'{start-end} years'
+
+        plot_args = plot_args or {}
+        plot_args.setdefault('figsize', (9, 9))
+        plot_args.setdefault('title', self.name)
+        plot_args.setdefault('clabel', f'Eq. rate per {str(dh)}° x {str(dh)}° per {time}')
+        # this call requires internet connection and basemap
+        ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, show=show, plot_args=plot_args)
+        return ax
+
+class CatalogForecast(LoggingMixin):
+
+    def __init__(self, catalogs=None, region=None, magnitudes=CSEP_MW_BINS):
+        super().__init__()
+        self.catalogs = catalogs or []
+        self.region = region
+        self.magnitudes = magnitudes
+        self.origin_epoch = None
+        self.end_epoch = None
+
+    @property
+    def num_mag_bins(self):
+        return
+
+    def spatial_counts(self):
+        pass
+
+    def magnitude_counts(self):
+        pass
+
+    def spatial_magnitude_counts(self):
+        pass
 

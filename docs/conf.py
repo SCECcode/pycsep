@@ -15,6 +15,9 @@
 import os
 import sys
 from unittest.mock import MagicMock
+
+from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
+
 sys.path.insert(0, os.path.abspath('..'))
 
 # mock class for dealing with packages that need to be installed via conda forge
@@ -56,7 +59,8 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx_gallery.gen_gallery'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -120,6 +124,27 @@ html_theme = 'sphinx_rtd_theme'
 #
 # html_sidebars = {}
 
+sphinx_gallery_conf = {
+    # path to your examples scripts
+    "examples_dirs": [
+        "../examples/tutorials",
+    ],
+    # path where to save gallery generated examples
+    "gallery_dirs": ["tutorials"],
+    # Patter to search for example files
+    "filename_pattern": r"\.py",
+    # Remove the "Download all examples" button from the top level gallery
+    "download_all_examples": False,
+    # Sort gallery example by file name instead of number of lines (default)
+    "within_subsection_order": FileNameSortKey,
+    # directory where function granular galleries are stored
+    # "backreferences_dir": "",
+    # Modules for which function level galleries are created.  In
+    # this case sphinx_gallery and numpy in a tuple of strings.
+    "doc_module": "csep",
+    # Insert links to documentation of objects in the examples
+    "reference_url": {"csep": None},
+}
 
 # -- Options for HTMLHelp output ---------------------------------------------
 

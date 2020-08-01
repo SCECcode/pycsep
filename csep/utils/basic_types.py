@@ -121,6 +121,8 @@ class Polygon:
         # instance members
         self.points = points
         self.origin = self.points[0]
+
+        # https://matplotlib.org/3.1.1/api/path_api.html
         self.path = matplotlib.path.Path(self.points)
 
     def __str__(self):

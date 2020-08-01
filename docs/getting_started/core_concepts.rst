@@ -77,18 +77,20 @@ regions are regularly discretized.
 Evaluations
 ===========
 
-PyCSEP provides implementations of statistical tests to evaluate both grid-based and catalog-based earthquake forecasts.
-The former uses parametric evaluations based on Poisson likelihood functions, while the latter uses so-called 'likelihood-free'
-statistics that are generated from the empirical distributions provided by the forecasts. Details on the specific implementation
+PyCSEP provides implementations of statistical tests used to evaluate both grid-based and catalog-based earthquake forecasts.
+The former use parametric evaluations based on Poisson likelihood functions, while the latter use so-called 'likelihood-free'
+evaluations that are computed from empirical distributions provided by the forecasts. Details on the specific implementation
 of the evaluations will be provided in the :ref:`evaluation-reference` section.
 
 Every evaluation can be different, but in general, the evaluations need the following information:
 
 1. Earthquake forecast(s)
+
+    * Spatial region
+    * Magnitude range
+
 2. Authoritative earthquake catalog
-3. Spatial region
-4. Magnitude ranges
 
 PyCSEP does not produce earthquake forecasts, but provides the ability to represent them using internal data models to
-facilitate their evaluation. Advice on how to administer the statistical tests will be provided in the
+facilitate their evaluation. General advice on how to administer the statistical tests will be provided in the
 :ref:`evaluation-reference` section.

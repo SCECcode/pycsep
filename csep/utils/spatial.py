@@ -87,6 +87,7 @@ class CartesianGrid2D:
 
         idx = bin1d_vec(lons, self.xs)
         idy = bin1d_vec(lats, self.ys)
+        # todo: needs error checking for -1 values
         return self.mask[idy, idx].astype(bool)
 
     def get_cartesian(self, data):
@@ -160,7 +161,6 @@ class CartesianGrid2D:
             region.magnitudes = magnitudes
         return region
 
-
 def grid_spacing(vertices):
     """
     Figures out the length and
@@ -192,7 +192,8 @@ def grid_spacing(vertices):
 def california_relm_region(filepath=None, dh_scale=1):
     """
     Takes a CSEP1 XML file and returns a 'region' which is a list of polygons. This region can
-    be used to create gridded datasets for earthquake forecasts.
+    be used to create gridded datasets for earthquake forecasts. The XML file appears to use the
+    midpoint, and the .dat file uses the origin in the "lower left" corner.
 
     Args:
         filepath: filepath to CSEP1 style XML forecast template
@@ -214,13 +215,15 @@ def california_relm_region(filepath=None, dh_scale=1):
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'csep-forecast-template-M5.xml')
     csep_template = os.path.expanduser(filepath)
-    origins, dh = parse_csep_template(csep_template)
+    midpoints, dh = parse_csep_template(csep_template)
+    origins = numpy.array(midpoints) - dh / 2
 
     if dh_scale > 1:
         origins = increase_grid_resolution(origins, dh, dh_scale)
         dh = dh / dh_scale
 
     # turn points into polygons and make region object
+
     bboxes = compute_vertices(origins, dh)
     relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name="california")
     return relm_region
@@ -426,6 +429,7 @@ def _bin_catalog_spatial_counts(lons, lats, n_poly, mask, idx_map, binx, biny):
     idx = bin1d_vec(lons, ai)
     idy = bin1d_vec(lats, bi)
     # bin1d returns -1 if outside the region
+    # todo: think about how to change this behavior for less confusions, bc -1 is an actual value that can be chosen
     bad = (idx == -1) | (idy == -1) | (mask[idy,idx] == 1)
     # this can be memory optimized by keeping short list and storing index, only for case where n/2 events
     event_counts = numpy.zeros(n_poly)
@@ -461,7 +465,8 @@ def _bin_catalog_probability(lons, lats, n_poly, mask, idx_map, binx, biny):
 
 def masked_region(region, polygon):
     """
-    build a new region based off the coordinates in the polygon. warning: light weight and no error checking.
+    Build a new region based off the coordinates in the polygon.
+
     Args:
         region: CartesianGrid2D object
         polygon: Polygon object
@@ -476,10 +481,26 @@ def masked_region(region, polygon):
     # create new region with the spatial cells inside the polygon
     return CartesianGrid2D(new_polygons, region.dh)
 
-def generate_aftershock_region(mainshock_mw, mainshock_lon, mainshock_lat, num_radii=3):
-    # filter to aftershock radius
+def generate_aftershock_region(mainshock_mw, mainshock_lon, mainshock_lat, num_radii=3, region=california_relm_region, **kwargs):
+    """ Creates a spatial region around a given epicenter
+
+    The method uses the Wells and Coppersmith scaling relationship to determine the average fault length and creates a
+    circular region centered at (mainshock_lon, mainshock_lat) with radius = num_radii.
+
+    Args:
+        mainshock_mw (float): magnitude of mainshock
+        mainshock_lon (float): epicentral longitude
+        mainshock_lat (float): epicentral latitude
+        num_radii (float/int): number of radii of circular region
+        region (callable): returns :class:`csep.utils.spatial.CartesianGrid2D`
+        **kwargs (dict): passed to region callable
+
+    Returns:
+        :class:`csep.utils.spatial.CartesianGrid2D`
+
+    """
     rupture_length = WellsAndCoppersmith.mag_length_strike_slip(mainshock_mw) * 1000
     aftershock_polygon = Polygon.from_great_circle_radius((mainshock_lon, mainshock_lat),
                                                           num_radii * rupture_length, num_points=100)
-    aftershock_region = masked_region(california_relm_region(), aftershock_polygon)
+    aftershock_region = masked_region(region(**kwargs), aftershock_polygon)
     return aftershock_region

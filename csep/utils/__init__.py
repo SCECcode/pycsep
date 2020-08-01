@@ -4,6 +4,8 @@ import functools
 import operator
 import numpy
 
+
+
 def keys_in_dict(adict, keys):
     """
     Searches adict and returns vals in keys found in adict.keys()

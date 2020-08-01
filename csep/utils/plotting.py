@@ -12,6 +12,7 @@ import matplotlib.pyplot as pyplot
 import cartopy
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.calc import bin1d_vec
@@ -574,6 +575,7 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
 
     fig = pyplot.figure(figsize=figsize)
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
+
     lons, lats = numpy.meshgrid(region.xs, region.ys)
     im = ax.pcolormesh(lons, lats, gridded, cmap=cmap)
     ax.set_extent(extent)
@@ -584,7 +586,10 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
         print("Unable to plot coastlines or state boundaries. This might be due to no internet access, try pre-downloading the files.")
     im.set_clim(clim)
     # colorbar options
-    cbar = fig.colorbar(im, ax=ax)
+    # create an axes on the right side of ax. The width of cax will be 5%
+    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
+    cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height])
+    cbar = fig.colorbar(im, cax=cax)
     cbar.set_label(clabel)
     # gridlines options
     gl = ax.gridlines(draw_labels=True, alpha=0.5)

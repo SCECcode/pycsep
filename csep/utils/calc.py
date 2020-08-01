@@ -54,7 +54,7 @@ def bin1d_vec(p, bins, right_continuous=False):
 
     Returns the indices of the points into bins. Bins are inclusive on the lower bound
     and exclusive on the upper bound. In the case where a point does not fall within the bins a -1
-    will be returned. The last bin extends to infinity.
+    will be returned. The last bin extends to infinity when right_continuous is set as true.
 
     Args:
         p (array-like): Point(s) to be placed into b
@@ -71,7 +71,7 @@ def bin1d_vec(p, bins, right_continuous=False):
     h = bins[1] - bins[0]
     eps = numpy.finfo(np.float).eps
     if h < 0:
-        raise ValueError("grid spacing must be positive.")
+        raise ValueError("grid spacing must be positive and monotonically increasing.")
     idx = numpy.floor((p + eps - a0) / h)
     if right_continuous:
         # set upper bin index to last
@@ -82,7 +82,6 @@ def bin1d_vec(p, bins, right_continuous=False):
             if idx >= len(bins) - 1:
                 idx = len(bins) - 1
     else:
-        # if outside set to nan
         try:
             idx[((idx < 0) | (idx >= len(bins)))] = -1
         except (TypeError):
@@ -90,7 +89,6 @@ def bin1d_vec(p, bins, right_continuous=False):
                 idx = -1
     idx = idx.astype(numpy.int)
     return idx
-
 
 def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
     # compute pseudo likelihood
@@ -147,7 +145,6 @@ def _compute_spatial_statistic(gridded_data, log10_probability_map):
         return numpy.nan
     idx = numpy.unique(numpy.argwhere(gridded_data))
     return numpy.sum(log10_probability_map[idx])
-
 
 def _distribution_test(stochastic_event_set_data, observation_data):
 
