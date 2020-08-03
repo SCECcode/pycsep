@@ -1,101 +1,15 @@
 import os
 import unittest
-import datetime
-import xml.etree.ElementTree as ET
 
 from csep.core.evaluations import *
 from csep.core.poisson_evaluations import _simulate_catalog, number_test, _poisson_likelihood_test
-from csep.core.catalogs import ZMAPCatalog
-from csep.core.forecasts import GriddedForecast
-from csep.utils.readers import read_csep1_zmap_ascii
+
 
 
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(root_dir, 'artifacts', 'Testing')
     return data_dir
-
-class MockCatalog:
-    """
-    Mock catalog class for testing purposes.
-    """
-    def __init__(self, val, name='Mock Catalog'):
-        self.val = val
-        self.name = name
-        self.event_count = self.get_number_of_events()
-
-    def __str__(self):
-        return ''
-
-    def get_number_of_events(self):
-        return self.val
-
-
-class TestCatalogBasedNTest:
-    '''
-    n-test returns two values, delta_1 and delta_2
-    delta 1 is prob of at least N_obs events given distribution from forecast
-    delta 2 is prob at most N_obs events given distribution from forecast
-    '''
-    def test_greater_equal_side(self):
-        n_obs = 0
-        # have a vector with 50 values = 0 and 50 values = 1
-        ints=numpy.zeros(100)
-        ints[:50] = 1
-
-        sets = [MockCatalog(val) for val in ints]
-        obs = MockCatalog(n_obs, 'Mock Obs.')
-
-        result = number_test(sets, obs)
-
-        assert numpy.isclose(result.quantile[0], 1.0)
-        assert numpy.isclose(result.quantile[1], 0.5)
-
-    def test_less_equal_side(self):
-        n_obs = 1
-        # have a vector with 50 values = 0 and 50 values = 1
-        ints = numpy.zeros(100)
-        ints[:50] = 1
-
-        sets = [MockCatalog(val) for val in ints]
-        obs = MockCatalog(n_obs, 'Mock Obs.')
-
-        result = number_test(sets, obs)
-
-        # result = (delta_1, delta_2)... at least, at most
-        assert numpy.isclose(result.quantile[0], 0.5)
-        assert numpy.isclose(result.quantile[1], 1.0)
-
-    def test_obs_greater_than_all(self):
-        n_obs = 2
-        # have a vector with 50 values = 0 and 50 values = 1
-        ints = numpy.zeros(100)
-        ints[:50] = 1
-
-        sets = [MockCatalog(val) for val in ints]
-        obs = MockCatalog(n_obs, 'Mock Obs.')
-
-        result = number_test(sets, obs)
-
-        # result = (delta_1, delta_2)... at least, at most
-        assert numpy.isclose(result.quantile[0], 0.0)
-        assert numpy.isclose(result.quantile[1], 1.0)
-
-    def test_obs_less_than_all(self):
-        n_obs = -1
-        # have a vector with 50 values = 0 and 50 values = 1
-        ints = numpy.zeros(100)
-        ints[:50] = 1
-
-        sets = [MockCatalog(val) for val in ints]
-        obs = MockCatalog(n_obs, 'Mock Obs.')
-
-        result = number_test(sets, obs)
-
-        # result = (delta_1, delta_2)... at least, at most
-        assert numpy.isclose(result.quantile[0], 1.0)
-        assert numpy.isclose(result.quantile[1], 0.0)
-
 
 class TestPoissonLikelihood(unittest.TestCase):
 
