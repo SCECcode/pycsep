@@ -25,3 +25,4 @@ import csep
 # Define forecast properties
 # --------------------------
 #
+# We chose a time-independent forecast

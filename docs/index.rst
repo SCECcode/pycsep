@@ -63,6 +63,13 @@ Project Goals
 4. Promote open-science ideas by ensuring transparency and availability of scientific code and results.
 5. Curate benchmark models and data sets for modelers to conduct retrospective experiments of their forecasts.
 
+Contributing
+------------
+We highly encourage users of this package to get involved in the development process. Any contribution is helpful, even
+suggestions on how to improve the package, or additions to the documentation (those are particularly welcome!). Check out
+the :ref:`Contribution guidelines <contributing>` for a step by step on how to contribute to the project. If there are
+any questions, please contact us!
+
 Contacting Us
 -------------
 * For general discussion and bug reports please post issues on the `PyCSEP Github <https://github.com/SCECCode/csep2>`_.
