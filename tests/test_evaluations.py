@@ -4,7 +4,7 @@ import datetime
 import xml.etree.ElementTree as ET
 
 from csep.core.evaluations import *
-from csep.core.csep1_tests import _simulate_catalog, csep1_number_test, poisson_likelihood_test
+from csep.core.poisson_evaluations import _simulate_catalog, number_test, _poisson_likelihood_test
 from csep.core.catalogs import ZMAPCatalog
 from csep.core.forecasts import GriddedForecast
 from csep.utils.readers import read_csep1_zmap_ascii
@@ -147,8 +147,8 @@ class TestPoissonLikelihood(unittest.TestCase):
         numpy.testing.assert_allclose(expected_catalog, sim_fore)
 
     def test_likelihood(self):
-        qs, obs_ll, simulated_ll = poisson_likelihood_test(self.forecast_data, self.observed_data, num_simulations=1,
-                                                           random_numbers=self.random_matrix, use_observed_counts=True)
+        qs, obs_ll, simulated_ll = _poisson_likelihood_test(self.forecast_data, self.observed_data, num_simulations=1,
+                                                            random_numbers=self.random_matrix, use_observed_counts=True)
 
         # very basic result to pass "laugh" test
         numpy.testing.assert_allclose(qs, 1)

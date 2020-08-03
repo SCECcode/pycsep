@@ -22,7 +22,7 @@ from csep.utils import datasets
 # For this example, we provide the example forecast data set along with the main repository. The filepath is relative
 # to the root directory of the package. You can specify any file location for your forecasts.
 
-forecast = csep.load_gridded_forecast(datasets.gridded_forecast_fname)
+forecast = csep.load_gridded_forecast(datasets.helmstetter_mainshock_fname)
 
 ####################################################################################################################################
 # Plot forecast

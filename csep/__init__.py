@@ -5,7 +5,6 @@ from csep.core.catalogs import UCERF3Catalog, ZMAPCatalog, ComcatCatalog
 from csep.core.evaluations import EvaluationResult
 from csep.core.repositories import FileSystem
 from csep.utils.file import get_file_extension
-from csep.core.exceptions import CSEPIOException
 
 # change type to catalog_
 def load_stochastic_event_sets(type=None, format='native', **kwargs):

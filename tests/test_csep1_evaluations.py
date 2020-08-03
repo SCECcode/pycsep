@@ -11,7 +11,7 @@ import unittest
 import xml.etree.ElementTree as ET
 import datetime
 
-from csep.core.csep1_tests import csep1_number_test_ndarray, csep1_w_test_ndarray, csep1_t_test_ndarray, csep1_number_test
+from csep.core.poisson_evaluations import _number_test_ndarray, _w_test_ndarray, _t_test_ndarray, number_test
 from csep.core.forecasts import GriddedForecast
 from csep.core.catalogs import ZMAPCatalog
 from csep.utils.readers import read_csep1_zmap_ascii
@@ -52,7 +52,7 @@ class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
         # load the catalog file
         cata = ZMAPCatalog(catalog=read_csep1_zmap_ascii(self.catalog_fname), region=fore)
         # compute n_test_result
-        res = csep1_number_test(fore, cata)
+        res = number_test(fore, cata)
         # parse xml result from file
         result_dict = self._parse_xml_result()
         # build evaluation_dict
@@ -91,7 +91,7 @@ class TestGriddedForecastTests(unittest.TestCase):
         observation = numpy.zeros((10,10))
         expected_output = (1.0, 0.9985011244377109)
         print('N Test: Running Unit Test')
-        numpy.testing.assert_allclose(csep1_number_test_ndarray(forecast.sum(), observation.sum()), expected_output)
+        numpy.testing.assert_allclose(_number_test_ndarray(forecast.sum(), observation.sum()), expected_output)
 
     def test_w_test(self):
         pass
@@ -106,7 +106,7 @@ class TestGriddedForecastTests(unittest.TestCase):
 
         expected_output = {'z_statistic': -0.6684710290340584, 'probability': 0.5038329688781412}
         print('W Test: Running Unit Test')
-        self.assertEqual(csep1_w_test_ndarray(x, median), expected_output, 'Failed W Test')
+        self.assertEqual(_w_test_ndarray(x, median), expected_output, 'Failed W Test')
 
     def test_t_test(self):
         pass
@@ -127,7 +127,7 @@ class TestGriddedForecastTests(unittest.TestCase):
                            'ig_upper': 0.19048792683645538}
 
         print('T Test: Running Unit Test')
-        self.assertEqual(csep1_t_test_ndarray(forecast_A, forecast_B, numpy.sum(obs), forecast_A.sum(), forecast_B.sum()), t_test_expected, 'Failed T Test')
+        self.assertEqual(_t_test_ndarray(forecast_A, forecast_B, numpy.sum(obs), forecast_A.sum(), forecast_B.sum()), t_test_expected, 'Failed T Test')
 
 
 if __name__ == '__main__':

@@ -23,9 +23,14 @@ and as families of synthetic earthquake catalogs.
 
 Time-dependent Forecast
 -----------------------
+The forecast changes over time using new information not available at the time the forecast was issued. For example,
+epidemic-type aftershock sequence models (ETAS) models can utilize updated using newly observed seismicity to produce
+new forecasts consistent with the model.
 
 .. _time-independent-forecast:
 
 Time-independent Forecast
 -------------------------
-Forecasts can either be
+The forecast does not change with time. Time-independent forecasts are generally used for long-term forecasts
+needed for probabalistic seismic hazard analysis.
+

@@ -26,7 +26,7 @@ from csep.utils.file import get_relative_path, mkdirs, copy_file
 from csep.utils.documents import MarkdownReport
 from csep.core.evaluations import EvaluationResult, EvaluationConfiguration
 from csep.utils.calc import _compute_likelihood, _compute_spatial_statistic
-from csep.utils.plotting import plot_number_test, plot_magnitude_test, plot_likelihood_test, plot_spatial_test, \
+from csep.utils.plots import plot_number_test, plot_magnitude_test, plot_likelihood_test, plot_spatial_test, \
     plot_cumulative_events_versus_time_dev, plot_magnitude_histogram_dev, plot_distribution_test, plot_spatial_dataset, \
     plot_probability_test
 from csep.utils.calc import bin1d_vec

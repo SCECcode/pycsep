@@ -10,7 +10,7 @@ from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year
 from csep.core.catalogs import AbstractBaseCatalog
 from csep.utils.constants import CSEP_MW_BINS
-from csep.utils.plotting import plot_spatial_dataset
+from csep.utils.plots import plot_spatial_dataset
 
 class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
@@ -136,6 +136,10 @@ class MarkedGriddedDataSet(GriddedDataSet):
     def __init__(self, magnitudes=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.magnitudes = magnitudes
+
+    @property
+    def min_magnitude(self):
+        return numpy.min(self.magnitudes)
 
     @property
     def num_mag_bins(self):
@@ -350,6 +354,15 @@ class GriddedForecast(MarkedGriddedDataSet):
         return gds
 
     def plot(self, show=False, plot_args=None):
+        """ Plot gridded forecast according to plate-carree proejction
+
+        Args:
+            show (bool): if true, show the figure. this call is blocking.
+            plot_args (optional/dict): dictionary containing plotting arguments for making figures
+
+        Returns:
+            axes: matplotlib.Axes.axes
+        """
         # no mutable function arguments
         dh = round(self.region.dh, 5)
         if self.start_time is None or self.end_time is None:
@@ -366,6 +379,17 @@ class GriddedForecast(MarkedGriddedDataSet):
         # this call requires internet connection and basemap
         ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, show=show, plot_args=plot_args)
         return ax
+
+    def number_test(self, catalog):
+        pass
+
+    def magnitude_test(self, catalog):
+        pass
+
+    def conditional_likelihood_test(self, catalog):
+        pass
+
+
 
 class CatalogForecast(LoggingMixin):
 

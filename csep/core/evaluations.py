@@ -1,6 +1,4 @@
 import numpy
-from csep.utils.stats import get_quantiles, binned_ecdf, sup_dist
-from csep.utils import flat_map_to_ndarray
 
 
 class EvaluationResult:
@@ -51,8 +49,7 @@ class EvaluationResult:
     @classmethod
     def from_dict(cls, adict):
 
-        """
-        creates evaluation result from a dictionary
+        """ Creates evaluation result from a dictionary
         Args:
             adict (dict): stores information about classes
 
@@ -148,107 +145,5 @@ class EvaluationConfiguration:
                 found = True
         if not found:
             self.evaluations.append({'name': name, 'version': version, 'fnames': fnames})
-
-
-def _distribution_test(stochastic_event_set_data, observation_data):
-
-    # for cached files want to write this with memmap
-    union_catalog = flat_map_to_ndarray(stochastic_event_set_data)
-    min_time = 0.0
-    max_time = numpy.max([numpy.max(numpy.ceil(union_catalog)), numpy.max(numpy.ceil(observation_data))])
-
-    # build test_distribution with 100 data points
-    num_points = 100
-    tms = numpy.linspace(min_time, max_time, num_points, endpoint=True)
-
-    # get combined ecdf and obs ecdf
-    combined_ecdf = binned_ecdf(union_catalog, tms)
-    obs_ecdf = binned_ecdf(observation_data, tms)
-
-    # build test distribution
-    n_cat = len(stochastic_event_set_data)
-    test_distribution = []
-    for i in range(n_cat):
-        test_ecdf = binned_ecdf(stochastic_event_set_data[i], tms)
-        # indicates there were zero events in catalog
-        if test_ecdf is not None:
-            d = sup_dist(test_ecdf[1], combined_ecdf[1])
-            test_distribution.append(d)
-    d_obs = sup_dist(obs_ecdf[1], combined_ecdf[1])
-
-    # score evaluation
-    _, quantile = get_quantiles(test_distribution, d_obs)
-
-    return test_distribution, d_obs, quantile
-
-def _compute_likelihood_old(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
-    """
-    not sure if this should actually be used masked arrays, bc we are losing information about undetermined l-test results.
-    apply spatial smoothing here?
-    """
-    gridded_cat_ma = numpy.ma.masked_where(gridded_data == 0, gridded_data)
-    apprx_rate_density_ma = numpy.ma.array(apprx_rate_density, mask=gridded_cat_ma.mask)
-    likelihood = numpy.sum(gridded_cat_ma * numpy.log10(apprx_rate_density_ma)) - expected_cond_count
-    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio, this should never be 0, else forecast is expecting 0 earthquakes in region.
-    normalizing_factor = n_obs / expected_cond_count
-    normed_rate_density_ma = normalizing_factor * apprx_rate_density_ma
-    # compute likelihood for each event, ignoring cells with 0 events in the catalog.
-    likelihood_norm = numpy.ma.sum(gridded_cat_ma * numpy.ma.log10(normed_rate_density_ma)) / numpy.ma.sum(gridded_cat_ma)
-    return (likelihood, likelihood_norm)
-
-def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
-    # compute pseudo likelihood
-    idx = gridded_data != 0
-
-    # this value is: -inf obs at idx and no apprx_rate_density
-    #                -expected_cond_count if no target earthquakes
-    likelihood = numpy.sum(gridded_data[idx] * numpy.log10(apprx_rate_density[idx])) - expected_cond_count
-
-    # comes from Eq. 20 in Zechar et al., 2010., normalizing forecast by event count ratio.
-    normalizing_factor = n_obs / expected_cond_count
-    n_cat = numpy.sum(gridded_data)
-    norm_apprx_rate_density = apprx_rate_density * normalizing_factor
-
-    # value could be: -inf if no value in apprx_rate_dens
-    #                  nan if n_cat is 0 and above condition holds
-    #                  inf if n_cat is 0
-    likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log10(norm_apprx_rate_density[idx])) / n_cat
-
-    return (likelihood, likelihood_norm)
-
-def _compute_spatial_statistic(gridded_data, log10_probability_map):
-    """
-    aggregates the log1
-    Args:
-        gridded_data:
-        log10_probability_map:
-    """
-    # returns a unique set of indexes corresponding to cells where earthquakes occurred
-    idx = numpy.unique(numpy.argwhere(gridded_data))
-    return numpy.sum(log10_probability_map[idx])
-
-def number_test(stochastic_event_sets, observation, event_counts=None):
-    # get number of events for observations and simulations
-    if not event_counts:
-        sim_counts = []
-        for catalog in stochastic_event_sets:
-            sim_counts.append(catalog.event_count)
-    else:
-        sim_counts = event_counts
-    observation_count = observation.event_count
-    # get delta_1 and delta_2 values
-    delta_1, delta_2 = get_quantiles(sim_counts, observation_count)
-    # prepare result
-    result = EvaluationResult(test_distribution=sim_counts,
-                              name='N-Test',
-                              observed_statistic=observation_count,
-                              quantile=(delta_1, delta_2),
-                              status='Normal',
-                              obs_catalog_repr=str(observation),
-                              sim_name=stochastic_event_sets[0].name,
-                              obs_name=observation.name)
-    return result
-
-
 
 
