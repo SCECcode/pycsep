@@ -117,6 +117,19 @@ def load_evaluation_result(fname):
     result = repo.load(EvaluationResult())
     return result
 
+def write_json(object, fname):
+    """ Easily write object to json file that implements the to_dict() method
+
+    Args:
+        object (class): must implement a method called to_dict()
+        fname (str): path of the file to write evaluation results
+
+    Returns:
+        NoneType
+    """
+    repo = FileSystem(url=fname)
+    repo.save(object.to_dict())
+
 def load_gridded_forecast(fname, loader=None, **kwargs):
     """ Loads grid based forecast from hard-disk.
 

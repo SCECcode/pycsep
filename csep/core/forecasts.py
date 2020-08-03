@@ -318,7 +318,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         return cls(data=data, region=region, magnitudes=magnitudes, **kwargs)
 
     @classmethod
-    def from_csep1_ascii(cls, ascii_fname, start_date=None, end_date=None):
+    def from_csep1_ascii(cls, ascii_fname, start_date=None, end_date=None, name=None):
         """ Reads Forecast file from CSEP1 ascii format.
 
         The ascii format from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:
@@ -350,7 +350,9 @@ class GriddedForecast(MarkedGriddedDataSet):
         # reshape rates into correct 2d format
         rates = data[:,-2].reshape(n_poly,n_mag_bins)
         # create / return class
-        gds = cls(start_date, end_date, magnitudes=mws, name=os.path.basename(ascii_fname[:-4]), region=region, data=rates)
+        if name is None:
+            name = os.path.basename(ascii_fname[:-4])
+        gds = cls(start_date, end_date, magnitudes=mws, name=name, region=region, data=rates)
         return gds
 
     def plot(self, show=False, plot_args=None):
@@ -370,12 +372,12 @@ class GriddedForecast(MarkedGriddedDataSet):
         else:
             start = decimal_year(self.start_time)
             end = decimal_year(self.end_time)
-            time = f'{start-end} years'
+            time = f'{round(end-start,3)} years'
 
         plot_args = plot_args or {}
         plot_args.setdefault('figsize', (9, 9))
         plot_args.setdefault('title', self.name)
-        plot_args.setdefault('clabel', f'Eq. rate per {str(dh)}° x {str(dh)}° per {time}')
+        plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
         # this call requires internet connection and basemap
         ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, show=show, plot_args=plot_args)
         return ax

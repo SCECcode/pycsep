@@ -1035,19 +1035,13 @@ def plot_comparison_test(results, plot_args=None):
     fig.tight_layout()
     return ax
 
-def plot_consistency_test(eval_results, plot_args=None):
-    # todo: make normalize and one_side_lower function arguments
-
+def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, plot_args=None):
     """ Plots results from CSEP1 Number test following the CSEP1 convention.
 
     Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
           comparable on the same figure.
 
     Description of plotting arguments:
-        one_sided_lower (bool): select this if the plot should be for a one sided test
-
-        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful for plotting simulation based simulation tests.
-
         xlabel (str): the label for the x-axis of the plot
 
         title (str): title of the plot
@@ -1055,6 +1049,8 @@ def plot_consistency_test(eval_results, plot_args=None):
     Args:
         results: list storing test results  csep.core.evaluations.EvaluationResult (see note above)
         plot_args: optional argument containing a dictionary of plotting arguments
+        one_sided_lower (bool): select this if the plot should be for a one sided test
+        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful for plotting simulation based simulation tests.
 
 
     """
@@ -1071,8 +1067,6 @@ def plot_consistency_test(eval_results, plot_args=None):
 
     title = plot_args.get('title', results[0].name)
     xlabel = plot_args.get('xlabel', 'X')
-    normalize = plot_args.get('normalize', False)
-    one_sided_lower = plot_args.get('one_sided_lower', False)
     xlims = []
     for index, res in enumerate(results):
         # handle analytical distributions first, they are all in the form ['name', parameters].

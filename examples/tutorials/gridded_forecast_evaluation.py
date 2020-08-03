@@ -43,7 +43,10 @@ end_date = time_utils.strptime_to_utc_datetime('2011-11-12 00:00:00.0')
 # For this example, we provide the example forecast data set along with the main repository. The filepath is relative
 # to the root directory of the package. You can specify any file location for your forecasts.
 
-forecast = csep.load_gridded_forecast(datasets.helmstetter_aftershock_fname, start_date=start_date, end_date=end_date)
+forecast = csep.load_gridded_forecast(datasets.helmstetter_aftershock_fname,
+                                      start_date=start_date,
+                                      end_date=end_date,
+                                      name='helmstetter_aftershock')
 
 ####################################################################################################################################
 # Load evaluation catalog
@@ -53,7 +56,8 @@ forecast = csep.load_gridded_forecast(datasets.helmstetter_aftershock_fname, sta
 # to filter the catalog in both time and magnitude. See the catalog filtering example, for more information on how to
 # filter the catalog in space and time manually.
 
-catalog = csep.load_comcat(forecast.start_time, forecast.end_time, min_magnitude=forecast.min_magnitude)
+catalog = csep.load_comcat(forecast.start_time, forecast.end_time,
+                           min_magnitude=forecast.min_magnitude)
 print(catalog)
 
 ####################################################################################################################################
@@ -66,26 +70,30 @@ catalog = catalog.filter_spatial(forecast.region)
 print(catalog)
 
 ####################################################################################################################################
-# Compute Poisson number test and spatial test
-# --------------------------------------------
+# Compute Poisson spatial test
+# ----------------------------
 #
 # Simply call the :func:`csep.core.poisson_evaluations.number_test` function to evaluate the forecast using the specified
 # evaluation catalog. The spatial test requires simulating from the Poisson forecast to provide uncertainty. The verbose
 # option prints the status of the simulations to the standard output.
 
-number_test_result = poisson.number_test(forecast, catalog)
-spatial_test_result = poisson.spatial_test(forecast, catalog, verbose=True)
+spatial_test_result = poisson.spatial_test(forecast, catalog)
+
+####################################################################################################################################
+# Store evaluation results
+# ------------------------
+#
+# PyCSEP provides easy ways of storing objects to a JSON format using :func:`csep.write_json`. The evaluations can be read
+# back into the program for plotting using :func:`csep.load_evaluation_result`.
+
+csep.write_json(spatial_test_result, 'example_spatial_test.json')
 
 ####################################################################################################################################
 # Plot number test results
 # ------------------------
 #
-# Simply call the :func:`csep.core.poisson_evaluations.number_test` function to evaluate the forecast using the specified
-# evaluation catalog. Note: we can also adjust the xlabel using the matplotlib interface by calling
-# ax.set_xlabel('Observed Seismicity').
+# We provide the function :func:`csep.utils.plotting.plot_poisson_consistency_test` to visualize the evaluation results from
+# consistency tests.
 
-_ = plots.plot_consistency_test(number_test_result, plot_args={'xlabel': 'Observed Seismicity'})
-
-# Plot spatial test and show matplotlib figure interaction
-ax = plots.plot_consistency_test(spatial_test_result, plot_args={'one_sided_lower': True})
-_ = ax.set_xlabel('Spatial Likelihood')
+_ = plots.plot_poisson_consistency_test(spatial_test_result,
+                                        plot_args={'xlabel': 'Observed Seismicity'})
