@@ -89,11 +89,11 @@ spatial_test_result = poisson.spatial_test(forecast, catalog)
 csep.write_json(spatial_test_result, 'example_spatial_test.json')
 
 ####################################################################################################################################
-# Plot number test results
+# Plot spatial test results
 # ------------------------
 #
 # We provide the function :func:`csep.utils.plotting.plot_poisson_consistency_test` to visualize the evaluation results from
 # consistency tests.
 
 _ = plots.plot_poisson_consistency_test(spatial_test_result,
-                                        plot_args={'xlabel': 'Observed Seismicity'})
+                                        plot_args={'xlabel': 'Spatial likelihood'})
