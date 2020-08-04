@@ -2,7 +2,6 @@ import itertools
 import os
 import numpy
 import datetime
-import decimal
 from csep.utils.log import LoggingMixin
 from csep.utils.spatial import CartesianGrid2D
 from csep.utils.basic_types import Polygon

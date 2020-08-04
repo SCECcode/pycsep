@@ -16,7 +16,7 @@ from csep.utils.comcat import search
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
 from csep.utils.comcat import SummaryEvent
-from csep.core.repositories import Repository, repo_builder
+from csep.core.repositories import Repository
 from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException
 from csep.utils.spatial import _bin_catalog_spatial_counts
 from csep.utils.calc import bin1d_vec

@@ -8,7 +8,6 @@ import datetime
 import os
 import json
 
-from csep.core.factories import ObjectFactory
 from csep.utils.log import LoggingMixin
 from csep.utils.file import copy_file
 
@@ -97,8 +96,4 @@ class FileSystem(Repository):
     def from_dict(cls, adict):
         return cls(**adict)
 
-
-# Register repository builders
-repo_builder = ObjectFactory()
-repo_builder.register_builder('filesystem', FileSystem.from_dict)
 
