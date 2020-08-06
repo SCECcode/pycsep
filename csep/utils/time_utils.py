@@ -42,12 +42,15 @@ def datetime_to_utc_epoch(dt):
     return int(1000.0 * epoch_time_seconds)
 
 def millis_to_days(millis):
+    """ Converts time in millis to days """
     return millis / SECONDS_PER_DAY / 1000
 
 def days_to_millis(days):
+    """ Converts days to millis """
     return days * SECONDS_PER_DAY * 1000
 
 def strptime_to_utc_epoch(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
+    """ Returns epoch time from formatted time string """
     dt=strptime_to_utc_datetime(time_string, format)
     return datetime_to_utc_epoch(dt)
 
@@ -55,8 +58,8 @@ def timedelta_from_years(time_in_years):
     """
     Returns python datetime.timedelta object based on the astronomical year in seconds.
 
-    :params time_in_years: positive fraction of years 0 <= time_in_years
-    :type time_in_years: float
+    Args:
+        time_in_years: positive fraction of years 0 <= time_in_years
     """
     if time_in_years < 0:
         raise ValueError("time_in_years must be greater than zero.")
@@ -83,9 +86,11 @@ def strptime_to_utc_datetime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     return dt
 
 def utc_now_datetime():
+    """ Returns current datetime """
     return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
 
 def utc_now_epoch():
+    """ Returns current epoch time """
     return datetime_to_utc_epoch(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc))
 
 def create_utc_datetime(datetime):

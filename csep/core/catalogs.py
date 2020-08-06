@@ -11,6 +11,7 @@ import pandas
 import pyproj
 
 # CSEP Imports
+from csep.core import regions
 from csep.utils.time_utils import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, \
     millis_to_days, parse_string_format, days_to_millis, strptime_to_utc_epoch
 from csep.utils.comcat import search
@@ -19,7 +20,6 @@ from csep.utils.calc import discretize
 from csep.utils.comcat import SummaryEvent
 from csep.core.repositories import Repository
 from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException
-from csep.core import spatial
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
@@ -27,19 +27,26 @@ from csep.utils.log import LoggingMixin
 
 class AbstractBaseCatalog(LoggingMixin):
     """
-    Base class for CSEP2 catalogs.
+    Base catalog class for PyCSEP.
 
-    Todo:
-        Come up with idea on how to manage the region of a catalog.
-        Would be used for filtering or binning. shapely, geopandas for spatial and DataFrame for temporal.
     """
     dtype = numpy.dtype([])
 
-    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True,
-                 min_magnitude=None, max_magnitude=None,
-                 min_latitude=None, max_latitude=None,
-                 min_longitude=None, max_longitude=None,
-                 start_time=None, end_time=None):
+    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True):
+
+        """
+        Base class for all CSEP catalogs.
+
+        Args:
+            filename: location of catalog
+            catalog: catalog data
+            catalog_id: catalog id number (used for stochastic event set forecasts)
+            format: identification used for serialization
+            name: human readable name of catalog
+            region: spatial region
+            compute_stats: whether statistics should be computed for the catalog
+        """
+
 
         super().__init__()
         self.filename = filename
@@ -51,19 +58,6 @@ class AbstractBaseCatalog(LoggingMixin):
 
         # cleans the catalog to set as ndarray, see setter.
         self.catalog = catalog
-
-        # class attributes that are not settable from constructor (adding here for readability)
-        self.mfd = None
-
-        # set these values from initially
-        self.max_magnitude = max_magnitude
-        self.min_magnitude = min_magnitude
-        self.min_latitude = min_latitude
-        self.max_latitude = max_latitude
-        self.min_longitude = min_longitude
-        self.max_longitude = max_longitude
-        self.start_time = start_time
-        self.end_time = end_time
 
         # use user defined stats if entered into catalog
         try:
@@ -101,7 +95,7 @@ class AbstractBaseCatalog(LoggingMixin):
             catalog as dict
 
         """
-        excluded = ['mfd', '_catalog']
+        excluded = ['_catalog']
         out = {}
         for k, v in self.__dict__.items():
             if not callable(v) and k not in excluded:
@@ -129,10 +123,12 @@ class AbstractBaseCatalog(LoggingMixin):
 
     @property
     def event_count(self):
+        """ Number of events in catalog """
         return self.get_number_of_events()
 
     @classmethod
     def from_dict(cls, adict):
+        """ Creates class from dictionary"""
         raise NotImplementedError
 
     @classmethod
@@ -170,14 +166,29 @@ class AbstractBaseCatalog(LoggingMixin):
         return out_cls
 
     @classmethod
-    def from_json(cls, filename):
+    def load_json(cls, filename):
+        """ Loads catalog from JSON file """
         with open(filename, 'r') as f:
             adict = json.load(f)
             return cls.from_dict(adict)
 
+    def write_json(self, filename):
+        """ Writes catalog to json file
+
+        Args:
+            filename (str): path to save file
+        """
+        with open(filename, 'w') as f:
+            json.dump(self.to_dict(), f)
+
     @property
     def catalog(self):
         return self._catalog
+
+    @classmethod
+    def load_ascii(cls, filename):
+        """ Loads catalog using ASCII format """
+        raise NotImplementedError
 
     @catalog.setter
     def catalog(self, val):
@@ -261,7 +272,7 @@ class AbstractBaseCatalog(LoggingMixin):
                          'event_id': event_id}
                 writer.writerow(adict)
 
-    def as_dataframe(self, with_datetime=False):
+    def to_dataframe(self, with_datetime=False):
         """
         Returns pandas Dataframe describing the catalog. Explicitly casts to pandas DataFrame.
 
@@ -322,10 +333,8 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def get_magnitudes(self):
         """
-        Extend getters to implement conversion from specific catalog type to CSEP catalog.
+        Returns magnitudes of all events in catalog
 
-# use user defined stats if entered into catalog
-        :returns: list of magnitudes from catalog
         """
         raise NotImplementedError('get_magnitudes() must be implemented by subclasses of AbstractBaseCatalog')
 
@@ -339,23 +348,25 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def get_latitudes(self):
         """
-        Returns:
-            (numpy.array): latitude
+        Returns latitudes of all events in catalog
         """
         raise NotImplementedError('get_latitudes() not implemented!')
 
     def get_longitudes(self):
         """
+        Returns longitudes of all events in catalog
+
         Returns:
             (numpy.array): longitudes
         """
         raise NotImplementedError('get_longitudes() not implemented!')
 
     def get_depths(self):
+        """ Returns depths of all events in catalog """
         raise NotImplementedError("Specific catalog types must implement a getter for depths.")
 
     def get_inter_event_times(self, scale=1000):
-        """
+        """ Returns interevent times of events in catalog
 
         Args:
             scale (int): scales epoch times to another unit. default is seconds
@@ -369,8 +380,7 @@ class AbstractBaseCatalog(LoggingMixin):
         return inter_times
 
     def get_inter_event_distances(self, ellps='WGS84'):
-        """
-        compute great circle distances between two points. requires pyproj
+        """ Compute distance between successive events in catalog
 
         Args:
             ellps (str): ellipsoid to compute distances. see pyproj.Geod for more info
@@ -389,7 +399,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def get_bvalue(self, reterr=True):
         """
-        Estimates the b-value of a catalog using Eq. 3.10 from Marzocchi and Sandri (2003)
+        Estimates the b-value of a catalog from Marzocchi and Sandri (2003)
 
         Args:
             reterr (bool): returns errors
@@ -400,6 +410,7 @@ class AbstractBaseCatalog(LoggingMixin):
         """
         if self.get_number_of_events() == 0:
             return None
+        # this might fail if magnitudes are not aligned
         mws = discretize(self.get_magnitudes(), CSEP_MW_BINS)
         dmw = CSEP_MW_BINS[1] - CSEP_MW_BINS[0]
         # compute the p term from eq 3.10 in marzocchi and sandri [2003]
@@ -553,6 +564,7 @@ class AbstractBaseCatalog(LoggingMixin):
         raise NotImplementedError('get_csep_format() not implemented.')
 
     def update_catalog_stats(self):
+        """ Compute summary statistics of events in catalog """
         # update min and max values
         self.min_magnitude = min_or_none(self.get_magnitudes())
         self.max_magnitude = max_or_none(self.get_magnitudes())
@@ -584,8 +596,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def spatial_counts(self):
         """
-        This function is bad and should be broken up into multiple parts. In general, it works by circumscribing the
-        polygons with a bounding box. Inside the bounding box is assumed to follow a regular Cartesian grid.
+        Returns counts of events within discretized spatial region
 
         We figure out the index of the polygons and create a map that relates the spatial coordinate in the
         Cartesian grid with with the polygon in region.
@@ -606,7 +617,7 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned rates without region information.")
 
-        output = spatial._bin_catalog_spatial_counts(self.get_longitudes(),
+        output = regions._bin_catalog_spatial_counts(self.get_longitudes(),
                                                      self.get_latitudes(),
                                                      self.region.num_nodes,
                                                      self.region.mask,
@@ -622,7 +633,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned probabilities without region information.")
-        output = spatial._bin_catalog_probability(self.get_longitudes(),
+        output = regions._bin_catalog_probability(self.get_longitudes(),
                                                   self.get_latitudes(),
                                                   len(self.region.polygons),
                                                   self.region.mask,
@@ -707,15 +718,15 @@ class AbstractBaseCatalog(LoggingMixin):
                     self.region.num_mag_bins = len(mag_bins)
 
             # compute if not
-            output, skipped = spatial._bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
-                                                                  self.get_latitudes(),
-                                                                  self.get_magnitudes(),
-                                                                  self.region.num_nodes,
-                                                                  self.region.mask,
-                                                                  self.region.idx_map,
-                                                                  self.region.xs,
-                                                                  self.region.ys,
-                                                                  mag_bins)
+            output, skipped = regions._bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
+                                                                           self.get_latitudes(),
+                                                                           self.get_magnitudes(),
+                                                                           self.region.num_nodes,
+                                                                           self.region.mask,
+                                                                           self.region.idx_map,
+                                                                           self.region.xs,
+                                                                           self.region.ys,
+                                                                           mag_bins)
         if ret_skipped:
             return output, skipped
         else:
@@ -730,7 +741,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
 class ZMAPCatalog(AbstractBaseCatalog):
     """
-    Catalog stored in CSEP2 format. This catalog be used when operating within the CSEP2 software ecosystem.
+    Catalog stored in ZMAP format. This catalog be used when operating within the CSEP2 software ecosystem.
     """
     # define representation for each event in catalog
     dtype = numpy.dtype([('longitude', numpy.float32),
@@ -793,7 +804,9 @@ class ZMAPCatalog(AbstractBaseCatalog):
 
 
 class CSEPCatalog(AbstractBaseCatalog):
-    # todo: merge ComcatCatalog into CSEP catalog, replace class with a reader function. ucerf3-catalog can stay because more information
+    """ Standard catalog format for PyCSEP.
+
+    """
     dtype = numpy.dtype([('longitude', numpy.float32),
                          ('latitude', numpy.float32),
                          ('magnitude', numpy.float32),
@@ -805,15 +818,15 @@ class CSEPCatalog(AbstractBaseCatalog):
         super().__init__(**kwargs)
 
     def get_longitudes(self):
-        """ Returns longitudes from internal data structure of catalog. """
+        """ Returns longitudes from events in catalog. """
         return self.catalog['longitude']
 
     def get_latitudes(self):
-        """ Returns magnitudes from internal data structure of catalog. """
+        """ Returns magnitudes from events in catalog. """
         return self.catalog['latitude']
 
     def get_magnitudes(self):
-        """ Returns magnitudes from internal data structure of catalog.
+        """ Returns magnitudes from from events in catalog.
 
         Returns:
             (numpy.array): magnitudes from catalog
@@ -821,10 +834,11 @@ class CSEPCatalog(AbstractBaseCatalog):
         return self.catalog['magnitude']
 
     def get_datetimes(self):
+        """ Returns datetimes from events in catalog"""
         return list(map(epoch_time_to_utc_datetime, self.get_epoch_times()))
 
     def get_epoch_times(self):
-        """ Returns epoch times for each event in catalog. """
+        """ Returns epoch times for events in catalog. """
         return self.catalog['origin_time']
 
     def get_csep_format(self):
@@ -925,7 +939,6 @@ class CSEPCatalog(AbstractBaseCatalog):
 
         if os.path.isdir(filename):
             raise NotImplementedError("reading from directory or batched files not implemented yet!")
-
 
 
 class UCERF3Catalog(AbstractBaseCatalog):
@@ -1119,11 +1132,25 @@ class ComcatCatalog(AbstractBaseCatalog):
                          ('magnitude','<f4')])
 
     def __init__(self, catalog_id='comcat', format='comcat', start_epoch=None, duration_in_years=None,
-                 date_accessed=None, query=False, compute_stats=False, extra_comcat_params={}, **kwargs):
+                 date_accessed=None, query=False, compute_stats=False,
+                 min_magnitude=None, max_magnitude=None,
+                 min_latitude=None, max_latitude=None,
+                 min_longitude=None, max_longitude=None,
+                 start_time=None, end_time=None, extra_comcat_params=None, **kwargs):
 
         # parent class constructor
         super().__init__(catalog_id=catalog_id, format=format, compute_stats=compute_stats, **kwargs)
 
+        # set these values from initially
+        self.max_magnitude = max_magnitude
+        self.min_magnitude = min_magnitude
+        self.min_latitude = min_latitude
+        self.max_latitude = max_latitude
+        self.min_longitude = min_longitude
+        self.max_longitude = max_longitude
+        self.start_time = start_time
+        self.end_time = end_time
+        extra_comcat_params = extra_comcat_params or {}
         self.date_accessed = date_accessed
         # if made with no catalog object, load catalog on object creation
         if self.catalog is None and query:
@@ -1314,7 +1341,8 @@ class ComcatCatalog(AbstractBaseCatalog):
 
 class JmaCsvCatalog(AbstractBaseCatalog):
     """
-    Handles a catalog type for preprocessed (deck2csv.pl) JMA deck file data:
+    Handles a catalog type for preprocessed (deck2csv.pl) JMA deck file data.
+
         timestamp;longitude;latitude;depth;magnitude
         1923-01-08T13:46:29.170000+0900;140.6260;35.3025;0.00;4.100
         1923-01-12T00:56:56.280000+0900;132.1828;32.4093;40.00;5.600
@@ -1327,7 +1355,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         updated by -tb to create proper JST timestamp strings instead of separate
         columns for year, month, days, hours, minutes (all int), and seconds (.2 digit floats)
 
-    :var dtype: numpy.dtype description of JMA CSV catalog format:
+    Args: numpy.dtype description of JMA CSV catalog format:
             - timestamp: milli(sic!)seconds as bigint
             - longitude, latitude: regular coordinates as float64
             - depth: kilometers as float64
@@ -1345,7 +1373,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         ('magnitude', 'f8')
     ])
 
-    def __init__(self, catalog_id='JMA', format='csv', **kwargs):
+    def __init__(self, catalog_id='JMA', format='jma-csv', **kwargs):
         # initialize parent constructor
         super().__init__(catalog_id=catalog_id, format=format, **kwargs)
 

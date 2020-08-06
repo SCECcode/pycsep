@@ -8,8 +8,9 @@ from csep.utils.file import get_file_extension
 from csep.utils.time_utils import strptime_to_utc_datetime
 
 def load_stochastic_event_sets(filename, type='ascii', format='native', **kwargs):
-    """
-    Factory function to load stochastic event sets. This function returns a generator to iterate through a collection of catalogs.
+    """ General function to load stochastic event sets
+
+    This function returns a generator to iterate through a collection of catalogs.
     To load a forecast and include metadata use :func:`csep.load_catalog_forecast`.
 
     Args:
@@ -51,7 +52,9 @@ def load_stochastic_event_sets(filename, type='ascii', format='native', **kwargs
 
 
 def load_catalog(filename, type=None, format='native', **kwargs):
-    """ Method to load single observed_catalog. See corresponding class documentation for additional parameters.
+    """ General function to load single catalog
+
+    See corresponding class documentation for additional parameters.
 
     Args:
         type (str): either 'ucerf3' or 'comcat'
@@ -88,6 +91,23 @@ def load_catalog(filename, type=None, format='native', **kwargs):
 def query_comcat(start_time, end_time, min_magnitude=2.50,
                  min_latitude=31.50, max_latitude=43.00,
                  min_longitude=-125.40, max_longitude=-113.10, region=None, verbose=True):
+    """
+    Access Comcat catalog through web service
+
+    Args:
+        start_time: datetime object of start of catalog
+        end_time: datetime object for end of catalog
+        min_magnitude: minimum magnitude to query
+        min_latitude:  maximum magnitude to query
+        max_latitude: max latitude of bounding box
+        min_longitude: min latitude of bounding box
+        max_longitude: max longitude of bounding box
+        region: :class:`csep.core.
+        verbose:
+
+    Returns:
+
+    """
 
     # Todo: check if datetime has utc timezone and if not set it, and issue a warning to the user.
 
@@ -187,9 +207,9 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
     return forecast
 
 def load_catalog_forecast(fname, catalog_loader=None, format='native', type='ascii', **kwargs):
-    """ Factory function to handle loading observed_catalog forecasts. Currently, just a simple wrapper, but can contain
-        more complex logic to handle the file-format description that we proposed. Users can supply a single file, or
-        multiple files that are batched together.
+    """ General function to handle loading observed_catalog forecasts.
+
+        Currently, just a simple wrapper, but can contain more complex logic in the future.
 
         Args:
             fname (str): pathname to the forecast file or directory containing the forecast files

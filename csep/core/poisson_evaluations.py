@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Jan 23 20:06:58 2020
 
-@author: khawaja and wsavran
-"""
 import numpy
 import scipy.stats
 
@@ -553,3 +549,9 @@ def _poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000,
 
     # float, float, list
     return qs, obs_ll, simulated_ll
+
+"""
+Created on Thu Jan 23 20:06:58 2020
+
+@author: khawaja and wsavran
+"""

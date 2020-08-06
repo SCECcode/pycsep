@@ -88,7 +88,7 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
 
     return ax
 
-def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=False, plot_args={}):
+def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=False, plot_args=None):
     """
     Same as below but performs the statistics on numpy arrays without using pandas data frames.
 
@@ -101,6 +101,7 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
     Returns:
         ax: matplotlib.Axes
     """
+    plot_args = plot_args or {}
     print('Plotting cumulative event counts.')
     figsize = plot_args.get('figsize', None)
     fig, ax = pyplot.subplots(figsize=figsize)
@@ -189,7 +190,7 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
 
     return ax
 
-def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=False, plot_args={}, **kwargs):
+def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=False, plot_args=None, **kwargs):
     """
     Plots magnitude versus linear time for an earthquake data.
 
@@ -202,6 +203,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=F
         (tuple): fig and axes handle
     """
     # get values from plotting args
+    plot_args = plot_args or {}
     title = plot_args.get('title', '')
     marker_size = plot_args.get('marker_size', 10)
     color = plot_args.get('color', 'blue')
@@ -387,10 +389,9 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         pyplot.show()
     return ax
 
-def plot_ecdf(x, ecdf, axes=None, xv=None, show=False, plot_args = {}):
-    """
-    Plots empirical cumulative distribution function.
-    """
+def plot_ecdf(x, ecdf, axes=None, xv=None, show=False, plot_args = None):
+    """ Plots empirical cumulative distribution function.  """
+    plot_args = plot_args or {}
     # get values from plotting args
     sim_label = plot_args.get('sim_label', 'Simulated')
     obs_label = plot_args.get('obs_label', 'Observation')
@@ -482,9 +483,11 @@ def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
         pyplot.show()
     return ax
 
-def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
+def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
+    """ Generates a magnitude histogram from a catalog-based forecast """
     # get list of magnitudes list of ndarray
-    u3etas_mws = list(map(lambda x: x.get_magnitudes(), u3catalogs))
+    plot_args = plot_args or {}
+    catalogs_mws = list(map(lambda x: x.get_magnitudes(), catalogs))
     obs_mw = comcat.get_magnitudes()
     n_obs = comcat.get_number_of_events()
 
@@ -502,7 +505,7 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
         return hist
 
     # get hist values
-    u3etas_hist = numpy.array(list(map(lambda x: get_hist(x, mws), u3etas_mws)))
+    u3etas_hist = numpy.array(list(map(lambda x: get_hist(x, mws), catalogs_mws)))
     obs_hist, bin_edges = numpy.histogram(obs_mw, bins=mws)
     bin_edges_plot = (bin_edges[1:] + bin_edges[:-1]) / 2
 
@@ -552,8 +555,8 @@ def plot_magnitude_histogram(u3catalogs, comcat, show=True, plot_args={}):
     if show:
         pyplot.show()
 
-def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
-    """
+def plot_spatial_dataset(gridded, region, show=False, plot_args=None):
+    """ Plot spatial dataset such as gridded forecast
 
     Args:
         gridded: 2d numpy array with vals according to region,
@@ -563,6 +566,7 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
     Returns:
 
     """
+    plot_args = plot_args or {}
     # get spatial information for plotting
     extent = region.get_bbox()
     # plot using cartopy
@@ -608,7 +612,7 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args={}):
         pyplot.show()
     return ax
 
-def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
+def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
     """
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the n-test.
@@ -621,6 +625,7 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
         ax (matplotlib.axes.Axes): can be used to modify the figure
 
     """
+    plot_args = plot_args or {}
     # handle plotting
     if axes:
         chained = True
@@ -677,7 +682,7 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args={}):
 
     return ax
 
-def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
+def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args=None):
     """
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the M-test.
@@ -690,6 +695,7 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
         ax (matplotlib.axes.Axes): can be used to modify the figure
 
     """
+    plot_args = plot_args or {}
     # handle plotting
     if axes:
         chained = True
@@ -736,7 +742,7 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args={}):
 
     return ax
 
-def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}):
+def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args=None):
     """
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the M-test.
@@ -749,6 +755,7 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}
         ax (matplotlib.axes.Axes): can be used to modify the figure
 
     """
+    plot_args = plot_args or {}
     # handle plotting
     if axes:
         chained = True
@@ -797,7 +804,7 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args={}
 
     return ax
 
-def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
+def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None):
     """
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the L-test.
@@ -810,6 +817,7 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
         ax (matplotlib.axes.Axes): can be used to modify the figure
 
     """
+    plot_args = plot_args or {}
     # handle plotting
     if axes:
         chained = True
@@ -856,7 +864,7 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args={}):
 
 def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
     """
-
+    Plot spatial test result from catalog based forecast
 
     Args:
         evaluation_result:

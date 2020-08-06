@@ -62,7 +62,7 @@ Project Goals
 -------------
 1. Help modelers become familiar with formats, procedures, and evaluations used in CSEP Testing Centers.
 2. Provide vetted software for model developers to use in their research.
-3. Provide quantative and visual tools to assess earthquake forecast quality.
+3. Provide quantitative and visual tools to assess earthquake forecast quality.
 4. Promote open-science ideas by ensuring transparency and availability of scientific code and results.
 5. Curate benchmark models and data sets for modelers to conduct retrospective experiments of their forecasts.
 

@@ -56,6 +56,7 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
+    'sphinx.ext.autosummary',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
@@ -90,6 +91,8 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'default'
 
+# autosummary
+autosummary_generate = True
 
 # -- Options for HTML output -------------------------------------------------
 

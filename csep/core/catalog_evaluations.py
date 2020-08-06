@@ -33,14 +33,18 @@ def number_test(forecast, observed_catalog):
     return result
 
 def spatial_test(forecast, catalog):
+    """ Performs spatial test for catalog forecasts """
     raise NotImplementedError('spatial_test not implemented!')
 
 def magnitude_test(forecast, catalog):
+    """ Performs magnitude test for catalog forecasts """
     raise NotImplementedError('magnitude_test not implemented!')
 
 def pseudolikelihood_test(forecast, catalog):
+    """ Performas the pseudolikelihood test for catalog forecasts """
     raise NotImplementedError('pseudolikelihood_test not implemented!')
 
 def calibration_test(evaluation_results):
+    """ Performs the calibration test using multiple results """
     raise NotImplementedError('calibration_test not implemented!')
 
