@@ -2,14 +2,14 @@
 Catalogs operations
 ===================
 
-This example demonstrates how to perform standard operations on a catalog. This example requires an internet
+This example demonstrates how to perform standard operations on a observed_catalog. This example requires an internet
 connection to access ComCat.
 
 Overview:
-    1. Load catalog from ComCat
+    1. Load observed_catalog from ComCat
     2. Create filtering parameters in space, magnitude, and time
-    3. Filter catalog using desired filters
-    4. Write catalog to standard CSEP format
+    3. Filter observed_catalog using desired filters
+    4. Write observed_catalog to standard CSEP format
 """
 
 ####################################################################################################################################
@@ -20,25 +20,26 @@ Overview:
 # :mod:`csep.utils` subpackage.
 
 import csep
-from csep.utils import time_utils, comcat, spatial
+from csep.core import regions
+from csep.utils import time_utils, comcat
 
 ####################################################################################################################################
 # Load catalog
 # ------------
 #
-# PyCSEP provides access to the ComCat web API using :func:`csep.load_comcat`. This function requires a
+# PyCSEP provides access to the ComCat web API using :func:`csep.query_comcat`. This function requires a
 # :class:`datetime.datetime` to specify the start and end dates.
 
 start_time = csep.utils.time_utils.strptime_to_utc_datetime('1985-01-01 00:00:00.0')
 end_time = csep.utils.time_utils.utc_now_datetime()
-catalog = csep.load_comcat(start_time, end_time)
+catalog = csep.query_comcat(start_time, end_time)
 print(catalog)
 
 ####################################################################################################################################
 # Filter to magnitude range
 # -------------------------
 #
-# Use the :meth:`csep.core.catalog.AbstractBaseCatalog.filter` to filter the catalog. The filter function uses the field
+# Use the :meth:`csep.core.catalogs.AbstractBaseCatalog.filter` to filter the catalog. The filter function uses the field
 # names stored in the numpy structured array. Standard fieldnames include 'magnitude', 'origin_time', 'latitude', 'longitude',
 # and 'depth'.
 
@@ -75,11 +76,11 @@ print(catalog)
 # from the M7.1 Ridgecrest mainshock.
 
 m71_event_id = 'ci38457511'
-event = csep.utils.comcat.get_event_by_id(m71_event_id)
-m71_epoch = csep.utils.time_utils.datetime_to_utc_epoch(event.time)
+event = comcat.get_event_by_id(m71_event_id)
+m71_epoch = time_utils.datetime_to_utc_epoch(event.time)
 
 # build aftershock region
-aftershock_region = csep.utils.spatial.generate_aftershock_region(event.magnitude, event.longitude, event.latitude, dh_scale=4)
+aftershock_region = regions.generate_aftershock_region(event.magnitude, event.longitude, event.latitude)
 
 # apply new aftershock region and magnitude of completeness
 catalog = catalog.filter_spatial(aftershock_region).apply_mct(event.magnitude, m71_epoch)

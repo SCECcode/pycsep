@@ -1,14 +1,12 @@
 import os
+import numpy
 import unittest
 
-from csep.core.evaluations import *
-from csep.core.poisson_evaluations import _simulate_catalog, number_test, _poisson_likelihood_test
-
-
+from csep.core.poisson_evaluations import _simulate_catalog, _poisson_likelihood_test
 
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(root_dir, 'artifacts', 'Testing')
+    data_dir = os.path.join(root_dir, 'artifacts', 'Comcat')
     return data_dir
 
 class TestPoissonLikelihood(unittest.TestCase):
@@ -29,7 +27,7 @@ class TestPoissonLikelihood(unittest.TestCase):
 
         num_events = 4
 
-        # ensures that our random numbers used to manually create expected catalog are consistent
+        # ensures that our random numbers used to manually create expected observed_catalog are consistent
         numpy.testing.assert_allclose(random_numbers, self.random_matrix)
 
         # assuming that our forecast_data are uniform as defined above

@@ -1,19 +1,20 @@
 import os
 import time
-from csep.core.forecasts import GriddedForecast
-from csep.core.catalogs import UCERF3Catalog, ZMAPCatalog, ComcatCatalog
-from csep.core.evaluations import EvaluationResult
+from csep.core.forecasts import GriddedForecast, CatalogForecast
+from csep.core.catalogs import UCERF3Catalog, ZMAPCatalog, ComcatCatalog, CSEPCatalog
+from csep.models import EvaluationResult
 from csep.core.repositories import FileSystem
 from csep.utils.file import get_file_extension
+from csep.utils.time_utils import strptime_to_utc_datetime
 
-# change type to catalog_
-def load_stochastic_event_sets(type=None, format='native', **kwargs):
+def load_stochastic_event_sets(filename, type='ascii', format='native', **kwargs):
     """
-    Factory function to load stochastic event sets.
-    # IDEA: should this return a stochastic event set class with a consistent api to apply things to an event set?
+    Factory function to load stochastic event sets. This function returns a generator to iterate through a collection of catalogs.
+    To load a forecast and include metadata use :func:`csep.load_catalog_forecast`.
 
     Args:
-        type (str): either 'ucerf3' or 'csep' depending on the type of catalog to load
+        filename (str): name of file or directory where stochastic event sets live.
+        type (str): either 'ucerf3' or 'csep' depending on the type of observed_catalog to load
         format (str): ('csep' or 'native') if native catalogs are not converted to csep format.
         **kwargs: see the documentation of that class corresponding to the type you selected
 
@@ -21,16 +22,17 @@ def load_stochastic_event_sets(type=None, format='native', **kwargs):
         (generator): :class:`~csep.core.catalogs.AbstractBaseCatalog`
 
     """
-    if type not in ('ucerf3',):
+    if type not in ('ucerf3', 'ascii'):
         raise ValueError("type must be one of the following: (ucerf3)")
 
     # use mapping to dispatch to correct function
     # in general, stochastic event sets are loaded with classmethods and single catalogs use the
     # constructor
-    mapping = {'ucerf3': UCERF3Catalog.load_catalogs}
+    mapping = {'ucerf3': UCERF3Catalog.load_catalogs,
+               'ascii': CSEPCatalog.load_ascii_catalogs}
 
     # dispatch to proper loading function
-    result = mapping[type](**kwargs)
+    result = mapping[type](filename, **kwargs)
 
     # factory function to load catalogs from different classes
     while True:
@@ -49,19 +51,19 @@ def load_stochastic_event_sets(type=None, format='native', **kwargs):
 
 
 def load_catalog(filename, type=None, format='native', **kwargs):
-    """ Method to load single catalog. See corresponding class documentation for additional parameters.
+    """ Method to load single observed_catalog. See corresponding class documentation for additional parameters.
 
     Args:
         type (str): either 'ucerf3' or 'comcat'
-        format (str): ('csep' or 'native'), and determines whether the catalog should be converted into the csep
-                      formatted catalog or kept as native.
+        format (str): ('csep' or 'native'), and determines whether the observed_catalog should be converted into the csep
+                      formatted observed_catalog or kept as native.
 
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
     if type not in ('ucerf3', 'comcat', 'csep'):
         raise ValueError("type must be one of the following: ('ucerf3', 'comcat', 'csep')")
 
-    # add entry point to load catalog here.
+    # add entry point to load observed_catalog here.
     mapping = {'ucerf3': UCERF3Catalog,
                'csep': ZMAPCatalog,
                'comcat': ComcatCatalog}
@@ -83,9 +85,9 @@ def load_catalog(filename, type=None, format='native', **kwargs):
         raise ValueError('format must be either "native" or "csep"')
     return return_val
 
-def load_comcat(start_time, end_time, min_magnitude=2.50,
-                min_latitude=31.50, max_latitude=43.00,
-                min_longitude=-125.40, max_longitude=-113.10, region=None, verbose=True):
+def query_comcat(start_time, end_time, min_magnitude=2.50,
+                 min_latitude=31.50, max_latitude=43.00,
+                 min_longitude=-125.40, max_longitude=-113.10, region=None, verbose=True):
 
     # Todo: check if datetime has utc timezone and if not set it, and issue a warning to the user.
 
@@ -95,15 +97,15 @@ def load_comcat(start_time, end_time, min_magnitude=2.50,
                            min_latitude=min_latitude, max_latitude=max_latitude,
                            min_longitude=min_longitude, max_longitude=max_longitude, region=region, query=True)
     t1 = time.time()
-    print("Fetched Comcat catalog in {} seconds.\n".format(t1 - t0))
+    print("Fetched Comcat observed_catalog in {} seconds.\n".format(t1 - t0))
     if verbose:
-        print("Downloaded Comcat Catalog with following parameters")
+        print("Downloaded observed_catalog from ComCat with following parameters")
         print("Start Date: {}\nEnd Date: {}".format(str(comcat.start_time), str(comcat.end_time)))
         print("Min Latitude: {} and Max Latitude: {}".format(comcat.min_latitude, comcat.max_latitude))
         print("Min Longitude: {} and Max Longitude: {}".format(comcat.min_longitude, comcat.max_longitude))
         print("Min Magnitude: {}".format(comcat.min_magnitude))
-        print(f"Found {comcat.get_number_of_events()} events in the Comcat catalog.")
-        print(f'Proceesing Catalogs.')
+        print(f"Found {comcat.get_number_of_events()} events in the Comcat observed_catalog.")
+        print(f'Processing Catalogs.')
     return comcat
 
 def load_evaluation_result(fname):
@@ -184,6 +186,47 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
         raise ValueError("Forecast not instance of GriddedForecast")
     return forecast
 
+def load_catalog_forecast(fname, catalog_loader=None, format='native', type='ascii', **kwargs):
+    """ Factory function to handle loading observed_catalog forecasts. Currently, just a simple wrapper, but can contain
+        more complex logic to handle the file-format description that we proposed. Users can supply a single file, or
+        multiple files that are batched together.
 
+        Args:
+            fname (str): pathname to the forecast file or directory containing the forecast files
+            catalog_loader (func): callable that can load catalogs, see load_stochastic_event_sets above.
+            format (str): either 'native' or 'csep'. if 'csep', will attempt to be returned into csep observed_catalog format. used to convert between
+                          observed_catalog type.
+            type (str): either 'ucerf3' or 'csep', determines the observed_catalog format of the forecast. if loader is provided, then
+                        this parameter is ignored.
+            **kwargs: other keyword arguments passed to the :class:`csep.core.forecasts.CatalogForecast`.
+
+        Returns:
+            :class:`csep.core.forecasts.CatalogForecast`
+    """
+    # sanity checks
+    if not os.path.exists(fname):
+        raise FileNotFoundError(f"Could not locate file {fname}. Unable to load forecast.")
+    # sanity checks
+    if catalog_loader is not None and not callable(catalog_loader):
+        raise AttributeError("Loader must be callable. Unable to load forecast.")
+    # factory methods for loading different types of catalogs
+    catalog_loader_mapping = {
+        'ascii': CSEPCatalog.load_ascii_catalogs,
+        'ucerf3': UCERF3Catalog.load_catalogs
+    }
+    if catalog_loader is None:
+        catalog_loader = catalog_loader_mapping[type]
+    # try and parse information from filename and send to forecast constructor
+    if format == 'native' and type=='ascii':
+        # this works for unix how windows?
+        basename = str(os.path.basename(fname.rstrip('/')).split('.')[0])
+        split_fname = basename.split('_')
+        name = split_fname[0]
+        start_time = strptime_to_utc_datetime(split_fname[1], format="%Y-%m-%dT%H-%M-%S-%f")
+        # update kwargs
+        _ = kwargs.setdefault('name', name)
+        _ = kwargs.setdefault('start_time', start_time)
+    # create observed_catalog forecast
+    return CatalogForecast(filename=fname, loader=catalog_loader, catalog_format=format, catalog_type=type, **kwargs)
 
 

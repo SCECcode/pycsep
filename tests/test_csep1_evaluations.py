@@ -14,11 +14,11 @@ import datetime
 from csep.core.poisson_evaluations import _number_test_ndarray, _w_test_ndarray, _t_test_ndarray, number_test
 from csep.core.forecasts import GriddedForecast
 from csep.core.catalogs import ZMAPCatalog
-from csep.utils.readers import read_csep1_zmap_ascii
+from csep.utils.readers import read_csep_ascii
 
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(root_dir, 'artifacts', 'Testing')
+    data_dir = os.path.join(root_dir, 'artifacts', 'example_csep1_forecasts')
     return data_dir
 
 class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
@@ -30,11 +30,11 @@ class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
         self.forecast_end_date = datetime.datetime(2008,3,1,0,0,0)
         self.test_date = datetime.datetime(2007,12,10,0,0,0)
         self.forecast_fname = os.path.join(self.root_dir,
-                    'example_csep1_forecasts/Forecast/EEPAS-0F_12_1_2007.dat')
+                    'Forecast/EEPAS-0F_12_1_2007.dat')
         self.catalog_fname = os.path.join(self.root_dir,
-                    'example_csep1_forecasts/Observations/ThreeMonthsModel.catalog.nodecl.dat')
+                    'Observations/ThreeMonthsModel.observed_catalog.nodecl.dat')
         self.result_fname = os.path.join(self.root_dir,
-                'example_csep1_forecasts/Evaluations/NTest/NTest_Result/rTest_N-Test_EEPAS-0F_12_1_2007.xml')
+                'Evaluations/NTest/NTest_Result/rTest_N-Test_EEPAS-0F_12_1_2007.xml')
 
     def test_ntest_three_months_eepas_model(self):
         """Tests N-Test implementation using EEPAS forecasts defined during CSEP1 testing phase.
@@ -49,8 +49,8 @@ class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
         fore = GriddedForecast.from_csep1_ascii(self.forecast_fname, self.forecast_start_date, self.forecast_end_date)
         # scale the forecast to the test_date, assuming the forecast is rate over the period specified by forecast start and end dates
         fore.scale_to_test_date(self.test_date)
-        # load the catalog file
-        cata = ZMAPCatalog(catalog=read_csep1_zmap_ascii(self.catalog_fname), region=fore)
+        # load the observed_catalog file
+        cata = ZMAPCatalog(catalog=read_csep_ascii(self.catalog_fname), region=fore)
         # compute n_test_result
         res = number_test(fore, cata)
         # parse xml result from file

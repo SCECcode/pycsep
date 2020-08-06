@@ -1,15 +1,17 @@
 import itertools
+import time
 import os
 import numpy
 import datetime
 from csep.utils.log import LoggingMixin
-from csep.utils.spatial import CartesianGrid2D
+from csep.core.spatial import CartesianGrid2D
 from csep.utils.basic_types import Polygon
 from csep.utils.calc import bin1d_vec
-from csep.utils.time_utils import decimal_year
+from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 from csep.core.catalogs import AbstractBaseCatalog
-from csep.utils.constants import CSEP_MW_BINS
+from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.plots import plot_spatial_dataset
+
 
 class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
@@ -61,6 +63,9 @@ class GriddedDataSet(LoggingMixin):
 
     @property
     def event_count(self):
+        return numpy.sum(self.data)
+
+    def sum(self):
         return numpy.sum(self.data)
 
     def spatial_counts(self, cartesian=False):
@@ -354,7 +359,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         gds = cls(start_date, end_date, magnitudes=mws, name=name, region=region, data=rates)
         return gds
 
-    def plot(self, show=False, plot_args=None):
+    def plot(self, show=False, log=True, plot_args=None):
         """ Plot gridded forecast according to plate-carree proejction
 
         Args:
@@ -367,51 +372,251 @@ class GriddedForecast(MarkedGriddedDataSet):
         # no mutable function arguments
         dh = round(self.region.dh, 5)
         if self.start_time is None or self.end_time is None:
-            time = 'year'
+            time = 'forecast period'
         else:
             start = decimal_year(self.start_time)
             end = decimal_year(self.end_time)
             time = f'{round(end-start,3)} years'
 
         plot_args = plot_args or {}
-        plot_args.setdefault('figsize', (9, 9))
+        plot_args.setdefault('figsize', (10, 10))
         plot_args.setdefault('title', self.name)
-        plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
+
         # this call requires internet connection and basemap
-        ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, show=show, plot_args=plot_args)
+        if log:
+            plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
+            with numpy.errstate(divide='ignore'):
+                ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, show=show, plot_args=plot_args)
+        else:
+            plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
+            ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, show=show, plot_args=plot_args)
         return ax
-
-    def number_test(self, catalog):
-        pass
-
-    def magnitude_test(self, catalog):
-        pass
-
-    def conditional_likelihood_test(self, catalog):
-        pass
-
 
 
 class CatalogForecast(LoggingMixin):
 
-    def __init__(self, catalogs=None, region=None, magnitudes=CSEP_MW_BINS):
-        super().__init__()
-        self.catalogs = catalogs or []
-        self.region = region
-        self.magnitudes = magnitudes
-        self.origin_epoch = None
-        self.end_epoch = None
+        def __init__(self, filename=None, catalogs=None, filters=None,
+                     filter_spatial=False,
+                     apply_mct=False, name=None,
+                     region=None, expected_rates=None, start_time=None, end_time=None,
+                     n_cat=None, event=None, loader=None, catalog_type='ascii',
+                     catalog_format='native'):
 
-    @property
-    def num_mag_bins(self):
-        return
+            """ Catalog based forecast defined through a family of stochastic event sets.
 
-    def spatial_counts(self):
-        pass
+            The region information can be provided along side the catalog, if they are stored in one of the supported file formats.
+            It is assumed that the region for each catalog is identical. If the regions are not provided with the catalog files,
+            they must be provided explicitly. The california testing region can be loaded using :func:`csep.utils.spatial.california_relm_region`.
 
-    def magnitude_counts(self):
-        pass
+            There are a few different ways this class can be constructed, each
 
-    def spatial_magnitude_counts(self):
-        pass
+            The region is not required to load a forecast or to perform basic operations on a forecast, such as counting events.
+            Any binning of events in space or magnitude will require a spatial region or magnitude bin definitions, respectively.
 
+            Args:
+                filename (str): Path to the file or directory containing the forecast.
+                catalogs: iterable of :class:`csep.core.catalogs.AbstractBaseCatalog`
+                filter_spatial (bool): if true, will filter to area defined in space region
+                apply_mct (bool): this should be provided if a time-dependent magnitude completeness model should be
+                                  applied to the forecast
+                filters (iterable): list of catalog filter strings. these override the filter_magnitude and filter_time arguments
+                region: :class:`csep.core.spatial.CartesianGrid2D` including magnitude bins
+                start_time (datetime.datetime): start time of the forecast
+                end_time (datetime.datetime): end time of the forecast
+                name (str): name of the forecast, will be used for defaults in plotting and other places
+                n_cat (int): number of catalogs in the forecast
+                event (:class:`csep.models.Event`): if the forecast is associated with a particular event
+
+            """
+            super().__init__()
+
+            # used for labeling plots, filenames, etc, should be human readable
+            self.name = name
+
+            # path to forecast location
+            self.filename = filename
+
+            # should be iterable
+            self.catalogs = catalogs or []
+
+            # should be a generator function
+            self.loader = loader
+
+            # used if the forecast is associated with a particular event
+            self.event = event
+
+            # these can be used to filter catalogs to a desired experiment region
+            self.filters = filters or []
+
+            self.filter_spatial = filter_spatial
+            self.apply_mct = apply_mct
+
+            # catalog format used for loading catalogs
+            self.catalog_type = catalog_type
+            self.catalog_format = catalog_format
+
+            # should be a MarkedGriddedDataSet
+            self.expected_rates = expected_rates
+
+            # defines the space, time, and magnitude region of the forecasts
+            self.region = region
+
+            # start and end time of the forecast
+            self.start_time = start_time
+            self.end_time = end_time
+
+            # time horizon in years
+            if self.start_time is not None and self.end_time is not None:
+                self.time_horizon_years = (self.end_epoch - self.start_epoch) / SECONDS_PER_ASTRONOMICAL_YEAR / 1000
+                # add time filters only if filters are not provied and user wants to filter in time
+
+            # number of simulated catalogs
+            self.n_cat = n_cat
+
+            # used to handle the iteration over catalogs
+            self._idx = 0
+
+            # load catalogs if catalogs aren't provided, this might be a generator
+            if not self.catalogs:
+                self._load_catalogs()
+
+        def __iter__(self):
+            return self
+
+        def __next__(self):
+            """ Allows the class to be used in a for-loop. Handles the case where the catalogs are stored as a list or
+            loaded in using a generator function. The latter solves the problem where memory is a concern or all of the
+            catalogs should not be held in memory at once. """
+            try:
+                n_items = len(self.catalogs)
+                assert self.n_cat == n_items
+                # here, we have reached the end of the list, simply reset the index to the front
+                if self._idx >= self.n_cat:
+                    self._idx = 0
+                    raise StopIteration()
+                catalog = self.catalogs[self._idx]
+                self._idx += 1
+            except TypeError:
+                # handle generator case. a generator does not have the __len__ attribute, but an iterable does.
+                try:
+                    catalog = next(self.catalogs)
+                    self._idx += 1
+                except StopIteration:
+                    # gets a new generator function after the old one is exhausted
+                    self.catalogs = self.loader(format=self.catalog_format, filename=self.filename,
+                                                region=self.region, name=self.name)
+                    self.n_cat = self._idx
+                    self._idx = 0
+                    raise StopIteration()
+            # apply filtering to catalogs, these can throw errors if not configured properly
+            if self.filters:
+                catalog = catalog.filter(self.filters)
+            if self.apply_mct:
+                catalog = catalog.apply_mct(self.event.magnitude, datetime_to_utc_epoch(self.event.time))
+            if self.filter_spatial:
+                catalog = catalog.filter_spatial(self.region)
+            # return potentially filtered catalog
+            return catalog
+
+        def _load_catalogs(self):
+            self.catalogs = self.loader(format=self.catalog_format, filename=self.filename, region=self.region, name=self.name)
+
+        @property
+        def start_epoch(self):
+            return datetime_to_utc_epoch(self.start_time)
+
+        @property
+        def end_epoch(self):
+            return datetime_to_utc_epoch(self.end_time)
+
+        @property
+        def magnitudes(self):
+            return self.region.magnitudes
+
+        @property
+        def min_magnitude(self):
+            return numpy.min(self.region.magnitudes)
+
+        def spatial_counts(self, cartesian=False):
+            if self.expected_rates is not None:
+                return self.expected_rates.spatial_counts(cartesian=cartesian)
+            else:
+                return None
+
+        def magnitude_counts(self):
+            if self.expected_rates is not None:
+                return self.expected_rates.magnitude_counts()
+            else:
+                return None
+
+        def get_expected_rates(self, verbose=False):
+                """ Compute the approximate rate density from a catalog-based forecast
+
+                Args:
+                    catalogs_iterable (iterable): collection of catalogs, should be filtered outside the function
+                    catalog (csep.core.AbstractBaseCatalog): observation catalog
+
+                Return:
+                    :class:`csep.core.forecasts.GriddedForecast`
+                    list of tuple(lon, lat, magnitude) events that were skipped in binning. if catalog was filtered in space
+                    and magnitude beforehand this list shoudl be empty.
+                """
+                # self.n_cat might be none here, if catalogs haven't been loaded and its not yet specified.
+                skipped_list = []
+                if self.region is None or self.region.magnitudes is None:
+                    raise AttributeError("Forecast must have space-magnitude regions to compute expected rates.")
+                # need to compute expected rates, else return.
+                if self.expected_rates is None:
+                    t0 = time.time()
+                    data = numpy.empty([])
+                    for i, cat in enumerate(self):
+                        # compute spatial density from each catalog, force catalog region to use the forecast region
+                        cat.region = self.region
+                        gridded_counts, skipped = cat.spatial_magnitude_counts(ret_skipped=True)
+                        skipped_list.extend(skipped)
+                        if i == 0:
+                            data = numpy.array(gridded_counts)
+                        else:
+                            data += numpy.array(gridded_counts)
+                        # output status
+                        if verbose:
+                            tens_exp = numpy.floor(numpy.log10(i + 1))
+                            if (i + 1) % 10 ** tens_exp == 0:
+                                t1 = time.time()
+                                print(f'Processed {i + 1} catalogs in {t1 - t0} seconds', flush=True)
+                    # after we iterate through the catalogs, we know self.n_cat
+                    data = data / self.n_cat
+                    self.expected_rates = GriddedForecast(self.start_time, self.end_time, data=data, region=self.region,
+                                                          magnitudes=self.magnitudes, name=self.name)
+                    return (self.expected_rates, skipped_list)
+
+        def get_dataframe(self):
+            """Return a single dataframe with all of the events from all of the catalogs."""
+            raise NotImplementedError("get_dataframe is not implemented.")
+
+        def write_ascii(self, fname, header=True, loader=None ):
+            """ Writes catalog forecast to ASCII format
+
+
+            Args:
+                fname (str): Output filename of forecast
+                header (bool): If true, write header information; else, do not write header.
+
+
+            Returns:
+                NoneType
+            """
+
+            raise NotImplementedError('write_ascii is not implemented!')
+
+        @classmethod
+        def load_ascii(cls, fname, **kwargs):
+            """ Loads ASCII format for catalog forecast.
+
+            Args:
+                fname (str): path to file or directory containing forecast files
+
+            Returns:
+                  :class:`csep.core.forecasts.CatalogForecast
+            """
+            raise NotImplementedError("load_ascii is not implemented!")

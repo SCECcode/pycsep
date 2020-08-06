@@ -5,7 +5,7 @@ import pytest
 import numpy
 
 from csep.utils.basic_types import Polygon
-from csep.utils.spatial import compute_vertex, compute_vertices, CartesianGrid2D, _bin_catalog_spatial_counts, \
+from csep.core.spatial import compute_vertex, compute_vertices, CartesianGrid2D, _bin_catalog_spatial_counts, \
     _bin_catalog_probability, _bin_catalog_spatio_magnitude_counts
 
 
@@ -199,7 +199,7 @@ class TestCatalogBinning(unittest.TestCase):
         mags = numpy.array([2.55, 2.65, 2.55, 2.05, 2.0])
 
         # expected bins None, (0, 1), (9, 0), None, None
-        test_result = _bin_catalog_spatio_magnitude_counts(lons, lats, mags,
+        test_result, _ = _bin_catalog_spatio_magnitude_counts(lons, lats, mags,
                                                 self.cart_grid.num_nodes,
                                                 self.cart_grid.mask,
                                                 self.cart_grid.idx_map,

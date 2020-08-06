@@ -146,7 +146,6 @@ class HistoricTime(datetime.datetime):
                                        100)  # last two digits are the same
         return result
 
-
 def decimal_year(test_date):
     """ Convert given test date to the decimal year representation.
 

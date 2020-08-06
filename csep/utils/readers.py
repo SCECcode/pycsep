@@ -344,17 +344,18 @@ def _parse_datetime_to_zmap(date, time):
     out['second'] = dt.second
     return out
 
-
-def read_csep1_zmap_ascii(fname):
+def read_zmap_ascii(fname):
     """
-    Reads csep1 ascii format into numpy structured array. this can be passed into a catalog object constructor.
+    Reads csep1 ascii format into numpy structured array. this can be passed into a catalog object constructor. Using
+
+    $ catalog = csep.core.catalogs.CSEPCatalog(catalog=read_zmap_ascii(fname), **kwargs)
 
     Many of the catalogs from the CSEP1 testing center were empty indicating that no observed earthquakes were available
     during the time period of the catalog. In the case of an empty catalog, this function will return an empty numpy array. The
     catalog object should still be created, but it will contain zero events. Therefore it can still be used for evaluations
     and plotting as normal.
 
-    The ZMAP Format has the following dtype:
+    The CSEP Format has the following dtype:
 
     dtype = numpy.dtype([('longitude', numpy.float32),
                         ('latitude', numpy.float32),
@@ -414,3 +415,12 @@ def read_csep1_zmap_ascii(fname):
                        line[ColumnIndex.Second])
         out.append(event_tuple)
     return out
+
+def read_csep_ascii(fname):
+    pass
+
+def read_em_gcmt(fname):
+    raise NotImplementedError("not implemented yet!")
+
+def read_jma_csv(fname):
+    raise NotImplementedError("not implemented yet!")

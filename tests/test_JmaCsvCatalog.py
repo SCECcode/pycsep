@@ -6,7 +6,7 @@ import numpy
 
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(root_dir, 'artifacts', 'Testing', 'JMA-catalog')
+    data_dir = os.path.join(root_dir, 'artifacts', 'JMA-observed_catalog')
     return data_dir
 
 def test_JmaCsvCatalog_loading():
@@ -16,7 +16,7 @@ def test_JmaCsvCatalog_loading():
     _JmaCsvCatalogObject = JmaCsvCatalog(filename = csv_file)
     _JmaCsvCatalogObject.load_catalog()
 
-    assert len(_JmaCsvCatalogObject.catalog) == 22284, 'invalid number of events in catalog object'
+    assert len(_JmaCsvCatalogObject.catalog) == 22284, 'invalid number of events in observed_catalog object'
 
     _dummy = _JmaCsvCatalogObject.get_magnitudes()
     assert len(_dummy) == len(_JmaCsvCatalogObject.catalog)
@@ -36,7 +36,7 @@ def test_JmaCsvCatalog_loading():
     _dummy = _JmaCsvCatalogObject.get_datetimes()
     assert len(_dummy) == len(_JmaCsvCatalogObject.catalog)
 
-    # assert (d[0].timestamp() * 1000.) == c.catalog['timestamp'][0]
+    # assert (d[0].timestamp() * 1000.) == c.observed_catalog['timestamp'][0]
 
     _datetimes = numpy.ndarray(len(_JmaCsvCatalogObject.catalog), dtype='<i8')
     _datetimes.fill(numpy.nan)

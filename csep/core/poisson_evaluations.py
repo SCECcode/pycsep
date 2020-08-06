@@ -8,7 +8,7 @@ Created on Thu Jan 23 20:06:58 2020
 import numpy
 import scipy.stats
 
-from csep.core.evaluations import EvaluationResult
+from csep.models import EvaluationResult
 from csep.utils.stats import poisson_joint_log_likelihood_ndarray
 
 

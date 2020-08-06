@@ -9,7 +9,7 @@ import vcr
 
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(root_dir, 'artifacts', 'Testing')
+    data_dir = os.path.join(root_dir, 'artifacts', 'Comcat')
     return data_dir
 
 def test_search():
@@ -186,9 +186,9 @@ def test_detail():
         assert event.toDict()['magnitude'] == 6.7
 
         eventid = 'nc72282711'  # Napa 2014 eq, multiple origins and MTs.
-        # cievent = get_event_by_id(eventid,catalog='ci')
-        # usevent = get_event_by_id(eventid,catalog='us')
-        # atevent = get_event_by_id(eventid,catalog='at')
+        # cievent = get_event_by_id(eventid,observed_catalog='ci')
+        # usevent = get_event_by_id(eventid,observed_catalog='us')
+        # atevent = get_event_by_id(eventid,observed_catalog='at')
         event = get_event_by_id(eventid)
 
         phases = event.getProducts('phase-data', source='all')

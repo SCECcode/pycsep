@@ -1,7 +1,7 @@
 Developer Notes
 ===============
 
-Last updated: 03 August 2020
+Last updated: 04 August 2020
 
 Reproducibility Files
 ---------------------
@@ -15,10 +15,32 @@ Store information for reproducibility. This should include the following:
 Evaluation Results
 ------------------
 
-Each evaluation should return an evaluation result class that has an associated .plot() method. We should be able to
-.plot() most everything that makes sense. How do we .plot() a catalog? Should we .plot() a region? For serialization, we
-can identify the appropriate class as a string in the class state and use that to create the correct object on load.
+* Each evaluation should return an evaluation result class that has an associated .plot() method.
+* We should be able to .plot() most everything that makes sense.
 
+    * How do we .plot() a catalog?
+    * Should we .plot() a region?
+    * For serialization, we can identify the appropriate class as a string in the class state and use that to create the correct object on load.
 
+Forecast metadata information
+-----------------------------
+
+1. Forecast should contain metadata information to identify properties of the forecast
+
+    * Start and end date
+    * Spatial region
+    * Magnitude bins
+
+Working with GriddedForecasts
+-----------------------------
+
+* Right now, we can only spatial counts over the entire magnitude range. What if we wanted to have some control over this?
+* Might want to plot above some magnitude threshold or within some incremental threshold.
+* Should be able to have a method that returns a new GriddedForecast with specified parameters such as min/max magnitude.
+
+Region information
+------------------
+* The region information will need to accomodate more complex spaces including 3D areas and those with non-regular grids (e.g.,
+  quadtrees or meshes
 
 
