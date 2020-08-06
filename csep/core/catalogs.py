@@ -32,7 +32,7 @@ class AbstractBaseCatalog(LoggingMixin):
     """
     dtype = numpy.dtype([])
 
-    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, start_time=None, end_time=None,  compute_stats=True):
+    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True):
 
         """
         Base class for all CSEP catalogs.
@@ -907,35 +907,35 @@ class CSEPCatalog(AbstractBaseCatalog):
                             # store this event for next time
                             events = [(lon, lat, magnitude, origin_time, depth, event_id)]
                             for id in range(catalog_id):
-                                yield cls(catalog=[], catalog_id=id, start_time=start_time, **kwargs)
+                                yield cls(catalog=[], catalog_id=id, **kwargs)
                     # deal with cases of events
                     if catalog_id == prev_id:
                         prev_id = catalog_id
                         events.append((lon, lat, magnitude, origin_time, depth, event_id))
                     # create and yield class if the events are from different catalogs
                     elif catalog_id == prev_id + 1:
-                        catalog = cls(catalog=events, catalog_id = prev_id, start_time=start_time, **kwargs)
+                        catalog = cls(catalog=events, catalog_id = prev_id, **kwargs)
                         prev_id = catalog_id
                         # add first event to new event list
                         events = [(lon, lat, magnitude, origin_time, depth, event_id)]
                         yield catalog
                     # this implies there are empty catalogs, because they are not listed in the ascii file
                     elif catalog_id > prev_id + 1:
-                        catalog = cls(catalog=events, catalog_id=prev_id, start_time=start_time, **kwargs)
+                        catalog = cls(catalog=events, catalog_id=prev_id, **kwargs)
                         # add event to new event list
                         events = [(lon, lat, magnitude, origin_time, depth, event_id)]
                         # if prev_id = 0 and catalog_id = 2, then we skipped one catalog. thus, we skip catalog_id - prev_id - 1 catalogs
                         num_empty_catalogs = catalog_id - prev_id - 1
                         # create empty catalog classes
                         for id in range(num_empty_catalogs):
-                            yield cls(catalog=[], catalog_id=catalog_id-num_empty_catalogs+id, start_time=start_time, **kwargs)
+                            yield cls(catalog=[], catalog_id=catalog_id-num_empty_catalogs+id, **kwargs)
                         # finally we want to yield the buffered catalog to preserve order
                         prev_id = catalog_id
                         yield catalog
                     else:
                         raise ValueError("catalog_id should be monotonically increasing and events should be ordered by catalog_id")
                 # yield final catalog, note: since this is just loading catalogs, it has no idea how many should be there
-                yield cls(catalog=events, catalog_id=prev_id, start_time=start_time, **kwargs)
+                yield cls(catalog=events, catalog_id=prev_id, **kwargs)
 
         if os.path.isdir(filename):
             raise NotImplementedError("reading from directory or batched files not implemented yet!")
@@ -1136,6 +1136,7 @@ class ComcatCatalog(AbstractBaseCatalog):
                  min_magnitude=None, max_magnitude=None,
                  min_latitude=None, max_latitude=None,
                  min_longitude=None, max_longitude=None,
+                 start_time=None, end_time=None,
                  extra_comcat_params=None, **kwargs):
 
         # parent class constructor

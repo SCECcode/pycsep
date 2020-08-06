@@ -30,7 +30,7 @@ from csep.utils import time_utils, comcat
 # PyCSEP provides access to the ComCat web API using :func:`csep.query_comcat`. This function requires a
 # :class:`datetime.datetime` to specify the start and end dates.
 
-start_time = csep.utils.time_utils.strptime_to_utc_datetime('1985-01-01 00:00:00.0')
+start_time = csep.utils.time_utils.strptime_to_utc_datetime('2019-01-01 00:00:00.0')
 end_time = csep.utils.time_utils.utc_now_datetime()
 catalog = csep.query_comcat(start_time, end_time)
 print(catalog)
@@ -43,7 +43,7 @@ print(catalog)
 # names stored in the numpy structured array. Standard fieldnames include 'magnitude', 'origin_time', 'latitude', 'longitude',
 # and 'depth'.
 
-catalog = catalog.filter('magnitude >= 2.5')
+catalog = catalog.filter('magnitude >= 3.5')
 print(catalog)
 
 ####################################################################################################################################

@@ -29,7 +29,7 @@ from csep.utils import datasets, time_utils, plots
 # Define forecast properties
 # --------------------------
 #
-# We choose a :ref:`time-independent forecast` to show how to evaluate a grid-based earthquake forecast using PyCSEP. Note,
+# We choose a :ref:`time-independent-forecast` to show how to evaluate a grid-based earthquake forecast using PyCSEP. Note,
 # the start and end date should be chosen based on the creation of the forecast. This is important for time-independent forecasts
 # because they can be rescale to any arbitrary time period.
 
@@ -49,7 +49,7 @@ forecast = csep.load_gridded_forecast(datasets.helmstetter_aftershock_fname,
                                       name='helmstetter_aftershock')
 
 ####################################################################################################################################
-# Load evaluation observed_catalog
+# Load evaluation catalog
 # -----------------------
 #
 # We will download the evaluation observed_catalog from ComCat (this step requires an internet connection). We can use the ComCat API
@@ -61,7 +61,7 @@ catalog = csep.query_comcat(forecast.start_time, forecast.end_time,
 print(catalog)
 
 ####################################################################################################################################
-# Filter evaluation observed_catalog in space
+# Filter evaluation catalog in space
 # ----------------------------------
 #
 # We need to remove events in the evaluation observed_catalog outside the valid region specified by the forecast.
@@ -90,10 +90,10 @@ csep.write_json(spatial_test_result, 'example_spatial_test.json')
 
 ####################################################################################################################################
 # Plot spatial test results
-# ------------------------
+# -------------------------
 #
 # We provide the function :func:`csep.utils.plotting.plot_poisson_consistency_test` to visualize the evaluation results from
 # consistency tests.
 
-_ = plots.plot_poisson_consistency_test(spatial_test_result,
+ax = plots.plot_poisson_consistency_test(spatial_test_result,
                                         plot_args={'xlabel': 'Spatial likelihood'})

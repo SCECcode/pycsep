@@ -46,5 +46,4 @@ forecast = csep.load_gridded_forecast(datasets.helmstetter_mainshock_fname,
 # returns a matplotlib axes, so more specific attributes can be set on the figure.
 
 ax = forecast.plot()
-print('blah')
 
