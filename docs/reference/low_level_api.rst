@@ -211,7 +211,6 @@ Plotting from stochastic event sets:
    plot_distribution_test
    plot_likelihood_test
    plot_spatial_test
-   plot_probability_test
 
 Plotting gridded forecasts and evaluations:
 
@@ -241,3 +240,54 @@ Time Utilities
    utc_now_epoch
    create_utc_datetime
    decimal_year
+
+.. automodule:: csep.utils.comcat
+
+Comcat Access
+-------------
+
+We integrated the code developed by Mike Hearne and others at the USGS to reduce the dependencies of this package. We plan
+to move this to an external and optional dependency in the future.
+
+.. autosummary::
+   :toctree: generated
+
+   search
+   get_event_by_id
+
+.. automodule:: csep.utils.calc
+
+Calculation Utilities
+---------------------
+
+.. autosummary::
+   :toctree: generated
+
+   nearest_index
+   find_nearest
+   func_inverse
+   discretize
+   bin1d_vec
+
+.. automodule:: csep.utils.stats
+
+Statistics Utilities
+--------------------
+
+.. autosummary::
+   :toctree: generated
+
+   sup_dist
+   sup_dist_na
+   cumulative_square_diff
+   binned_ecdf
+   ecdf
+   greater_equal_ecdf
+   less_equal_ecdf
+   min_or_none
+   max_or_none
+   get_quantiles
+   poisson_log_likelihood
+   poisson_joint_log_likelihood_ndarray
+   poisson_inverse_cdf
+

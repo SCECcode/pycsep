@@ -1,11 +1,3 @@
-"""
-Taken from www.github.com/usgs/libcomcat and extract relevant portions of code for CSEP.
-Removes dependencies on libcomcat to make installation of CSEP package easier. USGS code
-is public domain. Credit for this code goes to mhearne at usgs dot gov.
-
-Since the API is the same, we will port to the USGS version
-"""
-
 # python imports
 from datetime import datetime, timedelta
 from urllib import request

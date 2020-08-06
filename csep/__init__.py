@@ -207,7 +207,7 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
     return forecast
 
 def load_catalog_forecast(fname, catalog_loader=None, format='native', type='ascii', **kwargs):
-    """ General function to handle loading observed_catalog forecasts.
+    """ General function to handle loading catalog forecasts.
 
         Currently, just a simple wrapper, but can contain more complex logic in the future.
 

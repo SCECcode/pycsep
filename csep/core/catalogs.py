@@ -733,7 +733,7 @@ class AbstractBaseCatalog(LoggingMixin):
             return output
 
     def length_in_seconds(self):
-        """Returns catalog length in years assuming that the catalog is sorted by time."""
+        """ Returns catalog length in seconds assuming that the catalog is sorted by time. """
         dts = self.get_datetimes()
         elapsed_time = (dts[-1] - dts[0]).total_seconds()
         return elapsed_time
@@ -1323,26 +1323,20 @@ class ComcatCatalog(AbstractBaseCatalog):
 
     def get_csep_format(self):
         n = len(self.catalog)
-        csep_catalog = numpy.zeros(n, dtype=ZMAPCatalog.dtype)
+        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
         for i, event in enumerate(self.catalog):
-            dt = epoch_time_to_utc_datetime(event['origin_time'])
             csep_catalog[i] = (event['longitude'],
                                event['latitude'],
-                               dt.year,
-                               dt.month,
-                               dt.day,
                                event['magnitude'],
+                               event['origin_time'],
                                event['depth'],
-                               dt.hour,
-                               dt.minute,
-                               dt.second)
+                               event['id'])
 
-        return ZMAPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
+        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 
 
 class JmaCsvCatalog(AbstractBaseCatalog):
-    """
-    Handles a catalog type for preprocessed (deck2csv.pl) JMA deck file data.
+    """ Handles a catalog type for preprocessed (deck2csv.pl) JMA deck file data.
 
         timestamp;longitude;latitude;depth;magnitude
         1923-01-08T13:46:29.170000+0900;140.6260;35.3025;0.00;4.100
@@ -1364,6 +1358,7 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         after some benchmarks of comparing ('i8','f8','f8','f8','f8') vs. ('i8','i4','i4','i2','i2') the
         10% speed gain by using full length float instead of minimum sized integers seemed to be more important than
         the 200% used space
+
     """
 
     dtype = numpy.dtype([

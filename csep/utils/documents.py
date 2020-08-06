@@ -2,6 +2,7 @@ import os
 from itertools import chain
 
 class MarkdownReport:
+    """ Class to generate a Markdown report from a study """
 
     def __init__(self, outname='results.md'):
         self.outname = outname
@@ -10,7 +11,7 @@ class MarkdownReport:
         self.markdown = []
 
     def add_introduction(self, adict):
-        # generate document header
+        """ Generate document header from dictionary """
         first = f"# CSEP Testing Results: {adict['simulation_name']}  \n" \
                 f"**Forecast Name:** {adict['forecast_name']}  \n" \
                 f"**Simulation Start Time:** {adict['origin_time']}  \n" \

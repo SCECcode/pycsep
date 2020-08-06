@@ -155,9 +155,7 @@ def max_or_none(x):
         return numpy.max(x)
 
 def get_quantiles(sim_counts, obs_count):
-    """
-    Direct call using ndarray. Useful for optimizing calls to multiprocessing pools.
-    """
+    """ Computes delta1 and delta2 quantile scores from empirical distribution and observation """
     # delta 1 prob of observation at least n_obs events given the forecast
     delta_1 = greater_equal_ecdf(sim_counts, obs_count)
     # delta 2 prob of observing at most n_obs events given the catalog
@@ -165,7 +163,7 @@ def get_quantiles(sim_counts, obs_count):
     return delta_1, delta_2
 
 def poisson_log_likelihood(observation, forecast):
-    """Wrapper around scipy to compute the Poisson log-likelihood
+    """ Wrapper around scipy to compute the Poisson log-likelihood
 
     Args:
         observation: Observed (Grided) seismicity
@@ -177,8 +175,7 @@ def poisson_log_likelihood(observation, forecast):
     return numpy.log(scipy.stats.poisson.pmf(observation, forecast))
 
 def poisson_joint_log_likelihood_ndarray(target_event_log_rates, target_observations, n_fore):
-    """ This takes advantage that only bins where target events occur contribute to the overall joint-likelihood. In cells,
-    where zero events occur the penalty comes from the expected number of events from the forecast.
+    """ Efficient calculation of joint log-likelihood of grid-based forecast.
 
     Note: log(w!) = 0
 
@@ -197,8 +194,7 @@ def poisson_joint_log_likelihood_ndarray(target_event_log_rates, target_observat
     return sum_log_target_event_rates - discrete_penalty_term - n_fore
 
 def poisson_inverse_cdf(random_matrix, lam):
-    """Wrapper around scipy inverse poisson cdf to compute new forecast using
-        actual forecast and random numbers between 0 and 1
+    """ Wrapper around scipy inverse poisson cdf function
 
     Args:
         random_matrix: Matrix of dimenions equal to forecast, containing random
