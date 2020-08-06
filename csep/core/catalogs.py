@@ -32,7 +32,7 @@ class AbstractBaseCatalog(LoggingMixin):
     """
     dtype = numpy.dtype([])
 
-    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True):
+    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, start_time=None, end_time=None,  compute_stats=True):
 
         """
         Base class for all CSEP catalogs.
@@ -1136,7 +1136,7 @@ class ComcatCatalog(AbstractBaseCatalog):
                  min_magnitude=None, max_magnitude=None,
                  min_latitude=None, max_latitude=None,
                  min_longitude=None, max_longitude=None,
-                 start_time=None, end_time=None, extra_comcat_params=None, **kwargs):
+                 extra_comcat_params=None, **kwargs):
 
         # parent class constructor
         super().__init__(catalog_id=catalog_id, format=format, compute_stats=compute_stats, **kwargs)
