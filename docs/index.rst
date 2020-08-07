@@ -39,11 +39,10 @@ PyCSEP: Tools for Earthquake Forecast Developers
 
     reference/glossary
     reference/changelog
-    Code of Conduct<reference/conduct>
-    reference/contributing
     reference/developer_notes
-    reference/low_level_api
+    reference/api_reference
     Copyright Agreement<reference/copyright>
+
 
 *PyCSEP tools help earthquake forecast model developers evaluate their forecasts and provide the machinery to implement
 experiments within CSEP testing centers.*
@@ -70,7 +69,7 @@ Contributing
 ------------
 We highly encourage users of this package to get involved in the development process. Any contribution is helpful, even
 suggestions on how to improve the package, or additions to the documentation (those are particularly welcome!). Check out
-the :ref:`Contribution guidelines <contributing>` for a step by step on how to contribute to the project. If there are
+the `Contribution guidlines <` for a step by step on how to contribute to the project. If there are
 any questions, please contact us!
 
 Contacting Us
@@ -83,6 +82,7 @@ List of Contributors
 * (Lead) William Savran ``wsavran [at] usc [dot] edu``
 * Muhammad Asim Khawaja
 * Thomas Beutin
+* Pablo Iturrieta
 
 
 

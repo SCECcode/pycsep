@@ -1,24 +1,5 @@
 Utilities
 =========
 
-PyCSEP contains several utility modules that provide helpful routines.
+More in-depth explanations of the utilities provided with PyCSEP will go here.
 
-Comcat catalog
---------------
-.. automodule:: csep.utils.comcat
-    :members:
-
-Time utilities
---------------
-.. automodule:: csep.utils.time_utils
-    :members:
-
-Statistical functions
----------------------
-.. automodule:: csep.utils.stats
-    :members:
-
-General calculations
---------------------
-.. automodule:: csep.utils.calc
-    :members:

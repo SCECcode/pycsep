@@ -28,7 +28,7 @@ class Mock(MagicMock):
 
 # -- Project information -----------------------------------------------------
 
-project = 'CSEP'
+project = 'PyCSEP'
 author = 'William Savran'
 
 html_show_copyright = False
@@ -105,13 +105,36 @@ html_theme = 'sphinx_rtd_theme'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {}
+html_context = {
+    "menu_links": [
+        (
+            'Contributing',
+            "https://github.com/SCECCode/csep2/blob/dev/CONTRIBUTING.md",
+        ),
+        (
+            'Code of Conduct',
+            "https://github.com/SCECCode/csep2/blob/dev/CODE_OF_CONDUCT.md",
+        ),
+        (
+            'License',
+            "https://github.com/SCECCode/csep2/blob/dev/LICENSE",
+        ),
+        (
+            'Getting help',
+            "https://github.com/SCECCode/csep2/issues",
+        ),
+        (
+            'Source Code',
+            "https://github.com/SCECCode/csep2",
+        ),
+    ],
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ["_static"]
-
 
 # These paths are either relative to html_static_path
 # or fully qualified paths (eg. https://...)
@@ -179,7 +202,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'csep.tex', 'csep Documentation',
+    (master_doc, 'pycsep.tex', 'PyCSEP Documentation',
      'William Savran', 'manual'),
 ]
 
@@ -189,7 +212,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'csep', 'csep Documentation',
+    (master_doc, 'pycsep', 'PyCSEP Documentation',
      [author], 1)
 ]
 
@@ -200,8 +223,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'csep', 'csep Documentation',
-     author, 'csep', 'One line description of project.',
+    (master_doc, 'pycsep', 'PyCSEP Documentation',
+     author, 'William Savran', 'Python tools for earthquake forecast evaluation.',
      'Miscellaneous'),
 ]
 
@@ -211,4 +234,4 @@ texinfo_documents = [
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = True
+todo_include_todos = False

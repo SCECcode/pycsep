@@ -19,7 +19,7 @@ from csep.utils import datasets, time_utils
 # Define forecast properties
 # --------------------------
 #
-# We choose a :ref:`time-independent forecast` to show how to evaluate a grid-based earthquake forecast using PyCSEP. Note,
+# We choose a :ref:`time-independent-forecast` to show how to evaluate a grid-based earthquake forecast using PyCSEP. Note,
 # the start and end date should be chosen based on the creation of the forecast. This is important for time-independent forecasts
 # because they can be rescale to any arbitrary time period.
 

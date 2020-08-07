@@ -11,6 +11,7 @@ within in the python environment.
 1. Clone repository from ``https://github.com/SCECcode/csep2``
 2. Create environment for installation
     * `Miniconda <https://docs.conda.io/en/latest/miniconda.html/>`_ (recommended):
+
     | ``conda env create -f requirements.yaml``
     | ``conda activate csep-dev``
 
@@ -51,10 +52,12 @@ installation.
 .. note::
     If you need to install this package on a Linux system we recommend to use a Ubuntu Linux v18.04 LTS based system.
     The prerequsites for using this package by venv are the linux packages:
+
       * ``build-essential``
       * ``python3-dev``
       * ``python3-venv``
       * ``python3-pip``
+
 .. warning::
     There is an issue installing Cartopy on MacOS with Proj >=6.0.0 and will be addressed in 0.18 release of Cartopy.
     If this package is needed please manually install or use Conda instructions above. Additionally, if you choose the
