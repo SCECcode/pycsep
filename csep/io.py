@@ -8,8 +8,9 @@ from csep.core.catalogs import ( UCERF3Catalog,
                 ComcatCatalog,
                 CSEPCatalog,
                 JmaCsvCatalog )
+from csep.core.forecasts import CatalogForecast, GriddedForecast
 
-def load_stochastic_event_sets(filename, type='csep-csv', format='native', **kwargs):
+def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
     """ General function to load stochastic event sets
 
     This function returns a generator to iterate through a collection of catalogs.
@@ -25,14 +26,14 @@ def load_stochastic_event_sets(filename, type='csep-csv', format='native', **kwa
         (generator): :class:`~csep.core.catalogs.AbstractBaseCatalog`
 
     """
-    if type not in ('ucerf3', 'ascii'):
+    if type not in ('ucerf3', 'csv'):
         raise ValueError("type must be one of the following: (ucerf3)")
 
     # use mapping to dispatch to correct function
     # in general, stochastic event sets are loaded with classmethods and single catalogs use the
     # constructor
     mapping = {'ucerf3': UCERF3Catalog.load_catalogs,
-               'csep-csv': CSEPCatalog.load_ascii_catalogs}
+               'csv': CSEPCatalog.load_ascii_catalogs}
 
     # dispatch to proper loading function
     result = mapping[type](filename, **kwargs)
@@ -53,7 +54,7 @@ def load_stochastic_event_sets(filename, type='csep-csv', format='native', **kwa
             raise ValueError('format must be either "native" or "csep!')
 
 
-def load_catalog(filename, type='csep-csv', format='native', **kwargs):
+def load_catalog(filename, type='csv', format='native', **kwargs):
     """ General function to load single catalog
 
     See corresponding class documentation for additional parameters.
@@ -65,12 +66,12 @@ def load_catalog(filename, type='csep-csv', format='native', **kwargs):
 
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
-    if type not in ('ucerf3', 'comcat', 'csep-csv', 'zmap', 'jma-csv'):
-        raise ValueError("type must be one of the following: ('ucerf3', 'comcat', 'csep-csv', 'zmap', 'jma')")
+    if type not in ('ucerf3', 'comcat', 'csv', 'zmap', 'jma-csv'):
+        raise ValueError("type must be one of the following: ('ucerf3', 'comcat', 'csv', 'zmap', 'jma')")
 
     # add entry point to load observed_catalog here.
     mapping = {'ucerf3': UCERF3Catalog,
-               'csep-csv': CSEPCatalog,
+               'csv': CSEPCatalog,
                'zmap': ZMAPCatalog,
                'comcat': ComcatCatalog,
                'jma': JmaCsvCatalog}
