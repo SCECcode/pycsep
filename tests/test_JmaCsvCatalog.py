@@ -49,7 +49,7 @@ def test_JmaCsvCatalog_loading():
                                   verbose=True, rtol=0, atol=0)
 
     _ZMAPCatalogObject = _JmaCsvCatalogObject.get_csep_format()
-    assert len(_ZMAPCatalogObject.catalog) == len(_JmaCsvCatalogObject.catalog)
+    assert len(_ZMAPCatalogObject.data) == len(_JmaCsvCatalogObject.catalog)
     numpy.testing.assert_allclose(_ZMAPCatalogObject.get_magnitudes(), _JmaCsvCatalogObject.get_magnitudes(),
                                   err_msg='ZMAPCatalog magnitudes differ from JmaCsvCatalog magnitudes',
                                   verbose=True, rtol=1e-06, atol=0)

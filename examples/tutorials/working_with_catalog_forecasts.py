@@ -1,9 +1,9 @@
 """
-Working with catalog-based forecasts
+Working with data-based forecasts
 =============================================
 
-This example shows some basic interactions with catalog-based forecasts. We will load in a forecast stored in the CSEP
-catalog format, and compute the expected rates on a 0.1° x 0.1° grid covering the state of California. We will plot the
+This example shows some basic interactions with data-based forecasts. We will load in a forecast stored in the CSEP
+data format, and compute the expected rates on a 0.1° x 0.1° grid covering the state of California. We will plot the
 expected rates in the spatial cells.
 
 Overview:
@@ -26,7 +26,7 @@ from csep.core import regions
 from csep.utils import datasets
 
 ####################################################################################################################################
-# Load catalog forecast
+# Load data forecast
 # ---------------------
 #
 # PyCSEP contains some basic forecasts that can be used to test of the functionality of the package. This forecast has already 
@@ -80,7 +80,7 @@ ax = forecast.expected_rates.plot(plot_args={'clim': [-3.5, 0]})
 # Quick sanity check
 # ------------------
 #
-# The forecasts were filtered to the spatial region so all events should be binned. We loop through each catalog in the forecast and
+# The forecasts were filtered to the spatial region so all events should be binned. We loop through each data in the forecast and
 # count the number of events and compare that with the expected rates. The expected rate is an average in each space-magnitude bin, so
 # we have to multiply this value by the number of catalogs in the forecast.
 

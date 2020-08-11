@@ -8,6 +8,7 @@ from csep.core.catalogs import ( UCERF3Catalog,
                 ComcatCatalog,
                 CSEPCatalog,
                 JmaCsvCatalog )
+from csep.core.forecasts import CatalogForecast, GriddedForecast
 
 def load_stochastic_event_sets(filename, type='csep-csv', format='native', **kwargs):
     """ General function to load stochastic event sets
@@ -66,7 +67,7 @@ def load_catalog(filename, type='csep-csv', format='native', **kwargs):
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
     if type not in ('ucerf3', 'comcat', 'csep-csv', 'zmap', 'jma-csv'):
-        raise ValueError("type must be one of the following: ('ucerf3', 'comcat', 'csep-csv', 'zmap', 'jma')")
+        raise ValueError("type must be one of the following: ('ucerf3', 'comcat', 'csep-csv', 'zmap-ascii', 'jma-csv')")
 
     # add entry point to load observed_catalog here.
     mapping = {'ucerf3': UCERF3Catalog,
