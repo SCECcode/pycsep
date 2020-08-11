@@ -3,12 +3,14 @@ import math
 import re
 import warnings
 import enum
+import csv
 from itertools import zip_longest
 import os
 
 import numpy
 
-from csep.utils.time_utils import strptime_to_utc_datetime
+from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch
+from csep.core.exceptions import CSEPIOException
 
 def read_ndk(filename):
     """
@@ -344,7 +346,7 @@ def _parse_datetime_to_zmap(date, time):
     out['second'] = dt.second
     return out
 
-def read_zmap_ascii(fname):
+def read_zmap_ascii(fname, delimiter=None):
     """
     Reads csep1 ascii format into numpy structured array. this can be passed into a catalog object constructor. Using
 
@@ -401,7 +403,7 @@ def read_zmap_ascii(fname):
 
     # arrange file into list of tuples
     out = []
-    csep1_zmap = numpy.loadtxt(fname)
+    csep1_zmap = numpy.loadtxt(fname, delimiter=delimiter)
     for line in csep1_zmap:
         event_tuple = (line[ColumnIndex.Longitude],
                        line[ColumnIndex.Latitude],
@@ -416,8 +418,60 @@ def read_zmap_ascii(fname):
         out.append(event_tuple)
     return out
 
-def read_csep_ascii(fname):
-    pass
+def read_csep_ascii(fname, return_catalog_id=False):
+    """ Reads single catalog in CSEP ascii format.
+
+    Args:
+        fname (str): filename of catalog
+        return_catalog_id (bool): return the catalog id
+
+    Returns:
+        list of tuples containing event information or (eventlist, catalog_id)
+    """
+
+    def is_header_line(line):
+        if line[0] == 'lon':
+            return True
+        else:
+            return False
+
+    def parse_datetime(dt_string):
+        try:
+            origin_time = strptime_to_utc_epoch(dt_string, format='%Y-%m-%dT%H:%M:%S.%f')
+            return origin_time
+        except:
+            pass
+        try:
+            origin_time = strptime_to_utc_epoch(dt_string, format='%Y-%m-%dT%H:%M:%S')
+            return origin_time
+        except:
+            pass
+        raise CSEPIOException("Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
+
+    with open(fname, 'r', newline='') as input_file:
+        catalog_reader = csv.reader(input_file, delimiter=',')
+        # csv treats everything as a string convert to correct types
+        is_first_event = True
+        events = []
+        for line in catalog_reader:
+            # skip header line on first read if included in file
+            if is_first_event and is_header_line(line):
+                continue
+            # convert to correct types
+            lon = float(line[0])
+            lat = float(line[1])
+            magnitude = float(line[2])
+            # maybe fractional seconds are not included
+            origin_time = parse_datetime(line[3])
+            depth = float(line[4])
+            catalog_id = line[5]
+            event_id = line[6]
+            events.append((lon, lat, magnitude, origin_time, depth, event_id))
+
+        if not return_catalog_id:
+            return events
+        else:
+            return events, catalog_id
 
 def read_em_gcmt(fname):
     raise NotImplementedError("not implemented yet!")

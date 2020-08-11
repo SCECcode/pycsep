@@ -134,6 +134,7 @@ class GriddedDataSet(LoggingMixin):
     def from_dict(cls, adict):
         raise NotImplementedError()
 
+
 class MarkedGriddedDataSet(GriddedDataSet):
     """
     Represents a gridded forecast in CSEP. The data must be stored as a 2D numpy array where the fast column is magnitude.
@@ -143,7 +144,11 @@ class MarkedGriddedDataSet(GriddedDataSet):
 
     def __init__(self, magnitudes=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.magnitudes = magnitudes
+        self._magnitudes = magnitudes
+
+    @property
+    def magnitudes(self):
+        return self._magnitudes
 
     @property
     def min_magnitude(self):
@@ -200,6 +205,7 @@ class MarkedGriddedDataSet(GriddedDataSet):
         if numpy.any(idm == -1):
             raise ValueError("mags outside the range of forecast magnitudes.")
         return idm
+
 
 class GriddedForecast(MarkedGriddedDataSet):
     """ Class to represent grid-based forecasts """

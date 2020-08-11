@@ -32,7 +32,7 @@ class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
         self.forecast_fname = os.path.join(self.root_dir,
                     'Forecast/EEPAS-0F_12_1_2007.dat')
         self.catalog_fname = os.path.join(self.root_dir,
-                    'Observations/ThreeMonthsModel.observed_catalog.nodecl.dat')
+                    'Observations/ThreeMonthsModel.catalog.nodecl.dat')
         self.result_fname = os.path.join(self.root_dir,
                 'Evaluations/NTest/NTest_Result/rTest_N-Test_EEPAS-0F_12_1_2007.xml')
 

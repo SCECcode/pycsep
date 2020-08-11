@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 import matplotlib
 import scipy.stats
 from matplotlib import cm
@@ -12,7 +10,6 @@ import matplotlib.pyplot as pyplot
 import cartopy
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.calc import bin1d_vec
@@ -917,7 +914,6 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
         pyplot.show()
 
     return ax
-
 
 def plot_global_forecast(forecast, catalog=None, name=None):
     """

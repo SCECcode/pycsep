@@ -6,6 +6,7 @@ PyCSEP: Tools for Earthquake Forecast Developers
     :hidden:
     :caption: Getting Started
 
+    getting_started/overview
     getting_started/installing
     getting_started/core_concepts
 
@@ -53,9 +54,9 @@ The Collaboratory for the Study of Earthquake Predictability (CSEP) supports an 
 forecasting experiments. CSEP supports these activities by developing the cyberinfrastructure necessary to run earthquake
 forecasting experiments including the statistical framework required to evaluate probabilistic earthquake forecasts.
 
-The PyCSEP package is a python library that provides tools for (1) evaluating probabilistic earthquake forecasts, (2) working
-with earthquake catalogs in this context, and (3) creating visualizations. Official experiments run in CSEP testing centers
-will be implemented using the tools provided in this package.
+PyCSEP is a python library that provides tools for (1) evaluating probabilistic earthquake forecasts, (2) working
+with earthquake catalogs in this context, and (3) creating visualizations. Official experiments that run in CSEP testing centers
+will be implemented using the code provided by this package.
 
 Project Goals
 -------------
@@ -69,12 +70,12 @@ Contributing
 ------------
 We highly encourage users of this package to get involved in the development process. Any contribution is helpful, even
 suggestions on how to improve the package, or additions to the documentation (those are particularly welcome!). Check out
-the `Contribution guidlines <` for a step by step on how to contribute to the project. If there are
+the `Contribution guidelines <https://github.com/SCECCode/csep2/blob/dev/CONTRIBUTING.md>`_ for a step by step on how to contribute to the project. If there are
 any questions, please contact us!
 
 Contacting Us
 -------------
-* For general discussion and bug reports please post issues on the `PyCSEP Github <https://github.com/SCECCode/csep2>`_.
+* For general discussion and bug reports please post issues on the `PyCSEP GitHub <https://github.com/SCECCode/csep2>`_.
 * This project adheres to a :ref:`Contributor Code of Conduct <code-of-conduct>`. By participating you agree to follow its terms.
 
 List of Contributors

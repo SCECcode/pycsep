@@ -5,7 +5,7 @@ import datetime
 import six
 import os
 
-# 3rd party
+# 3rd party required for core package
 import numpy
 import pandas
 import pyproj
@@ -23,6 +23,7 @@ from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
+from csep.utils.readers import read_zmap_ascii, read_csep_ascii
 
 
 class AbstractBaseCatalog(LoggingMixin):
@@ -35,7 +36,7 @@ class AbstractBaseCatalog(LoggingMixin):
     def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True):
 
         """
-        Base class for all CSEP catalogs.
+        Template class for all PyCSEP catalogs.
 
         Args:
             filename: location of catalog
@@ -46,8 +47,6 @@ class AbstractBaseCatalog(LoggingMixin):
             region: spatial region
             compute_stats: whether statistics should be computed for the catalog
         """
-
-
         super().__init__()
         self.filename = filename
         self.catalog_id = catalog_id
@@ -58,6 +57,11 @@ class AbstractBaseCatalog(LoggingMixin):
 
         # cleans the catalog to set as ndarray, see setter.
         self.catalog = catalog
+
+        # if user provides filename and not the catalog data it should try and load it automatically from the file
+        # we can implement this functionality later.
+        if self.filename and self.catalog is None:
+            pass
 
         # use user defined stats if entered into catalog
         try:
@@ -127,7 +131,7 @@ class AbstractBaseCatalog(LoggingMixin):
         return self.get_number_of_events()
 
     @classmethod
-    def from_dict(cls, adict):
+    def from_dict(cls, adict, **kwargs):
         """ Creates class from dictionary"""
         raise NotImplementedError
 
@@ -166,11 +170,11 @@ class AbstractBaseCatalog(LoggingMixin):
         return out_cls
 
     @classmethod
-    def load_json(cls, filename):
+    def load_json(cls, filename, **kwargs):
         """ Loads catalog from JSON file """
         with open(filename, 'r') as f:
             adict = json.load(f)
-            return cls.from_dict(adict)
+            return cls.from_dict(adict, **kwargs)
 
     def write_json(self, filename):
         """ Writes catalog to json file
@@ -210,7 +214,7 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.compute_stats and self._catalog is not None:
             self.update_catalog_stats()
 
-    def write_ascii(self, filename, write_header=True, write_empty=True, append=False):
+    def write_ascii(self, filename, write_header=True, write_empty=True, append=False, id_col='id'):
         """
         Write catalog in csep2 ascii format.
 
@@ -227,6 +231,7 @@ class AbstractBaseCatalog(LoggingMixin):
             write_header (bool): Write header string (default true)
             write_empty (bool): Write file event if no events in catalog
             append (bool): If true, append to the filename
+            id_col (str): name of event_id column (if included)
 
         Returns:
             NoneType
@@ -245,7 +250,7 @@ class AbstractBaseCatalog(LoggingMixin):
                     return
             # create iterator from catalog columns
             try:
-                event_ids = self.catalog['id']
+                event_ids = self.catalog[id_col]
             except ValueError:
                 event_ids = [''] * self.event_count
             row_iter = zip(self.get_longitudes(),
@@ -435,19 +440,9 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def filter(self, statements, in_place=True):
         """
-        Filters the catalog based on value. This function takes about 60% of the run-time for processing UCERF3-ETAS
+        Filters the catalog based on statements. This function takes about 60% of the run-time for processing UCERF3-ETAS
         simulations, so likely all other simulations. Implementations should try and limit how often this function
-        will be called. Profiling calculations places these operations at 12.4 ms ± 242 µs per loop (mean ± std. dev. of 7 runs, 100 loops each).
-        Extrapolating this to an 100000 catalog stochastic event set will result in filtering times of about 20 minutes. This does
-        not include any other calculations.
-
-        High-level optimizations in the processing classes should take place as well. The first candidate is that magnitudes
-        should not be packed into the same instance of the processing class. This causes potentially slow operations along
-        mis-aligned axes. See https://scipy-lectures.org/advanced/optimizing/index.html for more information on this issue.
-
-        The optimal solution would be to port these 'kernel' calculations into CPython, so processing happens at the event
-        level as opposed to the catalog level. Right now everything is taking place using numpy functions which operate on the catalogs
-        as ndarrays instead of individual events.
+        will be called.
 
         Args:
             statements (str, iter): logical statements to evaluate, e.g., ['magnitude > 4.0', 'year >= 1995']
@@ -633,6 +628,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned probabilities without region information.")
+
         output = regions._bin_catalog_probability(self.get_longitudes(),
                                                   self.get_latitudes(),
                                                   len(self.region.polygons),
@@ -678,9 +674,7 @@ class AbstractBaseCatalog(LoggingMixin):
             return out
 
     def spatial_magnitude_counts(self, mag_bins=None, ret_skipped=False):
-        """
-        In general, it works by circumscribing the polygons with a bounding box. Inside the bounding box is assumed to
-        follow a regular Cartesian grid.
+        """ Return counts of events in space-magnitude region.
 
         We figure out the index of the polygons and create a map that relates the spatial coordinate in the
         Cartesian grid with with the polygon in region.
@@ -741,7 +735,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
 class ZMAPCatalog(AbstractBaseCatalog):
     """
-    Catalog stored in ZMAP format. This catalog be used when operating within the CSEP2 software ecosystem.
+    Catalog stored in ZMAP format.
     """
     # define representation for each event in catalog
     dtype = numpy.dtype([('longitude', numpy.float32),
@@ -797,10 +791,13 @@ class ZMAPCatalog(AbstractBaseCatalog):
     def get_csep_format(self):
         raise NotImplementedError("get_csep_format() not implemented for ZMAP catalog yet!")
 
-    @classmethod
-    def load_catalog(cls, filename):
-        # todo: Write Function to Load catalog from ZMAP format
-        raise NotImplementedError
+    def load_catalog(self, delimiter=None):
+        try:
+            event_tuples = read_zmap_ascii(self.filename, delimiter=delimiter)
+        except:
+            raise CSEPCatalogException("Unable to read ZMAP catalog.")
+        self.catalog = event_tuples
+        return self
 
 
 class CSEPCatalog(AbstractBaseCatalog):
@@ -845,9 +842,15 @@ class CSEPCatalog(AbstractBaseCatalog):
         """ Returns the catalog in CSEP format. """
         return self
 
+    def load_catalog(self):
+        """ Loads catalog stored in CSEP1 ascii format """
+        self.catalog, self.catalog_id = read_csep_ascii(self.filename, return_catalog_id=True)
+        return self
+
     @classmethod
     def load_ascii_catalogs(cls, filename, **kwargs):
-        """ Loads ASCII catalogs that are stored in CSEP format.
+        """ Loads multiple CSEP catalogs in ASCII format. This function can load multiple catalogs stored in a
+            single file or directories. This typically is a result of a catalog forecast.
 
         Args:
             filename (str): filepath or directory of catalog files
@@ -943,7 +946,7 @@ class CSEPCatalog(AbstractBaseCatalog):
 
 class UCERF3Catalog(AbstractBaseCatalog):
     """
-    Handles catalog type for stochastic event sets produced by UCERF3.
+    Catalog written from UCERF3-ETAS binary format
 
     :var header_dtype: numpy.dtype description of synthetic catalog header.
     :var event_dtype: numpy.dtype description of ucerf3 catalog format
@@ -1115,14 +1118,12 @@ class UCERF3Catalog(AbstractBaseCatalog):
                                  ("catalog_size", ">i4")])
         else:
             raise ValueError("unknown catalog version, cannot parse catalog header.")
-
-
         return dtype
 
 
 class ComcatCatalog(AbstractBaseCatalog):
     """
-    Class handling retrieval of Comcat Catalogs.
+    Catalog from US Geological Survey ComCat. Handles web-based queries.
     """
     dtype = numpy.dtype([('id', 'S256'),
                          ('origin_time', '<i8'),
@@ -1174,7 +1175,7 @@ class ComcatCatalog(AbstractBaseCatalog):
                     self.log.warning("start_time must be less than end_time in order to query comcat servers.")
 
     @classmethod
-    def from_dict(cls, adict):
+    def from_dict(cls, adict, **kwargs):
         exclude = ['catalog', 'start_time', 'end_time', 'date_accessed']
 
         catalog = adict.get('catalog', None)
@@ -1196,7 +1197,7 @@ class ComcatCatalog(AbstractBaseCatalog):
 
         out = cls(catalog=catalog,
                   start_time=start_time, end_time=end_time,
-                  date_accessed=date_accessed, query=False)
+                  date_accessed=date_accessed, query=False, **kwargs)
 
         for k,v in out.__dict__.items():
             if k not in exclude:
@@ -1206,7 +1207,7 @@ class ComcatCatalog(AbstractBaseCatalog):
                     pass
         return out
 
-    def query_comcat(self, extra_comcat_params={}):
+    def query_comcat(self, extra_comcat_params=None):
         """
         The default parameters are given from the California testing region defined by the CSEP1 template files. starttime
         and endtime are exepcted to be datetime objects with the UTC timezone.
@@ -1226,7 +1227,7 @@ class ComcatCatalog(AbstractBaseCatalog):
             repo (Repository): repository object to load catalogs.
             extra_comcat_params (dict): pass additional parameters to libcomcat
         """
-
+        extra_comcat_params = extra_comcat_params or {}
         # get eventlist from Comcat
         eventlist = search(minmagnitude=self.min_magnitude,
             minlatitude=self.min_latitude, maxlatitude=self.max_latitude,
@@ -1336,7 +1337,8 @@ class ComcatCatalog(AbstractBaseCatalog):
 
 
 class JmaCsvCatalog(AbstractBaseCatalog):
-    """ Handles a catalog type for preprocessed (deck2csv.pl) JMA deck file data.
+    """ Catalog stored in preprocessing JMA deck file (.csv) format. Use the deck2csv.pl script in the ./bin directory to create
+        the csv format.
 
         timestamp;longitude;latitude;depth;magnitude
         1923-01-08T13:46:29.170000+0900;140.6260;35.3025;0.00;4.100
@@ -1381,13 +1383,8 @@ class JmaCsvCatalog(AbstractBaseCatalog):
         # helper function to parse the timestamps:
         parseDateString = lambda x: round(1000. * datetime.datetime.strptime(x.decode('utf-8'), _tsTpl).timestamp())
 
-        try:
-            self.catalog = numpy.genfromtxt(self.filename, delimiter=';', names=True, skip_header=0,
+        self.catalog = numpy.genfromtxt(self.filename, delimiter=';', names=True, skip_header=0,
                                             dtype=self.dtype, invalid_raise=True, loose=False, converters={0: parseDateString})
-        except:
-            raise
-        else:
-            self.update_catalog_stats()
 
         return self
 
@@ -1450,27 +1447,13 @@ class JmaCsvCatalog(AbstractBaseCatalog):
 
     def get_csep_format(self):
         n = len(self.catalog)
-        csep_catalog = numpy.zeros(n, dtype=ZMAPCatalog.dtype)
-
-        # ToDo instead of iterating we should use self.catalog['timestamp'].astype('datetime64[ms]') and split this...!?
+        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
         for i, event in enumerate(self.catalog):
-            dt = epoch_time_to_utc_datetime(event['timestamp'])
-            year = dt.year
-            month = dt.month
-            day = dt.day
-            hour = dt.hour
-            minute = dt.minute
-            second = dt.second
             csep_catalog[i] = (event['longitude'],
                                event['latitude'],
-                               year,
-                               month,
-                               day,
                                event['magnitude'],
+                               event['timestamp'],
                                event['depth'],
-                               hour,
-                               minute,
-                               second)
-
-        return ZMAPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
+                               '')
+        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
 

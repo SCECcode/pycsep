@@ -69,6 +69,8 @@ class EvaluationResult:
         self.sim_name = sim_name
         self.obs_name = obs_name
         self.min_mw = min_mw
+        # this will be used for object creation
+        self.named_type = self.__class__.__name__
 
     def to_dict(self):
         try:
@@ -84,7 +86,8 @@ class EvaluationResult:
             'observed_statistic': self.observed_statistic,
             'test_distribution': td_list,
             'status': self.status,
-            'min_mw': self.min_mw
+            'min_mw': self.min_mw,
+            'type': self.named_type
         }
         return adict
 
@@ -98,7 +101,6 @@ class EvaluationResult:
         Returns:
 
         """
-
         new = cls(test_distribution=numpy.array(adict['test_distribution']),
             name=adict['name'],
             observed_statistic=adict['observed_statistic'],

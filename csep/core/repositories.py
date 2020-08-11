@@ -35,7 +35,8 @@ class Repository(LoggingMixin):
         raise NotImplementedError
 
 class FileSystem(Repository):
-    def __init__(self, url="", name='filesystem'):
+    def __init__(self, url="", name='filesystem', **kwargs):
+        super().__init__(**kwargs)
         expand_url = os.path.expandvars(os.path.expanduser(url))
         self.url = expand_url
         self.name = name
@@ -96,4 +97,22 @@ class FileSystem(Repository):
     def from_dict(cls, adict):
         return cls(**adict)
 
+
+
+def write_json(object, fname):
+    """ Easily write object to json file that implements the to_dict() method
+
+    Args:
+        object (class): must implement a method called to_dict()
+        fname (str): path of the file to write evaluation results
+
+    Returns:
+        NoneType
+    """
+    repo = FileSystem(url=fname)
+    repo.save(object.to_dict())
+
+def load_json(object, fname):
+    repo = FileSystem(url=fname)
+    return repo.load(object)
 

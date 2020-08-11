@@ -1,12 +1,14 @@
 Installing PyCSEP
 =================
 
-This package must be installed from `GitHub <https://github.com/SCECcode/csep2>`_ until an official release is made available on PyPI and Conda-Forge.
+This package must be installed from `GitHub <https://github.com/SCECcode/csep2>`_ until an official release is made
+available on PyPI and conda-Forge.
 We recommend making a virtual environment to ensure there are no conflicts in dependencies.
 
-This installation will be editable and used for development. This way any changes made to the package will be usable
-within in the python environment.
-
+.. note::
+    If you'd like to install an editable version of the package. First, fork the repository and follow these instructions
+    using your own copy of the PyCSEP codebase. You will need to run ``pip install -e .`` instead of the
+    ``pip install .`` command as listed below to direct python to make an editable installation.
 
 1. Clone repository from ``https://github.com/SCECcode/csep2``
 2. Create environment for installation
@@ -39,19 +41,17 @@ within in the python environment.
     Also python 3.7 is required.
 
 3. Navigate to repo ``cd csep2`` (If you are not already there...)
-4. Install editable version of package ``pip install -e .``
+4. Install editable version of package ``pip install .``
 
 You can verify the installation works by opening a python interpreter and typing ``import csep``. If you see
 no errors the installation worked.
 
-Additionally, you can run the test suite by navigating to the project root directory and running ``./run_tests.sh``. The test suite requires a properly configured environment to run correctly.
-
-With this editable installation you can freely edit the package and have the changes propagate to the python
-installation.
+Additionally, you can run the test suite by navigating to the project root directory and running ``./run_tests.sh``.
+The test suite requires a properly configured environment to run correctly.
 
 .. note::
     If you need to install this package on a Linux system we recommend to use a Ubuntu Linux v18.04 LTS based system.
-    The prerequsites for using this package by venv are the linux packages:
+    The prerequisites for using this package by venv are the linux packages:
 
       * ``build-essential``
       * ``python3-dev``

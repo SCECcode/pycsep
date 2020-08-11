@@ -116,6 +116,8 @@ Gridded forecast methods:
    GriddedForecast.data
    GriddedForecast.event_count
    GriddedForecast.sum
+   GriddedForecast.magnitudes
+   GriddedForecast.min_magnitude
    GriddedForecast.magnitude_counts
    GriddedForecast.spatial_counts
    GriddedForecast.get_latitudes
@@ -123,13 +125,12 @@ Gridded forecast methods:
    GriddedForecast.get_magnitudes
    GriddedForecast.get_index_of
    GriddedForecast.get_magnitude_index
-   GriddedForecast.min_magnitude
-   GriddedForecast.plot
    GriddedForecast.from_csep1_ascii
    GriddedForecast.from_custom
    GriddedForecast.get_rates
    GriddedForecast.target_event_rates
    GriddedForecast.scale_to_test_date
+   GriddedForecast.plot
 
 Catalog forecast methods:
 

@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-## This script requires that COMCAT_REPO env_var is set and points to a writeable directory.
+## This script checks for COMCAT_REPO env_var is set and points to a writeable directory.
 ## For example, you can set this script up to a cronjob to recovery the ComCat catalog daily.
 
 import datetime
@@ -38,7 +38,10 @@ print("Min Longitude: {} and Max Longitude: {}".format(comcat.min_longitude, com
 print("Min Magnitude: {}\n".format(comcat.min_magnitude))
 
 # file paths
-base_dir = os.environ['COMCAT_REPO']
+try:
+    base_dir = os.environ['COMCAT_REPO']
+except:
+    base_dir = '.'
 fname = os.path.join(base_dir, now.strftime('%Y-%m-%d-comcat.json'))
 repo = FileSystem(url=fname)
 

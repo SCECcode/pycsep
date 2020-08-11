@@ -15,7 +15,7 @@ def magnitude_bins(start_magnitude, end_magnitude, dmw):
     return numpy.arange(start_magnitude, end_magnitude+dmw/2, dmw)
 
 def create_space_magnitude_region(region, magnitudes):
-    """ Very simple function to create space-magnitude region """
+    """Simple wrapper to create space-magnitude region """
     if not isinstance(region, CartesianGrid2D):
         raise TypeError("region must be CartesianGrid2D")
     # bind to region class
@@ -55,11 +55,9 @@ def california_relm_region(dh_scale=1):
         dh = dh / dh_scale
 
     # turn points into polygons and make region object
-
     bboxes = compute_vertices(origins, dh)
     relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name="california")
     return relm_region
-
 
 def global_region(dh=0.1, name="global", magnitudes=None):
     """ Creates a global region used for evaluating gridded forecasts on the global scale.
@@ -80,7 +78,6 @@ def global_region(dh=0.1, name="global", magnitudes=None):
     if magnitudes is not None:
         region.magnitudes = magnitudes
     return region
-
 
 def parse_csep_template(xml_filename):
     """
