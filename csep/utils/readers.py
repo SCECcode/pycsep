@@ -473,8 +473,69 @@ def read_csep_ascii(fname, return_catalog_id=False):
         else:
             return events, catalog_id
 
-def read_em_gcmt(fname):
-    raise NotImplementedError("not implemented yet!")
+
+
+def read_ingv_rcmt_csv(fname):
+    """
+    Reader for the INGV (Istituto Nazionale di Geofisica e Vulcanologia - Italy)  European-
+    Mediterranean regional Centroid Moment Tensor Catalog.
+    It reads a catalog in .csv format, directly downloaded from http://rcmt2.bo.ingv.it/ using the Catalog Search (Beta
+    version).
+
+    The ZMAP Format has the following dtype:
+
+    dtype = numpy.dtype([('longitude', numpy.float32),
+                        ('latitude', numpy.float32),
+                        ('year', numpy.int32),
+                        ('month', numpy.int32),
+                        ('day', numpy.int32),
+                        ('magnitude', numpy.float32),
+                        ('depth', numpy.float32),
+                        ('hour', numpy.int32),
+                        ('minute', numpy.int32),
+                        ('second', numpy.int32)])
+    """
+
+    import time             ### Should these modules be imported in top level of readers.py?
+    import pandas
+
+    start_time = time.time()
+
+    indexing = {'date': 1,
+                'time': 2,
+                'sec_dec': 3,
+                'hypo_lat': 4,
+                'hypo_lng': 5,
+                'hypo_depth_in_km': 6,
+                'Mw': 61}
+
+    data = pandas.read_csv(fname, header=None, usecols=list(indexing.values()))
+
+    out = []
+    for i, line in data.iterrows():
+        try:
+            date_time_dict = _parse_datetime_to_zmap(line[indexing['date']].replace('-', '/'),
+                                                     line[indexing['time']].replace(' ', '0') +
+                                                     '.' + str(line[indexing['sec_dec']]))
+        except ValueError:
+            msg = ("Could not parse date/time string '%s' and '%s' to a valid "
+                   "time" % (line[indexing['date']], line[indexing['time']]))
+            warnings.warn(msg, RuntimeWarning)
+            continue
+        event_tuple = (line[indexing['hypo_lng']],
+                       line[indexing['hypo_lat']],
+                       date_time_dict['year'],
+                       date_time_dict['month'],
+                       date_time_dict['day'],
+                       line[indexing['Mw']],
+                       line[indexing["hypo_depth_in_km"]],
+                       date_time_dict['hour'],
+                       date_time_dict['minute'],
+                       date_time_dict['second'])
+        out.append(event_tuple)
+
+    return out
+
 
 def read_jma_csv(fname):
     raise NotImplementedError("not implemented yet!")
