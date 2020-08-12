@@ -9,11 +9,11 @@ import os
 
 import numpy
 
-from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch
+from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
 from csep.core.exceptions import CSEPIOException
 
-def read_ndk(filename):
+def ndk(filename):
     """
     Reads an NDK file to a :class:`~csep.core.Catalogs.ZMAPCatalog` object. This code was modified from the obspy implementation
     to work with CSEP Catalog objects. If a more verbose representation of the catalog is required, including picks and
@@ -405,18 +405,24 @@ def zmap_ascii(fname, delimiter=None):
 
     # arrange file into list of tuples
     out = []
-    csep1_zmap = numpy.loadtxt(fname, delimiter=delimiter)
-    for line in csep1_zmap:
-        event_tuple = (line[ColumnIndex.Longitude],
-                       line[ColumnIndex.Latitude],
-                       line[ColumnIndex.DecimalYear],
-                       line[ColumnIndex.Month],
-                       line[ColumnIndex.Day],
-                       line[ColumnIndex.Magnitude],
-                       line[ColumnIndex.Depth],
-                       line[ColumnIndex.Hour],
-                       line[ColumnIndex.Minute],
-                       line[ColumnIndex.Second])
+    zmap_catalog_data = numpy.loadtxt(fname, delimiter=delimiter)
+    for event_id, line in enumerate(zmap_catalog_data):
+        dt = datetime.datetime(
+            line[ColumnIndex.DecimalYear],
+            line[ColumnIndex.Month],
+            line[ColumnIndex.Day],
+            line[ColumnIndex.Hour],
+            line[ColumnIndex.Minute],
+            line[ColumnIndex.Second]
+        )
+        event_tuple = (
+            event_id,
+            datetime_to_utc_epoch(dt),
+            line[ColumnIndex.Latitude],
+            line[ColumnIndex.Longitude],
+            line[ColumnIndex.Depth],
+            line[ColumnIndex.Magnitude],
+        )
         out.append(event_tuple)
     return out
 
@@ -469,7 +475,7 @@ def csep_ascii(fname, return_catalog_id=False):
             depth = float(line[4])
             catalog_id = line[5]
             event_id = line[6]
-            events.append((lon, lat, magnitude, origin_time, depth, event_id))
+            events.append((event_id, origin_time, lat, lon, depth, magnitude))
             is_first_event = False
 
         if not return_catalog_id:
@@ -478,7 +484,7 @@ def csep_ascii(fname, return_catalog_id=False):
             return events, catalog_id
 
 
-def em_gcmt_ascii(fname):
+def em_gcmt(fname):
     raise NotImplementedError("read_em_gcmt_ascii not implemented yet!")
 
 
@@ -490,17 +496,17 @@ def jma_csv(fname):
     # template for timestamp format in JMA csv file:
     _timestamp_template = '%Y-%m-%dT%H:%M:%S.%f%z'
     # helper function to parse the timestamps:
-    parse_date_string = lambda x: round(1000. * datetime.datetime.strptime(x.decode('utf-8'), _timestamp_template).timestamp())
+    parse_date_string = lambda x: round(1000. * datetime.datetime.strptime(x, _timestamp_template).timestamp())
     # helper function to determine if line is a header
     is_header_line = lambda x: True if x[0] == 'timestamp' else False
     # parse csv into formatted eventlist
     is_first_event = True
     events = []
-    with open(fname, 'r') as input_file:
-        csv_reader = csv.reader(input_file)
+    with open(fname, 'r', newline='') as input_file:
+        csv_reader = csv.reader(input_file, delimiter=';')
         # this format doesnt include an id so generate one as simple index
         for id, line in enumerate(csv_reader):
-            if is_first_event and not is_header_line(line):
+            if is_first_event and is_header_line(line):
                 continue
             # parse line
             origin_time = parse_date_string(line[0])
@@ -508,12 +514,12 @@ def jma_csv(fname):
             lat = float(line[2])
             depth = float(line[3])
             magnitude = float(line[4])
-            events.append([id, origin_time, lon, lat, depth, magnitude])
+            events.append((id, origin_time, lat, lon, depth, magnitude))
             is_first_event = False
     return events
 
 
-def comcat_web(start_time, end_time, min_magnitude=2.50,
+def _query_comcat(start_time, end_time, min_magnitude=2.50,
                  min_latitude=31.50, max_latitude=43.00,
                  min_longitude=-125.40, max_longitude=-113.10, extra_comcat_params=None):
     """

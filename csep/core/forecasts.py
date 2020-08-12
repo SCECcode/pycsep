@@ -1,8 +1,11 @@
 import itertools
 import time
 import os
-import numpy
 import datetime
+
+# third-party imports
+import numpy
+
 from csep.utils.log import LoggingMixin
 from csep.core.regions import CartesianGrid2D
 from csep.utils.basic_types import Polygon

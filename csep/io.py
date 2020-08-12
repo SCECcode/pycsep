@@ -2,12 +2,9 @@ import json
 import os
 import time
 from csep.models import EvaluationResult, CatalogNumberTestResult
-from csep.utils.time_utils import strptime_to_utc_datetime
-from csep.core.catalogs import ( UCERF3Catalog,
-                ZMAPCatalog,
-                ComcatCatalog,
-                CSEPCatalog,
-                JmaCsvCatalog )
+from csep.utils.time_utils import strptime_to_utc_datetime, utc_now_datetime
+from csep.core.catalogs import UCERF3Catalog, CSEPCatalog
+from csep.utils import readers
 from csep.core.forecasts import CatalogForecast, GriddedForecast
 
 def load_stochastic_event_sets(filename, type='csep-csv', format='native', **kwargs):
@@ -66,22 +63,41 @@ def load_catalog(filename, type='csep-csv', format='native', **kwargs):
 
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
-    if type not in ('ucerf3', 'comcat', 'csep-csv', 'zmap', 'jma-csv'):
-        raise ValueError("type must be one of the following: ('ucerf3', 'comcat', 'csep-csv', 'zmap-ascii', 'jma-csv')")
+    if type not in ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk'):
+        raise ValueError("type must be one of the following: ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk')")
 
-    # add entry point to load observed_catalog here.
-    mapping = {'ucerf3': UCERF3Catalog,
-               'csep-csv': CSEPCatalog,
-               'zmap': ZMAPCatalog,
-               'comcat': ComcatCatalog,
-               'jma': JmaCsvCatalog}
+    # map to correct catalog class, at some point these could be abstracted into configuration file
+    # this maps a human readable string to the correct catalog class and the correct loader function
+    class_loader_mapping = {
+        'ucerf3': {
+            'class': UCERF3Catalog,
+            'loader': None
+        },
+        'csep-csv': {
+            'class': CSEPCatalog,
+            'loader': readers.csep_ascii
+        },
+        'zmap': {
+            'class': CSEPCatalog,
+            'loader': readers.zmap_ascii
+        },
+        'jma-csv': {
+            'class': CSEPCatalog,
+            'loader': readers.jma_csv,
+        },
+        'ndk': {
+            'class': CSEPCatalog,
+            'loader': readers.ndk
+        }
+    }
 
     # treat json files using the from_dict() member instead of constructor
+    catalog_class = class_loader_mapping[type]['class']
     if os.path.splitext(filename)[-1][1:] == 'json':
-        catalog_class = mapping[type]
         catalog = catalog_class.load_json(filename, **kwargs)
     else:
-        catalog = mapping[type](filename=filename, **kwargs)
+        loader = class_loader_mapping[type]['loader']
+        catalog = catalog_class.load_catalog(filename=filename, loader=loader, **kwargs)
 
     # convert to csep format if needed
     if format == 'native':
@@ -94,7 +110,7 @@ def load_catalog(filename, type='csep-csv', format='native', **kwargs):
 
 def query_comcat(start_time, end_time, min_magnitude=2.50,
                  min_latitude=31.50, max_latitude=43.00,
-                 min_longitude=-125.40, max_longitude=-113.10, region=None, verbose=True):
+                 min_longitude=-125.40, max_longitude=-113.10, verbose=True, **kwargs):
     """
     Access Comcat catalog through web service
 
@@ -115,11 +131,12 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
 
     # Timezone should be in UTC
     t0 = time.time()
-    comcat = ComcatCatalog(start_time=start_time, end_time=end_time,
-                           name='Comcat', min_magnitude=min_magnitude,
+    eventlist = readers._query_comcat(start_time=start_time, end_time=end_time,
+                           min_magnitude=min_magnitude,
                            min_latitude=min_latitude, max_latitude=max_latitude,
-                           min_longitude=min_longitude, max_longitude=max_longitude, region=region, query=True)
+                           min_longitude=min_longitude, max_longitude=max_longitude)
     t1 = time.time()
+    comcat = CSEPCatalog(catalog=eventlist, date_accessed=utc_now_datetime(), **kwargs)
     print("Fetched Comcat observed_catalog in {} seconds.\n".format(t1 - t0))
     if verbose:
         print("Downloaded observed_catalog from ComCat with following parameters")
@@ -127,7 +144,7 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
         print("Min Latitude: {} and Max Latitude: {}".format(comcat.min_latitude, comcat.max_latitude))
         print("Min Longitude: {} and Max Longitude: {}".format(comcat.min_longitude, comcat.max_longitude))
         print("Min Magnitude: {}".format(comcat.min_magnitude))
-        print(f"Found {comcat.event_count} events in the Comcat observed_catalog.")
+        print(f"Found {comcat.event_count} events in the ComCat observed_catalog.")
     return comcat
 
 def load_evaluation_result(fname):
