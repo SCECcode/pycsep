@@ -480,7 +480,11 @@ class AbstractBaseCatalog(LoggingMixin):
                      '>=': operator.ge,
                      '<=': operator.le,
                      '==': operator.eq}
+
         # filter catalogs, implied logical and
+        if statements is None:
+            statements = self.filters
+
         if isinstance(statements, six.string_types):
             name, oper, value = statements.split(' ')
             if name == 'datetime':
@@ -509,6 +513,7 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             raise ValueError('statements should be either a string or list or tuple of strings')
         # can return new instance of class or original instance
+        self.filters = statements
         if in_place:
             self.catalog = filtered
             return self
@@ -607,7 +612,6 @@ class AbstractBaseCatalog(LoggingMixin):
         self.max_longitude = max_or_none(self.get_longitudes())
         self.start_time = epoch_time_to_utc_datetime(min_or_none(self.get_epoch_times()))
         self.end_time = epoch_time_to_utc_datetime(max_or_none(self.get_epoch_times()))
-
 
     def spatial_counts(self):
         """
