@@ -112,7 +112,7 @@ intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
-    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "scipy": ('http://docs.scipy.org/doc/scipy/reference', None),
 }
 
 html_theme_options = {}
