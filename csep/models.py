@@ -1,7 +1,11 @@
 import numpy
+import scipy.stats
+import matplotlib.pyplot as plt
 
 from csep.utils.time_utils import datetime_to_utc_epoch, epoch_time_to_utc_datetime
 from csep.utils import plots
+from plots import plot_magnitude_test, plot_calibration_test
+
 
 class Simulation:
     """
@@ -136,6 +140,69 @@ class CatalogNumberTestResult(EvaluationResult):
         ax = plots.plot_number_test(self, show=show, plot_args=plot_args)
         return ax
 
+class CatalogPseudolikelihoodTestResult(EvaluationResult):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def plot(self, show=False, plot_args=None):
+        plot_args = plot_args or {}
+        # compute bin counts, this one is special because of integer values
+        plot_args_defaults = {'percentile': 95,
+                              'title': 'Pseudolikelihood Test',
+                              'bins': 'auto'}
+        # looks funny, but will update the defaults with the user defined arguments
+        plot_args_defaults.update(plot_args)
+        ax = plots.plot_likelihood_test(self, show=show, plot_args=plot_args)
+        return ax
+
+class CatalogMagnitudeTestResult(EvaluationResult):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def plot(self, show=False, plot_args=None):
+        plot_args = plot_args or {}
+        plot_args_defaults = {'percentile': 95,
+                              'title': 'Magnitude Test',
+                              'bins': 'auto'}
+        plot_args_defaults.update(plot_args)
+        ax = plot_magnitude_test(self, show=show, plot_args=plot_args)
+        return ax
+
+class CatalogSpatialTestResult(EvaluationResult):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def plot(self, show=False, plot_args=None):
+        plot_args = plot_args or {}
+        # compute bin counts, this one is special because of integer values
+        plot_args_defaults = {
+            'percentile': 95,
+            'title': f'Spatial Test',
+            'bins': 'auto'
+        }
+        # looks funny, but will update the defaults with the user defined arguments
+        plot_args_defaults.update(plot_args)
+        ax = plots.plot_spatial_test(self, show=show, plot_args=plot_args)
+        return ax
+
+class CalibrationTestResult(EvaluationResult):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def plot(self, show=False, axes=None, plot_args=None):
+        plot_args = plot_args or {}
+        # set plotting defaults
+        plot_args_defaults = {
+            'label': self.sim_name,
+            'title': self.name
+        }
+        plot_args_defaults.update(plot_args)
+        ax = plot_calibration_test(self, show=show, axes=axes, plot_args=plot_args)
+        return ax
 
 class EvaluationConfiguration:
     """

@@ -1069,3 +1069,48 @@ def _get_axis_limits(pnts, border=0.05):
     xd = (x_max - x_min)*border
     return (x_min-xd, x_max+xd)
 
+def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=False):
+    # set up QQ plots and KS test
+    plot_args = plot_args or {}
+    n = len(evaluation_result.test_distribution)
+    k = numpy.arange(1, n + 1)
+    # plotting points for uniform quantiles
+    pp = k / (n + 1)
+    # compute confidence intervals for order statistics using beta distribution
+    ulow = scipy.stats.beta.ppf(0.025, k, n - k + 1)
+    uhigh = scipy.stats.beta.ppf(0.975, k, n - k + 1)
+
+    # get stuff from plot_args
+    label = plot_args.get('label', evaluation_result.sim_name)
+    xlim = plot_args.get('xlim', [0, 1.05])
+    ylim = plot_args.get('ylim', [0, 1.05])
+    xlabel = plot_args.get('xlabel', 'Quantile scores')
+    ylabel = plot_args.get('ylabel', 'Standard uniform quantiles')
+    color = plot_args.get('color', 'tab:blue')
+
+    # quantiles should be sorted for plotting
+    sorted_td = numpy.array(evaluation_result.test_distribution).sort()
+
+    if axes is None:
+        fig, ax = pyplot.subplots()
+    else:
+        ax = axes
+
+    # plot qq plot
+    _ = ax.scatter(sorted_td, pp, label=label, c=color)
+    # plot uncertainty on uniform quantiles
+    ax.plot(pp, pp, '-k')
+    ax.plot(ulow, pp, ':k')
+    ax.plot(uhigh, pp, ':k')
+
+    ax.set_ylim(ylim)
+    ax.set_xlim(xlim)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    ax.legend(loc='lower right')
+
+    if show:
+        pyplot.show()
+
+    return ax
