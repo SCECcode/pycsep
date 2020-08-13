@@ -1,10 +1,7 @@
 import numpy
-import scipy.stats
-import matplotlib.pyplot as plt
 
 from csep.utils.time_utils import datetime_to_utc_epoch, epoch_time_to_utc_datetime
 from csep.utils import plots
-from plots import plot_magnitude_test, plot_calibration_test
 
 
 class Simulation:
@@ -167,7 +164,7 @@ class CatalogMagnitudeTestResult(EvaluationResult):
                               'title': 'Magnitude Test',
                               'bins': 'auto'}
         plot_args_defaults.update(plot_args)
-        ax = plot_magnitude_test(self, show=show, plot_args=plot_args)
+        ax = plots.plot_magnitude_test(self, show=show, plot_args=plot_args)
         return ax
 
 class CatalogSpatialTestResult(EvaluationResult):
@@ -201,7 +198,7 @@ class CalibrationTestResult(EvaluationResult):
             'title': self.name
         }
         plot_args_defaults.update(plot_args)
-        ax = plot_calibration_test(self, show=show, axes=axes, plot_args=plot_args)
+        ax = plots.plot_calibration_test(self, show=show, axes=axes, plot_args=plot_args)
         return ax
 
 class EvaluationConfiguration:
