@@ -251,7 +251,7 @@ class AbstractBaseCatalog(LoggingMixin):
         # short-circuit
         if isinstance(self.catalog, numpy.ndarray):
             return self.catalog
-
+        # if catalog is not a numpy array, class must have dtype information
         catalog_length = len(self.catalog)
         catalog = numpy.empty(catalog_length, dtype=self.dtype)
         if catalog_length == 0:
@@ -995,13 +995,15 @@ class UCERF3Catalog(AbstractBaseCatalog):
             number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
             # load all catalogs from merged file
             for catalog_id in range(number_simulations_in_set):
+                dtype = cls._get_header_dtype(version)
                 version = numpy.fromfile(catalog_file, dtype=">i2", count=1)[0]
-                header = numpy.fromfile(catalog_file, dtype=cls._get_header_dtype(version), count=1)
+                header = numpy.fromfile(catalog_file, dtype=dtype, count=1)
                 catalog_size = header['catalog_size'][0]
                 # read catalog
                 catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
                 # add column that stores catalog_id in case we want to store in database
                 u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
+                u3_catalog.dtype = dtype
                 yield u3_catalog
 
     @classmethod
@@ -1009,9 +1011,11 @@ class UCERF3Catalog(AbstractBaseCatalog):
         version = numpy.fromfile(filename, dtype=">i2", count=1)[0]
         header = numpy.fromfile(filename, dtype=cls._get_header_dtype(version), count=1)
         catalog_size = header['catalog_size'][0]
-        # read catalog
+        # assign dtype to make sure that its bound to the instance of the class
+        dtype = cls._get_catalog_dtype(version)
         event_list = numpy.fromfile(filename, dtype=cls._get_catalog_dtype(version), count=catalog_size)
         new_class = cls(filename=filename, catalog=event_list, **kwargs)
+        new_class.dtype = dtype
         return new_class
 
     def get_csep_format(self):
