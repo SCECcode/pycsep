@@ -2,7 +2,6 @@ import matplotlib
 import scipy.stats
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
-from mpl_toolkits.basemap import Basemap
 
 import time
 import numpy
@@ -915,37 +914,6 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
 
     return ax
 
-def plot_global_forecast(forecast, catalog=None, name=None):
-    """
-    Creates global plot from a forecast using a Robin projection. This should be used as a quick and dirty plot and probably
-    will not suffice for publication quality figures.
-
-    Args:
-        forecast (csep.core.forecasts.MarkedGriddedDataSet): marked gridded data set
-        catalog (csep.core.data.AbstractBaseCatalog):  data base class
-        name (str): name of the data
-
-    Returns:
-        axes
-
-    """
-    fig, ax = pyplot.subplots(figsize=(18,11))
-    m = Basemap(projection='robin', lon_0= -180, resolution='c')
-    m.drawcoastlines(color = 'lightgrey', linewidth = 1.5)
-    m.drawparallels(numpy.arange(-90.,120.,15.), labels=[1,1,0,1], linewidth= 0.0, fontsize = 13)
-    m.drawmeridians(numpy.arange(0.,360.,40.), labels=[1,1,1,1], linewidth= 0.0, fontsize = 13)
-    x, y = m(forecast.get_longitudes(), forecast.get_longitudes())
-    cbar = ax.scatter(x, y, s = 2, c = numpy.log10(forecast.spatial_counts()), cmap = 'inferno', edgecolor='')
-    a = fig.colorbar(cbar, orientation = 'horizontal', shrink = 0.5, pad = 0.01)
-    if catalog is not None:
-        x, y = m(catalog.get_longitudes(), catalog.get_latitudes())
-        ax.scatter(x, y, color='black')
-    a.ax.tick_params(labelsize = 14)
-    a.ax.tick_params(labelsize = 14)
-    if name is None:
-        name='Global Forecast'
-    a.set_label('{}\nlog$_{{10}}$(EQs / (0.1$^o$ x 0.1$^o$)'.format(name), size = 18)
-    return ax
 
 def _get_marker_style(obs_stat, p, one_sided_lower=True):
     """Returns matplotlib marker style as fmt string"""
