@@ -236,42 +236,6 @@ def ndk(filename):
 
         return rec
 
-    def _parse_datetime_to_zmap(date, time):
-        """ Helping function to return datetime in zmap format.
-
-        Args:
-            date: string record from .ndk file
-            time: string record from .ndk file
-
-        Returns:
-            out: dictionary following
-                out_dict = {'year': year, 'month': month, 'day': day',
-                            'hour': hour, 'minute': minute, 'second': second}
-        """
-
-        add_minute = False
-        if ":60.0" in time:
-            time = time.replace(":60.0", ":0.0")
-            add_minute = True
-        try:
-            dt = strptime_to_utc_datetime(date + " " + time, format="%Y/%m/%d %H:%M:%S.%f")
-        except (TypeError, ValueError):
-            msg = ("Could not parse date/time string '%s' and '%s' to a valid "
-                   "time" % (date, time))
-            raise RuntimeError(msg)
-
-        if add_minute:
-            dt += datetime.timedelta(minutes=1)
-
-        out = {}
-        out['year'] = dt.year
-        out['month'] = dt.month
-        out['day'] = dt.day
-        out['hour'] = dt.hour
-        out['minute'] = dt.minute
-        out['second'] = dt.second
-        return out
-
     out = []
 
     if not hasattr(filename, "read"):
@@ -606,3 +570,38 @@ def _query_comcat(start_time, end_time, min_magnitude=2.50,
 
     return eventlist
 
+def _parse_datetime_to_zmap(date, time):
+        """ Helping function to return datetime in zmap format.
+
+        Args:
+            date: string record from .ndk file
+            time: string record from .ndk file
+
+        Returns:
+            out: dictionary following
+                out_dict = {'year': year, 'month': month, 'day': day',
+                            'hour': hour, 'minute': minute, 'second': second}
+        """
+
+        add_minute = False
+        if ":60.0" in time:
+            time = time.replace(":60.0", ":0.0")
+            add_minute = True
+        try:
+            dt = strptime_to_utc_datetime(date + " " + time, format="%Y/%m/%d %H:%M:%S.%f")
+        except (TypeError, ValueError):
+            msg = ("Could not parse date/time string '%s' and '%s' to a valid "
+                   "time" % (date, time))
+            raise RuntimeError(msg)
+
+        if add_minute:
+            dt += datetime.timedelta(minutes=1)
+
+        out = {}
+        out['year'] = dt.year
+        out['month'] = dt.month
+        out['day'] = dt.day
+        out['hour'] = dt.hour
+        out['minute'] = dt.minute
+        out['second'] = dt.second
+        return out
