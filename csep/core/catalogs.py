@@ -788,6 +788,9 @@ class ZMAPCatalog(AbstractBaseCatalog):
     def get_epoch_times(self):
         return list(map(datetime_to_utc_epoch, self.get_datetimes()))
 
+    def get_depths(self):
+        return self.catalog['depth']
+
     def get_csep_format(self):
         raise NotImplementedError("get_csep_format() not implemented for ZMAP catalog yet!")
 
