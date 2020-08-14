@@ -213,7 +213,7 @@ Plotting gridded forecasts and evaluations:
 .. autosummary::
    :toctree: generated
 
-   plot_global_forecast
+   plot_spatial_dataset
    plot_comparison_test
    plot_poisson_consistency_test
 

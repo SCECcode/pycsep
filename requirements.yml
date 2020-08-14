@@ -16,5 +16,3 @@ dependencies:
   - vcrpy=4.0.2
   - gitpython=3.0.8
   - six=1.15.0
-  - pytest-cov=2.8.1
-  - sphinx-gallery=0.7.0

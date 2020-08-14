@@ -27,6 +27,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install numpy==1.18.4
         pip install wheel
+        pip install pytest pytest-cov
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Install PyCSEP
       run: |
