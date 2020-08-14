@@ -770,6 +770,7 @@ class AbstractBaseCatalog(LoggingMixin):
             bval (float): b-value
             err (float): std. err
         """
+        
         if self.get_number_of_events() == 0:
             return None
         # this might fail if magnitudes are not aligned
