@@ -458,16 +458,13 @@ def read_ingv_rcmt_csv(fname):
     
     The ZMAP Format has the following dtype:
 
-    dtype = numpy.dtype([('longitude', numpy.float32),
-                        ('latitude', numpy.float32),
-                        ('year', numpy.int32),
-                        ('month', numpy.int32),
-                        ('day', numpy.int32),
-                        ('magnitude', numpy.float32),
-                        ('depth', numpy.float32),
-                        ('hour', numpy.int32),
-                        ('minute', numpy.int32),
-                        ('second', numpy.int32)])
+    dtype = numpy.dtype([('id', 'S256'),
+                     ('origin_time', '<i8'),
+                     ('latitude', '<f4'),
+                     ('longitude', '<f4'),
+                     ('depth', '<f4'),
+                     ('magnitude', '<f4')])
+
     """
 
     ind = {'date': 1,
@@ -482,7 +479,7 @@ def read_ingv_rcmt_csv(fname):
     with open(fname) as file_:
         reader = csv.reader(file_)
 
-        for line in reader:
+        for id, line in enumerate(reader):
 
             try:
                 date_time_dict = _parse_datetime_to_zmap(line[ind['date']].replace('-', '/'),
@@ -493,16 +490,24 @@ def read_ingv_rcmt_csv(fname):
                        "time" % (line[ind['date']], line[ind['time']]))
                 warnings.warn(msg, RuntimeWarning)
                 continue
-            event_tuple = (float(line[ind['lon']]),
-                           float(line[ind['lat']]),
-                           int(date_time_dict['year']),
-                           int(date_time_dict['month']),
-                           int(date_time_dict['day']),
-                           float(line[ind['Mw']]),
-                           float(line[ind["depth"]]),
-                           int(date_time_dict['hour']),
-                           int(date_time_dict['minute']),
-                           int(date_time_dict['second']))
+
+            dt = datetime.datetime(
+                date_time_dict['year'],
+                date_time_dict['month'],
+                date_time_dict['day'],
+                date_time_dict['hour'],
+                date_time_dict['minute'],
+                date_time_dict['second']
+            )
+
+            event_tuple = (
+                id,
+                datetime_to_utc_epoch(dt),
+                float(line[ind["lat"]]),
+                float(line[ind["lon"]]),
+                float(line[ind["depth"]]),
+                float(line[ind["Mw"]])
+            )
             out.append(event_tuple)
     return out
 

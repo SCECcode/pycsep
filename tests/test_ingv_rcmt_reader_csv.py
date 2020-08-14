@@ -1,6 +1,7 @@
 import unittest
 import os.path
 from csep.utils import readers
+from csep.utils.time_utils import epoch_time_to_utc_datetime
 
 
 def get_datadir():
@@ -25,16 +26,17 @@ class TestReadCatalog(unittest.TestCase):
                     targetline_ = targetline.split(',')
 
                     # lon/lat
-                    self.assertAlmostEqual(float(targetline_[5].replace('"', '')), testline[0])  # In some files, some line's values are under "" and some not.
-                    self.assertAlmostEqual(float(targetline_[4].replace('"', '')), testline[1]) # Python csv handles that well within the reader function
+                    self.assertAlmostEqual(float(targetline_[5].replace('"', '')), testline[3])  # In some files, some line's values are under "" and some not.
+                    self.assertAlmostEqual(float(targetline_[4].replace('"', '')), testline[2]) # Python csv handles that well within the reader function
                     # date
-                    testdate = "%i-%02i-%02i" % testline[2:5]
+                    test_dt = epoch_time_to_utc_datetime(testline[1])
+                    testdate = "%i-%02i-%02i" % (test_dt.year, test_dt.month, test_dt.day)
                     self.assertEqual(targetline_[1], testdate)
                     # time
-                    testhour = "%02i:%02i:%02i" % testline[-3:]
+                    testhour = "%02i:%02i:%02i" % (test_dt.hour, test_dt.minute, test_dt.second)
                     self.assertEqual(targetline_[2].replace(' ', '0'), testhour) # In some events, time are written like '12:12: 1' instead of '12:12:01'
                     # depth
-                    self.assertAlmostEqual(float(targetline_[6].replace('"', '')), testline[6])
+                    self.assertAlmostEqual(float(targetline_[6].replace('"', '')), testline[4])
                     # mw
                     self.assertAlmostEqual(float(targetline_[-3]), testline[5])
                     lines += 1
