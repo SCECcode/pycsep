@@ -1,51 +1,53 @@
 import csv
 import json
 import operator
-import datetime
 import six
 import os
+import datetime
 
 # 3rd party required for core package
 import numpy
 import pandas
-import pyproj
 
 # CSEP Imports
 from csep.core import regions
-from csep.utils.time_utils import epoch_time_to_utc_datetime, timedelta_from_years, datetime_to_utc_epoch, strptime_to_utc_datetime, \
-    millis_to_days, parse_string_format, days_to_millis, strptime_to_utc_epoch
-from csep.utils.comcat import search
+from csep.utils.time_utils import epoch_time_to_utc_datetime, datetime_to_utc_epoch, strptime_to_utc_datetime, \
+    millis_to_days, parse_string_format, days_to_millis, strptime_to_utc_epoch, utc_now_datetime, create_utc_datetime
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
 from csep.utils.comcat import SummaryEvent
-from csep.core.repositories import Repository
-from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException
+from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException, CSEPIOException
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
-from csep.utils.readers import read_zmap_ascii, read_csep_ascii
-
+from csep.utils.readers import csep_ascii
 
 class AbstractBaseCatalog(LoggingMixin):
     """
-    Base catalog class for PyCSEP.
+    Abstract catalog base class for PyCSEP catalogs. This class should not and cannot be used on its own. This just
+    provides the interface for implementing custom catalog classes.
 
     """
-    dtype = numpy.dtype([])
 
-    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True):
+    dtype = None
 
-        """
-        Template class for all PyCSEP catalogs.
+    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True,
+                      filters=(), metadata=None, date_accessed=None):
+
+        """ Standard catalog format for CSEP catalogs. Primary event data are stored in structured numpy array. Additional
+            metadata are available by the event_id in the catalog metadata information.
 
         Args:
             filename: location of catalog
-            catalog: catalog data
+            catalog (numpy.ndarray or eventlist): catalog data
             catalog_id: catalog id number (used for stochastic event set forecasts)
             format: identification used for serialization
             name: human readable name of catalog
-            region: spatial region
+            region: spatial and magnitude region
             compute_stats: whether statistics should be computed for the catalog
+            filters (str or list): filtering operations to apply to the catalog
+            metadata (dict): additional information for events
+            date_accessed (str): time string when catalog was accessed
         """
         super().__init__()
         self.filename = filename
@@ -54,39 +56,35 @@ class AbstractBaseCatalog(LoggingMixin):
         self.name = name
         self.region = region
         self.compute_stats = compute_stats
+        self.filters = filters
+        self.date_accessed = utc_now_datetime() or date_accessed
+
+        # used to store additional event information based on the event_id key, if no event_id will default to an
+        # integer index
+        self.metadata = metadata or {}
 
         # cleans the catalog to set as ndarray, see setter.
-        self.catalog = catalog
-
-        # if user provides filename and not the catalog data it should try and load it automatically from the file
-        # we can implement this functionality later.
-        if self.filename and self.catalog is None:
-            pass
+        self.catalog = catalog # type: numpy.ndarray
 
         # use user defined stats if entered into catalog
-        try:
-            if catalog is not None and self.compute_stats:
-                self.update_catalog_stats()
-        except (AttributeError, NotImplementedError):
-            print('Warning: could not parse catalog statistics by reading catalog. get_magnitudes(), get_latitudes() and get_longitudes() ' +
-                  'must be implemented and bound to calling class! Reverting to old values.')
+        if catalog is not None and self.compute_stats:
+            self.update_catalog_stats()
 
     def __str__(self):
-        if not self.compute_stats:
-            self.update_catalog_stats()
+        self.update_catalog_stats()
 
         s = f'''
         Name: {self.name}
-
+        
         Start Date: {self.start_time}
         End Date: {self.end_time}
-
+        
         Latitude: ({self.min_latitude}, {self.max_latitude})
         Longitude: ({self.min_longitude}, {self.max_longitude})
-
+        
         Min Mw: {self.min_magnitude}
         Max Mw: {self.max_magnitude}
-
+        
         Event Count: {self.event_count}
         '''
         return s
@@ -131,22 +129,46 @@ class AbstractBaseCatalog(LoggingMixin):
         return self.get_number_of_events()
 
     @classmethod
+    def load_catalog(cls, filename, loader=csep_ascii, **kwargs):
+        raise NotImplementedError("subclass should implement load_catalog funtion.")
+
+    @classmethod
     def from_dict(cls, adict, **kwargs):
-        """ Creates class from dictionary"""
-        raise NotImplementedError
+        """ Creates a class from the dictionary representation of the class state. The catalog is serialized into a list of
+        tuples that contain the event information in the order defined by the dtype.
+
+        This needs to handle reading in region information at some point.
+        """
+
+        exclude = ['catalog', 'date_accessed']
+        catalog = adict.get('catalog', None)
+        date_accessed = adict.get('date_accessed', None)
+
+        if date_accessed is not None:
+            format = parse_string_format(date_accessed)
+            strptime_to_utc_datetime(date_accessed, format=format)
+
+        out = cls(catalog=catalog, date_accessed=date_accessed, **kwargs)
+
+        for k, v in out.__dict__.items():
+            if k not in exclude:
+                try:
+                    setattr(out, k, adict[k])
+                except Exception:
+                    pass
+        return out
 
     @classmethod
     def from_dataframe(cls, df, **kwargs):
         """
         Creates catalog from dataframe. Dataframe must have columns that are equivalent to whatever fields
-        the catalog expects.
+        the catalog expects in the catalog dtype.
 
         For example:
 
-                cat = ZMAPCatalog()
+                cat = CSEPCatalog()
                 df = cat.get_dataframe()
-                new_cat = ZMAPCatalog.from_dataframe(df)
-                cat == new_cat
+                new_cat = CSEPCatalog.from_dataframe(df)
 
         Args:
             df (pandas.DataFrame): pandas dataframe
@@ -156,15 +178,14 @@ class AbstractBaseCatalog(LoggingMixin):
             Catalog
 
         """
-
         catalog_id = None
         try:
             catalog_id = df['catalog_id'].iloc[0]
         except KeyError:
-            print('Warning: Unable to parse catalog_id, setting to default value')
-
+            pass
         col_list = list(cls.dtype.names)
-        # we want this to be a structured array not a record array
+        # we want this to be a structured array not a record array and only returns core attributes listed in dtype
+        # loses information about the region and event meta data
         catalog = numpy.ascontiguousarray(df[col_list].to_records(index=False), dtype=cls.dtype)
         out_cls = cls(catalog=catalog, catalog_id=catalog_id, **kwargs)
         return out_cls
@@ -189,11 +210,6 @@ class AbstractBaseCatalog(LoggingMixin):
     def catalog(self):
         return self._catalog
 
-    @classmethod
-    def load_ascii(cls, filename):
-        """ Loads catalog using ASCII format """
-        raise NotImplementedError
-
     @catalog.setter
     def catalog(self, val):
         """
@@ -213,6 +229,45 @@ class AbstractBaseCatalog(LoggingMixin):
                                  " returns an ndarray")
         if self.compute_stats and self._catalog is not None:
             self.update_catalog_stats()
+
+    def _get_catalog_as_ndarray(self):
+        """
+        This function will be called anytime that a catalog is assigned to self.catalog
+
+        The purpose of this function is to ensure that the catalog is being properly parsed into the correct format, and
+        to prevent users of the catalog classes from assigning improper data types.
+
+        This also acts as a convenience to allow easy assignment of different types to the catalog. The default
+        implementation of this function expects that the data are arranged as a collection of tuples corresponding to
+        the catalog data type.
+        """
+        """
+        Converts eventlist into ndarray format.
+
+        Note:
+         Failure state exists if self.catalog is not bound
+            to instance explicity.
+        """
+        # short-circuit
+        if isinstance(self.catalog, numpy.ndarray):
+            return self.catalog
+        # if catalog is not a numpy array, class must have dtype information
+        catalog_length = len(self.catalog)
+        catalog = numpy.empty(catalog_length, dtype=self.dtype)
+        if catalog_length == 0:
+            return catalog
+        if isinstance(self.catalog[0], (list, tuple)):
+            for i, event in enumerate(self.catalog):
+                catalog[i] = tuple(event)
+        elif isinstance(self.catalog[0], SummaryEvent):
+            for i, event in enumerate(self.catalog):
+                catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
+                              event.latitude, event.longitude, event.depth, event.magnitude)
+        else:
+            raise TypeError("Catalog data must be list of events tuples with order:\n"
+                            f"{', '.join(self.dtype.names)} or \n"
+                            "list of SummaryEvent type.")
+        return catalog
 
     def write_ascii(self, filename, write_header=True, write_empty=True, append=False, id_col='id'):
         """
@@ -301,13 +356,31 @@ class AbstractBaseCatalog(LoggingMixin):
         # queries the region for the index of each event
         if self.region is not None:
             df['region_id'] = self.region.get_index_of(self.get_longitudes(), self.get_latitudes())
-        # bin magnitudes
-        df['mag_id'] = self.get_mag_idx(CSEP_MW_BINS)
+            try:
+                # bin magnitudes
+                df['mag_id'] = self.get_mag_idx()
+            except AttributeError:
+                pass
         # set index as datetime
         return df
 
-    def get_mag_idx(self, mag_bins):
-        return bin1d_vec(self.get_magnitudes(), mag_bins, right_continuous=True)
+    def get_mag_idx(self):
+        """ Return magnitude index from region magnitudes """
+        try:
+            return bin1d_vec(self.get_magnitudes(), self.region.magnitudes, right_continuous=True)
+        except AttributeError:
+            raise CSEPCatalogException("Cannot return magnitude index without self.region.magnitudes")
+
+    def get_spatial_idx(self):
+        """ Return spatial index of region for a longitudes and latitudes in catalog. """
+        try:
+            region_idx = self.region.get_index_of(self.get_longitudes(), self.get_latitudes())
+        except AttributeError:
+            raise CSEPCatalogException("Must have region information to compute region index.")
+        return region_idx
+
+    def get_event_ids(self):
+        return self.catalog['id']
 
     def get_number_of_events(self):
         """
@@ -324,7 +397,7 @@ class AbstractBaseCatalog(LoggingMixin):
         """
         Returns the datetime of the event as the UTC epoch time (aka unix timestamp)
         """
-        raise NotImplementedError('get_epoch_times() must be implemented!')
+        return self.catalog['origin_time']
 
     def get_cumulative_number_of_events(self):
         """
@@ -341,7 +414,7 @@ class AbstractBaseCatalog(LoggingMixin):
         Returns magnitudes of all events in catalog
 
         """
-        raise NotImplementedError('get_magnitudes() must be implemented by subclasses of AbstractBaseCatalog')
+        return self.catalog['magnitude']
 
     def get_datetimes(self):
         """
@@ -349,13 +422,14 @@ class AbstractBaseCatalog(LoggingMixin):
 
         :returns: list of timestamps from events in catalog.
         """
-        raise NotImplementedError('get_datetimes() not implemented!')
+        """ Returns datetimes from events in catalog """
+        return list(map(epoch_time_to_utc_datetime, self.get_epoch_times()))
 
     def get_latitudes(self):
         """
         Returns latitudes of all events in catalog
         """
-        raise NotImplementedError('get_latitudes() not implemented!')
+        return self.catalog['latitude']
 
     def get_longitudes(self):
         """
@@ -364,81 +438,13 @@ class AbstractBaseCatalog(LoggingMixin):
         Returns:
             (numpy.array): longitudes
         """
-        raise NotImplementedError('get_longitudes() not implemented!')
+        return self.catalog['longitude']
 
     def get_depths(self):
         """ Returns depths of all events in catalog """
-        raise NotImplementedError("Specific catalog types must implement a getter for depths.")
+        return self.catalog['depth']
 
-    def get_inter_event_times(self, scale=1000):
-        """ Returns interevent times of events in catalog
-
-        Args:
-            scale (int): scales epoch times to another unit. default is seconds
-
-        Returns:
-            inter_times (ndarray): inter event times
-
-        """
-        times = self.get_epoch_times()
-        inter_times = numpy.diff(times) / scale
-        return inter_times
-
-    def get_inter_event_distances(self, ellps='WGS84'):
-        """ Compute distance between successive events in catalog
-
-        Args:
-            ellps (str): ellipsoid to compute distances. see pyproj.Geod for more info
-
-        Returns:
-            inter_dist (ndarray): ndarray of inter event distances in kilometers
-        """
-        geod = pyproj.Geod(ellps=ellps)
-        lats = self.get_latitudes()
-        lons = self.get_longitudes()
-        # in-case pyproj doesn't behave nicely all the time
-        if self.get_number_of_events() == 0:
-            return numpy.array([])
-        _, _, dists = geod.inv(lons[:-1], lats[:-1], lons[1:], lats[1:])
-        return dists
-
-    def get_bvalue(self, reterr=True):
-        """
-        Estimates the b-value of a catalog from Marzocchi and Sandri (2003)
-
-        Args:
-            reterr (bool): returns errors
-
-        Returns:
-            bval (float): b-value
-            err (float): std. err
-        """
-        if self.get_number_of_events() == 0:
-            return None
-        # this might fail if magnitudes are not aligned
-        mws = discretize(self.get_magnitudes(), CSEP_MW_BINS)
-        dmw = CSEP_MW_BINS[1] - CSEP_MW_BINS[0]
-        # compute the p term from eq 3.10 in marzocchi and sandri [2003]
-        def p():
-            top = dmw
-            bottom = numpy.mean(mws) - numpy.min(mws)
-            # this might happen if all mags are the same, or 1 event in catalog
-            if bottom == 0:
-                return None
-            return 1 + top / bottom
-
-        bottom = numpy.log(10)*dmw
-        p = p()
-        if p is None:
-            return None
-        bval = 1.0 / bottom * numpy.log(p)
-        if reterr:
-            err = (1 - p) / (numpy.log(10) * dmw * numpy.sqrt(self.event_count * p))
-            return (bval, err)
-        else:
-            return bval
-
-    def filter(self, statements, in_place=True):
+    def filter(self, statements=None, in_place=True):
         """
         Filters the catalog based on statements. This function takes about 60% of the run-time for processing UCERF3-ETAS
         simulations, so likely all other simulations. Implementations should try and limit how often this function
@@ -451,26 +457,63 @@ class AbstractBaseCatalog(LoggingMixin):
             self: instance of AbstractBaseCatalog, so that this function can be chained.
 
         """
+        if not self.filters and statements is None:
+            raise CSEPCatalogException("Must provide filter statements to function or class to filter")
+
+        def parse_datetime_to_origin_time(dt_input):
+            """ Parses datetime strings with various formats. Handles datetime objects and datetime strings.
+            If datetime object is not time aware will assume that time is UTC, if it is timezone aware will convert to UTC timezone. """
+            if type(dt_input) == datetime.datetime:
+                # check for time zone
+                if dt_input.tzinfo == None:
+                    return create_utc_datetime(dt_input)
+            # handle it as string
+            try:
+                format = parse_string_format(dt_input)
+            except:
+                raise CSEPIOException("Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
+            return strptime_to_utc_datetime(dt_input, format)
+
         # progamatically assign operators
         operators = {'>': operator.gt,
                      '<': operator.lt,
                      '>=': operator.ge,
                      '<=': operator.le,
                      '==': operator.eq}
+
         # filter catalogs, implied logical and
+        if statements is None:
+            statements = self.filters
+
         if isinstance(statements, six.string_types):
             name, oper, value = statements.split(' ')
-            filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
+            if name == 'datetime':
+                # can be a datetime.datetime object or datetime string, if we want to support filtering on meta data it
+                # can happen here. but need to determine what to do if entry are not present bc meta data does not
+                # need to be square
+                value = parse_datetime_to_origin_time(value)
+                idx = numpy.where(operators[oper](self.get_datetimes(), value))
+                filtered = self.catalog[idx]
+            else:
+                filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
         elif isinstance(statements, (list, tuple)):
             # slower but at the convenience of not having to call multiple times
             filters = list(statements)
             filtered = numpy.copy(self.catalog)
             for filter in filters:
                 name, oper, value = filter.split(' ')
+                if name == 'datetime':
+                    # can be a datetime.datetime object or datetime string
+                    value = parse_datetime_to_origin_time(value)
+                    idx = numpy.where(operators[oper](self.get_datetimes(), value))
+                    filtered = self.catalog[idx]
+                else:
+                    filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
                 filtered = filtered[operators[oper](filtered[name], float(value))]
         else:
             raise ValueError('statements should be either a string or list or tuple of strings')
         # can return new instance of class or original instance
+        self.filters = statements
         if in_place:
             self.catalog = filtered
             return self
@@ -569,25 +612,6 @@ class AbstractBaseCatalog(LoggingMixin):
         self.max_longitude = max_or_none(self.get_longitudes())
         self.start_time = epoch_time_to_utc_datetime(min_or_none(self.get_epoch_times()))
         self.end_time = epoch_time_to_utc_datetime(max_or_none(self.get_epoch_times()))
-
-    def _get_catalog_as_ndarray(self):
-        """
-        This function will be called anytime that a catalog is assigned to self.catalog
-
-        The purpose of this function is to ensure that the catalog is being properly parsed into the correct format, and
-        to prevent users of the catalog classes from assigning improper data types.
-
-        This also acts as a convenience to allow easy assignment of different types to the catalog. The default
-        implementation of this function expects that the data are arranged as a collection of tuples corresponding to
-        the catalog data type.
-        """
-        if isinstance(self._catalog, numpy.ndarray):
-            return self._catalog
-        n = len(self._catalog)
-        catalog = numpy.empty(n, dtype=self.dtype)
-        for i, event in enumerate(self._catalog):
-            catalog[i] = tuple(event)
-        return catalog
 
     def spatial_counts(self):
         """
@@ -732,123 +756,103 @@ class AbstractBaseCatalog(LoggingMixin):
         elapsed_time = (dts[-1] - dts[0]).total_seconds()
         return elapsed_time
 
-
-class ZMAPCatalog(AbstractBaseCatalog):
-    """
-    Catalog stored in ZMAP format.
-    """
-    # define representation for each event in catalog
-    dtype = numpy.dtype([('longitude', numpy.float32),
-                        ('latitude', numpy.float32),
-                        ('year', numpy.int32),
-                        ('month', numpy.int32),
-                        ('day', numpy.int32),
-                        ('magnitude', numpy.float32),
-                        ('depth', numpy.float32),
-                        ('hour', numpy.int32),
-                        ('minute', numpy.int32),
-                        ('second', numpy.int32)])
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def get_longitudes(self):
-        return self.catalog['longitude']
-
-    def get_latitudes(self):
-        return self.catalog['latitude']
-
-    def get_magnitudes(self):
+    def get_bvalue(self, mag_bins=None, return_error=True):
         """
-        extend getters to implement conversion from specific catalog type to CSEP catalog.
+        Estimates the b-value of a catalog from Marzocchi and Sandri (2003). First, tries to use the magnitude bins
+        provided to the function. If those are not provided, tries the magnitude bins associated with the region.
+        If that fails, uses the default magnitude bins provided in constants.
+
+        Args:
+            reterr (bool): returns errors
+            mag_bins (list or array_like): monotonically increasing set of magnitude bin edges
 
         Returns:
-            (numpy.array): magnitudes from catalog
+            bval (float): b-value
+            err (float): std. err
         """
-        return self.catalog['magnitude']
+        
+        if self.get_number_of_events() == 0:
+            return None
+        # this might fail if magnitudes are not aligned
+        if mag_bins is None:
+            try:
+                mag_bins = self.region.magnitudes
+            except AttributeError:
+                mag_bins = CSEP_MW_BINS
+        mws = discretize(self.get_magnitudes(), mag_bins)
+        dmw = mag_bins[1] - mag_bins[0]
+        # compute the p term from eq 3.10 in marzocchi and sandri [2003]
+        def p():
+            top = dmw
+            bottom = numpy.mean(mws) - numpy.min(mws)
+            # this might happen if all mags are the same, or 1 event in catalog
+            if bottom == 0:
+                return None
+            return 1 + top / bottom
 
-    def get_datetimes(self):
-        """
-        returns datetime object from timestamp representation in catalog
-
-        :returns: list of timestamps from events in catalog.
-        """
-        datetimes = []
-        for event in self.catalog:
-            year = event['year']
-            month = event['month']
-            day = event['day']
-            hour = event['hour']
-            minute = event['minute']
-            second = event['second']
-            dt = datetime.datetime(year, month, day, hour=hour, minute=minute, second=second)
-            datetimes.append(dt)
-        return datetimes
-
-    def get_epoch_times(self):
-        return list(map(datetime_to_utc_epoch, self.get_datetimes()))
-
-    def get_depths(self):
-        return self.catalog['depth']
-
-    def get_csep_format(self):
-        raise NotImplementedError("get_csep_format() not implemented for ZMAP catalog yet!")
-
-    def load_catalog(self, delimiter=None):
-        try:
-            event_tuples = read_zmap_ascii(self.filename, delimiter=delimiter)
-        except:
-            raise CSEPCatalogException("Unable to read ZMAP catalog.")
-        self.catalog = event_tuples
-        return self
+        bottom = numpy.log(10)*dmw
+        p = p()
+        if p is None:
+            return None
+        bval = 1.0 / bottom * numpy.log(p)
+        if return_error:
+            err = (1 - p) / (numpy.log(10) * dmw * numpy.sqrt(self.event_count * p))
+            return (bval, err)
+        else:
+            return bval
 
 
 class CSEPCatalog(AbstractBaseCatalog):
-    """ Standard catalog format for PyCSEP.
+    """
+    Standard catalog class for PyCSEP catalog operations.
 
     """
-    dtype = numpy.dtype([('longitude', numpy.float32),
-                         ('latitude', numpy.float32),
-                         ('magnitude', numpy.float32),
-                         ('origin_time', numpy.int64),
-                         ('depth', numpy.float32),
-                         ('event_id', (numpy.unicode_, 64))])
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    dtype = numpy.dtype([('id', 'S256'),
+                         ('origin_time', '<i8'),
+                         ('latitude', '<f4'),
+                         ('longitude', '<f4'),
+                         ('depth', '<f4'),
+                         ('magnitude', '<f4')])
 
-    def get_longitudes(self):
-        """ Returns longitudes from events in catalog. """
-        return self.catalog['longitude']
+    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True,
+                      filters=(), metadata=None, date_accessed=None):
 
-    def get_latitudes(self):
-        """ Returns magnitudes from events in catalog. """
-        return self.catalog['latitude']
+        """ Standard catalog format for CSEP catalogs. Primary event data are stored in structured numpy array. Additional
+            metadata are available by the event_id in the catalog metadata information.
 
-    def get_magnitudes(self):
-        """ Returns magnitudes from from events in catalog.
-
-        Returns:
-            (numpy.array): magnitudes from catalog
+        Args:
+            filename: location of catalog
+            catalog (numpy.ndarray or eventlist): catalog data
+            catalog_id: catalog id number (used for stochastic event set forecasts)
+            format: identification used for serialization
+            name: human readable name of catalog
+            region: spatial and magnitude region
+            compute_stats: whether statistics should be computed for the catalog
+            filters (str or list): filtering operations to apply to the catalog
+            metadata (dict): additional information for events
+            date_accessed (str): time string when catalog was accessed
         """
-        return self.catalog['magnitude']
+        super().__init__()
+        self.filename = filename
+        self.catalog_id = catalog_id
+        self.format = format
+        self.name = name
+        self.region = region
+        self.compute_stats = compute_stats
+        self.filters = filters
+        self.date_accessed = utc_now_datetime() or date_accessed
 
-    def get_datetimes(self):
-        """ Returns datetimes from events in catalog"""
-        return list(map(epoch_time_to_utc_datetime, self.get_epoch_times()))
+        # used to store additional event information based on the event_id key, if no event_id will default to an
+        # integer index
+        self.metadata = metadata or {}
 
-    def get_epoch_times(self):
-        """ Returns epoch times for events in catalog. """
-        return self.catalog['origin_time']
+        # cleans the catalog to set as ndarray, see setter.
+        self.catalog = catalog # type: numpy.ndarray
 
-    def get_csep_format(self):
-        """ Returns the catalog in CSEP format. """
-        return self
-
-    def load_catalog(self):
-        """ Loads catalog stored in CSEP1 ascii format """
-        self.catalog, self.catalog_id = read_csep_ascii(self.filename, return_catalog_id=True)
-        return self
+        # use user defined stats if entered into catalog
+        if catalog is not None and self.compute_stats:
+            self.update_catalog_stats()
 
     @classmethod
     def load_ascii_catalogs(cls, filename, **kwargs):
@@ -862,6 +866,7 @@ class CSEPCatalog(AbstractBaseCatalog):
         Return:
             NoneType
         """
+
         def parse_filename(filename):
             # this works for unix
             basename = str(os.path.basename(filename.rstrip('/')).split('.')[0])
@@ -911,40 +916,52 @@ class CSEPCatalog(AbstractBaseCatalog):
                         if catalog_id != prev_id:
                             prev_id = catalog_id
                             # store this event for next time
-                            events = [(lon, lat, magnitude, origin_time, depth, event_id)]
+                            events = [(event_id, origin_time, lat, lon, depth, magnitude)]
                             for id in range(catalog_id):
                                 yield cls(catalog=[], catalog_id=id, **kwargs)
                     # deal with cases of events
                     if catalog_id == prev_id:
                         prev_id = catalog_id
-                        events.append((lon, lat, magnitude, origin_time, depth, event_id))
+                        events.append((event_id, origin_time, lat, lon, depth, magnitude))
                     # create and yield class if the events are from different catalogs
                     elif catalog_id == prev_id + 1:
-                        catalog = cls(catalog=events, catalog_id = prev_id, **kwargs)
+                        catalog = cls(catalog=events, catalog_id=prev_id, **kwargs)
                         prev_id = catalog_id
                         # add first event to new event list
-                        events = [(lon, lat, magnitude, origin_time, depth, event_id)]
+                        events = [(event_id, origin_time, lat, lon, depth, magnitude)]
                         yield catalog
                     # this implies there are empty catalogs, because they are not listed in the ascii file
                     elif catalog_id > prev_id + 1:
                         catalog = cls(catalog=events, catalog_id=prev_id, **kwargs)
                         # add event to new event list
-                        events = [(lon, lat, magnitude, origin_time, depth, event_id)]
+                        events = [(event_id, origin_time, lat, lon, depth, magnitude)]
                         # if prev_id = 0 and catalog_id = 2, then we skipped one catalog. thus, we skip catalog_id - prev_id - 1 catalogs
                         num_empty_catalogs = catalog_id - prev_id - 1
                         # create empty catalog classes
                         for id in range(num_empty_catalogs):
-                            yield cls(catalog=[], catalog_id=catalog_id-num_empty_catalogs+id, **kwargs)
+                            yield cls(catalog=[], catalog_id=catalog_id - num_empty_catalogs + id, **kwargs)
                         # finally we want to yield the buffered catalog to preserve order
                         prev_id = catalog_id
                         yield catalog
                     else:
-                        raise ValueError("catalog_id should be monotonically increasing and events should be ordered by catalog_id")
+                        raise ValueError(
+                            "catalog_id should be monotonically increasing and events should be ordered by catalog_id")
                 # yield final catalog, note: since this is just loading catalogs, it has no idea how many should be there
                 yield cls(catalog=events, catalog_id=prev_id, **kwargs)
 
         if os.path.isdir(filename):
             raise NotImplementedError("reading from directory or batched files not implemented yet!")
+
+    @classmethod
+    def load_catalog(cls, filename, loader=csep_ascii, **kwargs):
+        """ Loads catalog stored in CSEP1 ascii format """
+        catalog_id = None
+        try:
+            event_list, catalog_id = loader(filename, return_catalog_id=True)
+        except TypeError:
+            event_list = loader(filename)
+        new_class = cls(catalog=event_list, catalog_id=catalog_id, **kwargs)
+        return new_class
 
 
 class UCERF3Catalog(AbstractBaseCatalog):
@@ -979,78 +996,43 @@ class UCERF3Catalog(AbstractBaseCatalog):
             number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
             # load all catalogs from merged file
             for catalog_id in range(number_simulations_in_set):
+                dtype = cls._get_header_dtype(version)
                 version = numpy.fromfile(catalog_file, dtype=">i2", count=1)[0]
-                header = numpy.fromfile(catalog_file, dtype=cls._get_header_dtype(version), count=1)
+                header = numpy.fromfile(catalog_file, dtype=dtype, count=1)
                 catalog_size = header['catalog_size'][0]
                 # read catalog
                 catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
                 # add column that stores catalog_id in case we want to store in database
                 u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
+                u3_catalog.dtype = dtype
                 yield u3_catalog
 
-    def get_datetimes(self):
-        """
-        Gets python datetime objects from time representation in catalog.
-
-        Note:
-            All times should be considered UTC time. If you are extending or working with this class make sure to
-            ensure that datetime objects are not converted back to the local platform time.
-
-        Returns:
-            list: list of python datetime objects in the UTC timezone. one for each event in the catalog
-        """
-        datetimes = []
-        for event in self.catalog:
-            dt = epoch_time_to_utc_datetime(event['origin_time'])
-            datetimes.append(dt)
-        return datetimes
-
-    def get_epoch_times(self):
-        return self.catalog['origin_time']
-
-    def get_magnitudes(self):
-        """
-        Returns array of magnitudes from the catalog.
-
-        Returns:
-            numpy.array: magnitudes of observed events in the catalog
-        """
-        return self.catalog['magnitude']
-
-    def get_longitudes(self):
-        return self.catalog['longitude']
-
-    def get_latitudes(self):
-        return self.catalog['latitude']
-
-    def get_depths(self):
-        return self.catalog['depth']
+    @classmethod
+    def load_catalog(cls, filename, loader=None, **kwargs):
+        version = numpy.fromfile(filename, dtype=">i2", count=1)[0]
+        header = numpy.fromfile(filename, dtype=cls._get_header_dtype(version), count=1)
+        catalog_size = header['catalog_size'][0]
+        # assign dtype to make sure that its bound to the instance of the class
+        dtype = cls._get_catalog_dtype(version)
+        event_list = numpy.fromfile(filename, dtype=cls._get_catalog_dtype(version), count=catalog_size)
+        new_class = cls(filename=filename, catalog=event_list, **kwargs)
+        new_class.dtype = dtype
+        return new_class
 
     def get_csep_format(self):
         n = len(self.catalog)
         # allocate array for csep catalog
-        csep_catalog = numpy.zeros(n, dtype=ZMAPCatalog.dtype)
-
+        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
         for i, event in enumerate(self.catalog):
-            dt = epoch_time_to_utc_datetime(event['origin_time'])
-            year = dt.year
-            month = dt.month
-            day = dt.day
-            hour = dt.hour
-            minute = dt.minute
-            second = dt.second
-            csep_catalog[i] = (event['longitude'],
+            csep_catalog[i] = (i,
+                               event['origin_time'],
                                event['latitude'],
-                               year,
-                               month,
-                               day,
-                               event['magnitude'],
+                               event['longitude'],
                                event['depth'],
-                               hour,
-                               minute,
-                               second)
-
-        return ZMAPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
+                               event['magnitude'])
+        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename, format='csep',
+                           name=self.name, region=self.region, compute_stats=self.compute_stats, filters=self.filters,
+                           metadata=self.metadata, date_accessed=self.date_accessed)
 
     @staticmethod
     def _get_catalog_dtype(version):
@@ -1122,341 +1104,3 @@ class UCERF3Catalog(AbstractBaseCatalog):
         else:
             raise ValueError("unknown catalog version, cannot parse catalog header.")
         return dtype
-
-
-class ComcatCatalog(AbstractBaseCatalog):
-    """
-    Catalog from US Geological Survey ComCat. Handles web-based queries.
-    """
-    dtype = numpy.dtype([('id', 'S256'),
-                         ('origin_time', '<i8'),
-                         ('latitude', '<f4'),
-                         ('longitude','<f4'),
-                         ('depth', '<f4'),
-                         ('magnitude','<f4')])
-
-    def __init__(self, catalog_id='comcat', format='comcat', start_epoch=None, duration_in_years=None,
-                 date_accessed=None, query=False, compute_stats=False,
-                 min_magnitude=None, max_magnitude=None,
-                 min_latitude=None, max_latitude=None,
-                 min_longitude=None, max_longitude=None,
-                 start_time=None, end_time=None,
-                 extra_comcat_params=None, **kwargs):
-
-        # parent class constructor
-        super().__init__(catalog_id=catalog_id, format=format, compute_stats=compute_stats, **kwargs)
-
-        # set these values from initially
-        self.max_magnitude = max_magnitude
-        self.min_magnitude = min_magnitude
-        self.min_latitude = min_latitude
-        self.max_latitude = max_latitude
-        self.min_longitude = min_longitude
-        self.max_longitude = max_longitude
-        self.start_time = start_time
-        self.end_time = end_time
-        extra_comcat_params = extra_comcat_params or {}
-        self.date_accessed = date_accessed
-        # if made with no catalog object, load catalog on object creation
-        if self.catalog is None and query:
-            if self.start_time is None and start_epoch is None:
-                self.log.warning("start_time and start_epoch must not be none to query comcat.")
-                query = False
-            else:
-                self.start_time = self.start_time or epoch_time_to_utc_datetime(start_epoch)
-
-            if self.end_time is None and duration_in_years is None:
-                self.log.warning("and_time and duration_in_years must not be none.")
-                query = False
-            else:
-                self.end_time = self.end_time or self.start_time + timedelta_from_years(duration_in_years)
-
-            if query:
-                if self.start_time < self.end_time:
-                    self.query_comcat(extra_comcat_params)
-                else:
-                    self.log.warning("start_time must be less than end_time in order to query comcat servers.")
-
-    @classmethod
-    def from_dict(cls, adict, **kwargs):
-        exclude = ['catalog', 'start_time', 'end_time', 'date_accessed']
-
-        catalog = adict.get('catalog', None)
-        start_time = adict.get('start_time', None)
-        end_time = adict.get('end_time', None)
-        date_accessed = adict.get('date_accessed', None)
-
-        if start_time is not None:
-            format = parse_string_format(start_time)
-            strptime_to_utc_datetime(start_time, format=format)
-
-        if end_time is not None:
-            format = parse_string_format(end_time)
-            strptime_to_utc_datetime(end_time, format=format)
-
-        if date_accessed is not None:
-            format = parse_string_format(date_accessed)
-            strptime_to_utc_datetime(date_accessed, format=format)
-
-        out = cls(catalog=catalog,
-                  start_time=start_time, end_time=end_time,
-                  date_accessed=date_accessed, query=False, **kwargs)
-
-        for k,v in out.__dict__.items():
-            if k not in exclude:
-                try:
-                    setattr(out, k, adict[k])
-                except Exception:
-                    pass
-        return out
-
-    def query_comcat(self, extra_comcat_params=None):
-        """
-        The default parameters are given from the California testing region defined by the CSEP1 template files. starttime
-        and endtime are exepcted to be datetime objects with the UTC timezone.
-        Enough information needs to be provided in order to calculate a start date and end date.
-
-        1) start_time and end_time
-        2) start_time and duration_in_years
-        3) epoch_time and end_time
-        4) epoch_time and duration_in_years
-
-        If start_time and start_epoch are both supplied, program will default to using start_time.
-        If end_time and time_delta are both supplied, program will default to using end_time.
-
-        This requires an internet connection and will fail if the script has no access to the server.
-
-        Args:
-            repo (Repository): repository object to load catalogs.
-            extra_comcat_params (dict): pass additional parameters to libcomcat
-        """
-        extra_comcat_params = extra_comcat_params or {}
-        # get eventlist from Comcat
-        eventlist = search(minmagnitude=self.min_magnitude,
-            minlatitude=self.min_latitude, maxlatitude=self.max_latitude,
-            minlongitude=self.min_longitude, maxlongitude=self.max_longitude,
-            starttime=self.start_time, endtime=self.end_time, **extra_comcat_params)
-
-        # eventlist is converted to ndarray in _get_catalog_as_ndarray called from setter
-        self.catalog = eventlist
-
-        # update state because we just loaded a new catalog
-        self.date_accessed = datetime.datetime.utcnow()
-
-        if self.compute_stats:
-            self.update_catalog_stats()
-
-        return self
-
-    @classmethod
-    def load(cls, repo):
-        """
-        Returns new class object using the repository stored with the class. Maybe this should be a class
-        method.
-
-        """
-        if isinstance(repo, Repository):
-            out=repo.load(cls())
-        else:
-            raise CSEPSchedulerException("Unable to load state. Repository must be provided.")
-        return out
-
-    def get_magnitudes(self):
-        """
-        Retrieves numpy.array of magnitudes from Comcat eventset.
-
-        Returns:
-            numpy.array: of magnitudes
-        """
-        return self.catalog['magnitude']
-
-    def get_datetimes(self):
-        """
-        Returns datetime objects from catalog.
-
-        Returns:
-            (list): datetime.datetime objects
-        """
-        datetimes = []
-        for event in self.catalog:
-            datetimes.append(epoch_time_to_utc_datetime(event['origin_time']))
-        return datetimes
-
-    def get_longitudes(self):
-        return self.catalog['longitude']
-
-    def get_latitudes(self):
-        return self.catalog['latitude']
-
-    def get_epoch_times(self):
-        return self.catalog['origin_time']
-
-    def get_depths(self):
-        return self.catalog['depth']
-
-    def _get_catalog_as_ndarray(self):
-        """
-        Converts libcomcat eventlist into structured array.
-
-        Note:
-         Failure state exists if self.catalog is not bound
-            to instance explicity.
-        """
-        # short-circuit
-        if isinstance(self.catalog, numpy.ndarray):
-            return self.catalog
-        catalog_length = len(self.catalog)
-        if catalog_length == 0:
-            raise RuntimeError("catalog is empty.")
-        catalog = numpy.zeros(catalog_length, dtype=self.dtype)
-        if isinstance(self.catalog[0], list):
-            for i, event in enumerate(self.catalog):
-                catalog[i] = tuple(event)
-        elif isinstance(self.catalog[0], SummaryEvent):
-            for i, event in enumerate(self.catalog):
-                catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
-                              event.latitude, event.longitude, event.depth, event.magnitude)
-        else:
-            raise TypeError("comcat catalog must be list of events with order:\n"
-                            "id, epoch_time, latitude, longtiude, depth, magnitude. or \n"
-                            "list of SummaryEvent type.")
-        return catalog
-
-    def get_event_ids(self):
-        return self.catalog['id']
-
-    def get_csep_format(self):
-        n = len(self.catalog)
-        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
-        for i, event in enumerate(self.catalog):
-            csep_catalog[i] = (event['longitude'],
-                               event['latitude'],
-                               event['magnitude'],
-                               event['origin_time'],
-                               event['depth'],
-                               event['id'])
-
-        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
-
-
-class JmaCsvCatalog(AbstractBaseCatalog):
-    """ Catalog stored in preprocessing JMA deck file (.csv) format. Use the deck2csv.pl script in the ./bin directory to create
-        the csv format.
-
-        timestamp;longitude;latitude;depth;magnitude
-        1923-01-08T13:46:29.170000+0900;140.6260;35.3025;0.00;4.100
-        1923-01-12T00:56:56.280000+0900;132.1828;32.4093;40.00;5.600
-        1923-01-14T14:51:29.130000+0900;140.0535;36.0797;87.00;6.000
-        1923-01-26T21:35:30.310000+0900;140.1388;36.2613;37.00;5.200
-        1923-01-27T08:28:11.320000+0900;140.1462;36.3623;99.67;3.700
-        1923-01-27T13:12:10.220000+0900;141.2377;36.9512;0.00;5.100
-
-        output created by a perl script developed first '89 by Hiroshi Tsuruoka,
-        updated by -tb to create proper JST timestamp strings instead of separate
-        columns for year, month, days, hours, minutes (all int), and seconds (.2 digit floats)
-
-    Args: numpy.dtype description of JMA CSV catalog format:
-            - timestamp: milli(sic!)seconds as bigint
-            - longitude, latitude: regular coordinates as float64
-            - depth: kilometers as float64
-            - magnitude: regular magnitude as float64
-        after some benchmarks of comparing ('i8','f8','f8','f8','f8') vs. ('i8','i4','i4','i2','i2') the
-        10% speed gain by using full length float instead of minimum sized integers seemed to be more important than
-        the 200% used space
-
-    """
-
-    dtype = numpy.dtype([
-        ('timestamp', 'i8'),
-        ('longitude', 'f8'),
-        ('latitude', 'f8'),
-        ('depth', 'f8'),
-        ('magnitude', 'f8')
-    ])
-
-    def __init__(self, catalog_id='JMA', format='jma-csv', **kwargs):
-        # initialize parent constructor
-        super().__init__(catalog_id=catalog_id, format=format, **kwargs)
-
-    def load_catalog(self):
-
-        # template for timestamp format in JMA csv file:
-        _tsTpl = '%Y-%m-%dT%H:%M:%S.%f%z'
-
-        # helper function to parse the timestamps:
-        parseDateString = lambda x: round(1000. * datetime.datetime.strptime(x.decode('utf-8'), _tsTpl).timestamp())
-
-        self.catalog = numpy.genfromtxt(self.filename, delimiter=';', names=True, skip_header=0,
-                                            dtype=self.dtype, invalid_raise=True, loose=False, converters={0: parseDateString})
-
-        return self
-
-    def get_epoch_times(self):
-        """
-        Retrieves numpy.array of epoch milli(sic!)seconds from JMA eventset.
-
-        Returns:
-            numpy.array: of epoch seconds
-        """
-        return self.catalog['timestamp']
-
-    def get_datetimes(self):
-        """
-        Retrieves numpy.array of epoch milli(sic!)seconds from JMA eventset.
-
-        Returns:
-            list: python datetime objects
-        """
-        datetimes = []
-        for _idx, _val in enumerate(self.catalog['timestamp'] / 1000.):
-            datetimes.append(datetime.datetime.fromtimestamp(_val))
-        return datetimes
-
-    def get_magnitudes(self):
-        """
-        Retrieves numpy.array of magnitudes from JMA eventset.
-
-        Returns:
-            numpy.array: of magnitudes
-        """
-        return self.catalog['magnitude']
-
-    def get_depths(self):
-        """
-        Retrieves numpy.array of depths from JMA eventset.
-
-        Returns:
-            numpy.array: of depths
-        """
-        return self.catalog['depth']
-
-    def get_longitudes(self):
-        """
-        Retrieves numpy.array of longitudes from JMA eventset.
-
-        Returns:
-            numpy.array: of longitudes
-        """
-        return self.catalog['longitude']
-
-    def get_latitudes(self):
-        """
-        Retrieves numpy.array of latitudes from JMA eventset.
-
-        Returns:
-            numpy.array: of latitudes
-        """
-        return self.catalog['latitude']
-
-    def get_csep_format(self):
-        n = len(self.catalog)
-        csep_catalog = numpy.zeros(n, dtype=CSEPCatalog.dtype)
-        for i, event in enumerate(self.catalog):
-            csep_catalog[i] = (event['longitude'],
-                               event['latitude'],
-                               event['magnitude'],
-                               event['timestamp'],
-                               event['depth'],
-                               '')
-        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename)
-

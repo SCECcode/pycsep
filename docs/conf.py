@@ -16,11 +16,11 @@ import os
 import sys
 from unittest.mock import MagicMock
 
-from sphinx_gallery.sorting import ExplicitOrder, FileNameSortKey
+from sphinx_gallery.sorting import FileNameSortKey
 
 sys.path.insert(0, os.path.abspath('..'))
 
-# mock class for dealing with packages that need to be installed via conda forge
+# mock class for dealing with packages that need to be installed via conda forge,
 class Mock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
@@ -61,6 +61,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
     'sphinx_gallery.gen_gallery'
 ]
 
@@ -105,9 +106,18 @@ html_theme = 'sphinx_rtd_theme'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
+
+# intersphinx configuration
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    "scipy": ('http://docs.scipy.org/doc/scipy/reference', None),
+}
+
 html_theme_options = {}
 html_context = {
-    "menu_links": [
+    "github_links": [
         (
             'Contributing',
             "https://github.com/SCECCode/csep2/blob/dev/CONTRIBUTING.md",

@@ -2,12 +2,9 @@ import json
 import os
 import time
 from csep.models import EvaluationResult, CatalogNumberTestResult
-from csep.utils.time_utils import strptime_to_utc_datetime
-from csep.core.catalogs import ( UCERF3Catalog,
-                ZMAPCatalog,
-                ComcatCatalog,
-                CSEPCatalog,
-                JmaCsvCatalog )
+from csep.utils.time_utils import strptime_to_utc_datetime, utc_now_datetime
+from csep.core.catalogs import UCERF3Catalog, CSEPCatalog
+from csep.utils import readers
 from csep.core.forecasts import CatalogForecast, GriddedForecast
 
 def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
@@ -54,7 +51,8 @@ def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
             raise ValueError('format must be either "native" or "csep!')
 
 
-def load_catalog(filename, type='csv', format='native', **kwargs):
+
+def load_catalog(filename, type='csep-csv', format='native', loader=None, **kwargs):
     """ General function to load single catalog
 
     See corresponding class documentation for additional parameters.
@@ -66,22 +64,44 @@ def load_catalog(filename, type='csv', format='native', **kwargs):
 
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
-    if type not in ('ucerf3', 'comcat', 'csv', 'zmap', 'jma-csv'):
-        raise ValueError("type must be one of the following: ('ucerf3', 'comcat', 'csv', 'zmap', 'jma')")
 
-    # add entry point to load observed_catalog here.
-    mapping = {'ucerf3': UCERF3Catalog,
-               'csv': CSEPCatalog,
-               'zmap': ZMAPCatalog,
-               'comcat': ComcatCatalog,
-               'jma': JmaCsvCatalog}
+    if type not in ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk'):
+        raise ValueError("type must be one of the following: ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk')")
+
+    # map to correct catalog class, at some point these could be abstracted into configuration file
+    # this maps a human readable string to the correct catalog class and the correct loader function
+    class_loader_mapping = {
+        'ucerf3': {
+            'class': UCERF3Catalog,
+            'loader': None
+        },
+        'csep-csv': {
+            'class': CSEPCatalog,
+            'loader': readers.csep_ascii
+        },
+        'zmap': {
+            'class': CSEPCatalog,
+            'loader': readers.zmap_ascii
+        },
+        'jma-csv': {
+            'class': CSEPCatalog,
+            'loader': readers.jma_csv,
+        },
+        'ndk': {
+            'class': CSEPCatalog,
+            'loader': readers.ndk
+        }
+    }
+
 
     # treat json files using the from_dict() member instead of constructor
+    catalog_class = class_loader_mapping[type]['class']
     if os.path.splitext(filename)[-1][1:] == 'json':
-        catalog_class = mapping[type]
         catalog = catalog_class.load_json(filename, **kwargs)
     else:
-        catalog = mapping[type](filename=filename, **kwargs)
+        if loader is None:
+            loader = class_loader_mapping[type]['loader']
+        catalog = catalog_class.load_catalog(filename=filename, loader=loader, **kwargs)
 
     # convert to csep format if needed
     if format == 'native':
@@ -94,7 +114,7 @@ def load_catalog(filename, type='csv', format='native', **kwargs):
 
 def query_comcat(start_time, end_time, min_magnitude=2.50,
                  min_latitude=31.50, max_latitude=43.00,
-                 min_longitude=-125.40, max_longitude=-113.10, region=None, verbose=True):
+                 min_longitude=-125.40, max_longitude=-113.10, verbose=True, **kwargs):
     """
     Access Comcat catalog through web service
 
@@ -115,23 +135,24 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
 
     # Timezone should be in UTC
     t0 = time.time()
-    comcat = ComcatCatalog(start_time=start_time, end_time=end_time,
-                           name='Comcat', min_magnitude=min_magnitude,
+    eventlist = readers._query_comcat(start_time=start_time, end_time=end_time,
+                           min_magnitude=min_magnitude,
                            min_latitude=min_latitude, max_latitude=max_latitude,
-                           min_longitude=min_longitude, max_longitude=max_longitude, region=region, query=True)
+                           min_longitude=min_longitude, max_longitude=max_longitude)
     t1 = time.time()
-    print("Fetched Comcat observed_catalog in {} seconds.\n".format(t1 - t0))
+    comcat = CSEPCatalog(catalog=eventlist, date_accessed=utc_now_datetime(), **kwargs)
+    print("Fetched ComCat catalog in {} seconds.\n".format(t1 - t0))
     if verbose:
-        print("Downloaded observed_catalog from ComCat with following parameters")
+        print("Downloaded catalog from ComCat with following parameters")
         print("Start Date: {}\nEnd Date: {}".format(str(comcat.start_time), str(comcat.end_time)))
         print("Min Latitude: {} and Max Latitude: {}".format(comcat.min_latitude, comcat.max_latitude))
         print("Min Longitude: {} and Max Longitude: {}".format(comcat.min_longitude, comcat.max_longitude))
         print("Min Magnitude: {}".format(comcat.min_magnitude))
-        print(f"Found {comcat.event_count} events in the Comcat observed_catalog.")
+        print(f"Found {comcat.event_count} events in the ComCat catalog.")
     return comcat
 
 def load_evaluation_result(fname):
-    """ Load evaluation result stored as json file.
+    """ Load evaluation result stored as json file
 
     Returns:
         :class:`csep.core.evaluations.EvaluationResult`
@@ -213,9 +234,9 @@ def load_catalog_forecast(fname, catalog_loader=None, format='native', type='asc
         Args:
             fname (str): pathname to the forecast file or directory containing the forecast files
             catalog_loader (func): callable that can load catalogs, see load_stochastic_event_sets above.
-            format (str): either 'native' or 'csep'. if 'csep', will attempt to be returned into csep observed_catalog format. used to convert between
+            format (str): either 'native' or 'csep'. if 'csep', will attempt to be returned into csep catalog format. used to convert between
                           observed_catalog type.
-            type (str): either 'ucerf3' or 'csep', determines the observed_catalog format of the forecast. if loader is provided, then
+            type (str): either 'ucerf3' or 'csep', determines the catalog format of the forecast. if loader is provided, then
                         this parameter is ignored.
             **kwargs: other keyword arguments passed to the :class:`csep.core.forecasts.CatalogForecast`.
 

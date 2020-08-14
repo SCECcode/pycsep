@@ -16,13 +16,13 @@ from csep.utils.stats import get_quantiles, cumulative_square_diff
 def number_test(forecast, observed_catalog):
     """ Performs the number test on a catalog-based forecast.
 
-    The number test builds an empirical distribution of the event counts for each catalog. By default, this
+    The number test builds an empirical distribution of the event counts for each data. By default, this
     function does not perform any filtering on the catalogs in the forecast or observation. These should be handled
     outside of the function.
 
     Args:
         forecast (:class:`csep.core.forecasts.CatalogForecast`): forecast to evaluate
-        observed_catalog (:class:`csep.core.catalogs.AbstractBaseCatalog`): evaluation catalog
+        observed_catalog (:class:`csep.core.catalogs.AbstractBaseCatalog`): evaluation data
 
     Returns:
         evaluation result (:class:`csep.models.EvaluationResult`): evaluation result
@@ -293,8 +293,5 @@ def calibration_test(evaluation_results, delta_1=False):
     )
 
     return result
-
-
-
 
 

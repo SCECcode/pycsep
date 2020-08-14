@@ -6,7 +6,6 @@ PyCSEP: Tools for Earthquake Forecast Developers
     :hidden:
     :caption: Getting Started
 
-    getting_started/overview
     getting_started/installing
     getting_started/core_concepts
 
@@ -28,6 +27,7 @@ PyCSEP: Tools for Earthquake Forecast Developers
 
     concepts/catalogs
     concepts/forecasts
+    concepts/regions
     concepts/evaluations
     concepts/plotting
     concepts/storing_data
@@ -42,7 +42,6 @@ PyCSEP: Tools for Earthquake Forecast Developers
     reference/changelog
     reference/developer_notes
     reference/api_reference
-    Copyright Agreement<reference/copyright>
 
 
 *PyCSEP tools help earthquake forecast model developers evaluate their forecasts and provide the machinery to implement
@@ -76,7 +75,7 @@ any questions, please contact us!
 Contacting Us
 -------------
 * For general discussion and bug reports please post issues on the `PyCSEP GitHub <https://github.com/SCECCode/csep2>`_.
-* This project adheres to a :ref:`Contributor Code of Conduct <code-of-conduct>`. By participating you agree to follow its terms.
+* This project adheres to a `Code of Conduct <https://github.com/SCECCode/csep2/blob/dev/CODE_OF_CONDUCT.md>`_. By participating you agree to follow its terms.
 
 List of Contributors
 --------------------

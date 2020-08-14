@@ -1,8 +1,11 @@
 import itertools
 import time
 import os
-import numpy
 import datetime
+
+# third-party imports
+import numpy
+
 from csep.utils.log import LoggingMixin
 from csep.core.regions import CartesianGrid2D
 from csep.utils.basic_types import Polygon
@@ -421,8 +424,8 @@ class CatalogForecast(LoggingMixin):
 
 
         """
-        The region information can be provided along side the catalog, if they are stored in one of the supported file formats.
-        It is assumed that the region for each catalog is identical. If the regions are not provided with the catalog files,
+        The region information can be provided along side the data, if they are stored in one of the supported file formats.
+        It is assumed that the region for each data is identical. If the regions are not provided with the data files,
         they must be provided explicitly. The california testing region can be loaded using :func:`csep.utils.spatial.california_relm_region`.
 
         There are a few different ways this class can be constructed, each
@@ -436,7 +439,7 @@ class CatalogForecast(LoggingMixin):
             filter_spatial (bool): if true, will filter to area defined in space region
             apply_mct (bool): this should be provided if a time-dependent magnitude completeness model should be
                               applied to the forecast
-            filters (iterable): list of catalog filter strings. these override the filter_magnitude and filter_time arguments
+            filters (iterable): list of data filter strings. these override the filter_magnitude and filter_time arguments
             region: :class:`csep.core.spatial.CartesianGrid2D` including magnitude bins
             start_time (datetime.datetime): start time of the forecast
             end_time (datetime.datetime): end time of the forecast
@@ -469,7 +472,7 @@ class CatalogForecast(LoggingMixin):
         self.filter_spatial = filter_spatial
         self.apply_mct = apply_mct
 
-        # catalog format used for loading catalogs
+        # data format used for loading catalogs
         self.catalog_type = catalog_type
         self.catalog_format = catalog_format
 
@@ -533,7 +536,7 @@ class CatalogForecast(LoggingMixin):
             catalog = catalog.apply_mct(self.event.magnitude, datetime_to_utc_epoch(self.event.time))
         if self.filter_spatial:
             catalog = catalog.filter_spatial(self.region)
-        # return potentially filtered catalog
+        # return potentially filtered data
         return catalog
 
     def _load_catalogs(self):
@@ -576,11 +579,11 @@ class CatalogForecast(LoggingMixin):
 
         Args:
             catalogs_iterable (iterable): collection of catalogs, should be filtered outside the function
-            catalog (csep.core.AbstractBaseCatalog): observation catalog
+            data (csep.core.AbstractBaseCatalog): observation data
 
         Return:
             :class:`csep.core.forecasts.GriddedForecast`
-            list of tuple(lon, lat, magnitude) events that were skipped in binning. if catalog was filtered in space
+            list of tuple(lon, lat, magnitude) events that were skipped in binning. if data was filtered in space
             and magnitude beforehand this list shoudl be empty.
         """
         # self.n_cat might be none here, if catalogs haven't been loaded and its not yet specified.
@@ -592,7 +595,7 @@ class CatalogForecast(LoggingMixin):
             t0 = time.time()
             data = numpy.empty([])
             for i, cat in enumerate(self):
-                # compute spatial density from each catalog, force catalog region to use the forecast region
+                # compute spatial density from each data, force data region to use the forecast region
                 cat.region = self.region
                 gridded_counts, skipped = cat.spatial_magnitude_counts(ret_skipped=True)
                 skipped_list.extend(skipped)
@@ -620,7 +623,7 @@ class CatalogForecast(LoggingMixin):
         raise NotImplementedError("get_dataframe is not implemented.")
 
     def write_ascii(self, fname, header=True, loader=None ):
-        """ Writes catalog forecast to ASCII format
+        """ Writes data forecast to ASCII format
 
 
         Args:
@@ -636,7 +639,7 @@ class CatalogForecast(LoggingMixin):
 
     @classmethod
     def load_ascii(cls, fname, **kwargs):
-        """ Loads ASCII format for catalog forecast.
+        """ Loads ASCII format for data forecast.
 
         Args:
             fname (str): path to file or directory containing forecast files

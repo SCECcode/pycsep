@@ -119,7 +119,7 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
     n_bins = time_bins.shape[0]
     binned_counts = numpy.zeros((n_cat, n_bins))
     for i, ses in enumerate(stochastic_event_sets):
-        n_events = ses.catalog.shape[0]
+        n_events = ses.data.shape[0]
         ses_origin_time = ses.get_epoch_times()
         inds = bin1d_vec(ses_origin_time, time_bins)
         for j in range(n_events):

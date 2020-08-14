@@ -35,9 +35,6 @@ Catalog operations are defined using :class:`AbstractBaseCatalog` class.
    AbstractBaseCatalog
    CSEPCatalog
    UCERF3Catalog
-   ZMAPCatalog
-   ComcatCatalog
-   JmaCsvCatalog
 
 Catalog operations
 ------------------
@@ -53,8 +50,8 @@ Input and output operations for catalogs:
    CSEPCatalog.from_dataframe
    CSEPCatalog.write_json
    CSEPCatalog.load_json
+   CSEPCatalog.load_catalog
    CSEPCatalog.write_ascii
-   CSEPCatalog.load_ascii
    CSEPCatalog.load_ascii_catalogs
    CSEPCatalog.get_csep_format
 
@@ -70,8 +67,6 @@ Accessing event information:
    CSEPCatalog.get_depths
    CSEPCatalog.get_epoch_times
    CSEPCatalog.get_datetimes
-   CSEPCatalog.get_inter_event_times
-   CSEPCatalog.get_inter_event_distances
    CSEPCatalog.get_cumulative_number_of_events
 
 Filtering and binning:

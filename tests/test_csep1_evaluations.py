@@ -13,8 +13,8 @@ import datetime
 
 from csep.core.poisson_evaluations import _number_test_ndarray, _w_test_ndarray, _t_test_ndarray, number_test
 from csep.core.forecasts import GriddedForecast
-from csep.core.catalogs import ZMAPCatalog
-from csep.utils.readers import read_csep_ascii
+from csep.core.catalogs import CSEPCatalog
+from csep.utils.readers import zmap_ascii
 
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -50,7 +50,7 @@ class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
         # scale the forecast to the test_date, assuming the forecast is rate over the period specified by forecast start and end dates
         fore.scale_to_test_date(self.test_date)
         # load the observed_catalog file
-        cata = ZMAPCatalog(catalog=read_csep_ascii(self.catalog_fname), region=fore)
+        cata = CSEPCatalog(catalog=zmap_ascii(self.catalog_fname), region=fore)
         # compute n_test_result
         res = number_test(fore, cata)
         # parse xml result from file
