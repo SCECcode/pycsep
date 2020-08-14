@@ -1,8 +1,6 @@
 import unittest
 import os.path
-import numpy
 from csep.utils import readers
-from csep.core import catalogs
 
 
 def get_datadir():
@@ -10,45 +8,38 @@ def get_datadir():
     data_dir = os.path.join(root_dir, 'artifacts', 'Testing', 'ingv_rcmt-catalogs')
     return data_dir
 
+
 class TestReadCatalog(unittest.TestCase):
 
+    def test_cats(self):
+        cat_dir = get_datadir()
+        filepaths = os.listdir(cat_dir)
 
-    def test_read_short_cat(self):
+        for filepath in filepaths:
 
-        datadir = get_datadir()
-        file_ = 'ingv_rcmt-short.csv'
-        catalog_tuples = readers.read_ingv_rcmt_csv(os.path.join(datadir,file_))
-        self.assertEqual(len(catalog_tuples),10)
+            catalog_tuples = readers.read_ingv_rcmt_csv(os.path.join(cat_dir, filepath))
+            lines = 0
 
-    def test_read_large_cat(self):
+            with open(os.path.join(cat_dir, filepath)) as file_:
+                for targetline, testline in zip(file_.readlines(), catalog_tuples):
+                    targetline_ = targetline.split(',')
 
-        datadir = get_datadir()
-        file_ = 'ingv_rcmt-large.csv'
-        catalog_tuples = readers.read_ingv_rcmt_csv(os.path.join(datadir,file_))
-        self.assertEqual(len(catalog_tuples),2340)
-        self.assertEqual(catalog_tuples[891][6],77.)
+                    # lon/lat
+                    self.assertAlmostEqual(float(targetline_[5].replace('"', '')), testline[0])  # In some files, some line's values are under "" and some not.
+                    self.assertAlmostEqual(float(targetline_[4].replace('"', '')), testline[1]) # Python csv handles that well within the reader function
+                    # date
+                    testdate = "%i-%02i-%02i" % testline[2:5]
+                    self.assertEqual(targetline_[1], testdate)
+                    # time
+                    testhour = "%02i:%02i:%02i" % testline[-3:]
+                    self.assertEqual(targetline_[2].replace(' ', '0'), testhour) # In some events, time are written like '12:12: 1' instead of '12:12:01'
+                    # depth
+                    self.assertAlmostEqual(float(targetline_[6].replace('"', '')), testline[6])
+                    # mw
+                    self.assertAlmostEqual(float(targetline_[-3]), testline[5])
+                    lines += 1
 
-class TestCreateCatalogFromRead(unittest.TestCase):
-
-    def test_create_catalog(self):
-        dtype = numpy.dtype([('longitude', numpy.float32),
-                             ('latitude', numpy.float32),
-                             ('year', numpy.int32),
-                             ('month', numpy.int32),
-                             ('day', numpy.int32),
-                             ('magnitude', numpy.float32),
-                             ('depth', numpy.float32),
-                             ('hour', numpy.int32),
-                             ('minute', numpy.int32),
-                             ('second', numpy.int32)])
-        datadir = get_datadir()
-        filepath = os.path.join(datadir,'ingv_rcmt-large.csv')
-        data_list = readers.read_ingv_rcmt_csv(filepath)
-        catalog_array = numpy.array(data_list, dtype=dtype)
-        Catalog = catalogs.ZMAPCatalog(catalog=catalog_array,
-                                       compute_stats=False)
-        Catalog.update_catalog_stats()
-        self.assertEqual(Catalog.get_bvalue()[0], 0.49344819206533963)
+            self.assertEqual(len(catalog_tuples), lines)
 
 
 if __name__ == '__main__':

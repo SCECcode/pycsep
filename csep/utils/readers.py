@@ -496,44 +496,40 @@ def read_ingv_rcmt_csv(fname):
                         ('second', numpy.int32)])
     """
 
-    import time             ### Should these modules be imported in top level of readers.py?
-    import pandas
-
-    start_time = time.time()
-
-    indexing = {'date': 1,
-                'time': 2,
-                'sec_dec': 3,
-                'hypo_lat': 4,
-                'hypo_lng': 5,
-                'hypo_depth_in_km': 6,
-                'Mw': 61}
-
-    data = pandas.read_csv(fname, header=None, usecols=list(indexing.values()))
+    ind = {'date': 1,
+           'time': 2,
+           'sec_dec': 3,
+           'lat': 4,
+           'lon': 5,
+           'depth': 6,
+           'Mw': 61}
 
     out = []
-    for i, line in data.iterrows():
-        try:
-            date_time_dict = _parse_datetime_to_zmap(line[indexing['date']].replace('-', '/'),
-                                                     line[indexing['time']].replace(' ', '0') +
-                                                     '.' + str(line[indexing['sec_dec']]))
-        except ValueError:
-            msg = ("Could not parse date/time string '%s' and '%s' to a valid "
-                   "time" % (line[indexing['date']], line[indexing['time']]))
-            warnings.warn(msg, RuntimeWarning)
-            continue
-        event_tuple = (line[indexing['hypo_lng']],
-                       line[indexing['hypo_lat']],
-                       date_time_dict['year'],
-                       date_time_dict['month'],
-                       date_time_dict['day'],
-                       line[indexing['Mw']],
-                       line[indexing["hypo_depth_in_km"]],
-                       date_time_dict['hour'],
-                       date_time_dict['minute'],
-                       date_time_dict['second'])
-        out.append(event_tuple)
+    with open(fname) as file_:
+        reader = csv.reader(file_)
 
+        for line in reader:
+
+            try:
+                date_time_dict = _parse_datetime_to_zmap(line[ind['date']].replace('-', '/'),
+                                                         line[ind['time']].replace(' ', '0') +
+                                                         '.' + line[ind['sec_dec']].replace(' ', ''))
+            except ValueError:
+                msg = ("Could not parse date/time string '%s' and '%s' to a valid "
+                       "time" % (line[ind['date']], line[ind['time']]))
+                warnings.warn(msg, RuntimeWarning)
+                continue
+            event_tuple = (float(line[ind['lon']]),
+                           float(line[ind['lat']]),
+                           int(date_time_dict['year']),
+                           int(date_time_dict['month']),
+                           int(date_time_dict['day']),
+                           float(line[ind['Mw']]),
+                           float(line[ind["depth"]]),
+                           int(date_time_dict['hour']),
+                           int(date_time_dict['minute']),
+                           int(date_time_dict['second']))
+            out.append(event_tuple)
     return out
 
 
