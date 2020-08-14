@@ -2,7 +2,6 @@ import matplotlib
 import scipy.stats
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
-from mpl_toolkits.basemap import Basemap
 
 import time
 import numpy
@@ -915,37 +914,6 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
 
     return ax
 
-def plot_global_forecast(forecast, catalog=None, name=None):
-    """
-    Creates global plot from a forecast using a Robin projection. This should be used as a quick and dirty plot and probably
-    will not suffice for publication quality figures.
-
-    Args:
-        forecast (csep.core.forecasts.MarkedGriddedDataSet): marked gridded data set
-        catalog (csep.core.data.AbstractBaseCatalog):  data base class
-        name (str): name of the data
-
-    Returns:
-        axes
-
-    """
-    fig, ax = pyplot.subplots(figsize=(18,11))
-    m = Basemap(projection='robin', lon_0= -180, resolution='c')
-    m.drawcoastlines(color = 'lightgrey', linewidth = 1.5)
-    m.drawparallels(numpy.arange(-90.,120.,15.), labels=[1,1,0,1], linewidth= 0.0, fontsize = 13)
-    m.drawmeridians(numpy.arange(0.,360.,40.), labels=[1,1,1,1], linewidth= 0.0, fontsize = 13)
-    x, y = m(forecast.get_longitudes(), forecast.get_longitudes())
-    cbar = ax.scatter(x, y, s = 2, c = numpy.log10(forecast.spatial_counts()), cmap = 'inferno', edgecolor='')
-    a = fig.colorbar(cbar, orientation = 'horizontal', shrink = 0.5, pad = 0.01)
-    if catalog is not None:
-        x, y = m(catalog.get_longitudes(), catalog.get_latitudes())
-        ax.scatter(x, y, color='black')
-    a.ax.tick_params(labelsize = 14)
-    a.ax.tick_params(labelsize = 14)
-    if name is None:
-        name='Global Forecast'
-    a.set_label('{}\nlog$_{{10}}$(EQs / (0.1$^o$ x 0.1$^o$)'.format(name), size = 18)
-    return ax
 
 def _get_marker_style(obs_stat, p, one_sided_lower=True):
     """Returns matplotlib marker style as fmt string"""
@@ -1069,3 +1037,48 @@ def _get_axis_limits(pnts, border=0.05):
     xd = (x_max - x_min)*border
     return (x_min-xd, x_max+xd)
 
+def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=False):
+    # set up QQ plots and KS test
+    plot_args = plot_args or {}
+    n = len(evaluation_result.test_distribution)
+    k = numpy.arange(1, n + 1)
+    # plotting points for uniform quantiles
+    pp = k / (n + 1)
+    # compute confidence intervals for order statistics using beta distribution
+    ulow = scipy.stats.beta.ppf(0.025, k, n - k + 1)
+    uhigh = scipy.stats.beta.ppf(0.975, k, n - k + 1)
+
+    # get stuff from plot_args
+    label = plot_args.get('label', evaluation_result.sim_name)
+    xlim = plot_args.get('xlim', [0, 1.05])
+    ylim = plot_args.get('ylim', [0, 1.05])
+    xlabel = plot_args.get('xlabel', 'Quantile scores')
+    ylabel = plot_args.get('ylabel', 'Standard uniform quantiles')
+    color = plot_args.get('color', 'tab:blue')
+
+    # quantiles should be sorted for plotting
+    sorted_td = numpy.array(evaluation_result.test_distribution).sort()
+
+    if axes is None:
+        fig, ax = pyplot.subplots()
+    else:
+        ax = axes
+
+    # plot qq plot
+    _ = ax.scatter(sorted_td, pp, label=label, c=color)
+    # plot uncertainty on uniform quantiles
+    ax.plot(pp, pp, '-k')
+    ax.plot(ulow, pp, ':k')
+    ax.plot(uhigh, pp, ':k')
+
+    ax.set_ylim(ylim)
+    ax.set_xlim(xlim)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    ax.legend(loc='lower right')
+
+    if show:
+        pyplot.show()
+
+    return ax

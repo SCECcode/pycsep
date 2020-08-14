@@ -413,9 +413,8 @@ class GriddedForecast(MarkedGriddedDataSet):
 class CatalogForecast(LoggingMixin):
     """ Catalog based forecast defined as a family of stochastic event sets. """
 
-    def __init__(self, filename=None, catalogs=None, filters=None,
-                 filter_spatial=False,
-                 apply_mct=False, name=None,
+    def __init__(self, filename=None, catalogs=None, name=None,
+                 filter_spatial=False, filters=None, apply_mct=False,
                  region=None, expected_rates=None, start_time=None, end_time=None,
                  n_cat=None, event=None, loader=None, catalog_type='ascii',
                  catalog_format='native'):
@@ -572,7 +571,7 @@ class CatalogForecast(LoggingMixin):
         else:
             return None
 
-    def get_expected_rates(self, verbose=False):
+    def get_expected_rates(self, verbose=False, return_skipped=False):
         """ Compute the expected rates in space-magnitude bins
 
         Args:
@@ -611,7 +610,10 @@ class CatalogForecast(LoggingMixin):
             data = data / self.n_cat
             self.expected_rates = GriddedForecast(self.start_time, self.end_time, data=data, region=self.region,
                                                   magnitudes=self.magnitudes, name=self.name)
-            return (self.expected_rates, skipped_list)
+            if return_skipped:
+                return (self.expected_rates, skipped_list)
+            else:
+                return self.expected_rates
 
     def get_dataframe(self):
         """Return a single dataframe with all of the events from all of the catalogs."""
