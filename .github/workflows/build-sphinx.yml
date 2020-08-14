@@ -28,26 +28,26 @@ jobs:
           pip install sphinx-gallery>=0.7.0
           pip install sphinx-rtd-theme
       - name: Install PyCSEP
-          run: |
-            python setup.py install
+        run: |
+          python setup.py install
       - name: Build documentation
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          run: |
-            export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
-            make -C docs clean
-            make -C docs html
-            doc_root=`mktemp -d`
-            rsync -av "docs/_build/html/" "${doc_root}/"
-            pushd "${doc_root}"
-            git config --global user.name "${GITHUB_ACTOR}"
-            git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-            git init
-            git remote add deploy "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-            git checkout -b gh-pages
-            echo "Empty README.md for documenation cache." > README.md
-            git add .
-            git commit -am "Updating PyCSEP docs for commit ${GITHUB_SHA} made on `date -d"@{SOURCE_DATE_EPOCH} --iso-8601=seconds` from ${GITHUB_REF} by ${GITHUB_ACTOR}"
-            git push deploy gh-pages --force
-          shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+          make -C docs clean
+          make -C docs html
+          doc_root=`mktemp -d`
+          rsync -av "docs/_build/html/" "${doc_root}/"
+          pushd "${doc_root}"
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git init
+          git remote add deploy "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git checkout -b gh-pages
+          echo "Empty README.md for documenation cache." > README.md
+          git add .
+          git commit -am "Updating PyCSEP docs for commit ${GITHUB_SHA} made on `date -d"@{SOURCE_DATE_EPOCH} --iso-8601=seconds` from ${GITHUB_REF} by ${GITHUB_ACTOR}"
+          git push deploy gh-pages --force
+        shell: bash
 
