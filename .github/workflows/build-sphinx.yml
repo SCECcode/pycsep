@@ -28,7 +28,7 @@ jobs:
           pip install sphinx-gallery>=0.7.0
           pip install sphinx-rtd-theme
           pip install pillow
-          pip uninstall shapely
+          pip uninstall -y shapely
           pip install shapely --no-binary shapely
       - name: Install PyCSEP
         run: |
