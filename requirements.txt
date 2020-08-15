@@ -6,7 +6,7 @@ pyproj==1.9.6
 obspy==1.2.1
 python-dateutil==2.8.0
 pytest==5.4.2
-cartopy==0.17.0
+cartopy==0.18.0
 vcrpy==4.0.2
 gitpython==3.0.8
 six==1.15.0
