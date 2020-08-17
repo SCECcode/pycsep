@@ -1,6 +1,16 @@
 [run]
 branch = True
-source = .
+source = ./csep/
+omit =
+    tests/*
+    docs/*
+    examples/*
+    csep/utils/plots.py
+    csep/utils/constants.py
+    csep/utils/datasets.py
+    csep/utils/documents.py
+    setup.py
+
 
 [report]
 exclude_lines =
@@ -8,7 +18,5 @@ exclude_lines =
     pragma: no cover
     raise NotImplementedError
     if __name__ == .__main__.:
+
 ignore_errors = True
-omit =
-    tests/*
-    doc/*

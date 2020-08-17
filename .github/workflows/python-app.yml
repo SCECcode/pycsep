@@ -34,5 +34,5 @@ jobs:
         python setup.py install
     - name: Test with pytest
       run: |
-        pytest --cov=./
+        pytest --cov=./ --cov-config=.coveragerc
         bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'
