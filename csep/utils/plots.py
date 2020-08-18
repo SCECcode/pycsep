@@ -1,15 +1,17 @@
-import matplotlib
+import time
+
+# Third-party imports
+import numpy
 import scipy.stats
+import matplotlib
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
-
-import time
-import numpy
 import matplotlib.pyplot as pyplot
 import cartopy
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
+# PyCSEP imports
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import datetime_to_utc_epoch

@@ -7,8 +7,10 @@ import csv
 from itertools import zip_longest
 import os
 
+# Third-party imports
 import numpy
 
+# PyCSEP imports
 from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
 from csep.core.exceptions import CSEPIOException
@@ -426,7 +428,7 @@ def csep_ascii(fname, return_catalog_id=False):
         # csv treats everything as a string convert to correct types
         is_first_event = True
         events = []
-        for line in catalog_reader:
+        for i, line in enumerate(catalog_reader):
             # skip header line on first read if included in file
             if is_first_event and is_header_line(line):
                 continue
@@ -437,8 +439,15 @@ def csep_ascii(fname, return_catalog_id=False):
             # maybe fractional seconds are not included
             origin_time = parse_datetime(line[3])
             depth = float(line[4])
-            catalog_id = line[5]
+            catalog_id = int(line[5])
             event_id = line[6]
+            try:
+                event_id = event_id.decode('utf-8')
+            except:
+                pass
+            if not event_id:
+                event_id = int(i)
+
             events.append((event_id, origin_time, lat, lon, depth, magnitude))
             is_first_event = False
 

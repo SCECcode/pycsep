@@ -22,6 +22,7 @@ from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
 from csep.utils.readers import csep_ascii
 
+
 class AbstractBaseCatalog(LoggingMixin):
     """
     Abstract catalog base class for PyCSEP catalogs. This class should not and cannot be used on its own. This just
@@ -31,8 +32,8 @@ class AbstractBaseCatalog(LoggingMixin):
 
     dtype = None
 
-    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True,
-                      filters=(), metadata=None, date_accessed=None):
+    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None,
+                 compute_stats=True, filters=None, metadata=None, date_accessed=None):
 
         """ Standard catalog format for CSEP catalogs. Primary event data are stored in structured numpy array. Additional
             metadata are available by the event_id in the catalog metadata information.
@@ -56,19 +57,23 @@ class AbstractBaseCatalog(LoggingMixin):
         self.name = name
         self.region = region
         self.compute_stats = compute_stats
-        self.filters = filters
-        self.date_accessed = utc_now_datetime() or date_accessed
+        self.filters = filters or []
+        self.date_accessed = date_accessed or utc_now_datetime()  # type datetime.datetime
 
         # used to store additional event information based on the event_id key, if no event_id will default to an
         # integer index
         self.metadata = metadata or {}
 
         # cleans the catalog to set as ndarray, see setter.
-        self.catalog = catalog # type: numpy.ndarray
+        self.catalog = catalog  # type: numpy.ndarray
 
         # use user defined stats if entered into catalog
         if catalog is not None and self.compute_stats:
             self.update_catalog_stats()
+
+    def __eq__(self, other):
+        """ Compares whether two catalogs are equal by comparing their dicts. """
+        return self.to_dict() == other.to_dict()
 
     def __str__(self):
         self.update_catalog_stats()
@@ -100,6 +105,8 @@ class AbstractBaseCatalog(LoggingMixin):
         excluded = ['_catalog']
         out = {}
         for k, v in self.__dict__.items():
+            # note: if 'v' is callable that implies that we have a function bound to a class-member. this happens
+            # for the catalog forecast and requires excluding this value.
             if not callable(v) and k not in excluded:
                 if hasattr(v, 'to_dict'):
                     new_v = v.to_dict()
@@ -110,8 +117,8 @@ class AbstractBaseCatalog(LoggingMixin):
                 else:
                     out[k] = new_v
         out['catalog'] = []
-        for line in self.catalog.tolist():
-            new_line=[]
+        for line in list(self.catalog.tolist()):
+            new_line = []
             for item in line:
                 # try to decode, if it fails just use original, we use this to handle string-based event_ids
                 try:
@@ -140,22 +147,19 @@ class AbstractBaseCatalog(LoggingMixin):
         This needs to handle reading in region information at some point.
         """
 
-        exclude = ['catalog', 'date_accessed']
+        # could these be class values? can be changed later.
+        exclude = ['_catalog']
+        time_members = ['date_accessed', 'start_time', 'end_time']
         catalog = adict.get('catalog', None)
-        date_accessed = adict.get('date_accessed', None)
 
-        if date_accessed is not None:
-            format = parse_string_format(date_accessed)
-            strptime_to_utc_datetime(date_accessed, format=format)
-
-        out = cls(catalog=catalog, date_accessed=date_accessed, **kwargs)
+        out = cls(catalog=catalog, **kwargs)
 
         for k, v in out.__dict__.items():
             if k not in exclude:
-                try:
+                if k not in time_members:
                     setattr(out, k, adict[k])
-                except Exception:
-                    pass
+                else:
+                    setattr(out, k, _none_or_datetime(adict[k]))
         return out
 
     @classmethod
@@ -204,7 +208,7 @@ class AbstractBaseCatalog(LoggingMixin):
             filename (str): path to save file
         """
         with open(filename, 'w') as f:
-            json.dump(self.to_dict(), f)
+            json.dump(self.to_dict(), f, indent=4, separators=(',', ': '), sort_keys=True, default=str)
 
     @property
     def catalog(self):
@@ -326,7 +330,7 @@ class AbstractBaseCatalog(LoggingMixin):
                 adict = {'lon': row[0],
                          'lat': row[1],
                          'mag': row[2],
-                         'time_string': str(epoch_time_to_utc_datetime(row[3]).replace(tzinfo=None)).replace(' ','T'),
+                         'time_string': str(epoch_time_to_utc_datetime(row[3]).replace(tzinfo=None)).replace(' ', 'T'),
                          'depth': row[4],
                          'catalog_id': row[5],
                          'event_id': event_id}
@@ -452,6 +456,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
         Args:
             statements (str, iter): logical statements to evaluate, e.g., ['magnitude > 4.0', 'year >= 1995']
+            in_place (bool): return new instance of catalog
 
         Returns:
             self: instance of AbstractBaseCatalog, so that this function can be chained.
@@ -471,10 +476,11 @@ class AbstractBaseCatalog(LoggingMixin):
             try:
                 format = parse_string_format(dt_input)
             except:
-                raise CSEPIOException("Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
+                raise CSEPIOException(
+                    "Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
             return strptime_to_utc_datetime(dt_input, format)
 
-        # progamatically assign operators
+        # programmatically assign operators
         operators = {'>': operator.gt,
                      '<': operator.lt,
                      '>=': operator.ge,
@@ -520,7 +526,8 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             # make and return new object
             cls = self.__class__
-            inst = cls(catalog=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name, region=self.region)
+            inst = cls(catalog=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name,
+                       region=self.region)
             return inst
 
     def filter_spatial(self, region, update_stats=False):
@@ -615,20 +622,14 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def spatial_counts(self):
         """
-        Returns counts of events within discretized spatial region
+        Returns counts of events within discrete spatial region
 
         We figure out the index of the polygons and create a map that relates the spatial coordinate in the
         Cartesian grid with with the polygon in region.
 
-        Args:
-            region: list of polygons
-
         Returns:
-            outout: unnormalized event count in each bin, 1d ndarray where index corresponds to midpoints
-            midpoints: midpoints of polygons in region
-            cartesian: data embedded into a 2d map. can be used for quick plotting in python
+            ndarray containing the event count in each spatial bin
         """
-        # todo: keep track of events that are ignored
         # make sure region is specified with catalog
         if self.event_count == 0:
             return numpy.zeros(self.region.num_nodes)
@@ -721,7 +722,7 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.event_count == 0:
             n_poly = self.region.num_nodes
             n_mws = self.region.num_mag_bins
-            output =  numpy.zeros((n_poly, n_mws))
+            output = numpy.zeros((n_poly, n_mws))
             skipped = []
 
         else:
@@ -770,7 +771,7 @@ class AbstractBaseCatalog(LoggingMixin):
             bval (float): b-value
             err (float): std. err
         """
-        
+
         if self.get_number_of_events() == 0:
             return None
         # this might fail if magnitudes are not aligned
@@ -781,6 +782,7 @@ class AbstractBaseCatalog(LoggingMixin):
                 mag_bins = CSEP_MW_BINS
         mws = discretize(self.get_magnitudes(), mag_bins)
         dmw = mag_bins[1] - mag_bins[0]
+
         # compute the p term from eq 3.10 in marzocchi and sandri [2003]
         def p():
             top = dmw
@@ -790,7 +792,7 @@ class AbstractBaseCatalog(LoggingMixin):
                 return None
             return 1 + top / bottom
 
-        bottom = numpy.log(10)*dmw
+        bottom = numpy.log(10) * dmw
         p = p()
         if p is None:
             return None
@@ -810,13 +812,12 @@ class CSEPCatalog(AbstractBaseCatalog):
 
     dtype = numpy.dtype([('id', 'S256'),
                          ('origin_time', '<i8'),
-                         ('latitude', '<f4'),
-                         ('longitude', '<f4'),
-                         ('depth', '<f4'),
-                         ('magnitude', '<f4')])
+                         ('latitude', '<f8'),
+                         ('longitude', '<f8'),
+                         ('depth', '<f8'),
+                         ('magnitude', '<f8')])
 
-    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None, compute_stats=True,
-                      filters=(), metadata=None, date_accessed=None):
+    def __init__(self, **kwargs):
 
         """ Standard catalog format for CSEP catalogs. Primary event data are stored in structured numpy array. Additional
             metadata are available by the event_id in the catalog metadata information.
@@ -833,26 +834,7 @@ class CSEPCatalog(AbstractBaseCatalog):
             metadata (dict): additional information for events
             date_accessed (str): time string when catalog was accessed
         """
-        super().__init__()
-        self.filename = filename
-        self.catalog_id = catalog_id
-        self.format = format
-        self.name = name
-        self.region = region
-        self.compute_stats = compute_stats
-        self.filters = filters
-        self.date_accessed = utc_now_datetime() or date_accessed
-
-        # used to store additional event information based on the event_id key, if no event_id will default to an
-        # integer index
-        self.metadata = metadata or {}
-
-        # cleans the catalog to set as ndarray, see setter.
-        self.catalog = catalog # type: numpy.ndarray
-
-        # use user defined stats if entered into catalog
-        if catalog is not None and self.compute_stats:
-            self.update_catalog_stats()
+        super().__init__(**kwargs)
 
     @classmethod
     def load_ascii_catalogs(cls, filename, **kwargs):
@@ -987,9 +969,11 @@ class UCERF3Catalog(AbstractBaseCatalog):
         There is also the load_catalog method that will work on the individual binary output of the UCERF3-ETAS
         model.
 
-        :param filename: filename of binary stochastic event set
-        :type filename: string
-        :returns: list of catalogs of type UCERF3Catalog
+        Args:
+            filename (str): filename of binary stochastic event set
+            kwargs (dict): keyword arguments to pass to class constructor
+        Returns:
+            list of catalogs of type UCERF3Catalog
         """
         with open(filename, 'rb') as catalog_file:
             # parse 4byte header from merged file
@@ -1104,3 +1088,12 @@ class UCERF3Catalog(AbstractBaseCatalog):
         else:
             raise ValueError("unknown catalog version, cannot parse catalog header.")
         return dtype
+
+# helps to parse time-strings
+def _none_or_datetime(value):
+    if isinstance(value, datetime.datetime):
+        return value
+    if value is not None:
+        format = parse_string_format(value)
+        value = strptime_to_utc_datetime(value, format=format)
+    return value

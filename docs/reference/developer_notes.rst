@@ -66,4 +66,3 @@ Region information
 * The region information will need to accommodate more complex spaces including 3D areas and those with non-regular grids (e.g.,
   quadtrees or meshes)
 
-

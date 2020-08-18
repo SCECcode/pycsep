@@ -1,10 +1,13 @@
+# Python imports
 import itertools
 import os
 from itertools import compress
 from xml.etree import ElementTree as ET
 
+# Third-party imports
 import numpy
 
+# PyCSEP imports
 from csep.utils.calc import bin1d_vec
 from csep.utils.basic_types import Polygon
 from csep.utils.scaling_relationships import WellsAndCoppersmith
@@ -23,7 +26,7 @@ def create_space_magnitude_region(region, magnitudes):
     region.num_mag_bins = len(region.magnitudes)
     return region
 
-def california_relm_region(dh_scale=1):
+def california_relm_region(dh_scale=1, magnitudes=None):
     """
     Takes a CSEP1 XML file and returns a 'region' which is a list of polygons. This region can
     be used to create gridded datasets for earthquake forecasts. The XML file appears to use the
@@ -56,7 +59,11 @@ def california_relm_region(dh_scale=1):
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name="california")
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name="relm-california")
+
+    if magnitudes is not None:
+        relm_region.magnitudes = magnitudes
+
     return relm_region
 
 def global_region(dh=0.1, name="global", magnitudes=None):

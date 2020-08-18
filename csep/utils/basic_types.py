@@ -176,7 +176,8 @@ class Polygon:
         radius = np.ones(num_points) * radius
         # get new lons and lats
         endlon, endlat, backaz = geod.fwd(center_lons, center_lats, azim, radius)
-        return cls(np.column_stack([endlon,endlat]))
+        # class method
+        return cls(np.column_stack([endlon, endlat]))
 
 def transpose_dict(adict):
     """Transposes a dict of dicts to regroup the data."""

@@ -1,11 +1,14 @@
 import json
 import os
 import time
+
+# CSEP imports
 from csep.models import EvaluationResult, CatalogNumberTestResult
-from csep.utils.time_utils import strptime_to_utc_datetime, utc_now_datetime
+from csep.core.forecasts import CatalogForecast, GriddedForecast
 from csep.core.catalogs import UCERF3Catalog, CSEPCatalog
 from csep.utils import readers
-from csep.core.forecasts import CatalogForecast, GriddedForecast
+from csep.utils.time_utils import strptime_to_utc_datetime, utc_now_datetime
+
 
 def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
     """ General function to load stochastic event sets
@@ -17,7 +20,8 @@ def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
         filename (str): name of file or directory where stochastic event sets live.
         type (str): either 'ucerf3' or 'csep' depending on the type of observed_catalog to load
         format (str): ('csep' or 'native') if native catalogs are not converted to csep format.
-        **kwargs: see the documentation of that class corresponding to the type you selected
+        kwargs (dict): see the documentation of that class corresponding to the type you selected
+                         for the kwargs options
 
     Returns:
         (generator): :class:`~csep.core.catalogs.AbstractBaseCatalog`
@@ -92,7 +96,6 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, **kwar
             'loader': readers.ndk
         }
     }
-
 
     # treat json files using the from_dict() member instead of constructor
     catalog_class = class_loader_mapping[type]['class']

@@ -10,12 +10,14 @@ import re
 from enum import Enum
 import sys
 
-# 3rd party imports
-from csep.utils.time_utils import HistoricTime
+# 3rd-party imports
 import numpy as np
 import pandas as pd
 import dateutil
 from obspy.core.event import read_events
+
+# PyCSEP imports
+from csep.utils.time_utils import HistoricTime
 
 # constants
 # url template for counting events

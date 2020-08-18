@@ -3,11 +3,15 @@ Repository layer. Add in different storage locations here. Used for archiving st
 data models. Job specific files and other associated items probably should not be stored in repositories, other than
 as file names.
 
+This module might be deprecated in favor of the write_json and load_json files. It doesn't seem to add much value
+unless we start storing things into a database.
+
 """
 import datetime
 import os
 import json
 
+# PyCSEP imports
 from csep.utils.log import LoggingMixin
 from csep.utils.file import copy_file
 
@@ -96,7 +100,6 @@ class FileSystem(Repository):
     @classmethod
     def from_dict(cls, adict):
         return cls(**adict)
-
 
 
 def write_json(object, fname):

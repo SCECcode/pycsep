@@ -1,6 +1,8 @@
+# Third-party imports
 import numpy
-import numpy as np
 import scipy.interpolate
+
+# PyCSEP imports
 from csep.core.exceptions import CSEPException
 from csep.utils.stats import binned_ecdf, sup_dist, get_quantiles
 from csep.utils import flat_map_to_ndarray
@@ -69,7 +71,7 @@ def bin1d_vec(p, bins, right_continuous=False):
     """
     a0 = numpy.min(bins)
     h = bins[1] - bins[0]
-    eps = numpy.finfo(np.float).eps
+    eps = numpy.finfo(numpy.float).eps
     if h < 0:
         raise ValueError("grid spacing must be positive and monotonically increasing.")
     idx = numpy.floor((p + eps - a0) / h)
@@ -128,8 +130,8 @@ def _compute_approximate_likelihood(gridded_data, apprx_forecasted_rate):
     Notes:
         Mean rates from the forecast are assumed to not have any zeros.
     """
-    n_obs = np.sum(gridded_data)
-    return numpy.sum(gridded_data*np.log10(apprx_forecasted_rate)) - n_obs
+    n_obs = numpy.sum(gridded_data)
+    return numpy.sum(gridded_data*numpy.log10(apprx_forecasted_rate)) - n_obs
 
 def _compute_spatial_statistic(gridded_data, log10_probability_map):
     """

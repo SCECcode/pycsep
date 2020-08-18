@@ -42,6 +42,9 @@ Additional information can be associated with an event using the ``id`` field in
 is more freeform and PyCSEP does not impose any restrictions on the way that event metadata is stored. Only that the metadata
 for an event should be accessible using the event ``id``. An example of this could be ::
 
+
+
+
     catalog = csep.load_catalog('catalog_file.csv')
     event_metadata = catalog.metadata[event_id]
 

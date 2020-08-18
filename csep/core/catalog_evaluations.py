@@ -1,6 +1,8 @@
+# Third-Party Imports
 import numpy
 import scipy.stats
 
+# PyCSEP imports
 from csep.core.exceptions import CSEPEvaluationException
 from csep.models import (
     CatalogNumberTestResult,
@@ -34,14 +36,14 @@ def number_test(forecast, observed_catalog):
     delta_1, delta_2 = get_quantiles(event_counts, obs_count)
     # prepare result
     result = CatalogNumberTestResult(test_distribution=event_counts,
-                                    name='Catalog N-Test',
-                                    observed_statistic=obs_count,
-                                    quantile=(delta_1, delta_2),
-                                    status='Normal',
-                                    obs_catalog_repr=str(observed_catalog),
-                                    sim_name=forecast.name,
-                                    min_mw=forecast.min_magnitude,
-                                    obs_name=observed_catalog.name)
+                                     name='Catalog N-Test',
+                                     observed_statistic=obs_count,
+                                     quantile=(delta_1, delta_2),
+                                     status='Normal',
+                                     obs_catalog_repr=str(observed_catalog),
+                                     sim_name=forecast.name,
+                                     min_mw=forecast.min_magnitude,
+                                     obs_name=observed_catalog.name)
     return result
 
 def spatial_test(forecast, observed_catalog):
@@ -58,7 +60,7 @@ def spatial_test(forecast, observed_catalog):
     """
 
     if forecast.region is None:
-        raise CSEPEvaluationException("Forecast must have region information to perform spatial test.")
+        raise CSEPEvaluationException("Forecast must have region member to perform spatial test.")
 
     # get observed likelihood
     if observed_catalog.event_count == 0:
@@ -79,6 +81,7 @@ def spatial_test(forecast, observed_catalog):
     gridded_obs = observed_catalog.spatial_counts()
     n_obs = numpy.sum(gridded_obs)
 
+    # iterate through catalogs in forecast and compute likelihood
     for catalog in forecast:
         gridded_cat = catalog.spatial_counts()
         _, lh_norm = _compute_likelihood(gridded_cat, forecast_mean_spatial_rates, expected_cond_count, n_obs)
@@ -136,7 +139,7 @@ def magnitude_test(forecast, observed_catalog):
     test_distribution = []
 
     if forecast.region.magnitudes is None:
-        raise CSEPEvaluationException("Forecast must have magnitudes in region information to perform magnitude test.")
+        raise CSEPEvaluationException("Forecast must have region.magnitudes member to perform magnitude test.")
 
     # short-circuit if zero events
     if observed_catalog.event_count == 0:
@@ -170,7 +173,7 @@ def magnitude_test(forecast, observed_catalog):
         )
 
     # compute observed statistic
-    obs_d_statistic = cumulative_square_diff(numpy.log10(obs_histogram+1), numpy.log10(scaled_union_histogram+1))
+    obs_d_statistic = cumulative_square_diff(numpy.log10(obs_histogram + 1), numpy.log10(scaled_union_histogram + 1))
 
     # score evaluation
     delta_1, delta_2 = get_quantiles(test_distribution, obs_d_statistic)
@@ -189,14 +192,23 @@ def magnitude_test(forecast, observed_catalog):
     return result
 
 def pseudolikelihood_test(forecast, observed_catalog):
-    """ Performas the pseudolikelihood test for catalog forecasts. """
+    """ Performs the spatial pseudolikelihood test for catalog forecasts.
+
+    Performs the spatial pseudolikelihood test as described by Savran et al., 2020. The tests uses a pseudolikelihood
+    statistic computed from the expected rates in spatial cells. A pseudolikelihood test based on space-magnitude bins
+    is in a development mode and does not exist currently.
+
+    Args:
+        forecast: :class:`csep.core.forecasts.CatalogForecast`
+        observed_catalog: :class:`csep.core.catalogs.AbstractBaseCatalog`
+    """
 
     if forecast.region is None:
-        raise CSEPEvaluationException("Forecast must have region information to perform spatial test.")
+        raise CSEPEvaluationException("Forecast must have region member to perform spatial test.")
 
     # get observed likelihood
     if observed_catalog.event_count == 0:
-        print(f'Skipping spatial tests because no events in observed catalog.')
+        print(f'Skipping pseudolikelihood test because no events in observed catalog.')
         return None
 
     test_distribution = []
