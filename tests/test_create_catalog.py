@@ -72,3 +72,4 @@ class TestCatalogSerialization(unittest.TestCase):
             catalog_from_json = CSEPCatalog.load_json(json_fname)
 
         self.assertTrue(self.test_catalog == catalog_from_json)
+
