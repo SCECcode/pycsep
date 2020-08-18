@@ -42,9 +42,6 @@ Additional information can be associated with an event using the ``id`` field in
 is more freeform and PyCSEP does not impose any restrictions on the way that event metadata is stored. Only that the metadata
 for an event should be accessible using the event ``id``. An example of this could be ::
 
-
-
-
     catalog = csep.load_catalog('catalog_file.csv')
     event_metadata = catalog.metadata[event_id]
 
@@ -60,11 +57,3 @@ suggest some!):
 PyCSEP supports the ability to easily define a custom reader function for a catalog format type that we don't currently support.
 If you happen to implement a reader for a new catalog format please check out the `contribution guidelines <https://github.com/SCECCode/csep2/blob/dev/CONTRIBUTING.md>`_
 and make a pull request so we can include this in the next release.
-
-********************************
-Loading a catalog file from disk
-********************************
-
-**********************************
-Assigning a space-magnitude region
-**********************************

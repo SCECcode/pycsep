@@ -838,15 +838,17 @@ class CSEPCatalog(AbstractBaseCatalog):
 
     @classmethod
     def load_ascii_catalogs(cls, filename, **kwargs):
-        """ Loads multiple CSEP catalogs in ASCII format. This function can load multiple catalogs stored in a
-            single file or directories. This typically is a result of a catalog forecast.
+        """ Loads multiple CSEP catalogs in ASCII format.
+
+        This function can load multiple catalogs stored in a single file or directories. This typically called to
+        load a catalog-based forecast.
 
         Args:
             filename (str): filepath or directory of catalog files
             **kwargs (dict): passed to class constructor
 
         Return:
-            NoneType
+            yields CSEPCatalog class
         """
 
         def parse_filename(filename):
