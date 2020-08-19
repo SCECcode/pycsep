@@ -32,7 +32,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
     dtype = None
 
-    def __init__(self, filename=None, catalog=None, catalog_id=None, format=None, name=None, region=None,
+    def __init__(self, filename=None, data=None, catalog_id=None, format=None, name=None, region=None,
                  compute_stats=True, filters=None, metadata=None, date_accessed=None):
 
         """ Standard catalog format for CSEP catalogs. Primary event data are stored in structured numpy array. Additional
@@ -65,10 +65,10 @@ class AbstractBaseCatalog(LoggingMixin):
         self.metadata = metadata or {}
 
         # cleans the catalog to set as ndarray, see setter.
-        self.catalog = catalog  # type: numpy.ndarray
+        self.catalog = data  # type: numpy.ndarray
 
         # use user defined stats if entered into catalog
-        if catalog is not None and self.compute_stats:
+        if data is not None and self.compute_stats:
             self.update_catalog_stats()
 
     def __eq__(self, other):
@@ -152,7 +152,7 @@ class AbstractBaseCatalog(LoggingMixin):
         time_members = ['date_accessed', 'start_time', 'end_time']
         catalog = adict.get('catalog', None)
 
-        out = cls(catalog=catalog, **kwargs)
+        out = cls(data=catalog, **kwargs)
 
         for k, v in out.__dict__.items():
             if k not in exclude:
@@ -191,7 +191,7 @@ class AbstractBaseCatalog(LoggingMixin):
         # we want this to be a structured array not a record array and only returns core attributes listed in dtype
         # loses information about the region and event meta data
         catalog = numpy.ascontiguousarray(df[col_list].to_records(index=False), dtype=cls.dtype)
-        out_cls = cls(catalog=catalog, catalog_id=catalog_id, **kwargs)
+        out_cls = cls(data=catalog, catalog_id=catalog_id, **kwargs)
         return out_cls
 
     @classmethod
@@ -212,6 +212,10 @@ class AbstractBaseCatalog(LoggingMixin):
 
     @property
     def catalog(self):
+        return self._catalog
+
+    @property
+    def data(self):
         return self._catalog
 
     @catalog.setter
@@ -405,8 +409,9 @@ class AbstractBaseCatalog(LoggingMixin):
 
     def get_cumulative_number_of_events(self):
         """
-        Returns the cumulative number of events in the catalog. Primarily used for plotting purposes.
-        Defined in the base class because all catalogs should be iterable.
+        Returns the cumulative number of events in the catalog.
+
+        Primarily used for plotting purposes.
 
         Returns:
             numpy.array: numpy array of the cumulative number of events, empty array if catalog is empty.
@@ -526,11 +531,11 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             # make and return new object
             cls = self.__class__
-            inst = cls(catalog=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name,
+            inst = cls(data=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name,
                        region=self.region)
             return inst
 
-    def filter_spatial(self, region, update_stats=False):
+    def filter_spatial(self, region=None, update_stats=False):
         """
         Removes events outside of the region. This takes some time and should be used sparingly. Typically for isolating a region
         near the mainshock or inside a testing region. This should not be used to create gridded style data sets.
@@ -542,12 +547,18 @@ class AbstractBaseCatalog(LoggingMixin):
             self
 
         """
-        mask = region.get_masked(self.get_longitudes(), self.get_latitudes())
+        if region is None and self.region is None:
+            raise CSEPCatalogException("region provided to function or bound to the catalog instance.")
+
+        # update the region to the new region
+        if region is not None:
+            self.region = region
+
+        mask = self.region.get_masked(self.get_longitudes(), self.get_latitudes())
         # logical index uses opposite boolean values than masked arrays.
         filtered = self.catalog[~mask]
         self.catalog = filtered
-        # update the region to the new region
-        self.region = region
+
         if update_stats:
             self.update_catalog_stats()
         return self
@@ -902,28 +913,28 @@ class CSEPCatalog(AbstractBaseCatalog):
                             # store this event for next time
                             events = [(event_id, origin_time, lat, lon, depth, magnitude)]
                             for id in range(catalog_id):
-                                yield cls(catalog=[], catalog_id=id, **kwargs)
+                                yield cls(data=[], catalog_id=id, **kwargs)
                     # deal with cases of events
                     if catalog_id == prev_id:
                         prev_id = catalog_id
                         events.append((event_id, origin_time, lat, lon, depth, magnitude))
                     # create and yield class if the events are from different catalogs
                     elif catalog_id == prev_id + 1:
-                        catalog = cls(catalog=events, catalog_id=prev_id, **kwargs)
+                        catalog = cls(data=events, catalog_id=prev_id, **kwargs)
                         prev_id = catalog_id
                         # add first event to new event list
                         events = [(event_id, origin_time, lat, lon, depth, magnitude)]
                         yield catalog
                     # this implies there are empty catalogs, because they are not listed in the ascii file
                     elif catalog_id > prev_id + 1:
-                        catalog = cls(catalog=events, catalog_id=prev_id, **kwargs)
+                        catalog = cls(data=events, catalog_id=prev_id, **kwargs)
                         # add event to new event list
                         events = [(event_id, origin_time, lat, lon, depth, magnitude)]
                         # if prev_id = 0 and catalog_id = 2, then we skipped one catalog. thus, we skip catalog_id - prev_id - 1 catalogs
                         num_empty_catalogs = catalog_id - prev_id - 1
                         # create empty catalog classes
                         for id in range(num_empty_catalogs):
-                            yield cls(catalog=[], catalog_id=catalog_id - num_empty_catalogs + id, **kwargs)
+                            yield cls(data=[], catalog_id=catalog_id - num_empty_catalogs + id, **kwargs)
                         # finally we want to yield the buffered catalog to preserve order
                         prev_id = catalog_id
                         yield catalog
@@ -931,7 +942,7 @@ class CSEPCatalog(AbstractBaseCatalog):
                         raise ValueError(
                             "catalog_id should be monotonically increasing and events should be ordered by catalog_id")
                 # yield final catalog, note: since this is just loading catalogs, it has no idea how many should be there
-                yield cls(catalog=events, catalog_id=prev_id, **kwargs)
+                yield cls(data=events, catalog_id=prev_id, **kwargs)
 
         if os.path.isdir(filename):
             raise NotImplementedError("reading from directory or batched files not implemented yet!")
@@ -944,7 +955,7 @@ class CSEPCatalog(AbstractBaseCatalog):
             event_list, catalog_id = loader(filename, return_catalog_id=True)
         except TypeError:
             event_list = loader(filename)
-        new_class = cls(catalog=event_list, catalog_id=catalog_id, **kwargs)
+        new_class = cls(data=event_list, catalog_id=catalog_id, **kwargs)
         return new_class
 
 
@@ -989,7 +1000,7 @@ class UCERF3Catalog(AbstractBaseCatalog):
                 # read catalog
                 catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
                 # add column that stores catalog_id in case we want to store in database
-                u3_catalog = cls(filename=filename, catalog=catalog, catalog_id=catalog_id, **kwargs)
+                u3_catalog = cls(filename=filename, data=catalog, catalog_id=catalog_id, **kwargs)
                 u3_catalog.dtype = dtype
                 yield u3_catalog
 
@@ -1001,7 +1012,7 @@ class UCERF3Catalog(AbstractBaseCatalog):
         # assign dtype to make sure that its bound to the instance of the class
         dtype = cls._get_catalog_dtype(version)
         event_list = numpy.fromfile(filename, dtype=cls._get_catalog_dtype(version), count=catalog_size)
-        new_class = cls(filename=filename, catalog=event_list, **kwargs)
+        new_class = cls(filename=filename, data=event_list, **kwargs)
         new_class.dtype = dtype
         return new_class
 
@@ -1016,7 +1027,7 @@ class UCERF3Catalog(AbstractBaseCatalog):
                                event['longitude'],
                                event['depth'],
                                event['magnitude'])
-        return CSEPCatalog(catalog=csep_catalog, catalog_id=self.catalog_id, filename=self.filename, format='csep',
+        return CSEPCatalog(data=csep_catalog, catalog_id=self.catalog_id, filename=self.filename, format='csep',
                            name=self.name, region=self.region, compute_stats=self.compute_stats, filters=self.filters,
                            metadata=self.metadata, date_accessed=self.date_accessed)
 

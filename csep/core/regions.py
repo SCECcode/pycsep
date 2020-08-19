@@ -28,7 +28,9 @@ def create_space_magnitude_region(region, magnitudes):
 
 def california_relm_region(dh_scale=1, magnitudes=None):
     """
-    Takes a CSEP1 XML file and returns a 'region' which is a list of polygons. This region can
+    Returns class representing California testing region.
+
+    This region can
     be used to create gridded datasets for earthquake forecasts. The XML file appears to use the
     midpoint, and the .dat file uses the origin in the "lower left" corner.
 

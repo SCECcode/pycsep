@@ -1,3 +1,5 @@
+.. _concepts-regions
+
 Regions
 =======
 

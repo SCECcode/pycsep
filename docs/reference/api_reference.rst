@@ -174,6 +174,34 @@ Grid-based forecast evaluations:
    paired_t_test
    w_test
 
+.. automodule:: csep.core.regions
+
+Regions
+-------
+
+PyCSEP includes commonly used CSEP testing regions and classes that facilitate working with gridded data sets. This
+module is early in development and help is welcome here!
+
+Region class(es):
+
+.. autosummary::
+    :toctree: generated
+
+    CartesianGrid2D
+
+Testing regions:
+
+.. autosummary::
+    :toctree: generated
+
+    california_relm_region
+    global_region
+..
+    italy_csep_region
+
+
+
+
 Plotting
 --------
 
