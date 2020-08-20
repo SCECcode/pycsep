@@ -115,6 +115,9 @@ class EvaluationResult:
             min_mw=adict['min_mw'])
         return new
 
+    def plot(self):
+        raise NotImplementedError("plot not implemented on EvaluationResult class.")
+
 
 class CatalogNumberTestResult(EvaluationResult):
 

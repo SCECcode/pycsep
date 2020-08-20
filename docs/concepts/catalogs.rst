@@ -7,9 +7,9 @@ Catalogs
 PyCSEP provides routines for working with and manipulating earthquake catalogs for the purposes of evaluating earthquake
 forecasting models.
 
-If you are able to make use of these tools for other reasons, please let us know! We are especially interested in
+If you are able to make use of these tools for other reasons, please let us know. We are especially interested in
 including basic catalog statistics into this package. If you are interested in helping implement routines like
-b-value estimation and catalog completeness please let us know!
+b-value estimation and catalog completeness that would be much appreciated.
 
 .. contents:: Table of Contents
     :local:
@@ -311,7 +311,7 @@ Time-dependent magnitude of completeness
 Seismic networks have difficulty recording events immediately after a large event occurs, because the passing seismic waves
 from the larger event become mixed with any potential smaller events. Usually when we evaluate an aftershock forecast, we should
 account for this time-dependent magnitude of completeness. PyCSEP provides the
-:ref:`Helmstetter et al., [2006]<publications>` implementation of the time-dependent magnitude completeness model.
+:ref:`Helmstetter et al., [2006]<helmstetter-2006>` implementation of the time-dependent magnitude completeness model.
 
 This requires information about an event which can be supplied directly to :meth:`apply_mct<csep.core.catalogs.CSEPCatalog>`.
 Additionally, PyCSEP provides access to the ComCat API using :func:`get_event_by_id<csep.utils.comcat.get_event_by_id>`.

@@ -1,4 +1,6 @@
 """
+.. _catalog-forecast-evaluation:
+
 Catalog-based Forecast Evaluation
 =================================
 
