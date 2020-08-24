@@ -195,6 +195,7 @@ Testing regions:
     :toctree: generated
 
     california_relm_region
+    italy_csep_region
     global_region
 ..
     italy_csep_region
