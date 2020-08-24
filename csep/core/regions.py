@@ -14,7 +14,19 @@ from csep.utils.scaling_relationships import WellsAndCoppersmith
 
 
 def magnitude_bins(start_magnitude, end_magnitude, dmw):
-    """ Wrapping function to return a numpy.ndarray of magnitude bin edges """
+    """ Returns array holding magnitude bin edges.
+
+    The output from this function is monotonically increasing and equally spaced bin edges that can represent magnitude
+    bins.
+
+     Args:
+        start_magnitude (float)
+        end_magnitude (float)
+        dmw (float): magnitude spacing
+
+    Returns:
+        bin_edges (numpy.ndarray)
+    """
     return numpy.arange(start_magnitude, end_magnitude+dmw/2, dmw)
 
 def create_space_magnitude_region(region, magnitudes):
@@ -67,6 +79,48 @@ def california_relm_region(dh_scale=1, magnitudes=None):
         relm_region.magnitudes = magnitudes
 
     return relm_region
+
+def italy_csep_region(dh_scale=1, magnitudes=None):
+    """
+        Returns class representing Italian testing region.
+
+        This region can be used to create gridded datasets for earthquake forecasts. The region is defined by the
+        file 'forecast.italy.M5.xml' and contains a spatially gridded region with 0.1° x 0.1° cells.
+
+        Args:
+            dh_scale: can resample this grid by factors of 2
+            magnitudes (array-like): bin edges for magnitudes. if provided, will be bound to the output region class.
+                                     this argument provides a short-cut for creating space-magnitude regions.
+
+        Returns:
+            :class:`csep.core.spatial.CartesianGrid2D`
+
+        Raises:
+            ValueError: dh_scale must be a factor of two
+
+    """
+    if dh_scale % 2 != 0 and dh_scale != 1:
+        raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
+
+        # use default file path from python package
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'forecast.italy.M5.xml')
+    csep_template = os.path.expanduser(filepath)
+    midpoints, dh = parse_csep_template(csep_template)
+    origins = numpy.array(midpoints) - dh / 2
+
+    if dh_scale > 1:
+        origins = increase_grid_resolution(origins, dh, dh_scale)
+        dh = dh / dh_scale
+
+    # turn points into polygons and make region object
+    bboxes = compute_vertices(origins, dh)
+    italy_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name="csep-italy")
+
+    if magnitudes is not None:
+        italy_region.magnitudes = magnitudes
+
+    return italy_region
 
 def global_region(dh=0.1, name="global", magnitudes=None):
     """ Creates a global region used for evaluating gridded forecasts on the global scale.

@@ -222,7 +222,6 @@ provide some getter methods to access the essential catalog data. These return a
 The following functions return :class:`numpy.ndarrays<numpy.ndarray>` of the catalog information.
 
 .. autosummary::
-    :toctree: hidden
 
    CSEPCatalog.event_count
    CSEPCatalog.get_magnitudes
@@ -270,7 +269,6 @@ PyCSEP provides a few routines to help filter events out of the catalog. The fol
 unwanted events from the catalog.
 
 .. autosummary::
-    :toctree: hidden
 
     CSEPCatalog.filter
     CSEPCatalog.filter_spatial
@@ -334,7 +332,6 @@ regions.
 The following functions allow binning of catalogs using space-magnitude regions.
 
 .. autosummary::
-   :toctree: hidden
 
    CSEPCatalog.spatial_counts
    CSEPCatalog.magnitude_counts

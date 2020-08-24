@@ -1,5 +1,7 @@
 .. _evaluation-reference:
 
+.. automodule:: csep.core.poisson_evaluations
+
 ###########
 Evaluations
 ###########
@@ -12,30 +14,70 @@ custom forecasts and catalogs.
     :local:
     :depth: 2
 
+.. :currentmodule:: csep
+
 ****************************
 Gridded-forecast evaluations
 ****************************
 
-.. automodule:: csep.core.poisson_evaluations
-   :toctree: hidden
+Grid-based earthquake forecasts assume earthquakes occur in discrete space-time-magnitude bins and their rate-of-
+occurrence can be defined using a single number in each magnitude bin. Each space-time-magnitude bin is assumed to be
+an independent Poisson random variable. Therefore, we use likelihood-based evaluation metrics to compare these
+forecasts against observations.
+
+PyCSEP provides two groups of evaluation metrics for grid-based earthquake forecasts. The first are known as
+consistency tests and they verify whether a forecast in consistent with an observation. The second are comparative tests
+that can be used to compare the performance of two (or more) competing forecasts.
+PyCSEP implements the following evaluation routines for grid-based forecasts. These functions are intended to work with
+:class:`GriddedForecasts<csep.core.forecasts.GriddedForecast>` and :class:`CSEPCatalogs`<csep.core.catalogs.CSEPCatalog>`.
+Visit the :ref:`catalogs reference<catalogs-reference>` and the :ref:`forecasts reference<forecasts-reference>` to learn
+more about to import your forecasts and catalogs into PyCSEP.
+
+.. note::
+    Grid-based forecast evaluations act directly on the forecasts and catalogs as they are supplied to the function.
+    Any filtering of catalogs and/or scaling of forecasts must be done before calling the function.
+    This must be done before evaluating the forecast and should be done consistently between all forecasts that are being
+    compared.
+
+See the :ref:`example<grid-forecast-evaluation>` for gridded forecast evaluation for an end-to-end walkthrough on how
+to evaluate a gridded earthquake forecast.
+
+
+Consistency tests
+=================
+
+.. autosummary::
 
    number_test
    magnitude_test
    spatial_test
    likelihood_test
    conditional_likelihood_test
+
+
+Number Test
+-----------
+
+The number test compares the expected number of forecasted earthquakes against observations. The expected number of
+forecasted earthquakes is determined by summing the expected rates in each space-magnitude bin. The observed
+event counts are determined by filtering an observed catalog according to the specifications of the forecast.
+
+
+Comparative tests
+=================
+
+.. autosummary::
+
    paired_t_test
    w_test
-
-Until we have written more complete documentation please view the following references for the poisson evaluations
-and see the :ref:`example<grid-forecast-evaluation>` for gridded forecast evaluation for an end-to-end walkthrough.
 
 **********************************
 Catalog-based forecast evaluations
 **********************************
 
 .. automodule:: csep.core.catalog_evaluations
-   :toctree: hidden
+
+.. autosummary::
 
    number_test
    spatial_test
@@ -44,7 +86,21 @@ Catalog-based forecast evaluations
    calibration_test
 
 Until we have written more complete documentation please view the following references for the poisson evaluations
-and see the :ref:`example<catalog-forecast-evaluation>` for catalog-based forecast evaluation for an end-to-end walkthrough.
+and see the :ref:`example<catalog-forecast-evaluation>` for catalog-based forecast evaluation for an end-to-end walk through.
+
+****************************
+Preparing evaluation catalog
+****************************
+
+The evaluations in PyCSEP do not implicitly filter the observed catalogs or modify the forecast data when called. For most
+cases, the observation catalog should be filtered according to:
+    1. Magnitude range of the forecast
+    2. Spatial region of the forecast
+    3. Start and end-time of the forecast
+
+Once the observed catalog is filtered so it is consistent in space, time, and magnitude as the forecast, it can be used
+to evaluate a forecast. A single evaluation catalog can be used to evaluate multiple forecasts so long as they all cover
+the same space, time, and magnitude region.
 
 *********************
 Building mock classes
@@ -53,6 +109,11 @@ Building mock classes
 Python is a duck-typed language which means that it doesn't care what the object type is only that it has the methods or
 functions that are expected when that object is used. This can come in handy if you want to use the evaluation methods, but
 do not have a forecast that completely fits with the forecast classes (or catalog classes) provided by PyCSEP.
+
+.. note::
+    Something about great power and great responsibility... For the most reliable results, write a loader function that
+    can ingest your forecast into the model provided by PyCSEP. Mock-classes can work, but should only be used in certain
+    circumstances. In particular, they are very useful for writing software tests.
 
 This section will walk you through how to compare two forecasts using the :func:`paired_t_test<csep.core.poisson_evaluations>`
 with mock forecast and catalog classes. This sounds much more complex than it really is, and it gives you the flexibility
@@ -112,17 +173,17 @@ from the forecast.
     each event that occurs within that bin has a target event rate of 0.3 events per year. The expected number of events
     in the forecast can be determined by summing over all bins in the gridded forecast.
 
-We can also see that the ``paired_t_test`` function uses the ``gridded_forecast1.name`` and calls the :func:``numpy.min``
+We can also see that the ``paired_t_test`` function uses the ``gridded_forecast1.name`` and calls the :func:`numpy.min`
 on the ``gridded_forecast1.magnitudes``. Using this information, we can create a mock-class that implements these methods
 that can be used by this function.
 
 .. warning::
-    If you are creating mock-classes to use with evaluation functions, make sure that you visiting the corresponding
+    If you are creating mock-classes to use with evaluation functions, make sure that you visit the corresponding
     documentation and source-code to make sure that your methods return values that are expected by the function. In
     this case, it expects the tuple (target_event_rates, expected_forecast_count). This will not always be the case.
     If you need help, please create an issue on the GitHub page.
 
-Here I'll show an implementation of a mock forecast class that can work with the
+Here we show an implementation of a mock forecast class that can work with the
 :func:`paired_t_test<csep.core.poisson_evaluations.paired_t_test>` function. ::
 
     class MockForecast:
