@@ -39,6 +39,7 @@ PyCSEP: Tools for Earthquake Forecast Developers
     :caption: Help & Reference
 
     reference/glossary
+    reference/publications
     reference/changelog
     reference/developer_notes
     reference/api_reference

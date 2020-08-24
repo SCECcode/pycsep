@@ -55,14 +55,6 @@ Consistency tests
    conditional_likelihood_test
 
 
-Number Test
------------
-
-The number test compares the expected number of forecasted earthquakes against observations. The expected number of
-forecasted earthquakes is determined by summing the expected rates in each space-magnitude bin. The observed
-event counts are determined by filtering an observed catalog according to the specifications of the forecast.
-
-
 Comparative tests
 =================
 
@@ -71,11 +63,40 @@ Comparative tests
    paired_t_test
    w_test
 
+Publication references
+======================
+
+1. Number test (:ref:`Schorlemmer et al., 2007<schorlemmer-2007>`; :ref:`Zechar et al., 2010<zechar-2010>`)
+2. Magnitude test (:ref:`Zechar et al., 2010<zechar-2010>`)
+3. Spatial test (:ref:`Zechar et al., 2010<zechar-2010>`)
+4. Likelihood test (:ref:`Schorlemmer et al., 2007<schorlemmer-2007>`; :ref:`Zechar et al., 2010<zechar-2010>`)
+5. Conditional likelihood test (:ref:`Werner et al., 2011<werner-2011>`)
+6. Paired t test (:ref:`Rhoades et al., 2011<rhoades-2011>`)
+7. Wilcoxon signed-rank test (:ref:`Rhoades et al., 2011<rhoades-2011>`)
+
 **********************************
 Catalog-based forecast evaluations
 **********************************
 
+Catalog-based forecasts are issued as a family of stochastic event sets (synthetic earthquake catalogs) and can express
+the full uncertainty of the forecasting model. Additionally, these forecasts retain the inter-event dependencies that
+are lost when using discrete space-time-magnitude grids. This problem can impact the evaluation performance of
+time-dependent forecasts like the epidemic type aftershock sequence model (ETAS).
+
+In order to support generative or simulator-based models, we define a suite of consistency tests that compare forecasted
+distributions against observations without the use of a parametric likelihood function. These evaluations take advantage
+of the fact that the forecast and the observations are both earthquake catalogs. Therefore, we can compute identical
+statistics from these catalogs and compare them against one another.
+
+We provide four statistics that probe fundamental aspects of the earthquake forecasts. Please see
+:ref:`Savran et al., 2020<savran-2020>` for a complete description of the individual tests. For the implementation
+details please follow the links below and see the :ref:`example<catalog-forecast-evaluation>` for catalog-based
+forecast evaluation for an end-to-end walk through.
+
 .. automodule:: csep.core.catalog_evaluations
+
+Consistency tests
+=================
 
 .. autosummary::
 
@@ -85,8 +106,14 @@ Catalog-based forecast evaluations
    pseudolikelihood_test
    calibration_test
 
-Until we have written more complete documentation please view the following references for the poisson evaluations
-and see the :ref:`example<catalog-forecast-evaluation>` for catalog-based forecast evaluation for an end-to-end walk through.
+Publication reference
+=====================
+
+1. Number test (:ref:`Savran et al., 2020`<savran-2020>`)
+2. Spatial test (:ref:`Savran et al., 2020`<savran-2020>`)
+3. Magnitude test (:ref:`Savran et al., 2020`<savran-2020>`)
+4. Pseudolikelihood test (:ref:`Savran et al., 2020`<savran-2020>`)
+5. Calibration test (:ref:`Savran et al., 2020`<savran-2020>`)
 
 ****************************
 Preparing evaluation catalog
@@ -113,7 +140,8 @@ do not have a forecast that completely fits with the forecast classes (or catalo
 .. note::
     Something about great power and great responsibility... For the most reliable results, write a loader function that
     can ingest your forecast into the model provided by PyCSEP. Mock-classes can work, but should only be used in certain
-    circumstances. In particular, they are very useful for writing software tests.
+    circumstances. In particular, they are very useful for writing software tests or to prototype features that can
+    be added into the package.
 
 This section will walk you through how to compare two forecasts using the :func:`paired_t_test<csep.core.poisson_evaluations>`
 with mock forecast and catalog classes. This sounds much more complex than it really is, and it gives you the flexibility
