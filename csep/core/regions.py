@@ -518,8 +518,7 @@ class CartesianGrid2D:
         self.dh = dh
         self.name = name
         a, xs, ys = _build_bitmask_vec(self.polygons, dh)
-        # mask is 2d numpy array with 2d shape (xs, ys), dim=0 is the mask and dim=1 maps the index from 2d to polygons
-        # note: might consider changing this, but it requires less constraints on how the polygons are defined.
+        # in mask, True = bad value and False = good value
         self.mask = a[:,:,0]
         # contains the mapping from polygon_index to the mask
         self.idx_map = a[:,:,1]
@@ -568,8 +567,6 @@ class CartesianGrid2D:
     def get_masked(self, lons, lats):
         """Returns bool array lons and lats are not included in the spatial region.
 
-        # idea: consider moving this function to the data class.
-
         .. note:: The ordering of lons and lats should correspond to the ordering of the lons and lats in the data.
 
         Args:
@@ -582,11 +579,12 @@ class CartesianGrid2D:
 
         idx = bin1d_vec(lons, self.xs)
         idy = bin1d_vec(lats, self.ys)
-        if numpy.any(idx == -1) or numpy.any(idy == -1):
-            raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
-        if numpy.any(self.mask[idy, idx] == 1):
-            raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
-        return self.mask[idy, idx].astype(bool)
+        # handles the case where values are outside of the region
+        bad_idx = numpy.where((idx == -1) | (idy == -1))
+        mask = self.mask[idy, idx].astype(bool)
+        # manually set values outside region
+        mask[bad_idx] = True
+        return mask
 
     def get_cartesian(self, data):
         """Returns 2d ndrray representation of the data set, corresponding to the bounding box.
