@@ -1,10 +1,6 @@
 import collections
 
 import numpy as np
-import matplotlib
-import matplotlib.path
-
-import pyproj
 
 from csep.utils.calc import bin1d_vec
 
@@ -110,74 +106,6 @@ class AdaptiveHistogram:
     def rec_dh(self):
         return 1.0 / self.dh
 
-class Polygon:
-    """
-    Represents polygons defined through a collection of vertices.
-
-    This polygon is assumed to be 2d, but could contain an arbitrary number of vertices. The path is treated as not being
-    closed.
-    """
-    def __init__(self, points):
-        # instance members
-        self.points = points
-        self.origin = self.points[0]
-
-        # https://matplotlib.org/3.1.1/api/path_api.html
-        self.path = matplotlib.path.Path(self.points)
-
-    def __str__(self):
-        return str(self.origin)
-
-    def contains(self, points):
-        """ Returns a bool array which is True if the path contains the corresponding point.
-
-        Args:
-            points: 2d numpy array
-
-        """
-        nd_points = np.array(points)
-        if nd_points.ndim == 1:
-            nd_points = nd_points.reshape(1,-1)
-        return self.path.contains_points(nd_points)
-
-    def centroid(self):
-        """ return the centroid of the polygon."""
-        c0, c1 = 0, 0
-        k = len(self.points)
-        for p in self.points:
-            c0 = c0 + p[0]
-            c1 = c1 + p[1]
-        return c0 / k, c1 / k
-
-    def get_xcoords(self):
-        return np.array(self.points)[:,0]
-
-    def get_ycoords(self):
-        return np.array(self.points)[:,1]
-
-    @classmethod
-    def from_great_circle_radius(cls, centroid, radius, num_points=10):
-        """
-        Generates a polygon object from a given radius and centroid location.
-
-        Args:
-            centroid: (lon, lat)
-            radius: should be in (meters)
-            num_points: more points is higher resolution polygon
-
-        Returns:
-            polygon
-        """
-        geod = pyproj.Geod(ellps='WGS84')
-        azim = np.linspace(0, 360, num_points)
-        # create vectors with same length as azim for computations
-        center_lons = np.ones(num_points) * centroid[0]
-        center_lats = np.ones(num_points) * centroid[1]
-        radius = np.ones(num_points) * radius
-        # get new lons and lats
-        endlon, endlat, backaz = geod.fwd(center_lons, center_lats, azim, radius)
-        # class method
-        return cls(np.column_stack([endlon, endlat]))
 
 def transpose_dict(adict):
     """Transposes a dict of dicts to regroup the data."""

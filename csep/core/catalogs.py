@@ -648,6 +648,7 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned rates without region information.")
 
+        # todo: this should be routed through self.region to allow for different types of regions
         output = regions._bin_catalog_spatial_counts(self.get_longitudes(),
                                                      self.get_latitudes(),
                                                      self.region.num_nodes,
@@ -748,6 +749,7 @@ class AbstractBaseCatalog(LoggingMixin):
                     self.region.num_mag_bins = len(mag_bins)
 
             # compute if not
+            # todo: this should be routed through self.region to allow for different types of regions
             output, skipped = regions._bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
                                                                            self.get_latitudes(),
                                                                            self.get_magnitudes(),

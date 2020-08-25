@@ -197,10 +197,19 @@ Testing regions:
     california_relm_region
     italy_csep_region
     global_region
-..
-    italy_csep_region
 
+Region utilities:
 
+.. autosummary::
+    :toctree: generated
+
+    magnitude_bins
+    create_space_magnitude_region
+    parse_csep_template
+    increase_grid_resolution
+    masked_region
+    generate_aftershock_region
+    Polygon
 
 
 Plotting
@@ -316,3 +325,12 @@ Statistics Utilities
    poisson_joint_log_likelihood_ndarray
    poisson_inverse_cdf
 
+.. automodule:: csep.utils.basic_types
+
+Basic types
+-----------
+
+.. autosummary::
+    :toctree: generated
+
+    AdaptiveHistogram
