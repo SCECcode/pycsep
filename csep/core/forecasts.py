@@ -15,6 +15,9 @@ from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.plots import plot_spatial_dataset
 
 
+# idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet
+# idea: this needs to handle non-carteisan regions, so maybe (lons, lats) should be a single variable like locations
+# note: these are specified to 2D data sets and some minor refactoring needs to happen here.
 class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
 

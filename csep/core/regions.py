@@ -15,6 +15,37 @@ import pyproj
 from csep.utils.calc import bin1d_vec
 from csep.utils.scaling_relationships import WellsAndCoppersmith
 
+def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection"):
+    """ Return collection region for California RELM testing region
+
+        Args:
+            dh_scale (int): factor of two multiple to change the grid size
+            mangitudes (array-like): array representing the lower bin edges of the magnitude bins
+            name (str): human readable identifer
+    """
+    if dh_scale % 2 != 0 and dh_scale != 1:
+        raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
+
+    # we can hard-code the dh because we hard-code the filename
+    dh = 0.1
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'RELMCollectionArea.dat')
+    midpoints = numpy.loadtxt(filepath)
+    origins = midpoints - dh / 2
+
+    if dh_scale > 1:
+        origins = increase_grid_resolution(origins, dh, dh_scale)
+        dh = dh / dh_scale
+
+    # turn points into polygons and make region object
+    bboxes = compute_vertices(origins, dh)
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
+
+    if magnitudes is not None:
+        relm_region.magnitudes = magnitudes
+
+    return relm_region
+
 
 def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california"):
     """
@@ -99,6 +130,37 @@ def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
         italy_region.magnitudes = magnitudes
 
     return italy_region
+
+def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-collection"):
+    """ Return collection region for Italy CSEP collection region
+
+        Args:
+            dh_scale (int): factor of two multiple to change the grid size
+            mangitudes (array-like): array representing the lower bin edges of the magnitude bins
+            name (str): human readable identifer
+    """
+    if dh_scale % 2 != 0 and dh_scale != 1:
+        raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
+
+    # we can hard-code the dh because we hard-code the filename
+    dh = 0.1
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'italy.collection.nodes.dat')
+    midpoints = numpy.loadtxt(filepath)
+    origins = midpoints - dh / 2
+
+    if dh_scale > 1:
+        origins = increase_grid_resolution(origins, dh, dh_scale)
+        dh = dh / dh_scale
+
+    # turn points into polygons and make region object
+    bboxes = compute_vertices(origins, dh)
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
+
+    if magnitudes is not None:
+        relm_region.magnitudes = magnitudes
+
+    return relm_region
 
 def global_region(dh=0.1, name="global", magnitudes=None):
     """ Creates a global region used for evaluating gridded forecasts on the global scale.
