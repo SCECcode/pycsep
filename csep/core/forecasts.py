@@ -344,7 +344,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         return cls(data=data, region=region, magnitudes=magnitudes, **kwargs)
 
     @classmethod
-    def from_csep1_ascii(cls, ascii_fname, start_date=None, end_date=None, name=None):
+    def load_ascii(cls, ascii_fname, start_date=None, end_date=None, name=None):
         """ Reads Forecast file from CSEP1 ascii format.
 
         The ascii format from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:

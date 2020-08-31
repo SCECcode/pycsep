@@ -207,11 +207,12 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
     """
     # mapping from file extension to loader function, new formats by default they need to be added here
     forecast_loader_mapping = {
-        'dat': GriddedForecast.from_csep1_ascii,
+        'dat': GriddedForecast.load_ascii,
         'xml': None,
         'h5': None,
         'bin': None
     }
+
     # sanity checks
     if not os.path.exists(fname):
         raise FileNotFoundError(f"Could not locate file {fname}. Unable to load forecast.")
@@ -221,6 +222,10 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
     extension = os.path.splitext(fname)[-1][1:]
     if extension not in forecast_loader_mapping.keys() and loader is None:
         raise AttributeError("File extension should be in ('dat','xml','h5','bin') if loader not provided.")
+
+    if extension in ('xml','h5','bin'):
+        raise NotImplementedError
+
     # assign default loader
     if loader is None:
         loader = forecast_loader_mapping[extension]
