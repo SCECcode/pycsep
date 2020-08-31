@@ -7,7 +7,7 @@ from csep.core.regions import italy_csep_region, california_relm_region
 
 def get_italy_region_fname():
     root_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(root_dir, 'artifacts', 'regions', 'italy.testing.nodes.dat')
+    data_dir = os.path.join(root_dir, 'artifacts', 'regions', 'ItalyTestArea.dat')
     return data_dir
 
 def get_california_region_fname():

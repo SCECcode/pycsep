@@ -11,6 +11,10 @@ PyCSEP supports two types of earthquake forecasts that can be evaluated using th
 
 These forecast types and the PyCSEP objects used to represent them will be explained in detail in this document.
 
+.. contents:: Table of Contents
+    :local:
+    :depth: 2
+
 *****************
 Gridded forecasts
 *****************
@@ -31,9 +35,44 @@ Working with gridded forecasts
 ##############################
 
 PyCSEP provides the :class:`GriddedForecast<csep.core.forecasts.GriddedForecast>` class to handle working with
-grid-based forecasts. This section will show aspects of this class.
+grid-based forecasts. Please see visit :ref:`this example<grid-forecast-evaluation>` for an end-to-end tutorial on
+how to evaluate a grid-based earthquake forecast.
 
 .. autosummary:: csep.core.forecasts.GriddedForecast
+
+Default file format
+--------------------
+
+The default file format of a gridded-forecast is a tab delimited ASCII file with the following columns
+(names are not included): ::
+
+    LON_0 	LON_1 	LAT_0 	LAT_1 	DEPTH_0 DEPTH_1 MAG_0 	MAG_1 	RATE					FLAG
+    -125.4	-125.3	40.1	40.2	0.0     30.0	4.95	5.05	5.8499099999999998e-04	1
+
+Each row represents a single space-magnitude bin and the entire forecast file contains the rate for a specified
+time-horizon. An example of a gridded forecast for the RELM testing region can be found
+`here <https://github.com/SCECcode/csep2/blob/dev/csep/artifacts/ExampleForecasts/GriddedForecasts/helmstetter_et_al.hkj.aftershock-fromXML.dat>`_.
+
+
+The coordinates (LON, LAT, DEPTH, MAG) describe the independent space-magnitude region of the forecast. The lower
+coordinates are inclusive and the upper coordinates are exclusive. Rates are incremental within the magnitude range
+defined by [MAG_0, MAG_1). The FLAG is a legacy value from CSEP testing centers and has no current use within PyCSEP.
+This value can be set to 1 for all forecasts.
+
+.. note::
+    PyCSEP only supports regions that have a thickness of one layer. In the future, we plan to support more complex regions
+    including those that are defined using multiple depth regions. Multiple depth layers can be collapsed into a single
+    layer by summing. This operations does reduce the resolution of the forecast.
+
+Custom file format
+------------------
+
+The :meth:`GriddedForecast.from_custom<csep.core.forecasts.GriddedForecast.from_custom>` method allows you to provide
+a function that can read custom formats. This can be helpful, because writing this function might be required to convert
+the forecast into the appropriate format in the first place. This function has no requirements except that it returns the
+expected data.
+
+.. automethod:: csep.core.forecasts.GriddedForecast.from_custom
 
 
 ***********************
@@ -53,5 +92,8 @@ Working with catalog-based forecasts
 
 .. autosummary:: csep.core.forecasts.CatalogForecast
 
+Please see visit :ref:`this<catalog-forecast-evaluation>` example for an end-to-end tutorial on how to evaluate a catalog-based
+earthquake forecast. An example of a catalog-based forecast stored in the default PyCSEP format can be found
+`here<https://github.com/SCECcode/csep2/blob/dev/csep/artifacts/ExampleForecasts/CatalogForecasts/ucerf3-landers_1992-06-28T11-57-34-14.csv>_`.
 
-
+We will be adding more to these documentation pages, so stay tuned for updated.

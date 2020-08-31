@@ -149,7 +149,7 @@ class MarkedGriddedDataSet(GriddedDataSet):
 
     def __init__(self, magnitudes=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._magnitudes = magnitudes
+        self._magnitudes = numpy.array(magnitudes)
 
     @property
     def magnitudes(self):
@@ -334,10 +334,22 @@ class GriddedForecast(MarkedGriddedDataSet):
 
     @classmethod
     def from_custom(cls, func, func_args=(), **kwargs):
-        """Creates MarkedGriddedDataSet class from custom parsing function.
+        """ Creates MarkedGriddedDataSet class from custom parsing function.
 
-        Custom parsing function should return a tuple containing the forecast data as appropriate numpy.ndarray and
-        region class. We can only rely on some heuristics to ensure that these classes are set up appropriately.
+        Args:
+            func (callable): function will be called as func(*func_args).
+            func_args (tuple): arguments to pass to func
+            **kwargs: keyword arguments to pass to the GriddedForecast class constructor.
+
+        Returns:
+            :class:`csep.core.forecasts.GriddedForecast`: forecast object
+
+        Note:
+            The loader function `func` needs to return a tuple that contains (data, region, magnitudes). data is a
+            :class:`numpy.ndarray`, region is a :class:`CartesianGrid2D<csep.core.regions.CartesianGrid2D>`, and
+            magnitudes are a :class:`numpy.ndarray` consisting of the magnitude bin edges. See the function
+            :meth:`load_ascii<csep.core.forecasts.GriddedForecast.load_ascii>` for an example.
+
         """
         data, region, magnitudes = func(*func_args)
         # try to ensure that data are region are compatible with one another, but we can only rely on heuristics

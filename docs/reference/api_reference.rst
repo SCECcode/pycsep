@@ -22,7 +22,7 @@ Loading catalogs and forecasts
 Catalogs
 --------
 
-.. :currentmodule:: csep
+.. :currentmodule:: csep.core.catalogs
 
 .. automodule:: csep.core.catalogs
 
@@ -90,6 +90,7 @@ Other utilities:
    CSEPCatalog.length_in_seconds
    CSEPCatalog.get_bvalue
 
+.. currentmodule:: csep.core.forecasts
 .. automodule:: csep.core.forecasts
 
 Forecasts
@@ -120,7 +121,7 @@ Gridded forecast methods:
    GriddedForecast.get_magnitudes
    GriddedForecast.get_index_of
    GriddedForecast.get_magnitude_index
-   GriddedForecast.from_csep1_ascii
+   GriddedForecast.load_ascii
    GriddedForecast.from_custom
    GriddedForecast.get_rates
    GriddedForecast.target_event_rates
