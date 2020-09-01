@@ -1,6 +1,6 @@
 """
-Working with data-based forecasts
-=============================================
+Working with catalog-based forecasts
+====================================
 
 This example shows some basic interactions with data-based forecasts. We will load in a forecast stored in the CSEP
 data format, and compute the expected rates on a 0.1° x 0.1° grid covering the state of California. We will plot the
