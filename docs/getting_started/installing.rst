@@ -46,7 +46,8 @@ You can verify the installation works by opening a python interpreter and typing
 no errors the installation worked.
 
 Additionally, you can run the test suite by navigating to the project root directory and running ``./run_tests.sh``.
-The test suite requires a properly configured environment to run correctly.
+The test suite requires a properly configured environment to run correctly. For the tests to run properly you need
+to install using conda (1) or install with ``pip install .[test]``.
 
 .. note::
     If you need to install this package on a Linux system we recommend to use a Ubuntu Linux v18.04 LTS based system.

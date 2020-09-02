@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='pycsep',
-    version='0.1.0-dev',
+    version='0.1.0.dev0',
     author='William Savran',
     author_email='wsavran@usc.edu',
     packages=['csep'],
@@ -40,5 +40,6 @@ setup(
     },
     include_package_data=True,
     python_requires=">=3.7",
-    zip_safe=False
+    zip_safe=False,
+    url='https://github.com/SCECCode/csep2'
 )

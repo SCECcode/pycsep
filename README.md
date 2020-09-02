@@ -51,12 +51,14 @@ within in the python environment.
     Also python 3.7 is required.
     
 3. Navigate to repo `cd csep2` (If you are not already there...)
-4. Install editable version of package `pip install .`
+4. Install package `pip install .`
 
 You can verify the installation works by opening a python interpreter and typing `import csep`. If you see
 no errors the installation worked.
 
-Additionally, you can run the test suite by navigating to the project root directory and running `./run_tests.sh`. The test suite requires a properly configured environment to run correctly.
+Additionally, you can run the test suite by navigating to the project root directory and running `./run_tests.sh`.
+The test suite requires a properly configured environment to run correctly. For the tests to run properly you need
+to install using conda (1) or install with `pip install .[test]`.
 
 With this editable installation you can freely edit the package and have the changes propagate to the python 
 installation.
