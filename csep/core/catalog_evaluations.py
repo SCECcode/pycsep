@@ -110,7 +110,7 @@ def spatial_test(forecast, observed_catalog):
         _, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, expected_cond_count, n_obs)
         message = "undersampled"
 
-    # check for nans here
+    # check for nans here and remove from spatial distribution
     test_distribution_spatial_1d = numpy.array(test_distribution)
     if numpy.isnan(numpy.sum(test_distribution_spatial_1d)):
         test_distribution_spatial_1d = test_distribution_spatial_1d[~numpy.isnan(test_distribution_spatial_1d)]
@@ -126,7 +126,7 @@ def spatial_test(forecast, observed_catalog):
                                       observed_statistic=obs_lh_norm,
                                       quantile=(delta_1, delta_2),
                                       status=message,
-                                      min_mw=forecast.min_magntiude,
+                                      min_mw=forecast.min_magnitude,
                                       obs_catalog_repr=str(observed_catalog),
                                       sim_name=forecast.name,
                                       obs_name=observed_catalog.name)
@@ -163,7 +163,7 @@ def magnitude_test(forecast, observed_catalog):
         mag_counts = catalog.magnitude_counts()
         n_events = numpy.sum(mag_counts)
         if n_events == 0:
-            print("Skipping to next because catalog contained zero events.")
+            # print("Skipping to next because catalog contained zero events.")
             continue
         scale = n_obs / n_events
         catalog_histogram = mag_counts * scale
@@ -271,7 +271,7 @@ def pseudolikelihood_test(forecast, observed_catalog):
         observed_statistic=obs_plh,
         quantile=(delta_1, delta_2),
         status=message,
-        min_mw=forecast.min_magntiude,
+        min_mw=forecast.min_magnitude,
         obs_catalog_repr=str(observed_catalog),
         sim_name=forecast.name,
         obs_name=observed_catalog.name
