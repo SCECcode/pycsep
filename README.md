@@ -39,10 +39,7 @@ within in the python environment.
     `cd venv`  
     `python3 -m venv csep-dev`  
     `source csep-dev/bin/activate`  
-    `cd ..`  
-    `pip3 install numpy` (Because of obspy and scipy)  
-    `pip3 install wheel`  
-    `pip3 install -r requirements.txt`
+    `cd ..`
     
     Note: If you want to go back to your default environment use the command `deactivate`.
     
@@ -54,7 +51,7 @@ within in the python environment.
     Also python 3.7 is required.
     
 3. Navigate to repo `cd csep2` (If you are not already there...)
-4. Install editable version of package `pip install -e .`
+4. Install editable version of package `pip install .`
 
 You can verify the installation works by opening a python interpreter and typing `import csep`. If you see
 no errors the installation worked.

@@ -1,7 +1,6 @@
 import os
 import shutil
 import collections
-import six
 from tempfile import mkdtemp
 from contextlib import contextmanager
 
@@ -96,7 +95,7 @@ def get_relative_path(abs_path):
 def iterable(arg):
     return (
         isinstance(arg, collections.Iterable)
-        and not isinstance(arg, six.string_types)
+        and not isinstance(arg, str)
     )
 
 def get_file_extension(fname):

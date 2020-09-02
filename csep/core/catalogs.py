@@ -1,7 +1,6 @@
 import csv
 import json
 import operator
-import six
 import os
 import datetime
 
@@ -496,7 +495,7 @@ class AbstractBaseCatalog(LoggingMixin):
         if statements is None:
             statements = self.filters
 
-        if isinstance(statements, six.string_types):
+        if isinstance(statements, str):
             name, oper, value = statements.split(' ')
             if name == 'datetime':
                 # can be a datetime.datetime object or datetime string, if we want to support filtering on meta data it

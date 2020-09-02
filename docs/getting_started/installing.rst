@@ -33,9 +33,6 @@ We recommend making a virtual environment to ensure there are no conflicts in de
     | ``python3 -m venv csep-dev``
     | ``source csep-dev/bin/activate``
     | ``cd ..``
-    | ``pip3 install numpy`` (Because of obspy and scipy)
-    | ``pip3 install wheel``
-    | ``pip3 install -r requirements.txt``
 
     .. note::
         If you want to go back to your default environment use the command ``deactivate``.

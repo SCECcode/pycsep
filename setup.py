@@ -1,11 +1,44 @@
 from distutils.core import setup
 
 setup(
-    name='PyCSEP',
+    name='pycsep',
     version='0.1.0-dev',
     author='William Savran',
     author_email='wsavran@usc.edu',
     packages=['csep'],
     license='LICENSE',
-    description='Collaboratory for the Study of Earthquake Predictibility',
+    description='Python tools from the Collaboratory for the Study of Earthquake Predictability',
+    install_requires = [
+        'numpy',
+        'scipy',
+        'pandas',
+        'matplotlib',
+        'cartopy',
+        'obspy',
+        'pyproj',
+        'python-dateutil'
+    ],
+    extras_require = {
+        'test': [
+            'pytest',
+            'vcrpy',
+            'pytest-cov'
+        ],
+        'dev': [
+            'sphinx-gallery',
+            'sphinx-rtd-theme',
+            'pillow'
+        ],
+        'all': [
+            'pytest',
+            'vcrpy',
+            'pytest-cov',
+            'sphinx-gallery',
+            'sphinx-rtd-theme',
+            'pillow'
+        ]
+    },
+    include_package_data=True,
+    python_requires=">=3.7",
+    zip_safe=False
 )
