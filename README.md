@@ -26,7 +26,7 @@ within in the python environment.
 1. Clone repository from `https://github.com/SCECcode/csep2`
 2. Create environment for installation
     * [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended):  
-    `conda env create -f requirements.yaml`  
+    `conda env create -f requirements.yml`  
     `conda activate csep-dev`  
     
     Note: If you want to go back to your default environment use the command `conda deactivate`.
