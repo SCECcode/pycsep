@@ -14,6 +14,6 @@ dependencies:
   - pytest
   - cartopy
   - sphinx-gallery
-  - sphinx-rtd-theme
+  - sphinx_rtd_theme
   - pillow
   - vcrpy
