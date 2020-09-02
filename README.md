@@ -23,7 +23,7 @@ This installation will be editable and used for development. This way any change
 within in the python environment.
 
 
-1. Clone repository from `https://github.com/SCECcode/csep2`
+1. Clone repository from `https://github.com/SCECcode/pycsep`
 2. Create environment for installation
     * [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended):  
     `conda env create -f requirements.yml`  
