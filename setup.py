@@ -1,11 +1,11 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
     name='pycsep',
     version='0.1.0.dev0',
     author='William Savran',
     author_email='wsavran@usc.edu',
-    packages=['csep'],
+    packages=find_packages(),
     license='LICENSE',
     description='Python tools from the Collaboratory for the Study of Earthquake Predictability',
     install_requires = [

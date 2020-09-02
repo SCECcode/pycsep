@@ -6,4 +6,3 @@ include CHANGELOG.txt
 include run_tests.sh
 include requirements.txt
 include requirements.yml
-
