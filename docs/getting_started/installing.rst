@@ -50,7 +50,7 @@ follow these instructions: ::
     # Installs in editor mode dependencies are installed by conda
     pip install -e .[all]
 
- Note: If you want to go back to your default environment use the command ``deactivate``.
+Note: If you want to go back to your default environment use the command ``deactivate``.
 
 Developers Installation
 -----------------------
