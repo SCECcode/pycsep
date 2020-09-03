@@ -10,18 +10,34 @@ answer some questions.
 * Download and install git
 * Read the git documentation
 * Install a development version of PyCSEP
-* If you haven't worked with Git Forks before, make sure to read the documentation linked below.
+* If you haven't worked with Git Forks before, make sure to read the documentation linked here:
+[some helping info](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/working-with-forks).
+
+## Developer Installation
+
+This shows you how to install a copy of the repository that you can use to create Pull Requests and sync with the upstream
+repository. First, fork the repo on GitHub. It will now live at `https://github.com/<YOUR_GITHUB_USERNAME>/pycsep`. 
+We recommend using `conda` to install the development environment.
+
+    git clone https://github.com/<YOUR_GITHUB_USERNAME>/pycsep.git
+    cd pycsep
+    conda env create -f requirements.yml
+    conda activate csep-dev
+    pip install -e .[all]
+    # sync with default repository
+    git remote add upstream https://github.com/SCECCode/pycsep.git
+    
+Note: use the commend `conda deactivate` to go back to your regular environment.
 
 ## Submitting a Pull Request
 
 Pull requests are great! Please submit them to us! Here's how:
 
-1. Fork the repo. [Some helping info](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/working-with-forks)
-2. Make a new branch. For features/additions base your new branch at `dev`.
-3. Add a test! Only pull requests for documentation and refactoring do not require a test.
-4. Make sure the tests pass. Run `./run_tests.sh` in the top-level directory of the repo.
-5. Push your changes to your fork and submit a pull request. Make sure to set the branch to `csep2:dev`.
-6. Wait for our review. There may be some suggested changes or improvements. Changes can be made after
+1. Make a new branch. For features/additions base your new branch at `master`.
+2. Add a test! Only pull requests for documentation and refactoring do not require a test.
+3. Make sure the tests pass. Run `./run_tests.sh` in the top-level directory of the repo.
+4. Push your changes to your fork and submit a pull request. Make sure to set the branch to `pycsep:master`.
+5. Wait for our review. There may be some suggested changes or improvements. Changes can be made after
 the pull request has been opening by simply adding more commits to your branch.
 
 Pull requests can be changed after they are opened, so create a pull request as early as possible.
