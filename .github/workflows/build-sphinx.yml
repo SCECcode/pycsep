@@ -2,7 +2,7 @@ name: Build sphinx documentation
 
 on:
   push:
-    branches: [dev]
+    branches: [ master ]
 
 jobs:
   build_docs:
