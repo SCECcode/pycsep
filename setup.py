@@ -1,4 +1,8 @@
+import os
 from setuptools import setup, find_packages
+
+with open("README.md",'r') as fh:
+    long_description = fh.read()
 
 setup(
     name='pycsep',
@@ -8,6 +12,8 @@ setup(
     packages=find_packages(),
     license='LICENSE',
     description='Python tools from the Collaboratory for the Study of Earthquake Predictability',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     install_requires = [
         'numpy',
         'scipy',

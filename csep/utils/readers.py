@@ -17,9 +17,10 @@ from csep.core.exceptions import CSEPIOException
 
 def ndk(filename):
     """
-    Reads an NDK file to a :class:`~csep.core.Catalogs.ZMAPCatalog` object. This code was modified from the obspy implementation
-    to work with CSEP Catalog objects. If a more verbose representation of the catalog is required, including picks and
-    other various data, please use the obspy catalog.
+    Reads an NDK file to a tuple of events.
+
+    This code was modified from the obspy v1.2.2 implementation to work with CSEP Catalog objects. The original source
+    code can be found at https://github.com/obspy/obspy/blob/master/obspy/io/ndk/core.py.
 
     Args:
         filename: file or file-like object
