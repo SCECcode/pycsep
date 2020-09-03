@@ -14,17 +14,10 @@
 #
 import os
 import sys
-from unittest.mock import MagicMock
 
 from sphinx_gallery.sorting import FileNameSortKey
 
 sys.path.insert(0, os.path.abspath('..'))
-
-# mock class for dealing with packages that need to be installed via conda forge,
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
 
 # -- Project information -----------------------------------------------------
 
@@ -35,17 +28,13 @@ html_show_copyright = False
 html_show_sphinx = False
 
 # The short X.Y version
-version = 'v0.1-dev'
+version = 'v0.1'
 # The full version, including alpha/beta/rc tags
-release = 'v0.1-dev'
+release = 'v0.1.0.dev0'
 
 
 
 # -- General configuration ---------------------------------------------------
-MOCK_MODULES = ['mpl_toolkits.basemap']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
-
 # If your documentation needs a minimal Sphinx version, state it here.
 #
 # needs_sphinx = '1.0'
