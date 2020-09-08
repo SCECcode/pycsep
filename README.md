@@ -19,12 +19,40 @@ PyCSEP should:
 
 ## Installing PyCSEP
 
-PyCSEP can be installed using `pip` or built from source. We are working on a `conda-forge` recipe and PyPI distribution. 
-If you plan on contributing to this package, visit the 
-[contribution guidelines](https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md) for installation instructions. 
+PyCSEP can be installed using `pip` or built from source. We are working on a `conda-forge` recipe that will greatly
+simplify the installation process and remove the need to install system dependencies. If you plan on contributing to this 
+package, visit the [contribution guidelines](https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md) for 
+installation instructions.
 
-`pip install pycsep`
+    pip install pycsep
 
+Before this installation will work, you must **first** install the following system dependencies. We recommend using Python
+virtual environments.
+
+Python 3.7 or later (https://python.org)
+
+NumPy 1.10 or later (https://numpy.org)  
+&nbsp;&nbsp;&nbsp;&nbsp;Python package for scientific computing and numerical calculations.
+
+GEOS 3.3.3 or later (https://trac.osgeo.org/geos/)  
+&nbsp;&nbsp;&nbsp;&nbsp;C++ library for processing geometry.
+
+PROJ 4.9.0 or later (https://proj4.org/)  
+&nbsp;&nbsp;&nbsp;&nbsp;Library for cartographic projections. 
+
+Example for Ubuntu:
+
+    sudo apt-get install libproj-dev proj-data proj-bin  
+    sudo apt-get install libgeos-dev 
+    pip install --upgrade pip
+    pip install numpy
+    
+Example for MacOS:
+
+    brew install proj geos
+    pip install --upgrade pip
+    pip install numpy
+    
 ### From Source
 
 Use this approach if you want the most up-to-date code. This creates an editable installation that can be synced with 
@@ -64,7 +92,7 @@ follow these instructions:
 
 ## Documentation and Changelog
 
-The documentation can be found at [here](https://cseptesting.org), and the change long can be found 
+The documentation can be found at [here](https://cseptesting.org), and the changelog can be found 
 [here](https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.txt).
 
 ## Releases 
