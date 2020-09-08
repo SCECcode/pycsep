@@ -4,14 +4,14 @@
 Catalogs operations
 ===================
 
-This example demonstrates how to perform standard operations on a observed_catalog. This example requires an internet
+This example demonstrates how to perform standard operations on a catalog. This example requires an internet
 connection to access ComCat.
 
 Overview:
-    1. Load observed_catalog from ComCat
+    1. Load catalog from ComCat
     2. Create filtering parameters in space, magnitude, and time
-    3. Filter observed_catalog using desired filters
-    4. Write observed_catalog to standard CSEP format
+    3. Filter catalog using desired filters
+    4. Write catalog to standard CSEP format
 """
 
 ####################################################################################################################################

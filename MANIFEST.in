@@ -10,7 +10,10 @@ include requirements.yml
 graft csep
 graft docs
 graft tests
+prune csep/artifacts/Configurations
 prune docs/_build
+prune docs/referenced/generated
+prune docs/tutorials/
 
 global-exclude .git*
 global-exclude *.pyc
