@@ -19,15 +19,15 @@ comcat_example_catalog_fname = os.path.join(_observed_catalog_root, 'sample_comc
 
 # relm region polygon filenames
 relm_testing_polygon_fname = os.path.join(
-    _polygon_region_root, 'Polygons', 'California', 'RELMTestingPolygon.txt'
+    _polygon_region_root, 'California', 'RELMTestingPolygon.txt'
 )
 relm_collection_polygon_fname = os.path.join(
-    _polygon_region_root, 'Polygons', 'California', 'RELMCollectionPolygon.txt'
+    _polygon_region_root, 'California', 'RELMCollectionPolygon.txt'
 )
 
 italy_testing_polygon_fname = os.path.join(
-    _polygon_region_root, 'Polygons', 'Italy', 'ItalyTestingPolygon.txt'
+    _polygon_region_root, 'Italy', 'ItalyTestingPolygon.txt'
 )
 italy_collection_polygon_fname = os.path.join(
-    _polygon_region_root, 'Polygons', 'Italy', 'ItalyCollectionPolygon.txt'
+    _polygon_region_root, 'Italy', 'ItalyCollectionPolygon.txt'
 )
