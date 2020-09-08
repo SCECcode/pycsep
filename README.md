@@ -26,8 +26,9 @@ installation instructions.
 
     pip install pycsep
 
-Before this installation will work, you must **first** install the following system dependencies. We recommend using Python
-virtual environments.
+Before this installation will work, you must **first** install the following system dependencies. The remaining dependencies
+should be installed by the installation script. To help manage dependency issues, we recommend using virtual environments 
+like `virtualenv`.
 
 Python 3.7 or later (https://python.org)
 
