@@ -1,15 +1,50 @@
 Installing PyCSEP
 =================
 
-We are working on a `conda-forge` recipe and PyPI distribution.
+We are working on a ``conda-forge`` recipe and PyPI distribution.
 If you plan on contributing to this package, visit the
 `contribution guidelines <https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md>`_ for installation instructions.
 
 .. note:: This package requires >=Python 3.7.
 
-PyCSEP can be installed using `pip` or built from source. For most users, you can use ::
+The easiest way to install PyCSEP is using ``conda``. It can also be installed using ``pip`` or built from source.
 
-    pip install pycsep
+Using Conda
+-----------
+For most users, you can use ::
+
+    conda install --channel conda-forge pycsep
+
+Using Pip
+---------
+
+Before this installation will work, you must **first** install the following system dependencies. The remaining dependencies
+should be installed by the installation script. To help manage dependency issues, we recommend using virtual environments
+like `virtualenv`.
+
+| Python 3.7 or later (https://python.org)
+|
+| NumPy 1.10 or later (https://numpy.org)
+|     Python package for scientific computing and numerical calculations.
+|
+| GEOS 3.3.3 or later (https://trac.osgeo.org/geos/)
+|     C++ library for processing geometry.
+|
+| PROJ 4.9.0 or later (https://proj4.org/)
+|     Library for cartographic projections.
+
+Example for Ubuntu: ::
+
+    sudo apt-get install libproj-dev proj-data proj-bin
+    sudo apt-get install libgeos-dev
+    pip install --upgrade pip
+    pip install numpy
+
+Example for MacOS: ::
+
+    brew install proj geos
+    pip install --upgrade pip
+    pip install numpy
 
 Installing from Source
 ----------------------

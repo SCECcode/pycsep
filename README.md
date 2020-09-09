@@ -17,14 +17,16 @@ PyCSEP should:
 4. Promote open-science ideas by ensuring transparency and availability of scientific code and results.
 5. Curate benchmark models and data sets for modelers to conduct retrospective experiments of their forecasts.
 
-## Installing PyCSEP
+## Using Conda
 
-PyCSEP can be installed using `pip` or built from source. We are working on a `conda-forge` recipe that will greatly
-simplify the installation process and remove the need to install system dependencies. If you plan on contributing to this 
-package, visit the [contribution guidelines](https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md) for 
+The easiest way to install PyCSEP is using `conda`. It can also be installed using `pip` or built from source. 
+If you plan on contributing to this package, visit the 
+[contribution guidelines](https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md) for 
 installation instructions.
 
-    pip install pycsep
+    conda install --channel conda-forge pycsep
+    
+## Using Pip
 
 Before this installation will work, you must **first** install the following system dependencies. The remaining dependencies
 should be installed by the installation script. To help manage dependency issues, we recommend using virtual environments 

@@ -11,7 +11,7 @@ should be used to evaluate grid-based forecasts.
 
 Overview:
     1. Define forecast properties (time horizon, spatial region, etc).
-    2. Obtain evaluation observed_catalog
+    2. Obtain evaluation catalog
     3. Apply Poissonian evaluations for grid-based forecasts
     4. Store evaluation results using JSON format
     5. Visualize evaluation results
@@ -55,9 +55,9 @@ forecast = csep.load_gridded_forecast(datasets.helmstetter_aftershock_fname,
 # Load evaluation catalog
 # -----------------------
 #
-# We will download the evaluation observed_catalog from ComCat (this step requires an internet connection). We can use the ComCat API
-# to filter the observed_catalog in both time and magnitude. See the observed_catalog filtering example, for more information on how to
-# filter the observed_catalog in space and time manually.
+# We will download the evaluation catalog from ComCat (this step requires an internet connection). We can use the ComCat API
+# to filter the catalog in both time and magnitude. See the catalog filtering example, for more information on how to
+# filter the catalog in space and time manually.
 
 catalog = csep.query_comcat(forecast.start_time, forecast.end_time,
                             min_magnitude=forecast.min_magnitude)
@@ -67,7 +67,7 @@ print(catalog)
 # Filter evaluation catalog in space
 # ----------------------------------
 #
-# We need to remove events in the evaluation observed_catalog outside the valid region specified by the forecast.
+# We need to remove events in the evaluation catalog outside the valid region specified by the forecast.
 
 catalog = catalog.filter_spatial(forecast.region)
 print(catalog)
@@ -76,8 +76,8 @@ print(catalog)
 # Compute Poisson spatial test
 # ----------------------------
 #
-# Simply call the :func:`csep.core.poisson_evaluations.number_test` function to evaluate the forecast using the specified
-# evaluation observed_catalog. The spatial test requires simulating from the Poisson forecast to provide uncertainty. The verbose
+# Simply call the :func:`csep.core.poisson_evaluations.spatial_test` function to evaluate the forecast using the specified
+# evaluation catalog. The spatial test requires simulating from the Poisson forecast to provide uncertainty. The verbose
 # option prints the status of the simulations to the standard output.
 
 spatial_test_result = poisson.spatial_test(forecast, catalog)
