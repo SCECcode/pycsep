@@ -1,4 +1,6 @@
 """
+.. tutorial-catalog-filtering
+
 Catalogs operations
 ===================
 

@@ -7,8 +7,7 @@ import datetime
 import numpy
 
 from csep.utils.log import LoggingMixin
-from csep.core.regions import CartesianGrid2D
-from csep.utils.basic_types import Polygon
+from csep.core.regions import CartesianGrid2D, Polygon
 from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 from csep.core.catalogs import AbstractBaseCatalog
@@ -16,6 +15,9 @@ from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.plots import plot_spatial_dataset
 
 
+# idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet
+# idea: this needs to handle non-carteisan regions, so maybe (lons, lats) should be a single variable like locations
+# note: these are specified to 2D data sets and some minor refactoring needs to happen here.
 class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
 
@@ -147,7 +149,7 @@ class MarkedGriddedDataSet(GriddedDataSet):
 
     def __init__(self, magnitudes=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._magnitudes = magnitudes
+        self._magnitudes = numpy.array(magnitudes)
 
     @property
     def magnitudes(self):
@@ -332,17 +334,29 @@ class GriddedForecast(MarkedGriddedDataSet):
 
     @classmethod
     def from_custom(cls, func, func_args=(), **kwargs):
-        """Creates MarkedGriddedDataSet class from custom parsing function.
+        """ Creates MarkedGriddedDataSet class from custom parsing function.
 
-        Custom parsing function should return a tuple containing the forecast data as appropriate numpy.ndarray and
-        region class. We can only rely on some heuristics to ensure that these classes are set up appropriately.
+        Args:
+            func (callable): function will be called as func(*func_args).
+            func_args (tuple): arguments to pass to func
+            **kwargs: keyword arguments to pass to the GriddedForecast class constructor.
+
+        Returns:
+            :class:`csep.core.forecasts.GriddedForecast`: forecast object
+
+        Note:
+            The loader function `func` needs to return a tuple that contains (data, region, magnitudes). data is a
+            :class:`numpy.ndarray`, region is a :class:`CartesianGrid2D<csep.core.regions.CartesianGrid2D>`, and
+            magnitudes are a :class:`numpy.ndarray` consisting of the magnitude bin edges. See the function
+            :meth:`load_ascii<csep.core.forecasts.GriddedForecast.load_ascii>` for an example.
+
         """
         data, region, magnitudes = func(*func_args)
         # try to ensure that data are region are compatible with one another, but we can only rely on heuristics
         return cls(data=data, region=region, magnitudes=magnitudes, **kwargs)
 
     @classmethod
-    def from_csep1_ascii(cls, ascii_fname, start_date=None, end_date=None, name=None):
+    def load_ascii(cls, ascii_fname, start_date=None, end_date=None, name=None):
         """ Reads Forecast file from CSEP1 ascii format.
 
         The ascii format from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:

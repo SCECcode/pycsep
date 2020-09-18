@@ -1,4 +1,7 @@
 """
+
+.. _grid-forecast-evaluation:
+
 Grid-based Forecast Evaluation
 ==============================
 

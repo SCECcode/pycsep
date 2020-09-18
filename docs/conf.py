@@ -115,6 +115,7 @@ intersphinx_mapping = {
     "numpy": ("https://docs.scipy.org/doc/numpy/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
     "scipy": ('http://docs.scipy.org/doc/scipy/reference', None),
+    "matplotlib": ('http://matplotlib.sourceforge.net/', None)
 }
 
 html_theme_options = {}

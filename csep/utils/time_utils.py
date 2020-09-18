@@ -3,7 +3,6 @@ import datetime
 import re
 import warnings
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR, SECONDS_PER_DAY
-from csep.core.exceptions import CSEPIOException
 
 
 def epoch_time_to_utc_datetime(epoch_time_milli):

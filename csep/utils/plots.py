@@ -717,13 +717,21 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args=None)
                         axes=axes,
                         percentile=percentile)
 
-    # annotate plot with p-values
+    # annotate plot with quantile values
     if not chained:
-        ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
-                    .format(evaluation_result.quantile, evaluation_result.observed_statistic),
-                    xycoords='axes fraction',
-                    xy=xy,
-                    fontsize=14)
+        try:
+            ax.annotate('$\gamma = P(X \geq x) = {:.2f}$\n$\omega = {:.2f}$'
+                        .format(evaluation_result.quantile, evaluation_result.observed_statistic),
+                        xycoords='axes fraction',
+                        xy=xy,
+                        fontsize=14)
+        except TypeError:
+            # if both quantiles are provided, we want to plot the greater-equal quantile
+            ax.annotate('$\gamma = P(X \geq x) = {:.2f}$\n$\omega = {:.2f}$'
+                        .format(evaluation_result.quantile[0], evaluation_result.observed_statistic),
+                        xycoords='axes fraction',
+                        xy=xy,
+                        fontsize=14)
 
     title = plot_args.get('title', 'CSEP2 Magnitude Test')
     ax.set_title(title, fontsize=14)
@@ -840,13 +848,22 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None
 
     # annotate plot with p-values
     if not chained:
-        ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
-                    .format(evaluation_result.quantile, evaluation_result.observed_statistic),
-                    xycoords='axes fraction',
-                    xy=(0.55, 0.3),
-                    fontsize=14)
+        try:
+            ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
+                        .format(evaluation_result.quantile, evaluation_result.observed_statistic),
+                        xycoords='axes fraction',
+                        xy=(0.55, 0.3),
+                        fontsize=14)
+        except TypeError:
+            # if both quantiles are provided, we want to plot the greater-equal quantile
+            ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
+                        .format(evaluation_result.quantile[1], evaluation_result.observed_statistic),
+                        xycoords='axes fraction',
+                        xy=(0.55, 0.3),
+                        fontsize=14)
 
-    title = plot_args.get('title', 'CSEP2 Pseudo Likelihood Test')
+
+    title = plot_args.get('title', 'Pseudolikelihood Test')
     ax.set_title(title, fontsize=14)
 
     if filename is not None:
@@ -895,11 +912,19 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
 
     # annotate plot with p-values
     if not chained:
-        ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
-                    .format(evaluation_result.quantile, evaluation_result.observed_statistic),
-                    xycoords='axes fraction',
-                    xy=(0.2, 0.6),
-                    fontsize=14)
+        try:
+            ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
+                        .format(evaluation_result.quantile, evaluation_result.observed_statistic),
+                        xycoords='axes fraction',
+                        xy=(0.2, 0.6),
+                        fontsize=14)
+        except TypeError:
+            # if both quantiles are provided, we want to plot the greater-equal quantile
+            ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
+                        .format(evaluation_result.quantile[1], evaluation_result.observed_statistic),
+                        xycoords='axes fraction',
+                        xy=(0.2, 0.6),
+                        fontsize=14)
 
 
     ax.set_title(title, fontsize=14)

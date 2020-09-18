@@ -23,10 +23,10 @@ This installation will be editable and used for development. This way any change
 within in the python environment.
 
 
-1. Clone repository from `https://github.com/SCECcode/csep2`
+1. Clone repository from `git clone https://github.com/SCECcode/pycsep`
 2. Create environment for installation
     * [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended):  
-    `conda env create -f requirements.yaml`  
+    `conda env create -f requirements.yml`  
     `conda activate csep-dev`  
     
     Note: If you want to go back to your default environment use the command `conda deactivate`.
@@ -34,15 +34,12 @@ within in the python environment.
     * [Virtualenv](https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/):  
     We highly recommend using Conda, because this tools helps to manage binary dependencies on Python pacakages. If you
     must use `virtaulenv` follow these instructions:  
-    `cd csep2`  
+    `cd pycsep`  
     `mkdir venv`  
     `cd venv`  
     `python3 -m venv csep-dev`  
     `source csep-dev/bin/activate`  
-    `cd ..`  
-    `pip3 install numpy` (Because of obspy and scipy)  
-    `pip3 install wheel`  
-    `pip3 install -r requirements.txt`
+    `cd ..`
     
     Note: If you want to go back to your default environment use the command `deactivate`.
     
@@ -53,13 +50,15 @@ within in the python environment.
     
     Also python 3.7 is required.
     
-3. Navigate to repo `cd csep2` (If you are not already there...)
-4. Install editable version of package `pip install -e .`
+3. Navigate to repo `cd pycsep` (If you are not already there...)
+4. Install package `pip install .`
 
 You can verify the installation works by opening a python interpreter and typing `import csep`. If you see
 no errors the installation worked.
 
-Additionally, you can run the test suite by navigating to the project root directory and running `./run_tests.sh`. The test suite requires a properly configured environment to run correctly.
+Additionally, you can run the test suite by navigating to the project root directory and running `./run_tests.sh`.
+The test suite requires a properly configured environment to run correctly. For the tests to run properly you need
+to install using conda (1) or install with `pip install .[test]`.
 
 With this editable installation you can freely edit the package and have the changes propagate to the python 
 installation.

@@ -46,11 +46,11 @@ class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
         test_evaluation_dict = {}
         # load the forecast file
         print(self.forecast_fname)
-        fore = GriddedForecast.from_csep1_ascii(self.forecast_fname, self.forecast_start_date, self.forecast_end_date)
+        fore = GriddedForecast.load_ascii(self.forecast_fname, self.forecast_start_date, self.forecast_end_date)
         # scale the forecast to the test_date, assuming the forecast is rate over the period specified by forecast start and end dates
         fore.scale_to_test_date(self.test_date)
         # load the observed_catalog file
-        cata = CSEPCatalog(catalog=zmap_ascii(self.catalog_fname), region=fore)
+        cata = CSEPCatalog(data=zmap_ascii(self.catalog_fname), region=fore)
         # compute n_test_result
         res = number_test(fore, cata)
         # parse xml result from file

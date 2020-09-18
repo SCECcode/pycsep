@@ -62,15 +62,15 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, **kwar
     See corresponding class documentation for additional parameters.
 
     Args:
-        type (str): either 'ucerf3' or 'comcat'
-        format (str): ('csep' or 'native'), and determines whether the observed_catalog should be converted into the csep
-                      formatted observed_catalog or kept as native.
+        type (str): ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk') default is 'csep-csv'
+        format (str): ('native', 'csep') determines whether the catalog should be converted into the csep
+                      formatted catalog or kept as native.
 
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
 
-    if type not in ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk'):
-        raise ValueError("type must be one of the following: ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk')")
+    if type not in ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk') and loader is None:
+        raise ValueError("type must be one of the following: ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk').")
 
     # map to correct catalog class, at some point these could be abstracted into configuration file
     # this maps a human readable string to the correct catalog class and the correct loader function
@@ -104,6 +104,7 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, **kwar
     else:
         if loader is None:
             loader = class_loader_mapping[type]['loader']
+
         catalog = catalog_class.load_catalog(filename=filename, loader=loader, **kwargs)
 
     # convert to csep format if needed
@@ -143,7 +144,7 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
                            min_latitude=min_latitude, max_latitude=max_latitude,
                            min_longitude=min_longitude, max_longitude=max_longitude)
     t1 = time.time()
-    comcat = CSEPCatalog(catalog=eventlist, date_accessed=utc_now_datetime(), **kwargs)
+    comcat = CSEPCatalog(data=eventlist, date_accessed=utc_now_datetime(), **kwargs)
     print("Fetched ComCat catalog in {} seconds.\n".format(t1 - t0))
     if verbose:
         print("Downloaded catalog from ComCat with following parameters")
@@ -206,11 +207,12 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
     """
     # mapping from file extension to loader function, new formats by default they need to be added here
     forecast_loader_mapping = {
-        'dat': GriddedForecast.from_csep1_ascii,
+        'dat': GriddedForecast.load_ascii,
         'xml': None,
         'h5': None,
         'bin': None
     }
+
     # sanity checks
     if not os.path.exists(fname):
         raise FileNotFoundError(f"Could not locate file {fname}. Unable to load forecast.")
@@ -220,6 +222,10 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
     extension = os.path.splitext(fname)[-1][1:]
     if extension not in forecast_loader_mapping.keys() and loader is None:
         raise AttributeError("File extension should be in ('dat','xml','h5','bin') if loader not provided.")
+
+    if extension in ('xml','h5','bin'):
+        raise NotImplementedError
+
     # assign default loader
     if loader is None:
         loader = forecast_loader_mapping[extension]

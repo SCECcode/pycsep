@@ -15,11 +15,14 @@ from csep.io import (
     load_catalog_forecast
 )
 
+from csep.utils import datasets
+
 # this defines what is imported on a `from csep import *`
 __all__ = [
     'load_json',
     'write_json',
     'catalogs',
+    'datasets',
     'poisson_evaluations',
     'catalog_evaluations',
     'forecasts',

@@ -8,11 +8,13 @@ We recommend making a virtual environment to ensure there are no conflicts in de
 .. note::
     If you'd like to install an editable version of the package. First, fork the repository and follow these instructions
     using your own copy of the PyCSEP codebase. You will need to run ``pip install -e .`` instead of the
-    ``pip install .`` command as listed below to direct python to make an editable installation.
+    ``pip install .`` command as listed below to direct python to make an editable installation. Instead of cloning from
+    ``https://github.com/SCECcode/csep2`` you would clone from ``https://github.com/<YOUR_GITHUB_USERNAME>/csep2`` in
+    step 1.
 
 1. Clone repository from ``https://github.com/SCECcode/csep2``
 2. Create environment for installation
-    * `Miniconda <https://docs.conda.io/en/latest/miniconda.html/>`_ (recommended):
+    * `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_ (recommended):
 
     | ``conda env create -f requirements.yaml``
     | ``conda activate csep-dev``
@@ -31,9 +33,6 @@ We recommend making a virtual environment to ensure there are no conflicts in de
     | ``python3 -m venv csep-dev``
     | ``source csep-dev/bin/activate``
     | ``cd ..``
-    | ``pip3 install numpy`` (Because of obspy and scipy)
-    | ``pip3 install wheel``
-    | ``pip3 install -r requirements.txt``
 
     .. note::
         If you want to go back to your default environment use the command ``deactivate``.
@@ -41,13 +40,14 @@ We recommend making a virtual environment to ensure there are no conflicts in de
     Also python 3.7 is required.
 
 3. Navigate to repo ``cd csep2`` (If you are not already there...)
-4. Install editable version of package ``pip install .``
+4. Install package ``pip install .``
 
 You can verify the installation works by opening a python interpreter and typing ``import csep``. If you see
 no errors the installation worked.
 
 Additionally, you can run the test suite by navigating to the project root directory and running ``./run_tests.sh``.
-The test suite requires a properly configured environment to run correctly.
+The test suite requires a properly configured environment to run correctly. For the tests to run properly you need
+to install using conda (1) or install with ``pip install .[test]``.
 
 .. note::
     If you need to install this package on a Linux system we recommend to use a Ubuntu Linux v18.04 LTS based system.

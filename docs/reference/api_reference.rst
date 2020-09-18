@@ -22,7 +22,7 @@ Loading catalogs and forecasts
 Catalogs
 --------
 
-.. :currentmodule:: csep
+.. :currentmodule:: csep.core.catalogs
 
 .. automodule:: csep.core.catalogs
 
@@ -90,6 +90,7 @@ Other utilities:
    CSEPCatalog.length_in_seconds
    CSEPCatalog.get_bvalue
 
+.. currentmodule:: csep.core.forecasts
 .. automodule:: csep.core.forecasts
 
 Forecasts
@@ -120,7 +121,7 @@ Gridded forecast methods:
    GriddedForecast.get_magnitudes
    GriddedForecast.get_index_of
    GriddedForecast.get_magnitude_index
-   GriddedForecast.from_csep1_ascii
+   GriddedForecast.load_ascii
    GriddedForecast.from_custom
    GriddedForecast.get_rates
    GriddedForecast.target_event_rates
@@ -173,6 +174,44 @@ Grid-based forecast evaluations:
    conditional_likelihood_test
    paired_t_test
    w_test
+
+.. automodule:: csep.core.regions
+
+Regions
+-------
+
+PyCSEP includes commonly used CSEP testing regions and classes that facilitate working with gridded data sets. This
+module is early in development and help is welcome here!
+
+Region class(es):
+
+.. autosummary::
+    :toctree: generated
+
+    CartesianGrid2D
+
+Testing regions:
+
+.. autosummary::
+    :toctree: generated
+
+    california_relm_region
+    italy_csep_region
+    global_region
+
+Region utilities:
+
+.. autosummary::
+    :toctree: generated
+
+    magnitude_bins
+    create_space_magnitude_region
+    parse_csep_template
+    increase_grid_resolution
+    masked_region
+    generate_aftershock_region
+    Polygon
+
 
 Plotting
 --------
@@ -287,3 +326,12 @@ Statistics Utilities
    poisson_joint_log_likelihood_ndarray
    poisson_inverse_cdf
 
+.. automodule:: csep.utils.basic_types
+
+Basic types
+-----------
+
+.. autosummary::
+    :toctree: generated
+
+    AdaptiveHistogram

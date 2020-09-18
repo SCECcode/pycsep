@@ -13,6 +13,8 @@ import sys
 # 3rd-party imports
 import numpy as np
 import pandas as pd
+
+# note: should consider how to remove these dependencies; should we just delete the functionality
 import dateutil
 from obspy.core.event import read_events
 
@@ -748,7 +750,6 @@ class DetailEvent(object):
                 edict.update(_get_focal_mechanism_info(focal))
 
         # dependency on obspy for this function that we might not use
-        #
         if get_all_magnitudes:
             phase_data = self.getProducts('phase-data')[0]
             phase_url = phase_data.getContentURL('quakeml.xml')

@@ -337,8 +337,8 @@ def _number_test_ndarray(fore_cnt, obs_cnt, epsilon=1e-6):
     delta2 = scipy.stats.poisson.cdf(obs_cnt + epsilon, fore_cnt)
     return delta1, delta2
 
-def _t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, n_f1, n_f2, alpha=0.05):
-    """ Computes T test statistic by comparing two gridded forecasts specified as numpy arrays.
+def _t_test_ndarray(target_event_rates1, target_event_rates2, n_obs, n_f1, n_f2, alpha=0.05):
+    """ Computes T test statistic by comparing two target event rate distributions.
 
     We compare Forecast from Model 1 and with Forecast of Model 2. Information Gain is computed, which is then employed
     to compute T statistic. Confidence interval of Information Gain can be computed using T_critical. For a complete explanation
@@ -346,8 +346,8 @@ def _t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, n_f1,
     doi:10.2478/s11600-011-0013-5
 
     Args:
-        gridded_forecast_1 (numpy.ndarray): nd-array storing gridded rates
-        gridded_forecast_2 (numpy.ndarray): nd-array storing gridded rates
+        target_event_rates1 (numpy.ndarray): nd-array storing target event rates
+        target_event_rates2 (numpy.ndarray): nd-array storing target event rates
         n_obs (float, int, numpy.ndarray): number of observed earthquakes, should be whole number and >= zero.
         alpha (float): tolerance level for the type-i error rate of the statistical test
 
@@ -359,8 +359,8 @@ def _t_test_ndarray(gridded_forecast_data1, gridded_forecast_data2, n_obs, n_f1,
     N = n_obs  # Total number of observed earthquakes
     N1 = n_f1  # Total number of forecasted earthquakes by Model 1
     N2 = n_f2  # Total number of forecasted earthquakes by Model 2
-    X1 = numpy.log(gridded_forecast_data1)  # Log of every element of Forecast 1
-    X2 = numpy.log(gridded_forecast_data2)  # Log of every element of Forecast 2
+    X1 = numpy.log(target_event_rates1)  # Log of every element of Forecast 1
+    X2 = numpy.log(target_event_rates2)  # Log of every element of Forecast 2
 
     # Information Gain, using Equation (17)  of Rhoades et al. 2011
     information_gain = (numpy.sum(X1 - X2) - (N1 - N2)) / N

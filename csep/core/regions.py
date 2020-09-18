@@ -5,30 +5,53 @@ from itertools import compress
 from xml.etree import ElementTree as ET
 
 # Third-party imports
+import matplotlib.path
 import numpy
 
 # PyCSEP imports
+import numpy as np
+import pyproj
+
 from csep.utils.calc import bin1d_vec
-from csep.utils.basic_types import Polygon
 from csep.utils.scaling_relationships import WellsAndCoppersmith
 
+def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection"):
+    """ Return collection region for California RELM testing region
 
-def magnitude_bins(start_magnitude, end_magnitude, dmw):
-    """ Wrapping function to return a numpy.ndarray of magnitude bin edges """
-    return numpy.arange(start_magnitude, end_magnitude+dmw/2, dmw)
-
-def create_space_magnitude_region(region, magnitudes):
-    """Simple wrapper to create space-magnitude region """
-    if not isinstance(region, CartesianGrid2D):
-        raise TypeError("region must be CartesianGrid2D")
-    # bind to region class
-    region.magnitudes = magnitudes
-    region.num_mag_bins = len(region.magnitudes)
-    return region
-
-def california_relm_region(dh_scale=1, magnitudes=None):
+        Args:
+            dh_scale (int): factor of two multiple to change the grid size
+            mangitudes (array-like): array representing the lower bin edges of the magnitude bins
+            name (str): human readable identifer
     """
-    Takes a CSEP1 XML file and returns a 'region' which is a list of polygons. This region can
+    if dh_scale % 2 != 0 and dh_scale != 1:
+        raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
+
+    # we can hard-code the dh because we hard-code the filename
+    dh = 0.1
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'RELMCollectionArea.dat')
+    midpoints = numpy.loadtxt(filepath)
+    origins = midpoints - dh / 2
+
+    if dh_scale > 1:
+        origins = increase_grid_resolution(origins, dh, dh_scale)
+        dh = dh / dh_scale
+
+    # turn points into polygons and make region object
+    bboxes = compute_vertices(origins, dh)
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
+
+    if magnitudes is not None:
+        relm_region.magnitudes = magnitudes
+
+    return relm_region
+
+
+def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california"):
+    """
+    Returns class representing California testing region.
+
+    This region can
     be used to create gridded datasets for earthquake forecasts. The XML file appears to use the
     midpoint, and the .dat file uses the origin in the "lower left" corner.
 
@@ -59,7 +82,80 @@ def california_relm_region(dh_scale=1, magnitudes=None):
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name="relm-california")
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
+
+    if magnitudes is not None:
+        relm_region.magnitudes = magnitudes
+
+    return relm_region
+
+def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
+    """
+        Returns class representing Italian testing region.
+
+        This region can be used to create gridded datasets for earthquake forecasts. The region is defined by the
+        file 'forecast.italy.M5.xml' and contains a spatially gridded region with 0.1° x 0.1° cells.
+
+        Args:
+            dh_scale: can resample this grid by factors of 2
+            magnitudes (array-like): bin edges for magnitudes. if provided, will be bound to the output region class.
+                                     this argument provides a short-cut for creating space-magnitude regions.
+
+        Returns:
+            :class:`csep.core.spatial.CartesianGrid2D`
+
+        Raises:
+            ValueError: dh_scale must be a factor of two
+
+    """
+    if dh_scale % 2 != 0 and dh_scale != 1:
+        raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
+
+        # use default file path from python package
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'forecast.italy.M5.xml')
+    csep_template = os.path.expanduser(filepath)
+    midpoints, dh = parse_csep_template(csep_template)
+    origins = numpy.array(midpoints) - dh / 2
+
+    if dh_scale > 1:
+        origins = increase_grid_resolution(origins, dh, dh_scale)
+        dh = dh / dh_scale
+
+    # turn points into polygons and make region object
+    bboxes = compute_vertices(origins, dh)
+    italy_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
+
+    if magnitudes is not None:
+        italy_region.magnitudes = magnitudes
+
+    return italy_region
+
+def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-collection"):
+    """ Return collection region for Italy CSEP collection region
+
+        Args:
+            dh_scale (int): factor of two multiple to change the grid size
+            mangitudes (array-like): array representing the lower bin edges of the magnitude bins
+            name (str): human readable identifer
+    """
+    if dh_scale % 2 != 0 and dh_scale != 1:
+        raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
+
+    # we can hard-code the dh because we hard-code the filename
+    dh = 0.1
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'italy.collection.nodes.dat')
+    midpoints = numpy.loadtxt(filepath)
+    origins = midpoints - dh / 2
+
+    if dh_scale > 1:
+        origins = increase_grid_resolution(origins, dh, dh_scale)
+        dh = dh / dh_scale
+
+    # turn points into polygons and make region object
+    bboxes = compute_vertices(origins, dh)
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
 
     if magnitudes is not None:
         relm_region.magnitudes = magnitudes
@@ -86,6 +182,31 @@ def global_region(dh=0.1, name="global", magnitudes=None):
         region.magnitudes = magnitudes
     return region
 
+def magnitude_bins(start_magnitude, end_magnitude, dmw):
+    """ Returns array holding magnitude bin edges.
+
+    The output from this function is monotonically increasing and equally spaced bin edges that can represent magnitude
+    bins.
+
+     Args:
+        start_magnitude (float)
+        end_magnitude (float)
+        dmw (float): magnitude spacing
+
+    Returns:
+        bin_edges (numpy.ndarray)
+    """
+    return numpy.arange(start_magnitude, end_magnitude+dmw/2, dmw)
+
+def create_space_magnitude_region(region, magnitudes):
+    """Simple wrapper to create space-magnitude region """
+    if not isinstance(region, CartesianGrid2D):
+        raise TypeError("region must be CartesianGrid2D")
+    # bind to region class
+    region.magnitudes = magnitudes
+    region.num_mag_bins = len(region.magnitudes)
+    return region
+
 def parse_csep_template(xml_filename):
     """
     Reads CSEP XML template file and returns the lat/lon values
@@ -110,7 +231,6 @@ def parse_csep_template(xml_filename):
         raise ValueError("dh_lat must equal dh_lon. grid needs to be regular.")
 
     return points, dh_lat
-
 
 def increase_grid_resolution(points, dh, factor):
     """
@@ -145,7 +265,6 @@ def increase_grid_resolution(points, dh, factor):
     new_factor = factor / 2
     return increase_grid_resolution(list(new_points), new_dh, new_factor)
 
-
 def masked_region(region, polygon):
     """
     Build a new region based off the coordinates in the polygon.
@@ -163,7 +282,6 @@ def masked_region(region, polygon):
     new_polygons = list(compress(region.polygons, contains))
     # create new region with the spatial cells inside the polygon
     return CartesianGrid2D(new_polygons, region.dh)
-
 
 def generate_aftershock_region(mainshock_mw, mainshock_lon, mainshock_lat, num_radii=3, region=california_relm_region, **kwargs):
     """ Creates a spatial region around a given epicenter
@@ -188,160 +306,6 @@ def generate_aftershock_region(mainshock_mw, mainshock_lon, mainshock_lat, num_r
                                                           num_radii * rupture_length, num_points=100)
     aftershock_region = masked_region(region(**kwargs), aftershock_polygon)
     return aftershock_region
-
-
-class CartesianGrid2D:
-    """Represents a 2D cartesian gridded region.
-
-    The class provides functions to query onto an index 2D Cartesian grid and maintains a mapping between space coordinates defined
-    by polygons and the index into the polygon array.
-
-    Custom regions can be easily created by using the from_polygon classmethod. This function will accept an arbitrary closed
-    polygon and return a CartesianGrid class with only points inside the polygon to be valid.
-    """
-    def __init__(self, polygons, dh, name='cartesian2d'):
-        self.polygons = polygons
-        self.dh = dh
-        self.name = name
-        a, xs, ys = _build_bitmask_vec(self.polygons, dh)
-        # mask is 2d numpy array with 2d shape (xs, ys), dim=0 is the mask and dim=1 maps the index from 2d to polygons
-        # note: might consider changing this, but it requires less constraints on how the polygons are defined.
-        self.mask = a[:,:,0]
-        # contains the mapping from polygon_index to the mask
-        self.idx_map = a[:,:,1]
-        # index values of polygons array into the 2d cartesian grid, based on the midpoint.
-        self.xs = xs
-        self.ys = ys
-
-    @property
-    def num_nodes(self):
-        return len(self.polygons)
-
-    def get_index_of(self, lons, lats):
-        """
-        Returns the index of lons, lats in self.polygons
-
-        Args:
-            lons: ndarray-like
-            lats: ndarray-like
-
-        Returns:
-            idx: ndarray-like
-        """
-        idx = bin1d_vec(numpy.array(lons), self.xs)
-        idy = bin1d_vec(numpy.array(lats), self.ys)
-        if numpy.any(idx == -1) or numpy.any(idy == -1):
-            raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
-        if numpy.any(self.mask[idy,idx] == 1):
-            raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
-        return self.idx_map[idy,idx].astype(numpy.int)
-
-    def get_location_of(self, indices):
-        """
-        Returns the polygon associated with the index idx.
-
-        Args:
-            idx: index of polygon in region
-
-        Returns:
-            Polygon
-
-        """
-        indices = list(indices)
-        polys = [self.polygons[idx] for idx in indices]
-        return polys
-
-    def get_masked(self, lons, lats):
-        """Returns bool array lons and lats are not included in the spatial region.
-
-        # idea: consider moving this function to the data class.
-
-        .. note:: The ordering of lons and lats should correspond to the ordering of the lons and lats in the data.
-
-        Args:
-            lons: array-like
-            lats: array-like
-
-        Returns:
-            idx: array-like
-        """
-
-        idx = bin1d_vec(lons, self.xs)
-        idy = bin1d_vec(lats, self.ys)
-        # todo: needs error checking for -1 values
-        return self.mask[idy, idx].astype(bool)
-
-    def get_cartesian(self, data):
-        """Returns 2d ndrray representation of the data set, corresponding to the bounding box.
-
-        Args:
-            data:
-        """
-        assert len(data) == len(self.polygons)
-        results = numpy.zeros(self.mask.shape[:2])
-        ny = len(self.ys)
-        nx = len(self.xs)
-        for i in range(ny):
-            for j in range(nx):
-                if self.mask[i, j] == 0:
-                    idx = int(self.idx_map[i, j])
-                    results[i, j] = data[idx]
-                else:
-                    results[i, j] = numpy.nan
-        return results
-
-    def get_bbox(self):
-        return (self.xs.min(), self.xs.max(), self.ys.min(), self.ys.max())
-
-    def midpoints(self):
-        return numpy.array([poly.centroid() for poly in self.polygons])
-
-    def origins(self):
-        return numpy.array([poly.origin for poly in self.polygons])
-
-    def to_dict(self):
-        adict = {
-            'name': str(self.name),
-            'dh': float(self.dh),
-            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
-        }
-        return adict
-
-    @classmethod
-    def from_dict(cls, adict):
-        raise NotImplementedError("Todo!")
-
-    @classmethod
-    def from_origins(cls, origins, magnitudes=None, name=None):
-        """Creates instance of class from 2d numpy.array of lon/lat origins.
-
-        Note: Grid spacing should be constant in the entire region. This condition is not explicitly checked for for performance
-        reasons.
-
-        Args:
-            origins (numpy.ndarray like): [:,0] = lons and [:,1] = lats
-            magnitudes (numpy.array like): optional, if provided will bind magnitude information to the class.
-
-        Returns:
-            cls
-        """
-        # ensure we can access the lons and lats
-        try:
-            lons = origins[:,0]
-            lats = origins[:,1]
-        except (TypeError):
-            raise TypeError("origins must be of type numpy.array or be numpy array like.")
-
-        # dh must be regular, no explicit checking.
-        dh2 = numpy.abs(lons[1]-lons[0])
-        dh1 = numpy.abs(lats[1]-lats[0])
-        dh = numpy.max([dh1, dh2])
-
-        region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(origins, dh)], dh, name=name)
-        if magnitudes is not None:
-            region.magnitudes = magnitudes
-        return region
-
 
 def grid_spacing(vertices):
     """
@@ -371,7 +335,6 @@ def grid_spacing(vertices):
         raise ValueError("Problem computing grid spacing cannot be zero.")
     return dh
 
-
 def compute_vertex(origin_point, dh, tol=numpy.finfo(float).eps):
     """
     Computes the bounding box of a rectangular polygon given its origin points and spacing dh.
@@ -392,7 +355,6 @@ def compute_vertex(origin_point, dh, tol=numpy.finfo(float).eps):
             (origin_point[0] + dh - tol, origin_point[1]))
     return bbox
 
-
 def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
     """
     Wrapper function to compute vertices for multiple points. Default tolerance is set to machine precision
@@ -408,7 +370,6 @@ def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
 
     """
     return list(map(lambda x: compute_vertex(x, dh, tol=tol), origin_points))
-
 
 def _build_bitmask_vec(polygons, dh):
     """
@@ -449,7 +410,6 @@ def _build_bitmask_vec(polygons, dh):
 
     return a, xs, ys
 
-
 def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins):
     """
     Returns a list of event counts as ndarray with shape (n_poly, n_cat) where each value
@@ -485,7 +445,6 @@ def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map
 
     return event_counts, skipped
 
-
 def _bin_catalog_spatial_counts(lons, lats, n_poly, mask, idx_map, binx, biny):
     """
     Returns a list of event counts as ndarray with shape (n_poly) where each value
@@ -513,7 +472,6 @@ def _bin_catalog_spatial_counts(lons, lats, n_poly, mask, idx_map, binx, biny):
     numpy.add.at(event_counts, hash_idx, 1)
     return event_counts
 
-
 def _bin_catalog_probability(lons, lats, n_poly, mask, idx_map, binx, biny):
     """
     Returns a list of event counts as ndarray with shape (n_poly) where each value
@@ -537,3 +495,231 @@ def _bin_catalog_probability(lons, lats, n_poly, mask, idx_map, binx, biny):
     # dont accumulate just set to one for probability
     event_counts[hash_idx] = 1
     return event_counts
+
+class Polygon:
+    """
+    Represents polygons defined through a collection of vertices.
+
+    This polygon is assumed to be 2d, but could contain an arbitrary number of vertices. The path is treated as not being
+    closed.
+    """
+    def __init__(self, points):
+        # instance members
+        self.points = points
+        self.origin = self.points[0]
+
+        # https://matplotlib.org/3.1.1/api/path_api.html
+        self.path = matplotlib.path.Path(self.points)
+
+    def __str__(self):
+        return str(self.origin)
+
+    def contains(self, points):
+        """ Returns a bool array which is True if the path contains the corresponding point.
+
+        Args:
+            points: 2d numpy array
+
+        """
+        nd_points = np.array(points)
+        if nd_points.ndim == 1:
+            nd_points = nd_points.reshape(1,-1)
+        return self.path.contains_points(nd_points)
+
+    def centroid(self):
+        """ return the centroid of the polygon."""
+        c0, c1 = 0, 0
+        k = len(self.points)
+        for p in self.points:
+            c0 = c0 + p[0]
+            c1 = c1 + p[1]
+        return c0 / k, c1 / k
+
+    def get_xcoords(self):
+        return np.array(self.points)[:,0]
+
+    def get_ycoords(self):
+        return np.array(self.points)[:,1]
+
+    @classmethod
+    def from_great_circle_radius(cls, centroid, radius, num_points=10):
+        """
+        Generates a polygon object from a given radius and centroid location.
+
+        Args:
+            centroid: (lon, lat)
+            radius: should be in (meters)
+            num_points: more points is higher resolution polygon
+
+        Returns:
+            polygon
+        """
+        geod = pyproj.Geod(ellps='WGS84')
+        azim = np.linspace(0, 360, num_points)
+        # create vectors with same length as azim for computations
+        center_lons = np.ones(num_points) * centroid[0]
+        center_lats = np.ones(num_points) * centroid[1]
+        radius = np.ones(num_points) * radius
+        # get new lons and lats
+        endlon, endlat, backaz = geod.fwd(center_lons, center_lats, azim, radius)
+        # class method
+        return cls(np.column_stack([endlon, endlat]))
+
+
+class CartesianGrid2D:
+    """Represents a 2D cartesian gridded region.
+
+    The class provides functions to query onto an index 2D Cartesian grid and maintains a mapping between space coordinates defined
+    by polygons and the index into the polygon array.
+
+    Custom regions can be easily created by using the from_polygon classmethod. This function will accept an arbitrary closed
+    polygon and return a CartesianGrid class with only points inside the polygon to be valid.
+    """
+    def __init__(self, polygons, dh, name='cartesian2d'):
+        self.polygons = polygons
+        self.dh = dh
+        self.name = name
+        a, xs, ys = _build_bitmask_vec(self.polygons, dh)
+        # in mask, True = bad value and False = good value
+        self.mask = a[:,:,0]
+        # contains the mapping from polygon_index to the mask
+        self.idx_map = a[:,:,1]
+        # index values of polygons array into the 2d cartesian grid, based on the midpoint.
+        self.xs = xs
+        self.ys = ys
+
+    @property
+    def num_nodes(self):
+        """ Number of polygons in region """
+        return len(self.polygons)
+
+    def get_index_of(self, lons, lats):
+        """ Returns the index of lons, lats in self.polygons
+
+        Args:
+            lons: ndarray-like
+            lats: ndarray-like
+
+        Returns:
+            idx: ndarray-like
+        """
+        idx = bin1d_vec(numpy.array(lons), self.xs)
+        idy = bin1d_vec(numpy.array(lats), self.ys)
+        if numpy.any(idx == -1) or numpy.any(idy == -1):
+            raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
+        if numpy.any(self.mask[idy,idx] == 1):
+            raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
+        return self.idx_map[idy,idx].astype(numpy.int)
+
+    def get_location_of(self, indices):
+        """
+        Returns the polygon associated with the index idx.
+
+        Args:
+            idx: index of polygon in region
+
+        Returns:
+            Polygon
+
+        """
+        indices = list(indices)
+        polys = [self.polygons[idx] for idx in indices]
+        return polys
+
+    def get_masked(self, lons, lats):
+        """Returns bool array lons and lats are not included in the spatial region.
+
+        .. note:: The ordering of lons and lats should correspond to the ordering of the lons and lats in the data.
+
+        Args:
+            lons: array-like
+            lats: array-like
+
+        Returns:
+            idx: array-like
+        """
+
+        idx = bin1d_vec(lons, self.xs)
+        idy = bin1d_vec(lats, self.ys)
+        # handles the case where values are outside of the region
+        bad_idx = numpy.where((idx == -1) | (idy == -1))
+        mask = self.mask[idy, idx].astype(bool)
+        # manually set values outside region
+        mask[bad_idx] = True
+        return mask
+
+    def get_cartesian(self, data):
+        """Returns 2d ndrray representation of the data set, corresponding to the bounding box.
+
+        Args:
+            data:
+        """
+        assert len(data) == len(self.polygons)
+        results = numpy.zeros(self.mask.shape[:2])
+        ny = len(self.ys)
+        nx = len(self.xs)
+        for i in range(ny):
+            for j in range(nx):
+                if self.mask[i, j] == 0:
+                    idx = int(self.idx_map[i, j])
+                    results[i, j] = data[idx]
+                else:
+                    results[i, j] = numpy.nan
+        return results
+
+    def get_bbox(self):
+        """ Returns rectangular bounding box around region. """
+        return (self.xs.min(), self.xs.max(), self.ys.min(), self.ys.max())
+
+    def midpoints(self):
+        """ Returns midpoints of rectangular polygons in region """
+        return numpy.array([poly.centroid() for poly in self.polygons])
+
+    def origins(self):
+        """ Returns origins of rectangular polygons in region """
+        return numpy.array([poly.origin for poly in self.polygons])
+
+    def to_dict(self):
+        adict = {
+            'name': str(self.name),
+            'dh': float(self.dh),
+            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
+        }
+        return adict
+
+    @classmethod
+    def from_dict(cls, adict):
+        raise NotImplementedError("Todo!")
+
+    @classmethod
+    def from_origins(cls, origins, dh=None, magnitudes=None, name=None):
+        """Creates instance of class from 2d numpy.array of lon/lat origins.
+
+        Note: Grid spacing should be constant in the entire region. This condition is not explicitly checked for for performance
+        reasons.
+
+        Args:
+            origins (numpy.ndarray like): [:,0] = lons and [:,1] = lats
+            magnitudes (numpy.array like): optional, if provided will bind magnitude information to the class.
+
+        Returns:
+            cls
+        """
+        # ensure we can access the lons and lats
+        try:
+            lons = origins[:,0]
+            lats = origins[:,1]
+        except (TypeError):
+            raise TypeError("origins must be of type numpy.array or be numpy array like.")
+
+        # dh must be regular, no explicit checking.
+        if dh is None:
+            dh2 = numpy.abs(lons[1]-lons[0])
+            dh1 = numpy.abs(lats[1]-lats[0])
+            dh = numpy.max([dh1, dh2])
+
+        region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(origins, dh)], dh, name=name)
+        if magnitudes is not None:
+            region.magnitudes = magnitudes
+        return region
+

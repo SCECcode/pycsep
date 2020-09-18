@@ -27,11 +27,8 @@ PyCSEP: Tools for Earthquake Forecast Developers
 
     concepts/catalogs
     concepts/forecasts
-    concepts/regions
     concepts/evaluations
-    concepts/plotting
-    concepts/storing_data
-    concepts/utilities
+    concepts/regions
 
 .. toctree::
     :maxdepth: 2
@@ -39,6 +36,8 @@ PyCSEP: Tools for Earthquake Forecast Developers
     :caption: Help & Reference
 
     reference/glossary
+    reference/publications
+    reference/roadmap
     reference/changelog
     reference/developer_notes
     reference/api_reference
