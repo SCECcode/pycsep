@@ -156,7 +156,10 @@ class AbstractBaseCatalog(LoggingMixin):
         for k, v in out.__dict__.items():
             if k not in exclude:
                 if k not in time_members:
-                    setattr(out, k, adict[k])
+                    try:
+                        setattr(out, k, adict[k])
+                    except KeyError:
+                        pass
                 else:
                     setattr(out, k, _none_or_datetime(adict[k]))
         return out
@@ -516,10 +519,10 @@ class AbstractBaseCatalog(LoggingMixin):
                     # can be a datetime.datetime object or datetime string
                     value = parse_datetime_to_origin_time(value)
                     idx = numpy.where(operators[oper](self.get_datetimes(), value))
-                    filtered = self.catalog[idx]
+                    filtered = filtered[idx]
                 else:
-                    filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
-                filtered = filtered[operators[oper](filtered[name], float(value))]
+                    # filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
+                    filtered = filtered[operators[oper](filtered[name], float(value))]
         else:
             raise ValueError('statements should be either a string or list or tuple of strings')
         # can return new instance of class or original instance
