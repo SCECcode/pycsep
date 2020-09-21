@@ -3,7 +3,7 @@ import unittest
 
 import numpy
 
-from csep.utils.time_utils import strptime_to_utc_epoch
+from csep.utils.time_utils import strptime_to_utc_epoch, strptime_to_utc_datetime
 from csep.core.catalogs import CSEPCatalog
 
 
@@ -35,13 +35,18 @@ class CatalogFiltering(unittest.TestCase):
         end_epoch = strptime_to_utc_epoch('2010-07-01 00:00:00.0')
         filters = [f'origin_time >= {start_epoch}', f'origin_time < {end_epoch}']  # should return only event 2
         test_cat = copy.deepcopy(self.test_cat1)
-        test_cat.filter(filters)
-        # Filter separately
         # Filter separately
         for i in filters:
             test_cat.filter(i)
 
         numpy.array_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
 
+    def test_filter_with_datetime(self):
+        start_dt = strptime_to_utc_datetime('2009-07-01 00:00:00.0')
+        end_dt = strptime_to_utc_datetime('2010-07-01 00:00:00.0')
+        filters = [f'datetime >= {start_dt}', f'datetime < {end_dt}']  # should return only event 2
+        test_cat = copy.deepcopy(self.test_cat1)
+        test_cat.filter(filters)
+        numpy.array_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
 if __name__ == '__main__':
     unittest.main()

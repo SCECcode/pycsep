@@ -499,29 +499,34 @@ class AbstractBaseCatalog(LoggingMixin):
             statements = self.filters
 
         if isinstance(statements, str):
-            name, oper, value = statements.split(' ')
+            name = statements.split(' ')[0]
             if name == 'datetime':
+                name, oper, date, time = statements.split(' ')
                 # can be a datetime.datetime object or datetime string, if we want to support filtering on meta data it
                 # can happen here. but need to determine what to do if entry are not present bc meta data does not
                 # need to be square
-                value = parse_datetime_to_origin_time(value)
-                idx = numpy.where(operators[oper](self.get_datetimes(), value))
+                value = strptime_to_utc_epoch(' '.join([date, time]))
+                idx = numpy.where(operators[oper](self.get_epoch_times(), value))
                 filtered = self.catalog[idx]
             else:
+                name, oper, value = statements.split(' ')
                 filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
         elif isinstance(statements, (list, tuple)):
             # slower but at the convenience of not having to call multiple times
             filters = list(statements)
             filtered = numpy.copy(self.catalog)
-            for filter in filters:
-                name, oper, value = filter.split(' ')
+            for filt in filters:
+                name = filt.split(' ')[0]
                 if name == 'datetime':
-                    # can be a datetime.datetime object or datetime string
-                    value = parse_datetime_to_origin_time(value)
-                    idx = numpy.where(operators[oper](self.get_datetimes(), value))
-                    filtered = filtered[idx]
+                    name, oper, date, time = filt.split(' ')
+                    # can be a datetime.datetime object or datetime string, if we want to support filtering on meta data it
+                    # can happen here. but need to determine what to do if entry are not present bc meta data does not
+                    # need to be square
+                    value = strptime_to_utc_epoch(' '.join([date, time]))
+                    idx = numpy.where(operators[oper](self.get_epoch_times(), value))
+                    filtered = self.catalog[idx]
                 else:
-                    # filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
+                    name, oper, value = filt.split(' ')
                     filtered = filtered[operators[oper](filtered[name], float(value))]
         else:
             raise ValueError('statements should be either a string or list or tuple of strings')
