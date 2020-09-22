@@ -457,27 +457,27 @@ def csep_ascii(fname, return_catalog_id=False):
         else:
             return events, catalog_id
 
-def read_ingv_rcmt_csv(fname):
+def ingv_rcmt(fname):
     """
     Reader for the INGV (Istituto Nazionale di Geofisica e Vulcanologia - Italy)  European-
     Mediterranean regional Centroid Moment Tensor Catalog.
     It reads a catalog in .csv format, directly downloaded from http://rcmt2.bo.ingv.it/ using the Catalog Search (Beta
     version).
     
-    # todo: update this to csepcatalog.
     
-    The ZMAP Format has the following dtype:
+    The CSEP Format has the following dtype:
 
     dtype = numpy.dtype([('id', 'S256'),
-                     ('origin_time', '<i8'),
-                     ('latitude', '<f4'),
-                     ('longitude', '<f4'),
-                     ('depth', '<f4'),
-                     ('magnitude', '<f4')])
+                         ('origin_time', '<i8'),
+                         ('latitude', '<f4'),
+                         ('longitude', '<f4'),
+                         ('depth', '<f4'),
+                         ('magnitude', '<f4')])
 
     """
 
-    ind = {'date': 1,
+    ind = {'evcat_id': 0,
+           'date': 1,
            'time': 2,
            'sec_dec': 3,
            'lat': 4,
@@ -486,15 +486,20 @@ def read_ingv_rcmt_csv(fname):
            'Mw': 61}
 
     out = []
+    evcat_id = []
     with open(fname) as file_:
         reader = csv.reader(file_)
-
+        
         for id, line in enumerate(reader):
 
             try:
-                date_time_dict = _parse_datetime_to_zmap(line[ind['date']].replace('-', '/'),
-                                                         line[ind['time']].replace(' ', '0') +
-                                                         '.' + line[ind['sec_dec']].replace(' ', ''))
+                date = line[ind['date']].replace('-', '/')
+                time = line[ind['time']].replace(' ', '0')
+                sec_frac = line[ind['sec_dec']].replace(' ', '')
+                if time.endswith(':'):
+                    time += '00'
+                date_time_dict = _parse_datetime_to_zmap(date,
+                                                         time + '.' + sec_frac)
             except ValueError:
                 msg = ("Could not parse date/time string '%s' and '%s' to a valid "
                        "time" % (line[ind['date']], line[ind['time']]))
@@ -509,21 +514,94 @@ def read_ingv_rcmt_csv(fname):
                 date_time_dict['minute'],
                 date_time_dict['second']
             )
-
-            event_tuple = (
-                id,
-                datetime_to_utc_epoch(dt),
-                float(line[ind["lat"]]),
-                float(line[ind["lon"]]),
-                float(line[ind["depth"]]),
-                float(line[ind["Mw"]])
-            )
+            if 0. < float(line[ind["Mw"]]) < 10.0:
+                event_tuple = (
+                    id,
+                    datetime_to_utc_epoch(dt),
+                    float(line[ind["lat"]]),
+                    float(line[ind["lon"]]),
+                    float(line[ind["depth"]]),
+                    float(line[ind["Mw"]])
+                )
+            else:
+                print('Removed 1 event due to missing magnitude')
+            evcat_id.append(line[ind["evcat_id"]])
             out.append(event_tuple)
+        
+        rep_events = [i for i in range(len(evcat_id)) if i not in 
+                          numpy.unique(numpy.array(evcat_id), 
+                                       return_index=True)[1]]
+        for rep_id in rep_events:
+            out.pop(rep_id)
+        print('Removed %i repeated events' % len(rep_events))
+        
     return out
 
-def em_gcmt(fname):
-    raise NotImplementedError("read_em_gcmt_ascii not implemented yet!")
 
+def ingv_horus(fname):
+    """
+    Reader for the INGV (Istituto Nazionale di Geofisica e Vulcanologia - Italy)
+    Homogenized instrumental seismic catalog (HORUS)
+    It reads a catalog in plain text format, directly downloaded from 
+    http://horus.bo.ingv.it/. 
+
+    
+    The CSEP Format has the following dtype:
+
+    dtype = numpy.dtype([('id', 'S256'),
+                         ('origin_time', '<i8'),
+                         ('latitude', '<f4'),
+                         ('longitude', '<f4'),
+                         ('depth', '<f4'),
+                         ('magnitude', '<f4')])
+
+    """
+
+    ind = {'year': (0,"<i4"),
+           'month': (1,"<i4"),
+           'day': (2,"<i4"),
+           'hour': (3,"<i4"),
+           'minute': (4,"<i4"),
+           'second': (5,"<f4"),
+           'lat': (6, "<f4"),
+           'lon': (7,"<f4"),
+           'depth': (8,"<f4"),
+           'Mw': (9,"<f4")}
+    out = []
+    
+    data = numpy.genfromtxt(fname, skip_header=1,
+                            names=ind.keys(), 
+                            usecols=[i[0] for i in ind.values()],
+                            dtype=[i[1] for i in ind.values()])
+    for n, line in enumerate(data):
+        dt = datetime.timedelta(0,0,0)
+        if line['second'] >= 60.:
+            line['second'] -= 60.
+            dt += datetime.timedelta(minutes=1)
+        if line['minute'] >= 60.:
+            dt += datetime.timedelta(hours=1)
+            line['minute'] -= 60.
+        if line['hour'] >= 24.:
+            dt += datetime.timedelta(days=1)
+            line['hour'] -= 24.
+        Time = datetime.datetime(
+                                line['year'],
+                                line['month'],
+                                line['day'],
+                                line['hour'],
+                                line['minute'],
+                                line['second']
+                               ) + dt
+        event_tuple = (Time,
+                       datetime_to_utc_epoch(Time),
+                       float(line["lat"]),
+                       float(line["lon"]),
+                       float(line["depth"]),
+                       float(line["Mw"])
+                       )   
+        out.append(event_tuple)
+
+    return out
 
 def jma_csv(fname):
     """ Read catalog stored in pre-processed JMA comma separated values format.
