@@ -457,7 +457,7 @@ def csep_ascii(fname, return_catalog_id=False):
         else:
             return events, catalog_id
 
-def ingv_rcmt(fname):
+def ingv_emrcmt(fname):
     """
     Reader for the INGV (Istituto Nazionale di Geofisica e Vulcanologia - Italy)  European-
     Mediterranean regional Centroid Moment Tensor Catalog.
@@ -474,6 +474,9 @@ def ingv_rcmt(fname):
                          ('depth', '<f4'),
                          ('magnitude', '<f4')])
 
+    Dismiss events with typo errors in its magnitude, and repeated events with 
+    same id.
+    
     """
 
     ind = {'evcat_id': 0,
@@ -487,11 +490,11 @@ def ingv_rcmt(fname):
 
     out = []
     evcat_id = []
+    n_event = 0
     with open(fname) as file_:
         reader = csv.reader(file_)
         
-        for id, line in enumerate(reader):
-
+        for n, line in enumerate(reader):
             try:
                 date = line[ind['date']].replace('-', '/')
                 time = line[ind['time']].replace(' ', '0')
@@ -516,23 +519,25 @@ def ingv_rcmt(fname):
             )
             if 0. < float(line[ind["Mw"]]) < 10.0:
                 event_tuple = (
-                    id,
+                    n_event,
                     datetime_to_utc_epoch(dt),
                     float(line[ind["lat"]]),
                     float(line[ind["lon"]]),
                     float(line[ind["depth"]]),
                     float(line[ind["Mw"]])
                 )
+                n_event += 1
+                evcat_id.append(line[ind["evcat_id"]])
+                out.append(event_tuple)
             else:
-                print('Removed 1 event due to missing magnitude')
-            evcat_id.append(line[ind["evcat_id"]])
-            out.append(event_tuple)
-        
+                pass
+            
         rep_events = [i for i in range(len(evcat_id)) if i not in 
                           numpy.unique(numpy.array(evcat_id), 
                                        return_index=True)[1]]
         for rep_id in rep_events:
             out.pop(rep_id)
+        print('Removed %i badly formatted events' % (n + 1 - n_event))
         print('Removed %i repeated events' % len(rep_events))
         
     return out
