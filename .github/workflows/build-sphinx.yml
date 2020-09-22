@@ -1,0 +1,57 @@
+name: docs
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build_docs:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install dependencies
+        run: |
+          sudo apt-get install libproj-dev proj-data proj-bin
+          sudo apt-get install libgeos-dev
+          sudo apt-get install python3-sphinx
+          python -m pip install --upgrade pip
+          pip install numpy==1.18.4
+          pip install wheel
+          pip install pytest pytest-cov
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install sphinx-gallery>=0.7.0
+          pip install sphinx-rtd-theme
+          pip install pillow
+          pip uninstall -y shapely
+          pip install shapely --no-binary shapely
+      - name: Install PyCSEP
+        run: |
+          python setup.py install
+      - name: Build documentation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+          make -C docs clean
+          make -C docs html
+          doc_root=`mktemp -d`
+          rsync -av "docs/_build/html/" "${doc_root}/"
+          pushd "${doc_root}"
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git init
+          git remote add deploy "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git checkout -b gh-pages
+          echo "Empty README.md for documenation cache." > README.md
+          echo "cseptesting.org" > CNAME
+          git add .
+          git commit -am "Updating PyCSEP docs for commit ${GITHUB_SHA} made on `date -d"@{SOURCE_DATE_EPOCH} --iso-8601=seconds` from ${GITHUB_REF} by ${GITHUB_ACTOR}"
+          git push deploy gh-pages --force
+        shell: bash
+

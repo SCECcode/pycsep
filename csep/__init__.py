@@ -1,68 +1,35 @@
-from csep.core.catalogs import *
+from csep.core import forecasts
+from csep.core import catalogs
+from csep.core import poisson_evaluations
+from csep.core import catalog_evaluations
+from csep.core.repositories import (
+    load_json,
+    write_json
+)
+from csep.io import (
+    load_stochastic_event_sets,
+    load_catalog,
+    query_comcat,
+    load_evaluation_result,
+    load_gridded_forecast,
+    load_catalog_forecast
+)
 
-def load_stochastic_event_set(type=None, format='native', **kwargs):
-    """
-    Factory function to load stochastic event sets.
-    # IDEA: should this return a stochastic event set class with a consistent api to apply things to an event set?
+from csep.utils import datasets
 
-    Args:
-        type (str): either 'ucerf3' or 'csep' depending on the type of catalog to load
-        format (str): ('csep' or 'native') if native catalogs are not converted to csep format.
-        **kwargs: see the documentation of that class corresponding to the type you selected
-
-    Returns:
-        (generator): :class:`~csep.core.catalogs.BaseCatalog`
-
-    """
-    if type not in ('ucerf3', 'csep'):
-        raise ValueError("type must be one of the following: (ucerf3, csep)")
-
-    # use mapping to dispatch to correct function
-    # in general, stochastic event sets are loaded with classmethods and single catalogs use the
-    # constuctor
-    mapping = {'ucerf3': UCERF3Catalog.load_catalogs,
-               'csep': CSEPCatalog.load_catalogs}
-
-    # dispatch to proper loading function
-    result = mapping[type](**kwargs)
-
-    # convert to csep format
-    for catalog in result:
-        if format == 'native':
-            yield(catalog)
-        elif format == 'csep':
-            yield(catalog._get_csep_format())
-        else:
-            raise ValueError('format must be either "native" or "csep!')
-
-def load_catalog(type=None, format='native', **kwargs):
-    """
-    Factory function to load single catalog. See corresponding class documentation for additional parameters.
-
-    Args:
-        type (str): either 'ucerf3' or 'comcat'
-        format (str): ('csep' or 'native')
-
-    Returns:
-        (:class:`~csep.core.catalogs.CSEPCatalog`)
-    """
-
-    if type not in ('ucerf3', 'comcat', 'csep'):
-        raise ValueError("type must be one of the following: ('ucerf3', 'comcat', 'csep')")
-
-    # add entry point to load catalog here.
-    mapping = {'ucerf3': UCERF3Catalog,
-               'comcat': ComcatCatalog,
-               'csep': CSEPCatalog}
-
-    # load catalog in native format
-    catalog = mapping[type](**kwargs)
-
-    # convert to csep format
-    if format == 'native':
-        return_val = catalog
-    elif format == 'csep':
-        return_val = catalog._get_csep_format()
-    else:
-        raise ValueError('format must be either "native" or "csep!')
-    return return_val
+# this defines what is imported on a `from csep import *`
+__all__ = [
+    'load_json',
+    'write_json',
+    'catalogs',
+    'datasets',
+    'poisson_evaluations',
+    'catalog_evaluations',
+    'forecasts',
+    'load_stochastic_event_sets',
+    'load_catalog',
+    'query_comcat',
+    'load_evaluation_result',
+    'load_gridded_forecast',
+    'load_catalog_forecast'
+]

@@ -1,0 +1,31 @@
+{% extends "!layout.html" %}
+
+{% block extrahead %}
+    <!-- Google Analytics -->
+    <!-- added options to anonymize ip and disable cookies using {'storage': 'none'} 
+    <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+    ga('create', 'UA-495056-15', 'auto', {'storage': 'none'});
+    ga('set', 'anonymizeIp', true);
+    ga('send', 'pageview');
+    </script> -->
+{% endblock %}
+
+
+{% block menu %}
+    {{ super() }}
+
+    {% if github_links %}
+        <p class="caption">
+            <span class="caption-text">Source code and contributing</span>
+        </p>
+        <ul>
+            {% for text, link in github_links %}
+                <li class="toctree-l1"><a href="{{ link }}">{{ text }}</a></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

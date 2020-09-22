@@ -14,33 +14,26 @@
 #
 import os
 import sys
-from unittest.mock import MagicMock
-sys.path.insert(0, os.path.abspath('..'))
 
-# mock class for dealing with packages that need to be installed via conda forge
-class Mock(MagicMock):
-    @classmethod
-    def __getattr__(cls, name):
-        return MagicMock()
+from sphinx_gallery.sorting import FileNameSortKey
+
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'CSEP'
-copyright = '2018, William Savran'
+project = 'PyCSEP'
 author = 'William Savran'
 
-# The short X.Y version
-version = 'v0.1-dev'
-# The full version, including alpha/beta/rc tags
-release = 'v0.1-dev'
+html_show_copyright = False
+html_show_sphinx = False
 
+# The short X.Y version
+version = 'v0.1'
+# The full version, including alpha/beta/rc tags
+release = 'v0.1.0'
 
 
 # -- General configuration ---------------------------------------------------
-MOCK_MODULES = ['libcomcat', 'docker']
-sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
-
 # If your documentation needs a minimal Sphinx version, state it here.
 #
 # needs_sphinx = '1.0'
@@ -51,10 +44,15 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.todo',
+    'sphinx.ext.autosummary',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
+    'sphinx_gallery.gen_gallery',
+    'sphinx.ext.githubpages'
+
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -82,26 +80,66 @@ language = None
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'default'
 
+# autosummary
+autosummary_generate = True
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'default'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+
+# intersphinx configuration
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
+    "scipy": ('http://docs.scipy.org/doc/scipy/reference', None),
+    "matplotlib": ('http://matplotlib.sourceforge.net/', None)
+}
+
+html_theme_options = {}
+html_context = {
+    "github_links": [
+        (
+            'Contributing',
+            "https://github.com/SCECCode/csep2/blob/dev/CONTRIBUTING.md",
+        ),
+        (
+            'Code of Conduct',
+            "https://github.com/SCECCode/csep2/blob/dev/CODE_OF_CONDUCT.md",
+        ),
+        (
+            'License',
+            "https://github.com/SCECCode/csep2/blob/dev/LICENSE",
+        ),
+        (
+            'Getting help',
+            "https://github.com/SCECCode/csep2/issues",
+        ),
+        (
+            'Source Code',
+            "https://github.com/SCECCode/csep2",
+        ),
+    ],
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+# html_static_path = ["_static"]
+
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+# html_css_files = [""]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -113,6 +151,27 @@ html_static_path = ['_static']
 #
 # html_sidebars = {}
 
+sphinx_gallery_conf = {
+    # path to your examples scripts
+    "examples_dirs": [
+        "../examples/tutorials",
+    ],
+    # path where to save gallery generated examples
+    "gallery_dirs": ["tutorials"],
+    # Patter to search for example files
+    "filename_pattern": r"\.py",
+    # Remove the "Download all examples" button from the top level gallery
+    "download_all_examples": False,
+    # Sort gallery example by file name instead of number of lines (default)
+    "within_subsection_order": FileNameSortKey,
+    # directory where function granular galleries are stored
+    # "backreferences_dir": "",
+    # Modules for which function level galleries are created.  In
+    # this case sphinx_gallery and numpy in a tuple of strings.
+    "doc_module": "csep",
+    # Insert links to documentation of objects in the examples
+    "reference_url": {"csep": None},
+}
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -144,7 +203,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'csep.tex', 'csep Documentation',
+    (master_doc, 'pycsep.tex', 'PyCSEP Documentation',
      'William Savran', 'manual'),
 ]
 
@@ -154,7 +213,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'csep', 'csep Documentation',
+    (master_doc, 'pycsep', 'PyCSEP Documentation',
      [author], 1)
 ]
 
@@ -165,8 +224,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'csep', 'csep Documentation',
-     author, 'csep', 'One line description of project.',
+    (master_doc, 'pycsep', 'PyCSEP Documentation',
+     author, 'William Savran', 'Python tools for earthquake forecast evaluation.',
      'Miscellaneous'),
 ]
 
@@ -176,4 +235,4 @@ texinfo_documents = [
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = True
+todo_include_todos = False
