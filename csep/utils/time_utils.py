@@ -52,7 +52,9 @@ def days_to_millis(days):
 
 def strptime_to_utc_epoch(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     """ Returns epoch time from formatted time string """
-    dt=strptime_to_utc_datetime(time_string, format)
+    if format == "%Y-%m-%d %H:%M:%S.%f":
+        format = parse_string_format(time_string)
+    dt = strptime_to_utc_datetime(time_string, format)
     return datetime_to_utc_epoch(dt)
 
 def timedelta_from_years(time_in_years):
@@ -83,6 +85,9 @@ def strptime_to_utc_datetime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     Returns:
         datetime.datetime: timezone aware (utc) object from time_string
     """
+    # if default format is provided, try and handle some annoying cases with fractional seconds and time-zone info
+    if format == "%Y-%m-%d %H:%M:%S.%f":
+        format = parse_string_format(time_string)
     dt = datetime.datetime.strptime(time_string, format).replace(tzinfo=datetime.timezone.utc)
     return dt
 
