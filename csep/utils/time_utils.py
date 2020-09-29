@@ -261,6 +261,3 @@ def decimal_year_to_utc_epoch(decimal_date):
         epoch_time (int): time elapsed since jan 01, 1970
     """
     return datetime_to_utc_epoch(decimal_year_to_utc_datetime(decimal_date))
-
-
-

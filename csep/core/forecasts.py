@@ -7,7 +7,7 @@ import datetime
 import numpy
 
 from csep.utils.log import LoggingMixin
-from csep.core.regions import CartesianGrid2D, Polygon
+from csep.core.regions import CartesianGrid2D, Polygon, create_space_magnitude_region
 from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 from csep.core.catalogs import AbstractBaseCatalog
@@ -149,11 +149,11 @@ class MarkedGriddedDataSet(GriddedDataSet):
 
     def __init__(self, magnitudes=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._magnitudes = numpy.array(magnitudes)
+        self.region = create_space_magnitude_region(self.region, magnitudes)
 
     @property
     def magnitudes(self):
-        return self._magnitudes
+        return self.region.magnitudes
 
     @property
     def min_magnitude(self):
