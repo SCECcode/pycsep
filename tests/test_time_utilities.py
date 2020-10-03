@@ -1,6 +1,7 @@
 import datetime
 from unittest import TestCase
-from csep.utils.time_utils import strptime_to_utc_datetime, datetime_to_utc_epoch, strptime_to_utc_epoch, epoch_time_to_utc_datetime
+from csep.utils.time_utils import strptime_to_utc_datetime, datetime_to_utc_epoch, strptime_to_utc_epoch, \
+    epoch_time_to_utc_datetime, decimal_year_to_utc_datetime, decimal_year, decimal_year_to_utc_epoch
 
 
 class TestTimeUtilities(TestCase):
@@ -36,4 +37,18 @@ class TestTimeUtilities(TestCase):
         dt = datetime.datetime(1984,4,24,21,15,18,760000, tzinfo=datetime.timezone.utc)
         dt_test = epoch_time_to_utc_datetime(datetime_to_utc_epoch(dt))
         self.assertEqual(dt, dt_test)
+
+    def test_decimal_year(self):
+        year = 2015.7754538242
+        dt = decimal_year_to_utc_datetime(year)
+        test_year = decimal_year(dt)
+        self.assertAlmostEqual(year, test_year)
+
+    def test_decimal_year_epoch(self):
+        year = 2015.7754538242
+        epoch = decimal_year_to_utc_epoch(year)
+        test_year = decimal_year(epoch_time_to_utc_datetime(epoch))
+        self.assertAlmostEqual(year, test_year)
+
+
 

@@ -301,16 +301,20 @@ def ndk(filename):
 
         # we are stripping off a significant amount of information from the gCMT catalog
         # if more information is required please use the obspy implementation
-        out_tup = (record['hypo_lng'],
+        dt = datetime.datetime(
+            date_time_dict['year'],
+            date_time_dict['month'],
+            date_time_dict['day'],
+            date_time_dict['hour'],
+            date_time_dict['minute'],
+            date_time_dict['second']
+        )
+        out_tup = (_i,
+                   datetime_to_utc_epoch(dt),
                    record['hypo_lat'],
-                   date_time_dict['year'],
-                   date_time_dict['month'],
-                   date_time_dict['day'],
-                   record["Mw"],
+                   record['hypo_lng'],
                    record["hypo_depth_in_km"],
-                   date_time_dict['hour'],
-                   date_time_dict['minute'],
-                   date_time_dict['second'])
+                   record["Mw"])
         out.append(out_tup)
     return out
 
