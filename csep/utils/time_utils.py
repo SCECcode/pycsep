@@ -52,7 +52,9 @@ def days_to_millis(days):
 
 def strptime_to_utc_epoch(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     """ Returns epoch time from formatted time string """
-    dt=strptime_to_utc_datetime(time_string, format)
+    if format == "%Y-%m-%d %H:%M:%S.%f":
+        format = parse_string_format(time_string)
+    dt = strptime_to_utc_datetime(time_string, format)
     return datetime_to_utc_epoch(dt)
 
 def timedelta_from_years(time_in_years):
@@ -83,6 +85,9 @@ def strptime_to_utc_datetime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     Returns:
         datetime.datetime: timezone aware (utc) object from time_string
     """
+    # if default format is provided, try and handle some annoying cases with fractional seconds and time-zone info
+    if format == "%Y-%m-%d %H:%M:%S.%f":
+        format = parse_string_format(time_string)
     dt = datetime.datetime.strptime(time_string, format).replace(tzinfo=datetime.timezone.utc)
     return dt
 
@@ -184,3 +189,75 @@ def decimal_year(test_date):
                                  test_date.minute / mins_per_day +
                                  (test_date.second + test_date.microsecond * 1e-6) / secs_per_day) / num_days_per_year
     return dec_year
+
+def decimal_year_to_utc_datetime(decimal_date):
+    """ Takes a year specified as a decimal year and returns a datetime object.
+
+    Args:
+        decimal_year: decimal year in format YEAR.YEAR_FRACTION. This should be account for leap-years
+    """
+    # def days_in_month(year, month):
+    #     return calendar.monthrange(int(year), int(month))[1]
+    #
+    # def split_fractional_time(value, time_part):
+    #     whole = (value * time_part) // 1
+    #     part = (value * time_part) % 1
+    #     return whole, part
+    #
+    # # start with years (first we just want to split year and decimal part, hence the 1)
+    # # if i were less lazy this could be a recursive function with a queue or stack
+    # year, year_part = split_fractional_time(decimal_date, 1.0)
+    # # move to months
+    # months_per_year = 12
+    # month, month_part = split_fractional_time(year_part, months_per_year)
+    # # compute days
+    # days_per_month = days_in_month(year, month)
+    # day, day_part = split_fractional_time(month_part, days_per_month)
+    # # hours
+    # hours_per_day = 24
+    # hour, hour_part = split_fractional_time(day_part, hours_per_day)
+    # # minutes
+    # minute_per_day = 60
+    # minute, minute_part = split_fractional_time(hour_part, minute_per_day)
+    # # seconds
+    # seconds_per_minute = 60
+    # second, second_part = split_fractional_time(minute_part, seconds_per_minute)
+    # # finally build date time
+    # return datetime.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second), int(microsecond))
+
+
+    # Get number of days in the year of specified test date
+    year = decimal_date // 1
+    year_frac = decimal_date % 1
+    num_days_per_year = 365.0
+    if calendar.isleap(year):
+        num_days_per_year = 366.0
+    num_hours_per_day = 24
+    num_minutes_per_hour = 60
+    num_seconds_per_minute = 60
+    num_microseconds_per_second = 1e6
+    microseconds_per_year = num_days_per_year * \
+                            num_hours_per_day * \
+                            num_minutes_per_hour * \
+                            num_seconds_per_minute * \
+                            num_microseconds_per_second
+    microseconds_into_year = microseconds_per_year * year_frac
+    # create time delta from microseconds
+    td = datetime.timedelta(microseconds=microseconds_into_year)
+    # create datetime for start of year
+    dt = datetime.datetime(int(year), 1, 1, 0, 0, 0, 0)
+    # combine to get datetime representation of date
+    final_dt = (dt + td).replace(tzinfo=datetime.timezone.utc)
+    return final_dt
+
+def decimal_year_to_utc_epoch(decimal_date):
+    """ Converts decimal year to epoch year format used by catalogs.
+
+    Args:
+        decimal_date (float): date with format YEAR.X where 'X' is the fraction of the year. The fraction
+                              considers leap years.
+
+    Returns:
+        epoch_time (int): time elapsed since jan 01, 1970
+    """
+    return datetime_to_utc_epoch(decimal_year_to_utc_datetime(decimal_date))

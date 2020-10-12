@@ -941,7 +941,6 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
 
     return ax
 
-
 def _get_marker_style(obs_stat, p, one_sided_lower=True):
     """Returns matplotlib marker style as fmt string"""
     if obs_stat < p[0] or obs_stat > p[1]:

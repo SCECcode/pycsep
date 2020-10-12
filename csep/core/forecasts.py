@@ -7,7 +7,7 @@ import datetime
 import numpy
 
 from csep.utils.log import LoggingMixin
-from csep.core.regions import CartesianGrid2D, Polygon
+from csep.core.regions import CartesianGrid2D, Polygon, create_space_magnitude_region
 from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 from csep.core.catalogs import AbstractBaseCatalog
@@ -149,11 +149,11 @@ class MarkedGriddedDataSet(GriddedDataSet):
 
     def __init__(self, magnitudes=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._magnitudes = numpy.array(magnitudes)
+        self.region = create_space_magnitude_region(self.region, magnitudes)
 
     @property
     def magnitudes(self):
-        return self._magnitudes
+        return self.region.magnitudes
 
     @property
     def min_magnitude(self):
@@ -373,9 +373,15 @@ class GriddedForecast(MarkedGriddedDataSet):
         """
         # Load data
         data = numpy.loadtxt(ascii_fname)
-        unique_poly = numpy.unique(data[:,:4], axis=0)
+        # this is very ugly, but since unique returns a sorted list, we want to get the index, sort that and then return
+        # from the original array. same for magnitudes below.
+        all_polys = data[:,:4]
+        sorted_idx = numpy.sort(numpy.unique(all_polys, return_index=True, axis=0)[1], kind='stable')
+        unique_poly = all_polys[sorted_idx]
         # create magnitudes bins using Mag_0, ignoring Mag_1 bc they are regular until last bin. we dont want binary search for this
-        mws = numpy.unique(data[:,-4])
+        all_mws = data[:,-4]
+        sorted_idx = numpy.sort(numpy.unique(all_mws, return_index=True)[1], kind='stable')
+        mws = all_mws[sorted_idx]
         # csep1 stores the lat lons as min values and not (x,y) tuples
         bboxes = [tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in unique_poly]
         # the spatial cells are arranged fast in latitude, so this only works for the specific csep1 file format
@@ -386,7 +392,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         n_mag_bins = len(mws)
         n_poly = region.num_nodes
         # reshape rates into correct 2d format
-        rates = data[:,-2].reshape(n_poly,n_mag_bins)
+        rates = data[:,-2].reshape(n_poly, n_mag_bins)
         # create / return class
         if name is None:
             name = os.path.basename(ascii_fname[:-4])

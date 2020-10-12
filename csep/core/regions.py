@@ -46,7 +46,6 @@ def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-ca
 
     return relm_region
 
-
 def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california"):
     """
     Returns class representing California testing region.
@@ -564,7 +563,6 @@ class Polygon:
         endlon, endlat, backaz = geod.fwd(center_lons, center_lats, azim, radius)
         # class method
         return cls(np.column_stack([endlon, endlat]))
-
 
 class CartesianGrid2D:
     """Represents a 2D cartesian gridded region.
