@@ -8,12 +8,15 @@ from csep.models import EvaluationResult
 from csep.utils.stats import poisson_joint_log_likelihood_ndarray
 
 
-def paired_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=0.05, scale=False):
+def paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0.05, scale=False):
     """ Computes the t-test for gridded earthquake forecasts.
 
+    This score is positively oriented, meaning that positive values of the information gain indicate that the
+    forecast is performing better than the benchmark forecast.
+
     Args:
-        gridded_forecast_1 (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
-        gridded_forecast_2 (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
+        forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
+        benchmark_forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
         observed_catalog (csep.core.catalogs.AbstractBaseCatalog): number of observed earthquakes, should be whole number and >= zero.
         alpha (float): tolerance level for the type-i error rate of the statistical test
         scale (bool): if true, scale forecasted rates down to a single day
@@ -24,8 +27,8 @@ def paired_t_test(gridded_forecast1, gridded_forecast2, observed_catalog, alpha=
 
     # needs some pre-processing to put the forecasts in the context that is required for the t-test. this is different
     # for cumulative forecasts (eg, multiple time-horizons) and static file-based forecasts.
-    target_event_rate_forecast1, n_fore1 = gridded_forecast1.target_event_rates(observed_catalog, scale=scale)
-    target_event_rate_forecast2, n_fore2 = gridded_forecast2.target_event_rates(observed_catalog, scale=scale)
+    target_event_rate_forecast1, n_fore1 = forecast.target_event_rates(observed_catalog, scale=scale)
+    target_event_rate_forecast2, n_fore2 = benchmark_forecast.target_event_rates(observed_catalog, scale=scale)
 
     # call the primative version operating on ndarray
     out = _t_test_ndarray(target_event_rate_forecast1, target_event_rate_forecast2, observed_catalog.event_count, n_fore1, n_fore2,
