@@ -56,8 +56,9 @@ time-horizon. An example of a gridded forecast for the RELM testing region can b
 
 The coordinates (LON, LAT, DEPTH, MAG) describe the independent space-magnitude region of the forecast. The lower
 coordinates are inclusive and the upper coordinates are exclusive. Rates are incremental within the magnitude range
-defined by [MAG_0, MAG_1). The FLAG is a legacy value from CSEP testing centers and has no current use within PyCSEP.
-This value can be set to 1 for all forecasts.
+defined by [MAG_0, MAG_1). The FLAG is a legacy value from CSEP testing centers that indicates whether a spatial cell should
+be considered by the forecast. Currently, the implementation does not allow for individual space-magnitude cells to be
+flagged. Thus, if a spatial cell is flagged then all corresponding magnitude cells are flagged.
 
 .. note::
     PyCSEP only supports regions that have a thickness of one layer. In the future, we plan to support more complex regions

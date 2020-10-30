@@ -49,6 +49,15 @@ class TestCartesian2D(unittest.TestCase):
         # this is kinda ugly, maybe we want to create this in a different way, class method?
         self.cart_grid = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(self.origins, self.dh)], self.dh)
 
+    def test_polygon_mask_all_masked(self):
+        polygons = [Polygon(bbox) for bbox in compute_vertices(self.origins, self.dh)]
+        n_poly = len(polygons)
+        # this should mask every polygon for easy checking
+        test_grid = CartesianGrid2D(polygons, self.dh, mask=numpy.zeros(n_poly))
+        self.assertEqual(n_poly, test_grid.num_nodes)
+        numpy.testing.assert_array_equal(test_grid.bbox_mask, 1)
+        numpy.testing.assert_array_equal(test_grid.poly_mask, 0)
+
     def test_object_creation(self):
         self.assertEqual(self.cart_grid.dh, self.dh, 'dh did not get initialized properly')
         self.assertEqual(self.cart_grid.num_nodes, self.num_nodes, 'num nodes is not correct')
@@ -77,19 +86,19 @@ class TestCartesian2D(unittest.TestCase):
         numpy.testing.assert_allclose(test_idx, numpy.nan, err_msg='mapping for first index (bad) not correct.')
 
     def test_domain_mask(self):
-        test_flag = self.cart_grid.mask[0,0]
+        test_flag = self.cart_grid.bbox_mask[0, 0]
         self.assertEqual(test_flag, 1)
 
-        test_flag = self.cart_grid.mask[-1,1]
+        test_flag = self.cart_grid.bbox_mask[-1, 1]
         self.assertEqual(test_flag, 0)
 
-        test_flag = self.cart_grid.mask[1, -1]
+        test_flag = self.cart_grid.bbox_mask[1, -1]
         self.assertEqual(test_flag, 0)
 
-        test_flag = self.cart_grid.mask[2,2]
+        test_flag = self.cart_grid.bbox_mask[2, 2]
         self.assertEqual(test_flag, 0)
 
-        test_flag = self.cart_grid.mask[-1, -1]
+        test_flag = self.cart_grid.bbox_mask[-1, -1]
         self.assertEqual(test_flag, 1)
 
     def test_get_index_of_outside_bbox(self):
@@ -141,11 +150,11 @@ class TestCatalogBinning(unittest.TestCase):
         lats = numpy.array([0.05, 0.15, 0.05, -0.5])
 
         test_result = _bin_catalog_spatial_counts(lons, lats,
-                                    self.cart_grid.num_nodes,
-                                    self.cart_grid.mask,
-                                    self.cart_grid.idx_map,
-                                    self.cart_grid.xs,
-                                    self.cart_grid.ys)
+                                                  self.cart_grid.num_nodes,
+                                                  self.cart_grid.bbox_mask,
+                                                  self.cart_grid.idx_map,
+                                                  self.cart_grid.xs,
+                                                  self.cart_grid.ys)
 
         # we have tested 2 inside the domain
         self.assertEqual(numpy.sum(test_result), 2)
@@ -169,11 +178,11 @@ class TestCatalogBinning(unittest.TestCase):
         lats = numpy.array([0.05, 0.15, 0.05, 0.05, -0.5])
 
         test_result = _bin_catalog_probability(lons, lats,
-                                    self.cart_grid.num_nodes,
-                                    self.cart_grid.mask,
-                                    self.cart_grid.idx_map,
-                                    self.cart_grid.xs,
-                                    self.cart_grid.ys)
+                                               self.cart_grid.num_nodes,
+                                               self.cart_grid.bbox_mask,
+                                               self.cart_grid.idx_map,
+                                               self.cart_grid.xs,
+                                               self.cart_grid.ys)
 
         # we have tested 2 inside the domain
         self.assertEqual(numpy.sum(test_result), 2)
@@ -199,12 +208,12 @@ class TestCatalogBinning(unittest.TestCase):
 
         # expected bins None, (0, 1), (9, 0), None, None
         test_result, _ = _bin_catalog_spatio_magnitude_counts(lons, lats, mags,
-                                                self.cart_grid.num_nodes,
-                                                self.cart_grid.mask,
-                                                self.cart_grid.idx_map,
-                                                self.cart_grid.xs,
-                                                self.cart_grid.ys,
-                                                self.magnitudes)
+                                                              self.cart_grid.num_nodes,
+                                                              self.cart_grid.bbox_mask,
+                                                              self.cart_grid.idx_map,
+                                                              self.cart_grid.xs,
+                                                              self.cart_grid.ys,
+                                                              self.magnitudes)
 
         # we have tested 2 inside the domain
         self.assertEqual(numpy.sum(test_result), 2)

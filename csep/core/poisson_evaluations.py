@@ -40,10 +40,10 @@ def paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0.05, sc
     result.test_distribution = (out['ig_lower'], out['ig_upper'])
     result.observed_statistic = out['information_gain']
     result.quantile = (out['t_statistic'], out['t_critical'])
-    result.sim_name = (gridded_forecast1.name, gridded_forecast2.name)
+    result.sim_name = (forecast.name, benchmark_forecast.name)
     result.obs_name = observed_catalog.name
     result.status = 'normal'
-    result.min_mw = numpy.min(gridded_forecast1.magnitudes)
+    result.min_mw = numpy.min(forecast.magnitudes)
     return result
 
 def w_test(gridded_forecast1, gridded_forecast2, observed_catalog, scale=False):
