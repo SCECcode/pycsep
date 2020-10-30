@@ -376,8 +376,11 @@ class GriddedForecast(MarkedGriddedDataSet):
         # this is very ugly, but since unique returns a sorted list, we want to get the index, sort that and then return
         # from the original array. same for magnitudes below.
         all_polys = data[:,:4]
+        all_poly_mask = data[:,-1]
         sorted_idx = numpy.sort(numpy.unique(all_polys, return_index=True, axis=0)[1], kind='stable')
         unique_poly = all_polys[sorted_idx]
+        # gives the flag for a spatial cell in the order it was presented in the file
+        poly_mask = all_poly_mask[sorted_idx]
         # create magnitudes bins using Mag_0, ignoring Mag_1 bc they are regular until last bin. we dont want binary search for this
         all_mws = data[:,-4]
         sorted_idx = numpy.sort(numpy.unique(all_mws, return_index=True)[1], kind='stable')
@@ -387,7 +390,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         # the spatial cells are arranged fast in latitude, so this only works for the specific csep1 file format
         dh = float(unique_poly[0,3] - unique_poly[0,2])
         # create CarteisanGrid of points
-        region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh)
+        region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
         # get dims of 2d np.array
         n_mag_bins = len(mws)
         n_poly = region.num_nodes

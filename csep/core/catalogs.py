@@ -659,7 +659,7 @@ class AbstractBaseCatalog(LoggingMixin):
         output = regions._bin_catalog_spatial_counts(self.get_longitudes(),
                                                      self.get_latitudes(),
                                                      self.region.num_nodes,
-                                                     self.region.mask,
+                                                     self.region.bbox_mask,
                                                      self.region.idx_map,
                                                      self.region.xs,
                                                      self.region.ys)
@@ -676,7 +676,7 @@ class AbstractBaseCatalog(LoggingMixin):
         output = regions._bin_catalog_probability(self.get_longitudes(),
                                                   self.get_latitudes(),
                                                   len(self.region.polygons),
-                                                  self.region.mask,
+                                                  self.region.bbox_mask,
                                                   self.region.idx_map,
                                                   self.region.xs,
                                                   self.region.ys)
@@ -761,7 +761,7 @@ class AbstractBaseCatalog(LoggingMixin):
                                                                            self.get_latitudes(),
                                                                            self.get_magnitudes(),
                                                                            self.region.num_nodes,
-                                                                           self.region.mask,
+                                                                           self.region.bbox_mask,
                                                                            self.region.idx_map,
                                                                            self.region.xs,
                                                                            self.region.ys,
