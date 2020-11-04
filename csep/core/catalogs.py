@@ -967,6 +967,17 @@ class CSEPCatalog(AbstractBaseCatalog):
         new_class = cls(data=event_list, catalog_id=catalog_id, **kwargs)
         return new_class
 
+    def get_csep_format(self):
+        """ Returns CSEP format for a catalog
+
+        This catalog is already in CSEP format so it will return self.
+
+        Returns:
+            self
+
+        """
+        return self
+
 
 class UCERF3Catalog(AbstractBaseCatalog):
     """
