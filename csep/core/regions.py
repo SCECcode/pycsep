@@ -370,45 +370,6 @@ def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
     """
     return list(map(lambda x: compute_vertex(x, dh, tol=tol), origin_points))
 
-def _build_bitmask_vec(polygons, dh):
-    """
-    same as build mask but using vectorized calls to bin1d
-    """
-    # build bounding box of set of polygons based on origins
-    nd_origins = numpy.array([poly.origin for poly in polygons])
-    bbox = [(numpy.min(nd_origins[:, 0]), numpy.min(nd_origins[:, 1])),
-            (numpy.max(nd_origins[:, 0]), numpy.max(nd_origins[:, 1]))]
-
-    # get midpoints for hashing
-    midpoints = numpy.array([poly.centroid() for poly in polygons])
-
-    # compute nx and ny
-    nx = numpy.rint((bbox[1][0] - bbox[0][0]) / dh)
-    ny = numpy.rint((bbox[1][1] - bbox[0][1]) / dh)
-
-    # set up grid of bounding box
-    xs = dh * numpy.arange(nx + 1) + bbox[0][0]
-    ys = dh * numpy.arange(ny + 1) + bbox[0][1]
-
-    # set up mask array, 1 is index 0 is mask
-    a = numpy.ones([len(ys), len(xs), 2])
-
-    # set all indices to nan
-    a[:,:,1] = numpy.nan
-
-    # bin1d returns the index of polygon within the cartesian grid
-    idx = bin1d_vec(midpoints[:, 0], xs)
-    idy = bin1d_vec(midpoints[:, 1], ys)
-
-    for i in range(len(polygons)):
-        # store index of polygon in dim=1
-        a[idy[i], idx[i], 1] = int(i)
-        # build mask in dim=0; here we masked values are 1
-        if idx[i] >= 0 and idy[i] >= 0:
-            a[idy[i], idx[i], 0] = 0
-
-    return a, xs, ys
-
 def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins):
     """
     Returns a list of event counts as ndarray with shape (n_poly, n_cat) where each value
@@ -573,13 +534,14 @@ class CartesianGrid2D:
     Custom regions can be easily created by using the from_polygon classmethod. This function will accept an arbitrary closed
     polygon and return a CartesianGrid class with only points inside the polygon to be valid.
     """
-    def __init__(self, polygons, dh, name='cartesian2d'):
+    def __init__(self, polygons, dh, name='cartesian2d', mask=None):
         self.polygons = polygons
+        self.poly_mask = mask
         self.dh = dh
         self.name = name
-        a, xs, ys = _build_bitmask_vec(self.polygons, dh)
+        a, xs, ys = self._build_bitmask_vec()
         # in mask, True = bad value and False = good value
-        self.mask = a[:,:,0]
+        self.bbox_mask = a[:, :, 0]
         # contains the mapping from polygon_index to the mask
         self.idx_map = a[:,:,1]
         # index values of polygons array into the 2d cartesian grid, based on the midpoint.
@@ -605,7 +567,7 @@ class CartesianGrid2D:
         idy = bin1d_vec(numpy.array(lats), self.ys)
         if numpy.any(idx == -1) or numpy.any(idy == -1):
             raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
-        if numpy.any(self.mask[idy,idx] == 1):
+        if numpy.any(self.bbox_mask[idy, idx] == 1):
             raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
         return self.idx_map[idy,idx].astype(numpy.int)
 
@@ -641,7 +603,7 @@ class CartesianGrid2D:
         idy = bin1d_vec(lats, self.ys)
         # handles the case where values are outside of the region
         bad_idx = numpy.where((idx == -1) | (idy == -1))
-        mask = self.mask[idy, idx].astype(bool)
+        mask = self.bbox_mask[idy, idx].astype(bool)
         # manually set values outside region
         mask[bad_idx] = True
         return mask
@@ -653,12 +615,12 @@ class CartesianGrid2D:
             data:
         """
         assert len(data) == len(self.polygons)
-        results = numpy.zeros(self.mask.shape[:2])
+        results = numpy.zeros(self.bbox_mask.shape[:2])
         ny = len(self.ys)
         nx = len(self.xs)
         for i in range(ny):
             for j in range(nx):
-                if self.mask[i, j] == 0:
+                if self.bbox_mask[i, j] == 0:
                     idx = int(self.idx_map[i, j])
                     results[i, j] = data[idx]
                 else:
@@ -720,4 +682,48 @@ class CartesianGrid2D:
         if magnitudes is not None:
             region.magnitudes = magnitudes
         return region
+
+    def _build_bitmask_vec(self):
+        """
+        same as build mask but using vectorized calls to bin1d
+        """
+        # build bounding box of set of polygons based on origins
+        nd_origins = numpy.array([poly.origin for poly in self.polygons])
+        bbox = [(numpy.min(nd_origins[:, 0]), numpy.min(nd_origins[:, 1])),
+                (numpy.max(nd_origins[:, 0]), numpy.max(nd_origins[:, 1]))]
+
+        # get midpoints for hashing
+        midpoints = numpy.array([poly.centroid() for poly in self.polygons])
+
+        # compute nx and ny
+        nx = numpy.rint((bbox[1][0] - bbox[0][0]) / self.dh)
+        ny = numpy.rint((bbox[1][1] - bbox[0][1]) / self.dh)
+
+        # set up grid of bounding box
+        xs = self.dh * numpy.arange(nx + 1) + bbox[0][0]
+        ys = self.dh * numpy.arange(ny + 1) + bbox[0][1]
+
+        # set up mask array, 1 is index 0 is mask
+        a = numpy.ones([len(ys), len(xs), 2])
+
+        # set all indices to nan
+        a[:, :, 1] = numpy.nan
+
+        # bin1d returns the index of polygon within the cartesian grid
+        idx = bin1d_vec(midpoints[:, 0], xs)
+        idy = bin1d_vec(midpoints[:, 1], ys)
+
+        for i in range(len(self.polygons)):
+            a[idy[i], idx[i], 1] = int(i)
+            # build mask in dim=0; here masked values are 1. see note below.
+            if idx[i] >= 0 and idy[i] >= 0:
+                if self.poly_mask is not None:
+                    # note: csep1 gridded forecast file format convention states that a "1" indicates a valid cell, which is the opposite
+                    # of the masking criterion
+                    if self.poly_mask[i] == 1:
+                        a[idy[i], idx[i], 0] = 0
+                else:
+                    a[idy[i], idx[i], 0] = 0
+
+        return a, xs, ys
 

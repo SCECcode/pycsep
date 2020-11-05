@@ -733,7 +733,7 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args=None)
                         xy=xy,
                         fontsize=14)
 
-    title = plot_args.get('title', 'CSEP2 Magnitude Test')
+    title = plot_args.get('title', 'Magnitude Test')
     ax.set_title(title, fontsize=14)
 
     if filename is not None:
@@ -863,7 +863,7 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None
                         fontsize=14)
 
 
-    title = plot_args.get('title', 'Pseudolikelihood Test')
+    title = plot_args.get('title', 'Likelihood Test')
     ax.set_title(title, fontsize=14)
 
     if filename is not None:
@@ -901,7 +901,7 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
                        'xlabel': 'Normalized pseudo likelihood',
                        'ylabel': 'Number of catalogs'}
     plot_args.update(fixed_plot_args)
-    title = plot_args.get('title', 'CSEP2 Spatial Test')
+    title = plot_args.get('title', 'Spatial Test')
     percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
