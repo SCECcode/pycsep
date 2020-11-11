@@ -576,6 +576,9 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args=None):
     cmap = plot_args.get('cmap', None)
 
     fig = pyplot.figure(figsize=figsize)
+
+    # use different projection for global and regional forecasts
+    # determine this from the extent of the grid
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
 
     lons, lats = numpy.meshgrid(region.xs, region.ys)

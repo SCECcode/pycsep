@@ -501,13 +501,13 @@ class AbstractBaseCatalog(LoggingMixin):
         if isinstance(statements, str):
             name = statements.split(' ')[0]
             if name == 'datetime':
-                name, oper, date, time = statements.split(' ')
+                _, oper, date, time = statements.split(' ')
+                name = 'origin_time'
                 # can be a datetime.datetime object or datetime string, if we want to support filtering on meta data it
                 # can happen here. but need to determine what to do if entry are not present bc meta data does not
                 # need to be square
                 value = strptime_to_utc_epoch(' '.join([date, time]))
-                idx = numpy.where(operators[oper](self.get_epoch_times(), value))
-                filtered = self.catalog[idx]
+                filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
             else:
                 name, oper, value = statements.split(' ')
                 filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
@@ -515,16 +515,16 @@ class AbstractBaseCatalog(LoggingMixin):
             # slower but at the convenience of not having to call multiple times
             filters = list(statements)
             filtered = numpy.copy(self.catalog)
+            idx = numpy.ones(self.event_count, dtype=numpy.bool)
             for filt in filters:
                 name = filt.split(' ')[0]
+                # create indexing array, start with all events
                 if name == 'datetime':
-                    name, oper, date, time = filt.split(' ')
-                    # can be a datetime.datetime object or datetime string, if we want to support filtering on meta data it
-                    # can happen here. but need to determine what to do if entry are not present bc meta data does not
-                    # need to be square
+                    _, oper, date, time = filt.split(' ')
+                    # we map the requested datetime to an epoch time so we act like the user requested origin_time
+                    name = 'origin_time'
                     value = strptime_to_utc_epoch(' '.join([date, time]))
-                    idx = numpy.where(operators[oper](self.get_epoch_times(), value))
-                    filtered = self.catalog[idx]
+                    filtered = filtered[operators[oper](filtered[name], float(value))]
                 else:
                     name, oper, value = filt.split(' ')
                     filtered = filtered[operators[oper](filtered[name], float(value))]
@@ -539,7 +539,7 @@ class AbstractBaseCatalog(LoggingMixin):
             # make and return new object
             cls = self.__class__
             inst = cls(data=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name,
-                       region=self.region)
+                       region=self.region, filters=statements)
             return inst
 
     def filter_spatial(self, region=None, update_stats=False):
