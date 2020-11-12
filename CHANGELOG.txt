@@ -1,3 +1,7 @@
+v0.2.x
+  Unreleased 
+    - Fixed issue in plot_poisson_consistency_test where one_sided_lower argument not coloring markers correctly
+
 v0.2 11/11/2020
   Added new catalog formats, support for masked forecast bins, and bug fixes, where applicable PR id are shown in parenthesis.
 
