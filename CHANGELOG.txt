@@ -1,1 +1,30 @@
+v0.2.x
+  Unreleased 
+    - Fixed issue in plot_poisson_consistency_test where one_sided_lower argument not coloring markers correctly
+
+v0.2 11/11/2020
+  Added new catalog formats, support for masked forecast bins, and bug fixes, where applicable PR id are shown in parenthesis.
+
+    - Fixed bug where filtering by catalog by lists did not remove all desired events (#37)
+    - Included fast reader for Horus catalog (#39)
+    - Modified INGV emrcmt reader (#40)
+    - Fixed ndk reader and added unit tests (#44)
+    - Fixed issue where magnitues were not correctly bound to gridded-forecast class (#46)
+    - Fixed issue where forecasts did not work if lat/lon were not sorted (#47)
+    - Fixed minor bug where catalog class did not implement inherited method (#52)
+    - Gridded forecasts now parse flag from the ASCII file (#50)
+    - Fixed issue where catalog did not filter properly using datetimes (#55)
+    
+
+
+v0.1 10/08/2020
+    Initial release to PyPI and conda-forge
+
+    - Poisson evaluations for gridded forecasts
+    - Likelihood-free evaluations for catalog-based forecasts
+    - Catalog gridding and filtering
+    - Plotting utilities
+    - Forecast input and output
+    - Documentation at docs.cseptesting.org
+
 v0.1-dev, 08/16/2018 -- Initial release.

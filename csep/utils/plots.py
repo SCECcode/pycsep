@@ -576,6 +576,9 @@ def plot_spatial_dataset(gridded, region, show=False, plot_args=None):
     cmap = plot_args.get('cmap', None)
 
     fig = pyplot.figure(figsize=figsize)
+
+    # use different projection for global and regional forecasts
+    # determine this from the extent of the grid
     ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
 
     lons, lats = numpy.meshgrid(region.xs, region.ys)
@@ -941,7 +944,7 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
 
     return ax
 
-def _get_marker_style(obs_stat, p, one_sided_lower=True):
+def _get_marker_style(obs_stat, p, one_sided_lower):
     """Returns matplotlib marker style as fmt string"""
     if obs_stat < p[0] or obs_stat > p[1]:
         # red circle
@@ -1036,7 +1039,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
 
         low = observed_statistic - plow
         high = phigh - observed_statistic
-        ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(observed_statistic, (plow, phigh)), capsize=4,
+        ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower), capsize=4,
                     ecolor='black')
         # determine the limits to use
         xlims.append((plow, phigh, observed_statistic))

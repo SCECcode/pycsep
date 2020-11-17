@@ -27,7 +27,7 @@ class CatalogFiltering(unittest.TestCase):
         test_cat = copy.deepcopy(self.test_cat1)
         test_cat.filter(filters)
         # Filter together
-        numpy.array_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
+        numpy.testing.assert_array_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
 
     def test_filter_separately(self):
         # Filter together
@@ -39,14 +39,31 @@ class CatalogFiltering(unittest.TestCase):
         for i in filters:
             test_cat.filter(i)
 
-        numpy.array_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
+        numpy.testing.assert_array_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
 
-    def test_filter_with_datetime(self):
+    def test_filter_with_datetime_list(self):
         start_dt = strptime_to_utc_datetime('2009-07-01 00:00:00.0')
         end_dt = strptime_to_utc_datetime('2010-07-01 00:00:00.0')
         filters = [f'datetime >= {start_dt}', f'datetime < {end_dt}']  # should return only event 2
         test_cat = copy.deepcopy(self.test_cat1)
         test_cat.filter(filters)
-        numpy.array_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
+        numpy.testing.assert_array_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
+
+    def test_filter_with_datetime_in_place_list(self):
+        start_dt = strptime_to_utc_datetime('2009-07-01 00:00:00.0')
+        end_dt = strptime_to_utc_datetime('2010-07-01 00:00:00.0')
+        filters = [f'datetime > {start_dt}', f'datetime < {end_dt}']  # should return only event 2
+        test_cat = copy.deepcopy(self.test_cat1)
+        test_cat = test_cat.filter(filters, in_place=False)
+        numpy.testing.assert_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
+
+    def test_filter_with_datetime(self):
+        end_dt = strptime_to_utc_datetime('2010-07-01 00:00:00.0')
+        filters = f'datetime < {end_dt}'  # should return only event 1 and 2
+        test_cat = copy.deepcopy(self.test_cat1)
+        filtered_test_cat = test_cat.filter(filters, in_place=False)
+        numpy.testing.assert_equal(numpy.array([b'1', b'2'], dtype='S256').T, filtered_test_cat.get_event_ids())
+
+
 if __name__ == '__main__':
     unittest.main()
