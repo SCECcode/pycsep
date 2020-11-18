@@ -104,7 +104,7 @@ class EvaluationResult:
         Returns:
 
         """
-        new = cls(test_distribution=numpy.array(adict['test_distribution']),
+        new = cls(test_distribution=(adict['test_distribution']),
             name=adict['name'],
             observed_statistic=adict['observed_statistic'],
             quantile=adict['quantile'],
