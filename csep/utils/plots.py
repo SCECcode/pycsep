@@ -4,6 +4,7 @@ import time
 import numpy
 import scipy.stats
 import matplotlib
+import warnings
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as pyplot
@@ -988,32 +989,51 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
     Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
           comparable on the same figure.
 
-    Description of plotting arguments:
-        xlabel (str): the label for the x-axis of the plot
-
-        title (str): title of the plot
-
     Args:
         results: list storing test results  csep.core.evaluations.EvaluationResult (see note above)
         plot_args: optional argument containing a dictionary of plotting arguments
         one_sided_lower (bool): select this if the plot should be for a one sided test
-        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful for plotting simulation based simulation tests.
+        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful
+                          for plotting simulation based simulation tests.
 
-
+    Description of optional plotting arguments:
+        figsize (list/tuple): Size of the figure object. (default: [6.4, 4.8])
+        title (str): Title of the plot. (default: name of the first evaluation_result type)
+        title_fontsize (float): Fontsize of the plot title (default: 10)
+        xlabel (str): the label for the x-axis of the plot. (default: 'X')
+        xlabel_fontsize (float): Size of the x-axis label text (default: 10)
+        xticks_fontsize (float): Size of the x-axis ticks text (default: 10)
+        ylabel_fontsize (float): Size of the y-axis models' names (default: 10)
+        errorbar_color (str): Color of the errobar. If None, sets it to red/green according to _get_marker_style()
+        errorbar_lw (float): Linewidth of the errorbar (default: 1.5)
+        errorbar_capsize (float): Size of the errorbar caps (default: 4)
+        hbars (bool):  Flag to draw horizontal bars for each model (default: False)
+        tight_layout (bool): Set matplotlib.figure.tight_layout to remove excess blank space in the plot (default: True)
     """
-    # this fails if results is not iterable
+
+
     try:
         results = list(eval_results)
     except TypeError:
         results = [eval_results]
 
-    fig, ax = pyplot.subplots()
-    # parse plot arguments, more can be added here
+    # Parse plot arguments. More can be added here
     if plot_args is None:
         plot_args = {}
-
+    figsize= plot_args.get('figsize', None)
     title = plot_args.get('title', results[0].name)
+    title_fontsize = plot_args.get('title_fontsize', None)
     xlabel = plot_args.get('xlabel', 'X')
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
+    xticks_fontsize = plot_args.get('xticks_fontsize', None)
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
+    errorbar_color = plot_args.get('errorbar_color', 'black')
+    errorbar_lw = plot_args.get('errorbar_lw', None)
+    errorbar_capsize = plot_args.get('errorbar_capsize', 4)
+    hbars = plot_args.get('hbars', True)
+    tight_layout = plot_args.get('tight_layout', True)
+
+    fig, ax = pyplot.subplots(figsize=figsize)
     xlims = []
     for index, res in enumerate(results):
         # handle analytical distributions first, they are all in the form ['name', parameters].
@@ -1021,7 +1041,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
             plow = scipy.stats.poisson.ppf(0.025, res.test_distribution[1])
             phigh = scipy.stats.poisson.ppf(0.975, res.test_distribution[1])
             observed_statistic = res.observed_statistic
-            # emprical distributions
+        # empirical distributions
         else:
             if normalize:
                 test_distribution = numpy.array(res.test_distribution) - res.observed_statistic
@@ -1037,26 +1057,46 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
                 plow = numpy.percentile(test_distribution, 2.5)
                 phigh = numpy.percentile(test_distribution, 97.5)
 
-        low = observed_statistic - plow
-        high = phigh - observed_statistic
-        ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower), capsize=4,
-                    ecolor='black')
-        # determine the limits to use
-        xlims.append((plow, phigh, observed_statistic))
-        # we want to only extent the distribution where it falls outside of it in the acceptable tail
-        if one_sided_lower:
-            if observed_statistic >= plow and phigh < observed_statistic:
-                # draw dashed line to infinity
-                xt = numpy.linspace(phigh, 99999, 100)
-                yt = numpy.ones(100) * index
-                ax.plot(xt, yt, '--k')
-    ax.set_xlim(*_get_axis_limits(xlims))
-    ax.set_yticklabels([res.sim_name for res in results])
+        if not numpy.isinf(observed_statistic): # Check if test result does not diverges
+            low = observed_statistic - plow
+            high = phigh - observed_statistic
+            ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T,
+                        fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower), #todo Should 'one_sided_lower' receive as arg two_sided if requested?
+                        capsize=errorbar_capsize, linewidth=errorbar_lw, ecolor=errorbar_color)
+            # determine the limits to use
+            xlims.append((plow, phigh, observed_statistic))
+            # we want to only extent the distribution where it falls outside of it in the acceptable tail
+            if one_sided_lower:
+                if observed_statistic >= plow and phigh < observed_statistic:
+                    # draw dashed line to infinity
+                    xt = numpy.linspace(phigh, 99999, 100)
+                    yt = numpy.ones(100) * index
+                    ax.plot(xt, yt, '--k')
+
+        else:
+            print('Observed statistic diverges for forecast %s, index %i.'
+                  ' Check for zero-valued bins within the forecast'% (res.sim_name, index))
+            ax.barh(index, 99999, left=-10000, height=1, color=['red'], alpha=0.5)
+
+
+    try:
+        ax.set_xlim(*_get_axis_limits(xlims))
+    except ValueError:
+        raise ValueError('All EvaluationResults have infinite observed_statistics')
     ax.set_yticks(numpy.arange(len(results)))
-    ax.set_title(title)
-    ax.set_xlabel(xlabel)
-    ax.figure.tight_layout()
-    fig.tight_layout()
+    ax.set_yticklabels([res.sim_name for res in results], fontsize=ylabel_fontsize)
+    ax.set_ylim([-0.5, len(results)-0.5])
+    if hbars:
+        yTickPos = ax.get_yticks()
+        if len(yTickPos) >= 2:
+            ax.barh(yTickPos, numpy.array([99999] * len(yTickPos)), left=-10000,
+                    height=(yTickPos[1] - yTickPos[0]), color=['w', 'gray'], alpha=0.2, zorder=0)
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.tick_params(axis='x', labelsize=xticks_fontsize)
+    if tight_layout:
+        ax.figure.tight_layout()
+        fig.tight_layout()
     return ax
 
 def _get_axis_limits(pnts, border=0.05):
