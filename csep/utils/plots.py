@@ -4,7 +4,6 @@ import time
 import numpy
 import scipy.stats
 import matplotlib
-import warnings
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as pyplot
