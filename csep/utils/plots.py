@@ -10,7 +10,7 @@ import matplotlib.pyplot as pyplot
 import cartopy
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-
+from cartopy.io import img_tiles
 # PyCSEP imports
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.calc import bin1d_vec
@@ -553,64 +553,135 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
     if show:
         pyplot.show()
 
-def plot_spatial_dataset(gridded, region, show=False, plot_args=None):
+def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=False, plot_args=None):
     """ Plot spatial dataset such as gridded forecast
 
     Args:
         gridded: 2d numpy array with vals according to region,
         region: CartesianGrid2D class
+        show: bool, flag if the figure is displayed
+        extent: list. default - forecast.region.get_bbox() + dh
+        set_global: bool. Display the complete glob as basemap
         plot_args: arguments to various matplotlib functions.
-
+                   - figsize (tuple):  default - [6.4, 4.8]
+                   - title (str):  default - None
+                   - title_size (int): default - 10
+                   - filename (str): default - None
+                   - projection (cartopy.crs.Projection): default - cartopy.crs.PlateCarree()
+                   - grid (bool): default True
+                   - grid_labels (bool): default True
+                   - basemap (str): ('stock_img 'stamen_terrain', 'stamen_terrain-background', 'google-satellite', 'ESRI_terrain',
+                                    'ESRI_imagery', 'ESRI_relief', 'ESRI_topo', 'ESRI_terrain'). default - None
+                   - coastline (bool): Flag to plot coastline. default - True,
+                   - borders (bool): Flag to plot country borders. default - False,
+                   - linewidth (float): line width of borders and coast lines. default - 1.5,
+                   - linecolor (str): color of borders and coast lines. default - 'black',
+                   - cmap (str/pyplot.colors.Colormap):  default - 'viridis'
+                   - clabel (str): default - None
+                   - clim (list): default - None
+                   - alpha (float):  default - 1
+                   - alpha_exp (float/func): Exponent for the alpha func (recommended between 0.4 and 0.8). default - none
     Returns:
+        ax object
 
     """
+    # Get spatial information for plotting
+    bbox = region.get_bbox()
+    if extent is None:
+        extent = [bbox[0], bbox[1], bbox[2] + region.dh, bbox[3] + region.dh]
+
+    # Retrieve plot arguments
     plot_args = plot_args or {}
-    # get spatial information for plotting
-    extent = region.get_bbox()
-    # plot using cartopy
+    # figure and axes properties
     figsize = plot_args.get('figsize', None)
     title = plot_args.get('title', 'Spatial Dataset')
-    clim = plot_args.get('clim', None)
-    clabel = plot_args.get('clabel', '')
+    title_size = plot_args.get('title_size', None)
     filename = plot_args.get('filename', None)
+    # cartopy properties
+    projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
+    grid = plot_args.get('grid', True)
+    grid_labels = plot_args.get('grid_labels', False)
+    basemap = plot_args.get('basemap', None)
+    coastline = plot_args.get('coastline', True)
+    borders = plot_args.get('borders', False)
+    linewidth = plot_args.get('linewidth', True)
+    linecolor = plot_args.get('linecolor', 'black')
+    # color bar properties
     cmap = plot_args.get('cmap', None)
+    clabel = plot_args.get('clabel', '')
+    clim = plot_args.get('clim', None)
+    alpha = plot_args.get('alpha', 1)
+    alpha_exp = plot_args.get('alpha_exp', 0)
 
+
+    # Instantiage GeoAxes object
     fig = pyplot.figure(figsize=figsize)
+    ax = fig.add_subplot(111, projection=projection)
+    if set_global:
+        ax.set_global()
+    else:
+        ax.set_extent(extent, crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
 
-    # use different projection for global and regional forecasts
-    # determine this from the extent of the grid
-    ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
-
-    lons, lats = numpy.meshgrid(region.xs, region.ys)
-    im = ax.pcolormesh(lons, lats, gridded, cmap=cmap)
-    ax.set_extent(extent)
+    # Basemap plotting
     try:
-        ax.coastlines(color='black', resolution='110m', linewidth=1)
-        ax.add_feature(cartopy.feature.STATES)
+        # Set adaptive scaling
+        line_autoscaler = cartopy.feature.AdaptiveScaler('110m', (('50m', 50), ('10m', 5)))
+        tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
+        tiles = None
+        # Set tile depth
+        tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(extent)
+        if coastline:
+            ax.coastlines(color=linecolor, linewidth=linewidth)
+        if borders:
+            borders =  cartopy.feature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land',
+                                                           line_autoscaler, edgecolor=linecolor, facecolor='never')
+            ax.add_feature(borders, linewidth=linewidth)
+        if basemap == 'stock_img':
+            ax.stock_img()
+        elif basemap is not None:
+            tiles = _get_basemap(basemap)
+        if tiles:
+            ax.add_image(tiles, tile_depth)
     except:
-        print("Unable to plot coastlines or state boundaries. This might be due to no internet access, try pre-downloading the files.")
+        print("Unable to plot basemap. This might be due to no internet access, try pre-downloading the files.")
+
+    ## Define colormap and transparency function
+    if isinstance(cmap, str) or not cmap:
+        cmap = pyplot.get_cmap(cmap)
+    cmap_tup = cmap(numpy.arange(cmap.N))
+    if isinstance(alpha_exp, (float,int)):
+        cmap_tup[:, -1] = numpy.linspace(0, 1, cmap.N) ** alpha_exp
+        alpha = None
+    cmap = matplotlib.colors.ListedColormap(cmap_tup)
+
+    ## Plot spatial dataset
+    lons, lats = numpy.meshgrid(numpy.append(region.xs, region.xs[-1] + region.dh),
+                                numpy.append(region.ys, region.ys[-1] + region.dh))
+
+    im = ax.pcolor(lons, lats, gridded, cmap=cmap, alpha=alpha, snap=True, transform=ccrs.PlateCarree())
     im.set_clim(clim)
-    # colorbar options
+
+    # Colorbar options
     # create an axes on the right side of ax. The width of cax will be 5%
     # of ax and the padding between cax and ax will be fixed at 0.05 inch.
     cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height])
-    cbar = fig.colorbar(im, cax=cax)
+    cbar = fig.colorbar(im, ax=ax, cax=cax)
     cbar.set_label(clabel)
-    # gridlines options
-    gl = ax.gridlines(draw_labels=True, alpha=0.5)
-    gl.xlines = False
-    gl.ylines = False
-    gl.ylabels_right = False
-    gl.xformatter = LONGITUDE_FORMATTER
-    gl.yformatter = LATITUDE_FORMATTER
-    ax.set_title(title, y=1.06)
-    # this is a cartopy.GeoAxes
+
+    # Gridline options
+    if grid:
+        gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
+        gl.right_labels = False
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+    ax.set_title(title, y=1.02)
+
     if filename is not None:
         fig.savefig(filename + '.pdf')
         fig.savefig(filename + '.png', dpi=300)
-
     if show:
         pyplot.show()
+
     return ax
 
 def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
@@ -1104,6 +1175,35 @@ def _get_axis_limits(pnts, border=0.05):
     x_max = numpy.max(pnts)
     xd = (x_max - x_min)*border
     return (x_min-xd, x_max+xd)
+
+def _get_basemap(basemap):
+
+    if basemap == 'stamen_terrain':
+        tiles = img_tiles.Stamen('terrain')
+    elif basemap == 'stamen_terrain-background':
+        tiles = img_tiles.Stamen('terrain-background')
+    elif basemap == 'google-satellite':
+        tiles = img_tiles.GoogleTiles(style='satellite')
+    elif basemap == 'ESRI_terrain':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/' \
+                 'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    elif basemap == 'ESRI_imagery':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/' \
+                 'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    elif basemap == 'ESRI_relief':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/' \
+                 'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    elif basemap == 'ESRI_topo':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/' \
+                 'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    else:
+        raise ValueError('Basemap type not valid or not implemented')
+
+    return tiles
 
 def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=False):
     # set up QQ plots and KS test
