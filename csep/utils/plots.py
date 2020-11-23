@@ -580,7 +580,7 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
                    - clabel (str): default - None
                    - clim (list): default - None
                    - alpha (float):  default - 1
-                   - alpha_exp (float/func): Exponent for the alpha func (recommended between 0.4 and 0.8). default - none
+                   - alpha_exp (float/func): Exponent for the alpha func (recommended between 0.4 and 1). default - 0
     Returns:
         ax object
 
