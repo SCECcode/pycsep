@@ -430,10 +430,10 @@ class GriddedForecast(MarkedGriddedDataSet):
             plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
             with numpy.errstate(divide='ignore'):
                 ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, show=show,
-                                          extent=None, set_global=set_global, plot_args=plot_args)
+                                          extent=extent, set_global=set_global, plot_args=plot_args)
         else:
             plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
-            ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, show=show, extent=None,
+            ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, show=show, extent=extent,
                                       set_global=set_global, plot_args=plot_args)
         return ax
 

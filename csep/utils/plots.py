@@ -674,7 +674,7 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
         gl.right_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
-    ax.set_title(title, y=1.02)
+    ax.set_title(title, y=1.06)
 
     if filename is not None:
         fig.savefig(filename + '.pdf')
