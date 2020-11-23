@@ -620,8 +620,7 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
         ax = fig.add_subplot(111, projection=projection)
         ax.set_global()
     else:
-        ax = fig.add_subplot(111, projection=projection, extent=extent)
-        ax.set_extent(extent, crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
+        ax = fig.add_subplot(111, projection=projection, extent=extent) # Defined extent always in lat/lon
 
     # Basemap plotting
     try:
