@@ -1,13 +1,11 @@
 import numpy
 import matplotlib.pyplot
-import unittest
-from unittest import TestCase
 from unittest import mock
 import unittest
 import random
 import string
 from csep.utils import plots
-from csep.core.regions import CartesianGrid2D
+import pytest
 
 def random_region(n):
 
@@ -89,6 +87,8 @@ class TestPoissonPlots(unittest.TestCase):
                         [i.sim_name for i in Stests])
         self.assertEqual(matplotlib.pyplot.gca().get_title(), Stests[0].name)
 
+class TestSpatialPlot(unittest.TestCase):
+
     def test_SpatialDataset(self, show=False):
         # Get random region between x in [-180,180] and y in [-90, 90]
         xs, ys, dh, bbox = random_region(numpy.random.randint(10,50))
@@ -117,3 +117,4 @@ class TestPoissonPlots(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+    # pytest.main()
