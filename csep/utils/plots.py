@@ -562,7 +562,8 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
         show: bool, flag if the figure is displayed
         extent: list. default - forecast.region.get_bbox() + dh
         set_global: bool. Display the complete glob as basemap
-        plot_args: arguments to various matplotlib functions.
+        plot_args: matplotlib and cartopy arguments.
+
                    - figsize (tuple):  default - [6.4, 4.8]
                    - title (str):  default - None
                    - title_size (int): default - 10
@@ -1131,7 +1132,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
             low = observed_statistic - plow
             high = phigh - observed_statistic
             ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T,
-                        fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower), #todo Should 'one_sided_lower' receive as arg two_sided if requested?
+                        fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower),
                         capsize=errorbar_capsize, linewidth=errorbar_lw, ecolor=errorbar_color)
             # determine the limits to use
             xlims.append((plow, phigh, observed_statistic))
