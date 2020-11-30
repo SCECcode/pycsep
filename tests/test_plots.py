@@ -39,6 +39,7 @@ class TestPoissonPlots(unittest.TestCase):
             Ntests.append(Ntest_result)
         matplotlib.pyplot.close()
         ax = plots.plot_poisson_consistency_test(Ntests)
+        Ntests.reverse()
 
         self.assertEqual(matplotlib.pyplot.gca().collections, ax.collections)
         self.assertEqual([i.get_text() for i in matplotlib.pyplot.gca().get_yticklabels()],
@@ -62,10 +63,11 @@ class TestPoissonPlots(unittest.TestCase):
             Stests.append(Stest_result)
         matplotlib.pyplot.close()
         ax = plots.plot_poisson_consistency_test(Stests)
+        Stests.reverse()
 
         self.assertEqual(matplotlib.pyplot.gca().collections, ax.collections)
         self.assertEqual([i.get_text() for i in matplotlib.pyplot.gca().get_yticklabels()],
-                        [i.sim_name for i in Stests.reverse()])
+                        [i.sim_name for i in Stests])
         self.assertEqual(matplotlib.pyplot.gca().get_title(), Stests[0].name)
 
 
