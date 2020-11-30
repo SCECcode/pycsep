@@ -65,7 +65,7 @@ class TestPoissonPlots(unittest.TestCase):
 
         self.assertEqual(matplotlib.pyplot.gca().collections, ax.collections)
         self.assertEqual([i.get_text() for i in matplotlib.pyplot.gca().get_yticklabels()],
-                        [i.sim_name for i in Stests])
+                        [i.sim_name for i in Stests.reverse()])
         self.assertEqual(matplotlib.pyplot.gca().get_title(), Stests[0].name)
 
 
