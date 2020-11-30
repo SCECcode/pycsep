@@ -554,36 +554,37 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
         pyplot.show()
 
 def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=False, plot_args=None):
-    """ Plot spatial dataset such as gridded forecast
+    """ Plot spatial dataset such as data from a gridded forecast
 
     Args:
-        gridded: 2d numpy array with vals according to region,
-        region: CartesianGrid2D class
-        show: bool, flag if the figure is displayed
-        extent: list. default - forecast.region.get_bbox() + dh
-        set_global: bool. Display the complete glob as basemap
-        plot_args: matplotlib and cartopy arguments.
+        gridded (2D :class:`numpy.array`): Values according to `region`,
+        region (:class:`CartesianGrid2D`): Region in which gridded values are contained
+        show (bool): Flag if the figure is displayed
+        extent (list):  default :func:`forecast.region.get_bbox()`
+        set_global (bool): Display the complete globe as basemap
+        plot_args (dict): matplotlib and cartopy plot arguments. Dict keys are str, whose values can be:
 
-                   - figsize (tuple):  default - [6.4, 4.8]
-                   - title (str):  default - None
-                   - title_size (int): default - 10
-                   - filename (str): default - None
-                   - projection (cartopy.crs.Projection): default - cartopy.crs.PlateCarree()
-                   - grid (bool): default True
-                   - grid_labels (bool): default True
-                   - basemap (str): ('stock_img 'stamen_terrain', 'stamen_terrain-background', 'google-satellite', 'ESRI_terrain',
-                                    'ESRI_imagery', 'ESRI_relief', 'ESRI_topo', 'ESRI_terrain'). default - None
-                   - coastline (bool): Flag to plot coastline. default - True,
-                   - borders (bool): Flag to plot country borders. default - False,
-                   - linewidth (float): line width of borders and coast lines. default - 1.5,
-                   - linecolor (str): color of borders and coast lines. default - 'black',
-                   - cmap (str/pyplot.colors.Colormap):  default - 'viridis'
-                   - clabel (str): default - None
-                   - clim (list): default - None
-                   - alpha (float):  default - 1
-                   - alpha_exp (float/func): Exponent for the alpha func (recommended between 0.4 and 1). default - 0
+    Optional plot arguments:
+       - :figsize: :class:`tuple`/:class:`list` - default [6.4, 4.8]
+       - :title: :class:`str` - default None
+       - :title_size: :class:`int` - default 10
+       - :filename: :class:`str` - default None
+       - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`
+       - :grid: :class:`bool` - default True
+       - :grid_labels: :class:`bool` - default True
+       - :basemap:  :class:`str`/:class:`None` -Possible :class:`str` values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain. Default is None
+       - :coastline: :class:`bool` - Flag to plot coastline. default True,
+       - :borders: :class:`str`bool - Flag to plot country borders. default False,
+       - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
+       - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
+       - :cmap: :class:`str`/:class:`pyplot.colors.Colormap` -  default 'viridis'
+       - :clabel: :class:`str` - default None
+       - :clim: :class:`list` - default None
+       - :alpha: :class:`float` - default 1
+       - :alpha_exp: :class:`float` - Exponent for the alpha func (recommended between 0.4 and 1). default 0
+
     Returns:
-        ax object
+        :ax :class:`matplotlib.pyplot.ax` object
 
     """
     # Get spatial information for plotting
@@ -1055,31 +1056,34 @@ def plot_comparison_test(results, plot_args=None):
     return ax
 
 def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, plot_args=None):
-    """ Plots results from CSEP1 Number test following the CSEP1 convention.
+    """ Plots results from CSEP1 tests following the CSEP1 convention.
 
     Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
           comparable on the same figure.
 
     Args:
-        results: list storing test results  csep.core.evaluations.EvaluationResult (see note above)
-        plot_args: optional argument containing a dictionary of plotting arguments
-        one_sided_lower (bool): select this if the plot should be for a one sided test
+        results (list): Contains the tests results :class:`csep.core.evaluations.EvaluationResult` (see note above)
         normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful
                           for plotting simulation based simulation tests.
+        one_sided_lower (bool): select this if the plot should be for a one sided test
+        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
 
-    Description of optional plotting arguments:
-        figsize (list/tuple): Size of the figure object. (default: [6.4, 4.8])
-        title (str): Title of the plot. (default: name of the first evaluation_result type)
-        title_fontsize (float): Fontsize of the plot title (default: 10)
-        xlabel (str): the label for the x-axis of the plot. (default: 'X')
-        xlabel_fontsize (float): Size of the x-axis label text (default: 10)
-        xticks_fontsize (float): Size of the x-axis ticks text (default: 10)
-        ylabel_fontsize (float): Size of the y-axis models' names (default: 10)
-        errorbar_color (str): Color of the errobar. If None, sets it to red/green according to _get_marker_style()
-        errorbar_lw (float): Linewidth of the errorbar (default: 1.5)
-        errorbar_capsize (float): Size of the errorbar caps (default: 4)
-        hbars (bool):  Flag to draw horizontal bars for each model (default: False)
-        tight_layout (bool): Set matplotlib.figure.tight_layout to remove excess blank space in the plot (default: True)
+    Optional plotting arguments:
+        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
+        * title: (:class:`str`) - default: name of the first evaluation result type
+        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
+        * xlabel: (:class:`str`) - default: 'X'
+        * xlabel_fontsize: (:class:`float`) - default: 10
+        * xticks_fontsize: (:class:`float`) - default: 10
+        * ylabel_fontsize: (:class:`float`) - default: 10
+        * color: (:class:`float`/:class:`None`) If None, sets it to red/green according to :func:`_get_marker_style` - default: 'black'
+        * linewidth: (:class:`float`) - default: 1.5
+        * capsize: (:class:`float`) - default: 4
+        * hbars:  (:class:`bool`)  Flag to draw horizontal bars for each model - default: True
+        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
+
+    Returns:
+        ax (:class:`matplotlib.pyplot.axes` object)
     """
 
 
@@ -1087,7 +1091,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
         results = list(eval_results)
     except TypeError:
         results = [eval_results]
-
+    results.reverse()
     # Parse plot arguments. More can be added here
     if plot_args is None:
         plot_args = {}
@@ -1098,9 +1102,9 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
     xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
     xticks_fontsize = plot_args.get('xticks_fontsize', None)
     ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
-    errorbar_color = plot_args.get('errorbar_color', 'black')
-    errorbar_lw = plot_args.get('errorbar_lw', None)
-    errorbar_capsize = plot_args.get('errorbar_capsize', 4)
+    color = plot_args.get('color', 'black')
+    linewidth = plot_args.get('linewidth', None)
+    capsize = plot_args.get('capsize', 4)
     hbars = plot_args.get('hbars', True)
     tight_layout = plot_args.get('tight_layout', True)
 
@@ -1133,7 +1137,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
             high = phigh - observed_statistic
             ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T,
                         fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower),
-                        capsize=errorbar_capsize, linewidth=errorbar_lw, ecolor=errorbar_color)
+                        capsize=capsize, linewidth=linewidth, ecolor=color)
             # determine the limits to use
             xlims.append((plow, phigh, observed_statistic))
             # we want to only extent the distribution where it falls outside of it in the acceptable tail
@@ -1142,7 +1146,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
                     # draw dashed line to infinity
                     xt = numpy.linspace(phigh, 99999, 100)
                     yt = numpy.ones(100) * index
-                    ax.plot(xt, yt, '--k')
+                    ax.plot(xt, yt, linestyle='--', linewidth=linewidth, color=color)
 
         else:
             print('Observed statistic diverges for forecast %s, index %i.'

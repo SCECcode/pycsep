@@ -6,14 +6,15 @@ _gridded_forecast_root = os.path.join(_root_dir, 'artifacts', 'ExampleForecasts'
 _catalog_forecast_root = os.path.join(_root_dir, 'artifacts', 'ExampleForecasts', 'CatalogForecasts')
 _observed_catalog_root = os.path.join(_root_dir, 'artifacts', 'ObservedCatalogs')
 _polygon_region_root = os.path.join(_root_dir, 'artifacts', 'Regions', 'Polygons')
+_l_test_example_root = os.path.join(_root_dir, 'artifacts', 'ExampleResults', 'Poisson_l-test')
 
 # filename to gridded forecast files
 helmstetter_mainshock_fname = os.path.join(_gridded_forecast_root, 'helmstetter_et_al.hkj-fromXML.dat')
 helmstetter_aftershock_fname = os.path.join(_gridded_forecast_root, 'helmstetter_et_al.hkj.aftershock-fromXML.dat')
 hires_ssm_italy_fname = os.path.join(_gridded_forecast_root, 'HiRes_SSM_Italy.dat')
 gear1_downsampled_fname = os.path.join(_gridded_forecast_root, 'GEAR1_downsampled.dat')
-#
-# # filename to data forecast file
+
+# filename to data forecast file
 ucerf3_ascii_format_landers_fname = os.path.join(_catalog_forecast_root, 'ucerf3-landers_1992-06-28T11-57-34-14.csv')
 
 # observed catalog file name
@@ -33,3 +34,7 @@ italy_testing_polygon_fname = os.path.join(
 italy_collection_polygon_fname = os.path.join(
     _polygon_region_root, 'Italy', 'ItalyCollectionPolygon.txt'
 )
+
+# Example test results
+l_test_examples = [os.path.join(_l_test_example_root, j) for j in os.listdir(_l_test_example_root)]
+

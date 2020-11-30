@@ -1,9 +1,9 @@
 """
-Plotting customization
+Plot customizations
 =========================
 
 This example shows how to include some advanced options in the spatial visualization
-of Gridded Forecasts and its Evaluation Results
+of Gridded Forecasts and Evaluation Results
 
 Overview:
     1. Define optional plotting arguments
@@ -14,7 +14,7 @@ Overview:
 
 """
 
-####################################################################################################################################
+################################################################################################################
 # Example 1: Spatial dataset plot arguments
 # -----------------------------------------
 
@@ -51,8 +51,8 @@ args_dict = {'title': 'Italy 10 year forecast',
 # * Draw country borders
 # * Set a linewidth of 0.5 to country borders
 # * Select ESRI Imagery as a basemap.
-# * Assign 'rainbow' as a colormap
-# * Defines a 0.8 exponent for the transparency function.
+# * Assign ``'rainbow'`` as colormap. Possible values from from ``matplotlib.cm`` library
+# * Defines 0.8 for an exponential transparency function (default is 0 for constant alpha, whereas 1 for linear).
 # * An object cartopy.crs.Projection() is passed as Projection to the map
 #
 # The complete description of plot arguments can be found in :func:`csep.utils.plots.plot_spatial_dataset`
@@ -67,7 +67,7 @@ ax = forecast.plot(extent=[3, 22, 35, 48],
                    plot_args=args_dict)
 
 ####################################################################################################################################
-# Example 2: Global forecast and selected magnitude bin range
+# Example 2: Plot a global forecast and a selected magnitude bin range
 # -----------------------------------------------------------
 #
 #
@@ -90,14 +90,14 @@ mw_ind = numpy.where(numpy.logical_and( mw_bins >= low_bound, mw_bins <= upper_b
 rates_mw = forecast.data[:, mw_ind]
 
 ####################################################################################################################################
-# We get the cumulative rate
+# We get the total rate between these magnitudes
 
-cumulative_rate = rates_mw.sum(axis=1)
+rate_sum = rates_mw.sum(axis=1)
 
 ####################################################################################################################################
-# The data comes in a 1D array. It should be placed into the `region` 2D cartesian grid
+# The data is stored in a 1D array, so it should be projected into `region` 2D cartesian grid.
 
-cumulative_rate_cartesian = forecast.region.get_cartesian(cumulative_rate)
+rate_sum = forecast.region.get_cartesian(rate_sum)
 
 ####################################################################################################################################
 # **Define plot arguments**
@@ -105,20 +105,52 @@ cumulative_rate_cartesian = forecast.region.get_cartesian(cumulative_rate)
 # We define the arguments and a global projection, centered at $lon=-180$
 
 plot_args={'figsize': (10,6), 'coastline':True, 'feature_color':'black',
-          'projection': cartopy.crs.Robinson(central_longitude=-180.0),
-          'title': forecast.name, 'grid_labels': False,
-          'cmap': 'magma',
-          'clabel': r'$\log_{10}\lambda({%.2f}\leq M_w\leq{%.2f})$ per'
-                    r'${%.1f}^\circ\times {%.1f}^\circ $ per forecast period' %
-                    (low_bound, upper_bound, forecast.region.dh, forecast.region.dh)}
+           'projection': cartopy.crs.Robinson(central_longitude=-180.0),
+           'title': forecast.name, 'grid_labels': False,
+           'cmap': 'magma',
+           'clabel': r'$\log_{10}\lambda\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
+                     r'${%.1f}^\circ\times {%.1f}^\circ $ per forecast period' %
+                     (low_bound, upper_bound, forecast.region.dh, forecast.region.dh)}
 
 ####################################################################################################################################
 # **Plotting the dataset**
-#
+# To plot a global forecast, we must assign the option ``set_global=True``, which is required by :ref:cartopy to handle
+# internally the extent of the plot
 
-ax = plots.plot_spatial_dataset(numpy.log10(cumulative_rate_cartesian), forecast.region,
+ax = plots.plot_spatial_dataset(numpy.log10(rate_sum), forecast.region,
                                 show=True, set_global=True,
                                 plot_args=plot_args)
 
 ####################################################################################################################################
-# Note that we have selected ``set_global=True``
+
+
+
+
+####################################################################################################################################
+# Example 3: Plot multiple evaluation results
+# ------------------------------------------------------------
+
+####################################################################################################################################
+# Load L-test results from example .json files (See
+# :doc:`gridded_forecast_evaluation` for information on calculating and storing evaluation results)
+
+L_results = [csep.load_evaluation_result(i) for i in datasets.l_test_examples]
+args = {'figsize': (6,5),
+        'title': r'$\mathcal{L}-\mathrm{test}$',
+        'title_fontsize': 18,
+        'xlabel': 'Log-likelihood',
+        'xticks_fontsize': 9,
+        'ylabel_fontsize': 9,
+        'linewidth': 0.8,
+        'capsize': 3,
+        'hbars':True,
+        'tight_layout': True}
+
+####################################################################################################################################
+# Description of plot arguments can be found in :func:`plot_poisson_consistency_test`.
+# We set ``one_sided_lower=True`` as usual for an L-test, where the model is rejected if the observed
+# is located within the lower tail of the simulated distribution.
+ax = plots.plot_poisson_consistency_test(L_results, one_sided_lower=True, plot_args=args)
+
+
+
