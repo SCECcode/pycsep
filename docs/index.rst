@@ -19,7 +19,7 @@ PyCSEP: Tools for Earthquake Forecast Developers
     tutorials/gridded_forecast_evaluation.rst
     tutorials/working_with_catalog_forecasts.rst
     tutorials/catalog_forecast_evaluation.rst
-    tutorials/plot_customization.rst
+    tutorials/plot_customizations.rst
 
 .. toctree::
     :maxdepth: 2

@@ -1,6 +1,6 @@
 """
 Plot customizations
-=========================
+===================
 
 This example shows how to include some advanced options in the spatial visualization
 of Gridded Forecasts and Evaluation Results
@@ -68,7 +68,7 @@ ax = forecast.plot(extent=[3, 22, 35, 48],
 
 ####################################################################################################################################
 # Example 2: Plot a global forecast and a selected magnitude bin range
-# -----------------------------------------------------------
+# --------------------------------------------------------------------
 #
 #
 # **Load a Global Forecast from the datasets**
@@ -128,7 +128,7 @@ ax = plots.plot_spatial_dataset(numpy.log10(rate_sum), forecast.region,
 
 ####################################################################################################################################
 # Example 3: Plot multiple evaluation results
-# ------------------------------------------------------------
+# -------------------------------------------
 
 ####################################################################################################################################
 # Load L-test results from example .json files (See
