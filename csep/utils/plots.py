@@ -10,7 +10,7 @@ import matplotlib.pyplot as pyplot
 import cartopy
 import cartopy.crs as ccrs
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
-
+from cartopy.io import img_tiles
 # PyCSEP imports
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.calc import bin1d_vec
@@ -553,64 +553,137 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
     if show:
         pyplot.show()
 
-def plot_spatial_dataset(gridded, region, show=False, plot_args=None):
-    """ Plot spatial dataset such as gridded forecast
+def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=False, plot_args=None):
+    """ Plot spatial dataset such as data from a gridded forecast
 
     Args:
-        gridded: 2d numpy array with vals according to region,
-        region: CartesianGrid2D class
-        plot_args: arguments to various matplotlib functions.
+        gridded (2D :class:`numpy.array`): Values according to `region`,
+        region (:class:`CartesianGrid2D`): Region in which gridded values are contained
+        show (bool): Flag if the figure is displayed
+        extent (list):  default :func:`forecast.region.get_bbox()`
+        set_global (bool): Display the complete globe as basemap
+        plot_args (dict): matplotlib and cartopy plot arguments. Dict keys are str, whose values can be:
+
+    Optional plot arguments:
+       - :figsize: :class:`tuple`/:class:`list` - default [6.4, 4.8]
+       - :title: :class:`str` - default None
+       - :title_size: :class:`int` - default 10
+       - :filename: :class:`str` - default None
+       - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`
+       - :grid: :class:`bool` - default True
+       - :grid_labels: :class:`bool` - default True
+       - :basemap:  :class:`str`/:class:`None` -Possible :class:`str` values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain. Default is None
+       - :coastline: :class:`bool` - Flag to plot coastline. default True,
+       - :borders: :class:`str`bool - Flag to plot country borders. default False,
+       - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
+       - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
+       - :cmap: :class:`str`/:class:`pyplot.colors.Colormap` -  default 'viridis'
+       - :clabel: :class:`str` - default None
+       - :clim: :class:`list` - default None
+       - :alpha: :class:`float` - default 1
+       - :alpha_exp: :class:`float` - Exponent for the alpha func (recommended between 0.4 and 1). default 0
 
     Returns:
+        :ax :class:`matplotlib.pyplot.ax` object
 
     """
+    # Get spatial information for plotting
+    bbox = region.get_bbox()
+    if extent is None:
+        extent = [bbox[0], bbox[1], bbox[2] + region.dh, bbox[3] + region.dh]
+
+    # Retrieve plot arguments
     plot_args = plot_args or {}
-    # get spatial information for plotting
-    extent = region.get_bbox()
-    # plot using cartopy
+    # figure and axes properties
     figsize = plot_args.get('figsize', None)
     title = plot_args.get('title', 'Spatial Dataset')
-    clim = plot_args.get('clim', None)
-    clabel = plot_args.get('clabel', '')
+    title_size = plot_args.get('title_size', None)
     filename = plot_args.get('filename', None)
+    # cartopy properties
+    projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
+    grid = plot_args.get('grid', True)
+    grid_labels = plot_args.get('grid_labels', False)
+    basemap = plot_args.get('basemap', None)
+    coastline = plot_args.get('coastline', True)
+    borders = plot_args.get('borders', False)
+    linewidth = plot_args.get('linewidth', True)
+    linecolor = plot_args.get('linecolor', 'black')
+    # color bar properties
     cmap = plot_args.get('cmap', None)
+    clabel = plot_args.get('clabel', '')
+    clim = plot_args.get('clim', None)
+    alpha = plot_args.get('alpha', 1)
+    alpha_exp = plot_args.get('alpha_exp', 0)
 
+
+    # Instantiage GeoAxes object
     fig = pyplot.figure(figsize=figsize)
+    ax = fig.add_subplot(111, projection=projection)
+    if set_global:
+        ax.set_global()
+    else:
+        ax.set_extent(extents=extent, crs=ccrs.PlateCarree()) # Defined extent always in lat/lon
 
-    # use different projection for global and regional forecasts
-    # determine this from the extent of the grid
-    ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
-
-    lons, lats = numpy.meshgrid(region.xs, region.ys)
-    im = ax.pcolormesh(lons, lats, gridded, cmap=cmap)
-    ax.set_extent(extent)
+    # Basemap plotting
     try:
-        ax.coastlines(color='black', resolution='110m', linewidth=1)
-        ax.add_feature(cartopy.feature.STATES)
+        # Set adaptive scaling
+        line_autoscaler = cartopy.feature.AdaptiveScaler('110m', (('50m', 50), ('10m', 5)))
+        tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
+        tiles = None
+        # Set tile depth
+        tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(extent)
+        if coastline:
+            ax.coastlines(color=linecolor, linewidth=linewidth)
+        if borders:
+            borders =  cartopy.feature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land',
+                                                           line_autoscaler, edgecolor=linecolor, facecolor='never')
+            ax.add_feature(borders, linewidth=linewidth)
+        if basemap == 'stock_img':
+            ax.stock_img()
+        elif basemap is not None:
+            tiles = _get_basemap(basemap)
+        if tiles:
+            ax.add_image(tiles, tile_depth)
     except:
-        print("Unable to plot coastlines or state boundaries. This might be due to no internet access, try pre-downloading the files.")
+        print("Unable to plot basemap. This might be due to no internet access, try pre-downloading the files.")
+
+    ## Define colormap and transparency function
+    if isinstance(cmap, str) or not cmap:
+        cmap = pyplot.get_cmap(cmap)
+    cmap_tup = cmap(numpy.arange(cmap.N))
+    if isinstance(alpha_exp, (float,int)):
+        cmap_tup[:, -1] = numpy.linspace(0, 1, cmap.N) ** alpha_exp
+        alpha = None
+    cmap = matplotlib.colors.ListedColormap(cmap_tup)
+
+    ## Plot spatial dataset
+    lons, lats = numpy.meshgrid(numpy.append(region.xs, region.xs[-1] + region.dh),
+                                numpy.append(region.ys, region.ys[-1] + region.dh))
+
+    im = ax.pcolor(lons, lats, gridded, cmap=cmap, alpha=alpha, snap=True, transform=ccrs.PlateCarree())
     im.set_clim(clim)
-    # colorbar options
+
+    # Colorbar options
     # create an axes on the right side of ax. The width of cax will be 5%
     # of ax and the padding between cax and ax will be fixed at 0.05 inch.
     cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height])
-    cbar = fig.colorbar(im, cax=cax)
+    cbar = fig.colorbar(im, ax=ax, cax=cax)
     cbar.set_label(clabel)
-    # gridlines options
-    gl = ax.gridlines(draw_labels=True, alpha=0.5)
-    gl.xlines = False
-    gl.ylines = False
-    gl.ylabels_right = False
-    gl.xformatter = LONGITUDE_FORMATTER
-    gl.yformatter = LATITUDE_FORMATTER
+
+    # Gridline options
+    if grid:
+        gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
+        gl.right_labels = False
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
     ax.set_title(title, y=1.06)
-    # this is a cartopy.GeoAxes
+
     if filename is not None:
         fig.savefig(filename + '.pdf')
         fig.savefig(filename + '.png', dpi=300)
-
     if show:
         pyplot.show()
+
     return ax
 
 def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
@@ -983,37 +1056,59 @@ def plot_comparison_test(results, plot_args=None):
     return ax
 
 def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, plot_args=None):
-    """ Plots results from CSEP1 Number test following the CSEP1 convention.
+    """ Plots results from CSEP1 tests following the CSEP1 convention.
 
     Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
           comparable on the same figure.
 
-    Description of plotting arguments:
-        xlabel (str): the label for the x-axis of the plot
-
-        title (str): title of the plot
-
     Args:
-        results: list storing test results  csep.core.evaluations.EvaluationResult (see note above)
-        plot_args: optional argument containing a dictionary of plotting arguments
+        results (list): Contains the tests results :class:`csep.core.evaluations.EvaluationResult` (see note above)
+        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful
+                          for plotting simulation based simulation tests.
         one_sided_lower (bool): select this if the plot should be for a one sided test
-        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful for plotting simulation based simulation tests.
+        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
 
+    Optional plotting arguments:
+        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
+        * title: (:class:`str`) - default: name of the first evaluation result type
+        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
+        * xlabel: (:class:`str`) - default: 'X'
+        * xlabel_fontsize: (:class:`float`) - default: 10
+        * xticks_fontsize: (:class:`float`) - default: 10
+        * ylabel_fontsize: (:class:`float`) - default: 10
+        * color: (:class:`float`/:class:`None`) If None, sets it to red/green according to :func:`_get_marker_style` - default: 'black'
+        * linewidth: (:class:`float`) - default: 1.5
+        * capsize: (:class:`float`) - default: 4
+        * hbars:  (:class:`bool`)  Flag to draw horizontal bars for each model - default: True
+        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
 
+    Returns:
+        ax (:class:`matplotlib.pyplot.axes` object)
     """
-    # this fails if results is not iterable
+
+
     try:
         results = list(eval_results)
     except TypeError:
         results = [eval_results]
-
-    fig, ax = pyplot.subplots()
-    # parse plot arguments, more can be added here
+    results.reverse()
+    # Parse plot arguments. More can be added here
     if plot_args is None:
         plot_args = {}
-
+    figsize= plot_args.get('figsize', None)
     title = plot_args.get('title', results[0].name)
+    title_fontsize = plot_args.get('title_fontsize', None)
     xlabel = plot_args.get('xlabel', 'X')
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
+    xticks_fontsize = plot_args.get('xticks_fontsize', None)
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
+    color = plot_args.get('color', 'black')
+    linewidth = plot_args.get('linewidth', None)
+    capsize = plot_args.get('capsize', 4)
+    hbars = plot_args.get('hbars', True)
+    tight_layout = plot_args.get('tight_layout', True)
+
+    fig, ax = pyplot.subplots(figsize=figsize)
     xlims = []
     for index, res in enumerate(results):
         # handle analytical distributions first, they are all in the form ['name', parameters].
@@ -1021,7 +1116,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
             plow = scipy.stats.poisson.ppf(0.025, res.test_distribution[1])
             phigh = scipy.stats.poisson.ppf(0.975, res.test_distribution[1])
             observed_statistic = res.observed_statistic
-            # emprical distributions
+        # empirical distributions
         else:
             if normalize:
                 test_distribution = numpy.array(res.test_distribution) - res.observed_statistic
@@ -1037,26 +1132,46 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
                 plow = numpy.percentile(test_distribution, 2.5)
                 phigh = numpy.percentile(test_distribution, 97.5)
 
-        low = observed_statistic - plow
-        high = phigh - observed_statistic
-        ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T, fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower), capsize=4,
-                    ecolor='black')
-        # determine the limits to use
-        xlims.append((plow, phigh, observed_statistic))
-        # we want to only extent the distribution where it falls outside of it in the acceptable tail
-        if one_sided_lower:
-            if observed_statistic >= plow and phigh < observed_statistic:
-                # draw dashed line to infinity
-                xt = numpy.linspace(phigh, 99999, 100)
-                yt = numpy.ones(100) * index
-                ax.plot(xt, yt, '--k')
-    ax.set_xlim(*_get_axis_limits(xlims))
-    ax.set_yticklabels([res.sim_name for res in results])
+        if not numpy.isinf(observed_statistic): # Check if test result does not diverges
+            low = observed_statistic - plow
+            high = phigh - observed_statistic
+            ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T,
+                        fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower),
+                        capsize=capsize, linewidth=linewidth, ecolor=color)
+            # determine the limits to use
+            xlims.append((plow, phigh, observed_statistic))
+            # we want to only extent the distribution where it falls outside of it in the acceptable tail
+            if one_sided_lower:
+                if observed_statistic >= plow and phigh < observed_statistic:
+                    # draw dashed line to infinity
+                    xt = numpy.linspace(phigh, 99999, 100)
+                    yt = numpy.ones(100) * index
+                    ax.plot(xt, yt, linestyle='--', linewidth=linewidth, color=color)
+
+        else:
+            print('Observed statistic diverges for forecast %s, index %i.'
+                  ' Check for zero-valued bins within the forecast'% (res.sim_name, index))
+            ax.barh(index, 99999, left=-10000, height=1, color=['red'], alpha=0.5)
+
+
+    try:
+        ax.set_xlim(*_get_axis_limits(xlims))
+    except ValueError:
+        raise ValueError('All EvaluationResults have infinite observed_statistics')
     ax.set_yticks(numpy.arange(len(results)))
-    ax.set_title(title)
-    ax.set_xlabel(xlabel)
-    ax.figure.tight_layout()
-    fig.tight_layout()
+    ax.set_yticklabels([res.sim_name for res in results], fontsize=ylabel_fontsize)
+    ax.set_ylim([-0.5, len(results)-0.5])
+    if hbars:
+        yTickPos = ax.get_yticks()
+        if len(yTickPos) >= 2:
+            ax.barh(yTickPos, numpy.array([99999] * len(yTickPos)), left=-10000,
+                    height=(yTickPos[1] - yTickPos[0]), color=['w', 'gray'], alpha=0.2, zorder=0)
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.tick_params(axis='x', labelsize=xticks_fontsize)
+    if tight_layout:
+        ax.figure.tight_layout()
+        fig.tight_layout()
     return ax
 
 def _get_axis_limits(pnts, border=0.05):
@@ -1065,6 +1180,35 @@ def _get_axis_limits(pnts, border=0.05):
     x_max = numpy.max(pnts)
     xd = (x_max - x_min)*border
     return (x_min-xd, x_max+xd)
+
+def _get_basemap(basemap):
+
+    if basemap == 'stamen_terrain':
+        tiles = img_tiles.Stamen('terrain')
+    elif basemap == 'stamen_terrain-background':
+        tiles = img_tiles.Stamen('terrain-background')
+    elif basemap == 'google-satellite':
+        tiles = img_tiles.GoogleTiles(style='satellite')
+    elif basemap == 'ESRI_terrain':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/' \
+                 'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    elif basemap == 'ESRI_imagery':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/' \
+                 'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    elif basemap == 'ESRI_relief':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/' \
+                 'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    elif basemap == 'ESRI_topo':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/' \
+                 'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    else:
+        raise ValueError('Basemap type not valid or not implemented')
+
+    return tiles
 
 def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=False):
     # set up QQ plots and KS test
