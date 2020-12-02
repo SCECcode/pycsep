@@ -542,13 +542,15 @@ class AbstractBaseCatalog(LoggingMixin):
                        region=self.region, filters=statements)
             return inst
 
-    def filter_spatial(self, region=None, update_stats=False):
+    def filter_spatial(self, region=None, update_stats=False, in_place=True):
         """
         Removes events outside of the region. This takes some time and should be used sparingly. Typically for isolating a region
         near the mainshock or inside a testing region. This should not be used to create gridded style data sets.
 
         Args:
             region: csep.utils.spatial.Region
+            update_stats (bool): if true will update catalog statistics
+            in_place (bool): if false, will create a new instance of the catalog preserving state
 
         Returns:
             self
@@ -563,12 +565,19 @@ class AbstractBaseCatalog(LoggingMixin):
 
         mask = self.region.get_masked(self.get_longitudes(), self.get_latitudes())
         # logical index uses opposite boolean values than masked arrays.
-        filtered = self.catalog[~mask]
-        self.catalog = filtered
 
-        if update_stats:
-            self.update_catalog_stats()
-        return self
+        filtered = self.catalog[~mask]
+        if in_place:
+            self.catalog = filtered
+
+            if update_stats:
+                self.update_catalog_stats()
+            return self
+        else:
+            cls = self.__class__
+            inst = cls(data=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name,
+                       region=region, compute_stats=update_stats)
+            return inst
 
     def apply_mct(self, m_main, event_epoch, mc=2.5):
         """
