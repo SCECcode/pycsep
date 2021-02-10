@@ -1,4 +1,5 @@
 import csv
+import gzip
 import json
 import operator
 import os
@@ -20,6 +21,7 @@ from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
 from csep.utils.readers import csep_ascii
+from csep.utils.file import get_file_extension
 
 
 class AbstractBaseCatalog(LoggingMixin):
@@ -1017,21 +1019,45 @@ class UCERF3Catalog(AbstractBaseCatalog):
         Returns:
             list of catalogs of type UCERF3Catalog
         """
-        with open(filename, 'rb') as catalog_file:
-            # parse 4byte header from merged file
-            number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
-            # load all catalogs from merged file
-            for catalog_id in range(number_simulations_in_set):
-                dtype = cls._get_header_dtype(version)
-                version = numpy.fromfile(catalog_file, dtype=">i2", count=1)[0]
-                header = numpy.fromfile(catalog_file, dtype=dtype, count=1)
-                catalog_size = header['catalog_size'][0]
-                # read catalog
-                catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
-                # add column that stores catalog_id in case we want to store in database
-                u3_catalog = cls(filename=filename, data=catalog, catalog_id=catalog_id, **kwargs)
-                u3_catalog.dtype = dtype
-                yield u3_catalog
+
+        # handle uncompressed binary file
+        if get_file_extension(filename) == 'bin':
+            with open(filename, 'rb') as catalog_file:
+                # parse 4byte header from merged file
+                number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
+                # load all catalogs from merged file
+                for catalog_id in range(number_simulations_in_set):
+                    version = numpy.fromfile(catalog_file, dtype=">i2", count=1)[0]
+                    dtype = cls._get_header_dtype(version)
+                    header = numpy.fromfile(catalog_file, dtype=dtype, count=1)
+                    catalog_size = header['catalog_size'][0]
+                    # read catalog
+                    catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
+                    # add column that stores catalog_id in case we want to store in database
+                    u3_catalog = cls(filename=filename, data=catalog, catalog_id=catalog_id, **kwargs)
+                    u3_catalog.dtype = dtype
+                    yield u3_catalog
+
+        # handle compressed file by decompressing inline
+        elif get_file_extension(filename) == 'gz':
+            with gzip.open(filename, 'rb') as catalog_file:
+                number_simulations_in_set = numpy.frombuffer(catalog_file.read(4), dtype='>i4')[0]
+                for catalog_id in range(number_simulations_in_set):
+                    version = numpy.frombuffer(catalog_file.read(2), dtype='>i2')[0]
+                    dtype = cls._get_header_dtype(version)
+                    header_bytes = dtype.itemsize
+                    header = numpy.frombuffer(catalog_file.read(header_bytes), dtype=dtype)
+                    catalog_size = header['catalog_size'][0]
+                    catalog_dtype = cls._get_catalog_dtype(version)
+                    event_bytes = catalog_dtype.itemsize
+                    catalog = numpy.frombuffer(
+                        catalog_file.read(event_bytes*catalog_size),
+                        dtype=catalog_dtype,
+                        count=catalog_size
+                    )
+                    u3_catalog = cls(filename=filename, data=catalog, catalog_id=catalog_id, **kwargs)
+                    u3_catalog.dtype = dtype
+                    yield u3_catalog
 
     @classmethod
     def load_catalog(cls, filename, loader=None, **kwargs):
@@ -1100,10 +1126,8 @@ class UCERF3Catalog(AbstractBaseCatalog):
                                  ("fss_index", ">i4"),
                                  ("grid_node_index", ">i4"),
                                  ("etas_k", ">f8")])
-
         else:
             raise ValueError("unknown catalog version, cannot read catalog.")
-
         return dtype
 
     @staticmethod
