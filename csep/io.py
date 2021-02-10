@@ -6,6 +6,7 @@ import time
 from csep.models import EvaluationResult, CatalogNumberTestResult
 from csep.core.forecasts import CatalogForecast, GriddedForecast
 from csep.core.catalogs import UCERF3Catalog, CSEPCatalog
+from csep.core.exceptions import CSEPIOException
 from csep.utils import readers
 from csep.utils.time_utils import strptime_to_utc_datetime, utc_now_datetime
 
@@ -53,7 +54,6 @@ def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
             yield catalog.get_csep_format()
         else:
             raise ValueError('format must be either "native" or "csep!')
-
 
 
 def load_catalog(filename, type='csep-csv', format='native', loader=None, **kwargs):
@@ -268,12 +268,16 @@ def load_catalog_forecast(fname, catalog_loader=None, format='native', type='asc
     # try and parse information from filename and send to forecast constructor
     if format == 'native' and type=='ascii':
         # this works for unix how windows?
-        basename = str(os.path.basename(fname.rstrip('/')).split('.')[0])
-        split_fname = basename.split('_')
-        name = split_fname[0]
-        start_time = strptime_to_utc_datetime(split_fname[1], format="%Y-%m-%dT%H-%M-%S-%f")
-        # update kwargs
-        _ = kwargs.setdefault('name', name)
-        _ = kwargs.setdefault('start_time', start_time)
+        try:
+            basename = str(os.path.basename(fname.rstrip('/')).split('.')[0])
+            split_fname = basename.split('_')
+            name = split_fname[0]
+            start_time = strptime_to_utc_datetime(split_fname[1], format="%Y-%m-%dT%H-%M-%S-%f")
+            # update kwargs
+            _ = kwargs.setdefault('start_time', start_time)
+            _ = kwargs.setdefault('name', name)
+        except (ValueError):
+            pass
+
     # create observed_catalog forecast
     return CatalogForecast(filename=fname, loader=catalog_loader, catalog_format=format, catalog_type=type, **kwargs)
