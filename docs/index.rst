@@ -1,4 +1,4 @@
-PyCSEP: Tools for Earthquake Forecast Developers
+pyCSEP: Tools for Earthquake Forecast Developers
 ================================================
 
 .. toctree::

@@ -15,9 +15,15 @@ from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.plots import plot_spatial_dataset
 
 
-# idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet
+# idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet, bc of functions like
+#       get_latitudes(), and get_longitudes()
+#       or this class should be refactored as to use the underlying region
+
 # idea: this needs to handle non-carteisan regions, so maybe (lons, lats) should be a single variable like locations
+
 # note: these are specified to 2D data sets and some minor refactoring needs to happen here.
+
+# todo: add mask to dataset that has the shape of data. consider using numpy.ma module to hold these values
 class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
 
@@ -192,7 +198,7 @@ class MarkedGriddedDataSet(GriddedDataSet):
         """ Returns counts of events in magnitude bins """
         return numpy.sum(self.data, axis=0)
 
-    def get_magnitude_index(self, mags):
+    def get_magnitude_index(self, mags, tol=0.00001):
         """ Returns the indices into the magnitude bins of selected magnitudes
 
         Note: the right-most bin is treated as extending to infinity.
@@ -206,11 +212,10 @@ class MarkedGriddedDataSet(GriddedDataSet):
         Raises:
             ValueError
         """
-        idm = bin1d_vec(mags, self.magnitudes, right_continuous=True)
+        idm = bin1d_vec(mags, self.magnitudes, tol=tol, right_continuous=True)
         if numpy.any(idm == -1):
             raise ValueError("mags outside the range of forecast magnitudes.")
         return idm
-
 
 class GriddedForecast(MarkedGriddedDataSet):
     """ Class to represent grid-based forecasts """

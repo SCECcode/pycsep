@@ -444,7 +444,10 @@ def csep_ascii(fname, return_catalog_id=False):
             # maybe fractional seconds are not included
             origin_time = parse_datetime(line[3])
             depth = float(line[4])
-            catalog_id = int(line[5])
+            try:
+                catalog_id = int(line[5])
+            except ValueError:
+                catalog_id = int(-1)
             event_id = line[6]
             try:
                 event_id = event_id.decode('utf-8')
@@ -641,7 +644,6 @@ def jma_csv(fname):
             events.append((id, origin_time, lat, lon, depth, magnitude))
             is_first_event = False
     return events
-
 
 def _query_comcat(start_time, end_time, min_magnitude=2.50,
                  min_latitude=31.50, max_latitude=43.00,

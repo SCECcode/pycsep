@@ -1,11 +1,19 @@
 import copy
 import unittest
+import os
 
 import numpy
 
+import csep
+from csep.core import regions, forecasts
 from csep.utils.time_utils import strptime_to_utc_epoch, strptime_to_utc_datetime
 from csep.core.catalogs import CSEPCatalog
 
+def comcat_path():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(root_dir, 'artifacts', 'Comcat',
+                            'test_catalog.csv')
+    return data_dir
 
 class CatalogFiltering(unittest.TestCase):
     def setUp(self):
@@ -63,6 +71,36 @@ class CatalogFiltering(unittest.TestCase):
         test_cat = copy.deepcopy(self.test_cat1)
         filtered_test_cat = test_cat.filter(filters, in_place=False)
         numpy.testing.assert_equal(numpy.array([b'1', b'2'], dtype='S256').T, filtered_test_cat.get_event_ids())
+
+    def test_catalog_binning_and_filtering_acceptance(self):
+        # create space-magnitude region
+        region = regions.create_space_magnitude_region(
+            regions.california_relm_region(),
+            regions.magnitude_bins(4.5, 10.05, 0.1)
+        )
+
+        # read catalog
+        comcat = csep.load_catalog(comcat_path(), region=region)
+
+        # create data set from data set
+        d = forecasts.MarkedGriddedDataSet(
+            data=comcat.spatial_magnitude_counts(),
+            region=comcat.region,
+            magnitudes=comcat.region.magnitudes
+        )
+
+        for idm, m_min in enumerate(d.magnitudes):
+            # catalog filtered cumulative
+            c = comcat.filter([f'magnitude >= {m_min}'], in_place=False)
+            # catalog filtered incrementally
+            c_int = comcat.filter([f'magnitude >= {m_min}', f'magnitude < {m_min + 0.09999999}'], in_place=False)
+            # sum from overall data set
+            gs = d.data[:, idm:].sum()
+            # incremental counts
+            gs_int = d.data[:, idm].sum()
+            # event count from filtered catalog and events in binned data should be the same
+            numpy.testing.assert_almost_equal(gs, c.event_count)
+            numpy.testing.assert_almost_equal(gs_int, c_int.event_count)
 
 
 if __name__ == '__main__':
