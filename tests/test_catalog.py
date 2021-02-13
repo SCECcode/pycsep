@@ -54,7 +54,7 @@ class CatalogFiltering(unittest.TestCase):
         end_dt = strptime_to_utc_datetime('2010-07-01 00:00:00.0')
         filters = [f'datetime > {start_dt}', f'datetime < {end_dt}']  # should return only event 2
         test_cat = copy.deepcopy(self.test_cat1)
-        test_cat = test_cat.filter(filters, in_place=False)
+        test_cat = test_cat.filter(filters, in_place=True)
         numpy.testing.assert_equal(numpy.array([b'2'], dtype='S256'), test_cat.get_event_ids())
 
     def test_filter_with_datetime(self):
