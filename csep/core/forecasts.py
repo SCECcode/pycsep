@@ -15,9 +15,15 @@ from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.plots import plot_spatial_dataset
 
 
-# idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet
+# idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet, bc of functions like
+#       get_latitudes(), and get_longitudes()
+#       or this class should be refactored as to use the underlying region
+
 # idea: this needs to handle non-carteisan regions, so maybe (lons, lats) should be a single variable like locations
+
 # note: these are specified to 2D data sets and some minor refactoring needs to happen here.
+
+# todo: add mask to dataset that has the shape of data. consider using numpy.ma module to hold these values
 class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
 
@@ -192,7 +198,7 @@ class MarkedGriddedDataSet(GriddedDataSet):
         """ Returns counts of events in magnitude bins """
         return numpy.sum(self.data, axis=0)
 
-    def get_magnitude_index(self, mags):
+    def get_magnitude_index(self, mags, tol=0.00001):
         """ Returns the indices into the magnitude bins of selected magnitudes
 
         Note: the right-most bin is treated as extending to infinity.
@@ -206,11 +212,10 @@ class MarkedGriddedDataSet(GriddedDataSet):
         Raises:
             ValueError
         """
-        idm = bin1d_vec(mags, self.magnitudes, right_continuous=True)
+        idm = bin1d_vec(mags, self.magnitudes, tol=tol, right_continuous=True)
         if numpy.any(idm == -1):
             raise ValueError("mags outside the range of forecast magnitudes.")
         return idm
-
 
 class GriddedForecast(MarkedGriddedDataSet):
     """ Class to represent grid-based forecasts """
@@ -445,7 +450,7 @@ class CatalogForecast(LoggingMixin):
                  filter_spatial=False, filters=None, apply_mct=False,
                  region=None, expected_rates=None, start_time=None, end_time=None,
                  n_cat=None, event=None, loader=None, catalog_type='ascii',
-                 catalog_format='native'):
+                 catalog_format='native', store=True):
 
 
         """
@@ -471,6 +476,8 @@ class CatalogForecast(LoggingMixin):
             name (str): name of the forecast, will be used for defaults in plotting and other places
             n_cat (int): number of catalogs in the forecast
             event (:class:`csep.models.Event`): if the forecast is associated with a particular event
+            store (bool): if true, will store catalogs on object in memory. this should only be made false if working
+                          with very large forecast files that cannot be stored in memory
 
         """
 
@@ -484,12 +491,16 @@ class CatalogForecast(LoggingMixin):
 
         # should be iterable
         self.catalogs = catalogs or []
+        self._catalogs = []
 
         # should be a generator function
         self.loader = loader
 
         # used if the forecast is associated with a particular event
         self.event = event
+
+        # if true, no filters will be applied when iterating though forecast
+        self.apply_filters = True
 
         # these can be used to filter catalogs to a desired experiment region
         self.filters = filters or []
@@ -511,10 +522,12 @@ class CatalogForecast(LoggingMixin):
         self.start_time = start_time
         self.end_time = end_time
 
+        # stores catalogs in memory
+        self.store = store
+
         # time horizon in years
         if self.start_time is not None and self.end_time is not None:
             self.time_horizon_years = (self.end_epoch - self.start_epoch) / SECONDS_PER_ASTRONOMICAL_YEAR / 1000
-            # add time filters only if filters are not provied and user wants to filter in time
 
         # number of simulated catalogs
         self.n_cat = n_cat
@@ -533,8 +546,10 @@ class CatalogForecast(LoggingMixin):
         """ Allows the class to be used in a for-loop. Handles the case where the catalogs are stored as a list or
         loaded in using a generator function. The latter solves the problem where memory is a concern or all of the
         catalogs should not be held in memory at once. """
+        is_generator = True
         try:
             n_items = len(self.catalogs)
+            is_generator = False
             assert self.n_cat == n_items
             # here, we have reached the end of the list, simply reset the index to the front
             if self._idx >= self.n_cat:
@@ -549,18 +564,28 @@ class CatalogForecast(LoggingMixin):
                 self._idx += 1
             except StopIteration:
                 # gets a new generator function after the old one is exhausted
-                self.catalogs = self.loader(format=self.catalog_format, filename=self.filename,
-                                            region=self.region, name=self.name)
+                if not self.store:
+                    self.catalogs = self.loader(format=self.catalog_format, filename=self.filename,
+                                                region=self.region, name=self.name)
+                else:
+                    self.catalogs = self._catalogs
+
                 self.n_cat = self._idx
                 self._idx = 0
                 raise StopIteration()
+
         # apply filtering to catalogs, these can throw errors if not configured properly
-        if self.filters:
-            catalog = catalog.filter(self.filters)
-        if self.apply_mct:
-            catalog = catalog.apply_mct(self.event.magnitude, datetime_to_utc_epoch(self.event.time))
-        if self.filter_spatial:
-            catalog = catalog.filter_spatial(self.region)
+        if self.apply_filters:
+            if self.filters:
+                catalog = catalog.filter(self.filters)
+            if self.apply_mct:
+                catalog = catalog.apply_mct(self.event.magnitude, datetime_to_utc_epoch(self.event.time))
+            if self.filter_spatial:
+                catalog = catalog.filter_spatial(self.region)
+
+        if is_generator and self.store:
+            self._catalogs.append(catalog)
+
         # return potentially filtered data
         return catalog
 

@@ -379,7 +379,7 @@ class AbstractBaseCatalog(LoggingMixin):
     def get_mag_idx(self):
         """ Return magnitude index from region magnitudes """
         try:
-            return bin1d_vec(self.get_magnitudes(), self.region.magnitudes, right_continuous=True)
+            return bin1d_vec(self.get_magnitudes(), self.region.magnitudes, tol=0.00001, right_continuous=True)
         except AttributeError:
             raise CSEPCatalogException("Cannot return magnitude index without self.region.magnitudes")
 
@@ -474,21 +474,6 @@ class AbstractBaseCatalog(LoggingMixin):
         if not self.filters and statements is None:
             raise CSEPCatalogException("Must provide filter statements to function or class to filter")
 
-        def parse_datetime_to_origin_time(dt_input):
-            """ Parses datetime strings with various formats. Handles datetime objects and datetime strings.
-            If datetime object is not time aware will assume that time is UTC, if it is timezone aware will convert to UTC timezone. """
-            if type(dt_input) == datetime.datetime:
-                # check for time zone
-                if dt_input.tzinfo == None:
-                    return create_utc_datetime(dt_input)
-            # handle it as string
-            try:
-                format = parse_string_format(dt_input)
-            except:
-                raise CSEPIOException(
-                    "Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
-            return strptime_to_utc_datetime(dt_input, format)
-
         # programmatically assign operators
         operators = {'>': operator.gt,
                      '<': operator.lt,
@@ -517,7 +502,6 @@ class AbstractBaseCatalog(LoggingMixin):
             # slower but at the convenience of not having to call multiple times
             filters = list(statements)
             filtered = numpy.copy(self.catalog)
-            idx = numpy.ones(self.event_count, dtype=numpy.bool)
             for filt in filters:
                 name = filt.split(' ')[0]
                 # create indexing array, start with all events
@@ -571,7 +555,6 @@ class AbstractBaseCatalog(LoggingMixin):
         filtered = self.catalog[~mask]
         if in_place:
             self.catalog = filtered
-
             if update_stats:
                 self.update_catalog_stats()
             return self
@@ -693,7 +676,7 @@ class AbstractBaseCatalog(LoggingMixin):
                                                   self.region.ys)
         return output
 
-    def magnitude_counts(self, mag_bins=None, retbins=False):
+    def magnitude_counts(self, mag_bins=None, tol=0.00001, retbins=False):
         """ Computes the count of events within mag_bins
 
 
@@ -721,14 +704,14 @@ class AbstractBaseCatalog(LoggingMixin):
                 return (mag_bins, out)
             else:
                 return out
-        idx = bin1d_vec(self.get_magnitudes(), mag_bins, right_continuous=True)
+        idx = bin1d_vec(self.get_magnitudes(), mag_bins, tol=tol, right_continuous=True)
         numpy.add.at(out, idx, 1)
         if retbins:
             return (mag_bins, out)
         else:
             return out
 
-    def spatial_magnitude_counts(self, mag_bins=None, ret_skipped=False):
+    def spatial_magnitude_counts(self, mag_bins=None, tol=0.00001, ret_skipped=False):
         """ Return counts of events in space-magnitude region.
 
         We figure out the index of the polygons and create a map that relates the spatial coordinate in the
@@ -776,7 +759,8 @@ class AbstractBaseCatalog(LoggingMixin):
                                                                            self.region.idx_map,
                                                                            self.region.xs,
                                                                            self.region.ys,
-                                                                           mag_bins)
+                                                                           mag_bins,
+                                                                           tol=tol)
         if ret_skipped:
             return output, skipped
         else:
