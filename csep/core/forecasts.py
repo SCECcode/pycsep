@@ -407,8 +407,8 @@ class GriddedForecast(MarkedGriddedDataSet):
         gds = cls(start_date, end_date, magnitudes=mws, name=name, region=region, data=rates)
         return gds
 
-    def plot(self, show=False, log=True, extent=None, set_global=False, plot_args=None):
-        """ Plot gridded forecast according to plate-carree proejction
+    def plot(self, ax=None, show=False, log=True, extent=None, set_global=False, plot_args=None):
+        """ Plot gridded forecast according to plate-carree projection
 
         Args:
             show (bool): if true, show the figure. this call is blocking.
@@ -434,11 +434,11 @@ class GriddedForecast(MarkedGriddedDataSet):
         if log:
             plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
             with numpy.errstate(divide='ignore'):
-                ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, show=show,
-                                          extent=extent, set_global=set_global, plot_args=plot_args)
+                ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, ax=ax,
+                                          show=show, extent=extent, set_global=set_global, plot_args=plot_args)
         else:
             plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
-            ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, show=show, extent=extent,
+            ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, ax=ax,show=show, extent=extent,
                                       set_global=set_global, plot_args=plot_args)
         return ax
 

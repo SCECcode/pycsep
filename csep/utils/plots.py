@@ -553,7 +553,170 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
     if show:
         pyplot.show()
 
-def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=False, plot_args=None):
+def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linecolor='black', linewidth=True,
+                 grid=False, grid_labels=False, set_global=False, show=False):
+    """ Wrapper for cartopy multiple plots
+
+     Args:
+         basemap (str): Possible values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain. Default is None
+         extent (list):  [lon_min, lon_max, lat_min, lat_max]
+         show (bool): Flag if the figure is displayed
+         set_global (bool): Display the complete globe as basemap
+         coastline (str): Flag to plot coastline. default True,
+         borders (bool): Flag to plot country borders. default False,
+         linewidth (float): Line width of borders and coast lines. default 1.5,
+         linecolor (str): Color of borders and coast lines. default 'black',
+
+     Returns:
+         :ax :class:`matplotlib.pyplot.ax` object
+
+     """
+    if ax is None:
+        fig = pyplot.figure()
+        ax = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=0.0))
+    if set_global:
+        ax.set_global()
+
+    try:
+        # Set adaptive scaling
+        line_autoscaler = cartopy.feature.AdaptiveScaler('110m', (('50m', 50), ('10m', 5)))
+        tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
+        tiles = None
+        # Set tile depth
+        tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(extent)
+        if coastline:
+            ax.coastlines(color=linecolor, linewidth=linewidth)
+        if borders:
+            borders =  cartopy.feature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land',
+                                                           line_autoscaler, edgecolor=linecolor, facecolor='never')
+            ax.add_feature(borders, linewidth=linewidth)
+        if basemap == 'stock_img':
+            ax.stock_img()
+        elif basemap is not None:
+            tiles = _get_basemap(basemap)
+        if tiles:
+            ax.add_image(tiles, tile_depth)
+    except:
+        print("Unable to plot basemap. This might be due to no internet access, try pre-downloading the files.")
+
+    # Gridline options
+    if grid:
+        gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
+        gl.right_labels = False
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, plot_args=None):
+    """ Plot spatial dataset such as data from a gridded forecast
+
+    Args:
+        catalog (:class:`CSEPCatalog`): Catalog object to be plotted
+        region (:class:`CartesianGrid2D`): Region in which gridded values are contained
+        show (bool): Flag if the figure is displayed
+        extent (list):  default :func:`forecast.region.get_bbox()`
+        set_global (bool): Display the complete globe as basemap
+        plot_args (dict): matplotlib and cartopy plot arguments. Dict keys are str, whose values can be:
+
+    Optional plot arguments:
+       - :figsize: :class:`tuple`/:class:`list` - default [6.4, 4.8]
+       - :title: :class:`str` - default None
+       - :title_size: :class:`int` - default 10
+       - :filename: :class:`str` - default None
+       - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`
+       - :grid: :class:`bool` - default True
+       - :grid_labels: :class:`bool` - default True
+
+
+       - :basemap:  :class:`str`/:class:`None` -Possible :class:`str` values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain. Default is None
+       - :coastline: :class:`bool` - Flag to plot coastline. default True,
+       - :borders: :class:`str`bool - Flag to plot country borders. default False,
+       - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
+       - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
+       - :markersize: :class:`float` - Constant size for all earthquakes
+       - :markercolor: :class:`str` - Color for all earthquakes
+       - :cmap: :class:`str`/:class:`pyplot.colors.Colormap` -  default 'viridis'
+
+    Returns:
+        :ax :class:`matplotlib.pyplot.ax` object
+
+    """
+    # Get spatial information for plotting
+    bbox = catalog.get_bbox()
+    if extent is None:
+        dh = (bbox[1] - bbox[0])/20.
+        dv = (bbox[3] - bbox[2]) / 20.
+        extent = [bbox[0] - dh, bbox[1]+dh, bbox[2] -dv, bbox[3] + dv]
+
+    # Retrieve plot arguments
+    plot_args = plot_args or {}
+    # figure and axes properties
+    figsize = plot_args.get('figsize', None)
+    title = plot_args.get('title', 'Catalog')
+    title_size = plot_args.get('title_size', None)
+    filename = plot_args.get('filename', None)
+    # scatter properties
+    markersize = plot_args.get('markersize', 4)
+    markercolor = plot_args.get('markercolor', 'blue')
+    # cartopy properties
+    projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
+    grid = plot_args.get('grid', True)
+    grid_labels = plot_args.get('grid_labels', False)
+    basemap = plot_args.get('basemap', None)
+    coastline = plot_args.get('coastline', True)
+    borders = plot_args.get('borders', False)
+    linewidth = plot_args.get('linewidth', True)
+    linecolor = plot_args.get('linecolor', 'black')
+
+
+    # Instantiage GeoAxes object
+
+    if ax is None:
+        fig = pyplot.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection=projection)
+        if set_global:
+            ax.set_global()
+        else:
+            ax.set_extent(extents=extent, crs=ccrs.PlateCarree()) # Defined extent always in lat/lon
+
+    # Basemap plotting
+    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
+                      linecolor=linecolor, linewidth=linewidth)
+
+
+    ## Plot spatial dataset
+    scatter = ax.scatter(
+                catalog.get_longitudes(), catalog.get_latitudes(),
+                s=markersize,
+                transform=cartopy.crs.PlateCarree(),
+                color=markercolor,  # Colormap to use
+                alpha=1)
+
+
+    # Gridline options
+    if grid:
+        gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
+        gl.right_labels = False
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+
+    # Figure options
+    ax.set_title(title, fontsize=title_size, y=1.06)
+    if filename is not None:
+        ax.get_figure().savefig(filename + '.pdf')
+        ax.get_figure().savefig(filename + '.png', dpi=300)
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_global=False, plot_args=None):
     """ Plot spatial dataset such as data from a gridded forecast
 
     Args:
@@ -617,43 +780,29 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
 
 
     # Instantiage GeoAxes object
-    fig = pyplot.figure(figsize=figsize)
-    ax = fig.add_subplot(111, projection=projection)
+    if ax is None:
+        fig = pyplot.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection=projection)
+    else:
+        fig = ax.get_figure()
+
     if set_global:
         ax.set_global()
     else:
         ax.set_extent(extents=extent, crs=ccrs.PlateCarree()) # Defined extent always in lat/lon
 
     # Basemap plotting
-    try:
-        # Set adaptive scaling
-        line_autoscaler = cartopy.feature.AdaptiveScaler('110m', (('50m', 50), ('10m', 5)))
-        tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
-        tiles = None
-        # Set tile depth
-        tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(extent)
-        if coastline:
-            ax.coastlines(color=linecolor, linewidth=linewidth)
-        if borders:
-            borders =  cartopy.feature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land',
-                                                           line_autoscaler, edgecolor=linecolor, facecolor='never')
-            ax.add_feature(borders, linewidth=linewidth)
-        if basemap == 'stock_img':
-            ax.stock_img()
-        elif basemap is not None:
-            tiles = _get_basemap(basemap)
-        if tiles:
-            ax.add_image(tiles, tile_depth)
-    except:
-        print("Unable to plot basemap. This might be due to no internet access, try pre-downloading the files.")
+    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
+                      linecolor=linecolor, linewidth=linewidth)
 
     ## Define colormap and transparency function
     if isinstance(cmap, str) or not cmap:
         cmap = pyplot.get_cmap(cmap)
     cmap_tup = cmap(numpy.arange(cmap.N))
     if isinstance(alpha_exp, (float,int)):
-        cmap_tup[:, -1] = numpy.linspace(0, 1, cmap.N) ** alpha_exp
-        alpha = None
+        if alpha_exp != 0:
+            cmap_tup[:, -1] = numpy.linspace(0, 1, cmap.N) ** alpha_exp
+            alpha = None
     cmap = matplotlib.colors.ListedColormap(cmap_tup)
 
     ## Plot spatial dataset
@@ -666,7 +815,8 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
     # Colorbar options
     # create an axes on the right side of ax. The width of cax will be 5%
     # of ax and the padding between cax and ax will be fixed at 0.05 inch.
-    cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height])
+    cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height],
+                       label='Colorbar')
     cbar = fig.colorbar(im, ax=ax, cax=cax)
     cbar.set_label(clabel)
 
@@ -676,11 +826,12 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
         gl.right_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
-    ax.set_title(title, y=1.06)
 
+    # matplotlib figure options
+    ax.set_title(title, y=1.06)
     if filename is not None:
-        fig.savefig(filename + '.pdf')
-        fig.savefig(filename + '.png', dpi=300)
+        ax.get_figure().savefig(filename + '.pdf')
+        ax.get_figure().savefig(filename + '.png', dpi=300)
     if show:
         pyplot.show()
 

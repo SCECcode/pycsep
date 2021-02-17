@@ -22,7 +22,7 @@ from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
 from csep.utils.readers import csep_ascii
 from csep.utils.file import get_file_extension
-
+from csep.utils.plots import plot_catalog
 
 class AbstractBaseCatalog(LoggingMixin):
     """
@@ -453,6 +453,19 @@ class AbstractBaseCatalog(LoggingMixin):
         """
         return self.catalog['longitude']
 
+    def get_bbox(self):
+        """
+        Returns bounding box of all events in the catalog
+
+        Returns:
+            (numpy.array): [lon_min, lon_max, lat_min, lat_max]
+        """
+        bbox = numpy.array([numpy.min(self.catalog['longitude']),
+                            numpy.max(self.catalog['longitude']),
+                            numpy.min(self.catalog['latitude']),
+                            numpy.max(self.catalog['latitude'])])
+        return bbox
+
     def get_depths(self):
         """ Returns depths of all events in catalog """
         return self.catalog['depth']
@@ -818,6 +831,29 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             return bval
 
+    def plot(self, ax=None, show=False, extent=None, set_global=False, plot_args=None):
+        """ Plot catalog according to plate-carree projection
+
+        Args:
+            ax (`matplotlib.pyplot.axes`): Previous axes onto which catalog can be drawn
+            show (bool): if true, show the figure. this call is blocking.
+            extent (list): Force an extent [lon_min, lon_max, lat_min, lat_max]
+            plot_args (optional/dict): dictionary containing plotting arguments for making figures
+
+        Returns:
+            axes: matplotlib.Axes.axes
+        """
+        # no mutable function arguments
+
+
+        plot_args = plot_args or {}
+        plot_args.setdefault('figsize', (10, 10))
+        plot_args.setdefault('title', self.name)
+
+        # this call requires internet connection and basemap
+        ax = plot_catalog(self, ax=ax,show=show, extent=extent,
+                          set_global=set_global, plot_args=plot_args)
+        return ax
 
 class CSEPCatalog(AbstractBaseCatalog):
     """
