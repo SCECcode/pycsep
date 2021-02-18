@@ -94,7 +94,7 @@ def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
             raise ValueError('format must be either "native" or "csep!')
 
 
-def load_catalog(filename, type='csep-csv', format='native', loader=None, **kwargs):
+def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_filters=False, **kwargs):
     """ General function to load single catalog
 
     See corresponding class documentation for additional parameters.
@@ -103,6 +103,8 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, **kwar
         type (str): ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk') default is 'csep-csv'
         format (str): ('native', 'csep') determines whether the catalog should be converted into the csep
                       formatted catalog or kept as native.
+        apply_filters (bool): if true, will apply filters and spatial filter to catalog. time-varying magnitude completeness
+                              will still need to be applied.
 
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
@@ -152,12 +154,16 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, **kwar
         return_val = catalog.get_csep_format()
     else:
         raise ValueError('format must be either "native" or "csep"')
+
+    if apply_filters:
+        return_val = return_val.filter().filter_spatial()
     return return_val
 
 
 def query_comcat(start_time, end_time, min_magnitude=2.50,
                  min_latitude=31.50, max_latitude=43.00,
-                 min_longitude=-125.40, max_longitude=-113.10, verbose=True, **kwargs):
+                 min_longitude=-125.40, max_longitude=-113.10, verbose=True,
+                 apply_filters=False, **kwargs):
     """
     Access Comcat catalog through web service
 
@@ -185,6 +191,10 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
     t1 = time.time()
     comcat = catalogs.CSEPCatalog(data=eventlist, date_accessed=utc_now_datetime(), **kwargs)
     print("Fetched ComCat catalog in {} seconds.\n".format(t1 - t0))
+
+    if apply_filters:
+        comcat = comcat.filter().filter_spatial()
+
     if verbose:
         print("Downloaded catalog from ComCat with following parameters")
         print("Start Date: {}\nEnd Date: {}".format(str(comcat.start_time), str(comcat.end_time)))
@@ -192,8 +202,8 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
         print("Min Longitude: {} and Max Longitude: {}".format(comcat.min_longitude, comcat.max_longitude))
         print("Min Magnitude: {}".format(comcat.min_magnitude))
         print(f"Found {comcat.event_count} events in the ComCat catalog.")
-    return comcat
 
+    return comcat
 
 def load_evaluation_result(fname):
     """ Load evaluation result stored as json file

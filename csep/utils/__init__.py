@@ -1,8 +1,23 @@
+import os
 import functools
 import operator
+import subprocess
 
 # Third-party imports
 import numpy
+
+def current_git_hash():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root_dir).decode().strip()
+
+def git_remote_url():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    remotes = subprocess.check_output(["git", "remote", "-v"], cwd=root_dir).decode().strip().split()
+    return list(set([item for item in remotes if '.git' in item]))
+
+def git_status_string():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    return subprocess.check_output(["git", "status"], cwd=root_dir).decode().strip()
 
 def keys_in_dict(adict, keys):
     """

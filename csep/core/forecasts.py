@@ -450,7 +450,7 @@ class CatalogForecast(LoggingMixin):
                  filter_spatial=False, filters=None, apply_mct=False,
                  region=None, expected_rates=None, start_time=None, end_time=None,
                  n_cat=None, event=None, loader=None, catalog_type='ascii',
-                 catalog_format='native', store=True):
+                 catalog_format='native', store=True, apply_filters=False):
 
 
         """
@@ -478,7 +478,8 @@ class CatalogForecast(LoggingMixin):
             event (:class:`csep.models.Event`): if the forecast is associated with a particular event
             store (bool): if true, will store catalogs on object in memory. this should only be made false if working
                           with very large forecast files that cannot be stored in memory
-
+            apply_filters (bool): if true, filters will be applied automatically to the catalogs as the forecast
+                                  is iterated through
         """
 
         super().__init__()
@@ -499,8 +500,8 @@ class CatalogForecast(LoggingMixin):
         # used if the forecast is associated with a particular event
         self.event = event
 
-        # if true, no filters will be applied when iterating though forecast
-        self.apply_filters = True
+        # if false, no filters will be applied when iterating though forecast
+        self.apply_filters = apply_filters
 
         # these can be used to filter catalogs to a desired experiment region
         self.filters = filters or []
@@ -569,6 +570,9 @@ class CatalogForecast(LoggingMixin):
                                                 region=self.region, name=self.name)
                 else:
                     self.catalogs = self._catalogs
+                    del self._catalogs
+                    if self.apply_filters:
+                        self.apply_filters = False
 
                 self.n_cat = self._idx
                 self._idx = 0
@@ -668,6 +672,11 @@ class CatalogForecast(LoggingMixin):
             else:
                 return self.expected_rates
 
+    def plot(self, **kwargs):
+        if self.expected_rates is None:
+            self.get_expected_rates()
+        self.expected_rates.plot(**kwargs)
+
     def get_dataframe(self):
         """Return a single dataframe with all of the events from all of the catalogs."""
         raise NotImplementedError("get_dataframe is not implemented.")
@@ -684,7 +693,6 @@ class CatalogForecast(LoggingMixin):
         Returns:
             NoneType
         """
-
         raise NotImplementedError('write_ascii is not implemented!')
 
     @classmethod
