@@ -64,8 +64,7 @@ def spatial_test(forecast, observed_catalog):
 
     # get observed likelihood
     if observed_catalog.event_count == 0:
-        print(f'Skipping spatial tests because no events in observed catalog.')
-        return None
+        print(f'Spatial test not-invalid because no events in observed catalog.')
 
     test_distribution = []
 
