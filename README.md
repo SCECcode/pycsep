@@ -5,7 +5,7 @@
 ![Python version](http://hypocenter.usc.edu/research/badges/pycsep-python.svg)
 ![Python application](https://github.com/SCECCode/csep2/workflows/Python%20application/badge.svg)
 [![Build sphinx documentation](https://github.com/SCECCode/csep2/workflows/Build%20sphinx%20documentation/badge.svg)](https://cseptesting.org)
-[![codecov](https://codecov.io/gh/SCECcode/csep2/branch/dev/graph/badge.svg)](https://codecov.io/gh/SCECcode/csep2)
+[![codecov](https://codecov.io/gh/SCECcode/pycsep/branch/master/graph/badge.svg?token=HTMKM29MAU)](https://codecov.io/gh/SCECcode/pycsep)
 
 The PyCSEP tools help earthquake forecast model developers evaluate their forecasts with the goal of understanding
 earthquake predictability.
