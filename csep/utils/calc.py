@@ -113,8 +113,8 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
 
     # this value is: -inf obs at idx and no apprx_rate_density
     #                -expected_cond_count if no target earthquakes
-    n_cat = numpy.sum(gridded_data)
-    if n_cat == 0:
+    n_events = numpy.sum(gridded_data)
+    if n_events == 0:
         return(-expected_cond_count, numpy.nan)
     else:
         with numpy.errstate(divide='ignore'):
@@ -131,7 +131,7 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
     # value could be: -inf if no value in apprx_rate_dens
     #                  nan if n_cat is 0
     with numpy.errstate(divide='ignore'):
-        likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log(norm_apprx_rate_density[idx])) / n_cat
+        likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log(norm_apprx_rate_density[idx])) / n_events
 
     return (likelihood, likelihood_norm)
 
