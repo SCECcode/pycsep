@@ -1,81 +1,73 @@
+import os
 import numpy
-from csep.core.evaluations import *
+import unittest
 
-class MockCatalog:
-    """
-    Mock catalog class for testing purposes.
-    """
-    def __init__(self, val, name='Mock Catalog'):
-        self.val = val
-        self.name = name
+from csep.core.poisson_evaluations import _simulate_catalog, _poisson_likelihood_test
 
-    def __str__(self):
-        return ''
+def get_datadir():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(root_dir, 'artifacts', 'Comcat')
+    return data_dir
 
-    def get_number_of_events(self):
-        return self.val
+class TestPoissonLikelihood(unittest.TestCase):
 
-class TestNTest:
-    '''
-    n-test returns two values, delta_1 and delta_2
-    delta 1 is prob of at least N_obs events given distribution from forecast
-    delta 2 is prob at most N_obs events given distribution from forecast
-    '''
-    def test_greater_equal_side(self):
-        n_obs = 0
-        # have a vector with 50 values = 0 and 50 values = 1
-        ints=numpy.zeros(100)
-        ints[:50] = 1
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.seed = 0
+        numpy.random.seed(self.seed)
+        # used for posterity
+        self.random_matrix = numpy.random.rand(1, 4)
+        self.forecast_data = numpy.array([[1, 1], [1, 1]])
+        self.observed_data = numpy.array([[1, 1], [1, 1]])
 
-        sets = [MockCatalog(val) for val in ints]
-        obs = MockCatalog(n_obs, 'Mock Obs.')
+    def test_simulate_catalog(self):
+        # expecting the sampling weights to be [0.25, 0.5, 0.75, 1.0]
+        # assuming the random numbers are equal to thhe following:
+        random_numbers = numpy.array([[0.5488135, 0.71518937, 0.60276338, 0.54488318]])
 
-        result, ax = number_test(sets, obs)
+        num_events = 4
 
-        assert numpy.isclose(result[0], 1.0)
-        assert numpy.isclose(result[1], 0.5)
+        # ensures that our random numbers used to manually create expected observed_catalog are consistent
+        numpy.testing.assert_allclose(random_numbers, self.random_matrix)
 
-    def test_less_equal_side(self):
-        n_obs = 1
-        # have a vector with 50 values = 0 and 50 values = 1
-        ints=numpy.zeros(100)
-        ints[:50] = 1
+        # assuming that our forecast_data are uniform as defined above
+        # bin[0] = [0, 0.25)
+        # bin[1] = [0.25, 0.5)
+        # bin[2] = [0.5, 0.75)
+        # bin[3] = [0.75, 1.0)
+        expected_catalog = [0, 0, 4, 0]
 
-        sets = [MockCatalog(val) for val in ints]
-        obs = MockCatalog(n_obs, 'Mock Obs.')
+        # forecast_data should be event counts
+        expected_forecast_count = numpy.sum(self.forecast_data)
 
-        result, ax = number_test(sets, obs)
+        # used to determine where simulated earthquake shoudl be placed
+        sampling_weights = numpy.cumsum(self.forecast_data.ravel()) / expected_forecast_count
 
-        # result = (delta_1, delta_2)... at least, at most
-        assert numpy.isclose(result[0], 0.5)
-        assert numpy.isclose(result[1], 1.0)
+        # this is taken from the test likelihood function
+        sim_fore = numpy.empty(sampling_weights.shape)
+        sim_fore = _simulate_catalog(num_events, sampling_weights, sim_fore,
+                                     random_numbers=self.random_matrix)
 
-    def test_obs_greater_than_all(self):
-        n_obs = 2
-        # have a vector with 50 values = 0 and 50 values = 1
-        ints=numpy.zeros(100)
-        ints[:50] = 1
+        # final statement
+        numpy.testing.assert_allclose(expected_catalog, sim_fore)
 
-        sets = [MockCatalog(val) for val in ints]
-        obs = MockCatalog(n_obs, 'Mock Obs.')
+        # test again to ensure that fill works properply
+        sim_fore = _simulate_catalog(num_events, sampling_weights, sim_fore,
+                                     random_numbers=self.random_matrix)
 
-        result, ax = number_test(sets, obs)
+        # final statement
+        numpy.testing.assert_allclose(expected_catalog, sim_fore)
 
-        # result = (delta_1, delta_2)... at least, at most
-        assert numpy.isclose(result[0], 0.0)
-        assert numpy.isclose(result[1], 1.0)
+    def test_likelihood(self):
+        qs, obs_ll, simulated_ll = _poisson_likelihood_test(self.forecast_data, self.observed_data, num_simulations=1,
+                                                            random_numbers=self.random_matrix, use_observed_counts=True)
 
-    def test_obs_less_than_all(self):
-        n_obs = -1
-        # have a vector with 50 values = 0 and 50 values = 1
-        ints=numpy.zeros(100)
-        ints[:50] = 1
+        # very basic result to pass "laugh" test
+        numpy.testing.assert_allclose(qs, 1)
 
-        sets = [MockCatalog(val) for val in ints]
-        obs = MockCatalog(n_obs, 'Mock Obs.')
+        # forecast and observation are the same, sum(np.log(poisson(1, 1))) = -4
+        numpy.testing.assert_allclose(obs_ll, -4)
 
-        result, ax = number_test(sets, obs)
+        # calculated by hand given the expected data, see explanation in zechar et al., 2010.
+        numpy.testing.assert_allclose(simulated_ll[0], -7.178053830347945)
 
-        # result = (delta_1, delta_2)... at least, at most
-        assert numpy.isclose(result[0], 1.0)
-        assert numpy.isclose(result[1], 0.0)

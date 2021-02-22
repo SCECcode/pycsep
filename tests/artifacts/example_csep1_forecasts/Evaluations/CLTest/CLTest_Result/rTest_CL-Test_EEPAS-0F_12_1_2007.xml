@@ -1,0 +1,20 @@
+<ns0:CSEPResult xmlns:ns0="http://www.scec.org/xml-ns/csep/0.1">
+  <ns0:resultData publicID="smi://org.scec/csep/results/1">
+     <ns0:CLTest publicID="smi://org.scec/csep/tests/cltest/1">
+        <ns0:description>This is CL-Test for EEPAS-0F_12_1_2007 model.</ns0:description>
+        <ns0:name>EEPAS-0F_12_1_2007</ns0:name>
+        <ns0:creationInfo CSEPVersion="pre10.10.0" creationTime="2010-09-15T21:57:42" />
+        <ns0:modificationData publicID="smi://local/modificationdata/1">
+           <ns0:modificationCount>0</ns0:modificationCount>
+           <ns0:modification> </ns0:modification>
+         </ns0:modificationData>
+        <ns0:simulationData publicID="smi://local/simulationdata/1">
+           <ns0:simulationCount>10</ns0:simulationCount>
+           <ns0:simulation>0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0</ns0:simulation>
+         </ns0:simulationData>
+        <ns0:logLikelihoodTrue sum="-0.13899" sumIsValid="True" />
+        <ns0:logLikelihood>0</ns0:logLikelihood>
+        <ns0:xi>1.000</ns0:xi>
+      </ns0:CLTest>
+   </ns0:resultData>
+</ns0:CSEPResult>

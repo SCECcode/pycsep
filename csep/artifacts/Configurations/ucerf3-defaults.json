@@ -1,0 +1,36 @@
+{
+  "numSimulations": 10000,
+  "duration": 1.0,
+  "startTimeMillis": 709732655000,
+  "includeSpontaneous": true,
+  "binaryOutput": true,
+  "binaryOutputFilters": [
+    {
+      "prefix": "results_complete",
+      "descendantsOnly": false
+    },
+    {
+      "prefix": "landers_t0_m4_preserve_chain_spontaneous",
+      "minMag": 3.95,
+      "preserveChainBelowMag": true,
+      "descendantsOnly": false
+    }
+  ],
+  "forceRecalc": false,
+  "simulationName": "1 Year Forecast immediately after Landers with Spontaneous Mw>3.95",
+  "numRetries": 3,
+  "outputDir": "$ETAS_SIMS/landers_experiment/10-23-2018_landers-pt1",
+  "triggerCatalog": "$ETAS_LAUNCHER/inputs/u3_historical_catalog.txt",
+  "triggerCatalogSurfaceMappings": "$ETAS_LAUNCHER/inputs/u3_historical_catalog_finite_fault_mappings.xml",
+  "cacheDir": "$ETAS_LAUNCHER/inputs/cache_fm3p1_ba",
+  "fssFile": "$ETAS_LAUNCHER/inputs/2013_05_10-ucerf3p3-production-10runs_COMPOUND_SOL_FM3_1_SpatSeisU3_MEAN_BRANCH_AVG_SOL.zip",
+  "probModel": "FULL_TD",
+  "applySubSeisForSupraNucl": true,
+  "totRateScaleFactor": 1.14,
+  "gridSeisCorr": true,
+  "timeIndependentERF": false,
+  "griddedOnly": false,
+  "imposeGR": false,
+  "includeIndirectTriggering": true,
+  "gridSeisDiscr": 0.1
+}
