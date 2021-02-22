@@ -1230,7 +1230,7 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
     color = plot_args.get('color', 'tab:blue')
 
     # quantiles should be sorted for plotting
-    sorted_td = numpy.array(evaluation_result.test_distribution).sort()
+    sorted_td = numpy.sort(evaluation_result.test_distribution)
 
     if axes is None:
         fig, ax = pyplot.subplots()
