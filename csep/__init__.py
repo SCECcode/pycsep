@@ -17,7 +17,15 @@ from csep.utils import datasets
 from csep.utils import readers
 
 from csep.core.forecasts import GriddedForecast, CatalogForecast
-from csep.models import EvaluationResult, CatalogNumberTestResult
+from csep.models import (
+    EvaluationResult,
+    CatalogNumberTestResult,
+    CatalogSpatialTestResult,
+    CatalogMagnitudeTestResult,
+    CatalogPseudolikelihoodTestResult,
+    CalibrationTestResult
+)
+
 from csep.utils.time_utils import (
     utc_now_datetime,
     strptime_to_utc_datetime,
@@ -215,12 +223,16 @@ def load_evaluation_result(fname):
     # tries to return the correct class for the evaluation result. if it cannot find the type simply returns the basic result.
     evaluation_result_factory = {
         'default': EvaluationResult,
-        'CatalogNumberTestResult': CatalogNumberTestResult
+        'CatalogNumberTestResult': CatalogNumberTestResult,
+        'CatalogSpatialTestResult': CatalogSpatialTestResult,
+        'CatalogMagnitudeTestResult': CatalogMagnitudeTestResult,
+        'CatalogPseudoLikelihoodTestResult': CatalogPseudolikelihoodTestResult,
+        'CalibrationTestResult': CalibrationTestResult
     }
     with open(fname, 'r') as json_file:
         json_dict = json.load(json_file)
         try:
-            evaluation_type = json_dict['named_type']
+            evaluation_type = json_dict['type']
         except:
             evaluation_type = 'default'
     eval_result = evaluation_result_factory[evaluation_type].from_dict(json_dict)
