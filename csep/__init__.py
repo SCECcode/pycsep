@@ -223,6 +223,7 @@ def load_evaluation_result(fname):
     # tries to return the correct class for the evaluation result. if it cannot find the type simply returns the basic result.
     evaluation_result_factory = {
         'default': EvaluationResult,
+        'EvaluationResult': EvaluationResult,
         'CatalogNumberTestResult': CatalogNumberTestResult,
         'CatalogSpatialTestResult': CatalogSpatialTestResult,
         'CatalogMagnitudeTestResult': CatalogMagnitudeTestResult,
