@@ -64,8 +64,7 @@ def spatial_test(forecast, observed_catalog):
 
     # get observed likelihood
     if observed_catalog.event_count == 0:
-        print(f'Skipping spatial tests because no events in observed catalog.')
-        return None
+        print(f'Spatial test not-invalid because no events in observed catalog.')
 
     test_distribution = []
 
@@ -97,16 +96,8 @@ def spatial_test(forecast, observed_catalog):
         print(f"Found -inf as the observed likelihood score. "
               f"Assuming event(s) occurred in undersampled region of forecast.\n"
               f"Recomputing with {new_n_obs} events after removing {n_obs - new_n_obs} events.")
-        if new_n_obs == 0:
-            print(
-                f'Skipping pseudo-likelihood based tests for because no events in observed catalog '
-                f'after correcting for under-sampling in forecast.'
-            )
-            return None
 
         new_ard = forecast_mean_spatial_rates[idx_good_sim]
-        # we need to use the old n_obs here, because if we normalize the ard to a different value the observed
-        # statistic will not be computed correctly.
         _, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, expected_cond_count, n_obs)
         message = "undersampled"
 
