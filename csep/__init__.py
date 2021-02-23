@@ -117,8 +117,8 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
 
-    if type not in ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk') and loader is None:
-        raise ValueError("type must be one of the following: ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk').")
+    if type not in ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ingv_horus', 'ingv_emrcmt', 'ndk') and loader is None:
+        raise ValueError("type must be one of the following: ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk', 'ingv_horus', 'ingv_emrcmt').")
 
     # map to correct catalog class, at some point these could be abstracted into configuration file
     # this maps a human readable string to the correct catalog class and the correct loader function
@@ -142,6 +142,14 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_
         'ndk': {
             'class': catalogs.CSEPCatalog,
             'loader': readers.ndk
+        },
+        'ingv_horus': {
+            'class': catalogs.CSEPCatalog,
+            'loader': readers.ingv_horus
+        },
+        'ingv_emrcmt': {
+            'class': catalogs.CSEPCatalog,
+            'loader': readers.ingv_emrcmt
         }
     }
 

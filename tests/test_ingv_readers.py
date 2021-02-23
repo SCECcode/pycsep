@@ -35,7 +35,7 @@ class TestReadCatalog(unittest.TestCase):
         target_depth = []
         target_mw = []
         with open(filepath) as file_:
-            for targetline in file_.readlines():
+            for targetline in file_.readlines()[1:]:
                 targetline_ = targetline.split(',')
                 target_lon.append(float(targetline_[5].replace('"', '')))
                 target_lat.append(float(targetline_[4].replace('"', '')))
