@@ -640,7 +640,9 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
            - :borders: :class:`bool` - Flag to plot country borders. default False,
            - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
            - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
-
+           - :alpha: :class:`float` - Transparency for the earthquakes scatter
+           - :mag_scale: ('str'/'func') - Scaling of the scatter
+           - :legend:
 
     Returns:
         :class:`matplotlib.pyplot.ax` object
@@ -662,8 +664,14 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     title_size = plot_args.get('title_size', None)
     filename = plot_args.get('filename', None)
     # scatter properties
-    markersize = plot_args.get('markersize', 4)
+    markersize = plot_args.get('markersize', 1)
     markercolor = plot_args.get('markercolor', 'blue')
+    alpha = plot_args.get('alpha', 1)
+    mag_scale = plot_args.get('mag_scale', 1)
+    legend = plot_args.get('legend', False)
+    legend_loc = plot_args.get('legend_loc', 1)
+    mag_ticks = plot_args.get('mag_ticks', None)
+    labelspacing = plot_args.get('labelspacing', 1)
     # cartopy properties
     projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
     grid = plot_args.get('grid', True)
@@ -689,15 +697,35 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
                       linecolor=linecolor, linewidth=linewidth)
 
+    # Scaling function
+    mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
+    def size_map(markersize, values, scale):
+        range_= [min(values), max(values)]
+        print(range_)
+        if isinstance(mag_scale, (int, float)):
+            return (markersize/(scale**range_[0]) * numpy.power(values, scale))
+        elif isinstance(scale, (numpy.ndarray, list)):
+            return scale
+        else:
+            raise ValueError('scale data type not supported')
 
-    ## Plot spatial dataset
-    scatter = ax.scatter(
-                catalog.get_longitudes(), catalog.get_latitudes(),
-                s=markersize,
-                transform=cartopy.crs.PlateCarree(),
-                color=markercolor,  # Colormap to use
-                alpha=1)
+    ## Plot catalog
+    scatter = ax.scatter(catalog.get_longitudes(), catalog.get_latitudes(),
+                           s=size_map(markersize, catalog.get_magnitudes(), mag_scale),
+                           transform=cartopy.crs.PlateCarree(),
+                           color=markercolor,  # Colormap to use
+                           alpha=alpha)
 
+    # Legend
+    if legend:
+        if mag_ticks is None:
+            mag_ticks = numpy.round(numpy.linspace(mw_range[0],mw_range[1],4),1)
+        handles, labels = scatter.legend_elements(prop="sizes",
+                                                  num=size_map(markersize, mag_ticks, mag_scale),
+                                                  alpha=0.3)
+        ax.legend(handles, mag_ticks,
+                  loc=legend_loc, title=r"Magnitudes",title_fontsize=16,
+                  labelspacing=labelspacing, handletextpad=5, framealpha=False)
 
     # Gridline options
     if grid:
