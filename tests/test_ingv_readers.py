@@ -26,7 +26,7 @@ def get_emrcmt_path():
 class TestReadCatalog(unittest.TestCase):
 
     def test_cat_emrcmt(self):
-        filepaths = [get_emrcmt_path_old(), get_emrcmt_path_old()]
+        filepaths = [get_emrcmt_path(), get_emrcmt_path_old()]
         for filepath in filepaths:
             catalog_tuples = readers.ingv_emrcmt(filepath)
 
