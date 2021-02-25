@@ -495,13 +495,20 @@ def ingv_emrcmt(fname):
            'depth': 6,
            'Mw': 61}
 
+    def is_header_line(line):
+        if line[0] == 'ev_id':
+            return True
+        else:
+            return False
+
     out = []
     evcat_id = []
     n_event = 0
     with open(fname) as file_:
         reader = csv.reader(file_)
-        
         for n, line in enumerate(reader):
+            if is_header_line(line):
+                continue
             try:
                 date = line[ind['date']].replace('-', '/')
                 time = line[ind['time']].replace(' ', '0')
@@ -548,7 +555,6 @@ def ingv_emrcmt(fname):
         print('Removed %i repeated events' % len(rep_events))
         
     return out
-
 
 def ingv_horus(fname):
     """
