@@ -173,6 +173,7 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_
 
     if apply_filters:
         return_val = return_val.filter().filter_spatial()
+
     return return_val
 
 
