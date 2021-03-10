@@ -410,6 +410,7 @@ def csep_ascii(fname, return_catalog_id=False):
     """
 
     def is_header_line(line):
+        # ascii file has csv header with column names as text
         if line[0] == 'lon':
             return True
         else:
