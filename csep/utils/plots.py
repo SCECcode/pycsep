@@ -1228,6 +1228,9 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
     xlabel = plot_args.get('xlabel', 'Quantile scores')
     ylabel = plot_args.get('ylabel', 'Standard uniform quantiles')
     color = plot_args.get('color', 'tab:blue')
+    marker = plot_args.get('marker', 'o')
+    size = plot_args.get('size', 5)
+    legend_loc = plot_args.get('legend_loc', 'best')
 
     # quantiles should be sorted for plotting
     sorted_td = numpy.sort(evaluation_result.test_distribution)
@@ -1238,7 +1241,7 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
         ax = axes
 
     # plot qq plot
-    _ = ax.scatter(sorted_td, pp, label=label, c=color)
+    _ = ax.scatter(sorted_td, pp, label=label, c=color, marker=marker, s=size)
     # plot uncertainty on uniform quantiles
     ax.plot(pp, pp, '-k')
     ax.plot(ulow, pp, ':k')
@@ -1249,7 +1252,7 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
-    ax.legend(loc='lower right')
+    ax.legend(loc=legend_loc)
 
     if show:
         pyplot.show()

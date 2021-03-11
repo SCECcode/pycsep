@@ -262,7 +262,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         res = self.scale(fore_frac)
         return res
 
-    def target_event_rates(self, target_catalog, scale=True):
+    def target_event_rates(self, target_catalog, scale=False):
         """ Generates data set of target event rates given a target data.
 
         The data should already be scaled to the same length as the forecast time horizon. Explicit checks for these
