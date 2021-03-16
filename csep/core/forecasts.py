@@ -217,6 +217,7 @@ class MarkedGriddedDataSet(GriddedDataSet):
             raise ValueError("mags outside the range of forecast magnitudes.")
         return idm
 
+
 class GriddedForecast(MarkedGriddedDataSet):
     """ Class to represent grid-based forecasts """
 

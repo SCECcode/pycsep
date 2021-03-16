@@ -63,27 +63,27 @@ class TestCartesian2D(unittest.TestCase):
         self.assertEqual(self.cart_grid.num_nodes, self.num_nodes, 'num nodes is not correct')
 
     def test_xs_and_xy_correct(self):
-        numpy.testing.assert_allclose(self.cart_grid.xs, numpy.arange(0,self.nx)*self.dh)
-        numpy.testing.assert_allclose(self.cart_grid.ys, numpy.arange(0,self.ny)*self.dh)
+        numpy.testing.assert_array_equal(self.cart_grid.xs, numpy.arange(0,self.nx)*self.dh)
+        numpy.testing.assert_array_equal(self.cart_grid.ys, numpy.arange(0,self.ny)*self.dh)
 
     def test_bitmask_indices_mapping(self):
         test_idx = self.cart_grid.idx_map[1,0]
-        numpy.testing.assert_allclose(test_idx, 0, err_msg='mapping for first polygon index (good) not correct')
+        numpy.testing.assert_array_equal(test_idx, 0, err_msg='mapping for first polygon index (good) not correct')
 
         test_idx = self.cart_grid.idx_map[0,1]
-        numpy.testing.assert_allclose(test_idx, 9, err_msg='mapping for polygon (good) not correct.')
+        numpy.testing.assert_array_equal(test_idx, 9, err_msg='mapping for polygon (good) not correct.')
 
         test_idx = self.cart_grid.idx_map[2,0]
-        numpy.testing.assert_allclose(test_idx, 1, err_msg='mapping for polygon (good) not correct.')
+        numpy.testing.assert_array_equal(test_idx, 1, err_msg='mapping for polygon (good) not correct.')
 
         test_idx = self.cart_grid.idx_map[0,2]
-        numpy.testing.assert_allclose(test_idx, 19, err_msg='mapping for polygon (good) not correct.')
+        numpy.testing.assert_array_equal(test_idx, 19, err_msg='mapping for polygon (good) not correct.')
 
         test_idx = self.cart_grid.idx_map[-1,-1]
-        numpy.testing.assert_allclose(test_idx, numpy.nan, err_msg='mapping for last index (bad) not correct.')
+        numpy.testing.assert_array_equal(test_idx, numpy.nan, err_msg='mapping for last index (bad) not correct.')
 
         test_idx = self.cart_grid.idx_map[0,0]
-        numpy.testing.assert_allclose(test_idx, numpy.nan, err_msg='mapping for first index (bad) not correct.')
+        numpy.testing.assert_array_equal(test_idx, numpy.nan, err_msg='mapping for first index (bad) not correct.')
 
     def test_domain_mask(self):
         test_flag = self.cart_grid.bbox_mask[0, 0]
