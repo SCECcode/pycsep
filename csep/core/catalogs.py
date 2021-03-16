@@ -574,7 +574,7 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             cls = self.__class__
             inst = cls(data=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name,
-                       region=region, compute_stats=update_stats)
+                       region=self.region, compute_stats=update_stats)
             return inst
 
     def apply_mct(self, m_main, event_epoch, mc=2.5):
@@ -854,6 +854,7 @@ class AbstractBaseCatalog(LoggingMixin):
         ax = plot_catalog(self, ax=ax,show=show, extent=extent,
                           set_global=set_global, plot_args=plot_args)
         return ax
+
 
 class CSEPCatalog(AbstractBaseCatalog):
     """

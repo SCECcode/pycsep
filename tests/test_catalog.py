@@ -1,6 +1,7 @@
 import copy
 import unittest
 import os
+import itertools
 
 import numpy
 
@@ -8,6 +9,7 @@ import csep
 from csep.core import regions, forecasts
 from csep.utils.time_utils import strptime_to_utc_epoch, strptime_to_utc_datetime
 from csep.core.catalogs import CSEPCatalog
+from csep.core.regions import CartesianGrid2D, Polygon, compute_vertices
 
 def comcat_path():
     root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -17,6 +19,18 @@ def comcat_path():
 
 class CatalogFiltering(unittest.TestCase):
     def setUp(self):
+
+        # create some arbitrary grid
+        self.nx = 8
+        self.ny = 10
+        self.dh = 1
+        x_points = numpy.arange(1.5, self.nx) * self.dh
+        y_points = numpy.arange(1.5, self.ny) * self.dh
+
+        # spatial grid starts at (1.5, 1.5); so the event at (1, 1) should be removed.
+        self.origins = list(itertools.product(x_points, y_points))
+        self.num_nodes = len(self.origins)
+        self.cart_grid = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(self.origins, self.dh)], self.dh)
 
         # define dummy cat
         date1 = strptime_to_utc_epoch('2009-01-01 00:00:00.0000')
@@ -71,6 +85,21 @@ class CatalogFiltering(unittest.TestCase):
         test_cat = copy.deepcopy(self.test_cat1)
         filtered_test_cat = test_cat.filter(filters, in_place=False)
         numpy.testing.assert_equal(numpy.array([b'1', b'2'], dtype='S256').T, filtered_test_cat.get_event_ids())
+
+    def test_filter_spatial(self):
+
+        test_cat = copy.deepcopy(self.test_cat1)
+        filtered_test_cat = test_cat.filter_spatial(region=self.cart_grid)
+        numpy.testing.assert_equal(numpy.array([b'2', b'3'], dtype='S256').T, filtered_test_cat.get_event_ids())
+
+
+    def test_filter_spatial_in_place_return(self):
+        test_cat = copy.deepcopy(self.test_cat1)
+        filtered_test_cat = test_cat.filter_spatial(region=self.cart_grid, in_place=False)
+        numpy.testing.assert_array_equal(filtered_test_cat.region.midpoints(), test_cat.region.midpoints())
+        numpy.testing.assert_array_equal(filtered_test_cat.region.origins(), test_cat.region.origins())
+        numpy.testing.assert_array_equal(filtered_test_cat.region.bbox_mask, test_cat.region.bbox_mask)
+        numpy.testing.assert_array_equal(filtered_test_cat.region.idx_map, test_cat.region.idx_map)
 
     def test_catalog_binning_and_filtering_acceptance(self):
         # create space-magnitude region
