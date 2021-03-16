@@ -122,7 +122,7 @@ class CatalogFiltering(unittest.TestCase):
             # catalog filtered cumulative
             c = comcat.filter([f'magnitude >= {m_min}'], in_place=False)
             # catalog filtered incrementally
-            c_int = comcat.filter([f'magnitude >= {m_min}', f'magnitude < {m_min + 0.09999999}'], in_place=False)
+            c_int = comcat.filter([f'magnitude >= {m_min}', f'magnitude < {m_min + 0.1}'], in_place=False)
             # sum from overall data set
             gs = d.data[:, idm:].sum()
             # incremental counts
