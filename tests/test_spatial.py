@@ -243,7 +243,7 @@ class TestCatalogBinning(unittest.TestCase):
             lat = lats[i]
 
             assert lon >= found_poly.points[1][0] and lon < found_poly.points[2][0]
-            assert lat >= found_poly.points[0][1] and lon < found_poly.points[2][1]
+            assert lat >= found_poly.points[0][1] and lat < found_poly.points[2][1]
 
 if __name__ == '__main__':
     unittest.main()
