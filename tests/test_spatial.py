@@ -5,7 +5,7 @@ import pytest
 import numpy
 
 from csep.core.regions import CartesianGrid2D, compute_vertex, compute_vertices, _bin_catalog_spatio_magnitude_counts, \
-    _bin_catalog_spatial_counts, _bin_catalog_probability, Polygon
+    _bin_catalog_spatial_counts, _bin_catalog_probability, Polygon, global_region
 
 
 class TestPolygon(unittest.TestCase):
@@ -63,8 +63,12 @@ class TestCartesian2D(unittest.TestCase):
         self.assertEqual(self.cart_grid.num_nodes, self.num_nodes, 'num nodes is not correct')
 
     def test_xs_and_xy_correct(self):
-        numpy.testing.assert_array_equal(self.cart_grid.xs, numpy.arange(0,self.nx)*self.dh)
-        numpy.testing.assert_array_equal(self.cart_grid.ys, numpy.arange(0,self.ny)*self.dh)
+
+        test_xs = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+        test_ys = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+        numpy.testing.assert_array_equal(self.cart_grid.xs, test_xs)
+        numpy.testing.assert_array_equal(self.cart_grid.ys, test_ys)
 
     def test_bitmask_indices_mapping(self):
         test_idx = self.cart_grid.idx_map[1,0]
@@ -221,6 +225,25 @@ class TestCatalogBinning(unittest.TestCase):
         # we know that (0.05, 0.15) corresponds to index 0 from the above test
         self.assertEqual(test_result[0, 1], 1)
         self.assertEqual(test_result[9, 0], 1)
+
+
+    def test_global_region_binning(self):
+
+        gr = global_region()
+
+        # test points
+        lons = numpy.array([-178.6, -178.6, -178.02, -177.73, -177.79])
+        lats = numpy.array([-15.88, -51.75, -30.61, -29.98, -30.6])
+
+        # directly compute the indexes from the region object
+        idxs = gr.get_index_of(lons, lats)
+        for i, idx in enumerate(idxs):
+            found_poly = gr.polygons[idx]
+            lon = lons[i]
+            lat = lats[i]
+
+            assert lon >= found_poly.points[1][0] and lon < found_poly.points[2][0]
+            assert lat >= found_poly.points[0][1] and lon < found_poly.points[2][1]
 
 if __name__ == '__main__':
     unittest.main()

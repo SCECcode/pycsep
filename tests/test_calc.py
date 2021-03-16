@@ -1,5 +1,30 @@
 import unittest
-from csep.utils.calc import bin1d_vec
+import numpy
+from csep.utils.calc import bin1d_vec, cleaner_range
+
+
+class TestCleanerRange(unittest.TestCase):
+
+    def setUp(self):
+
+        self.start = 0.0
+        self.end = 0.9
+        self.dh = 0.1
+        self.truth = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+    def test_discrepancy_with_arange_catch_failure(self):
+
+        ar = numpy.arange(self.start, self.end + self.dh / 2, self.dh)
+        cr = cleaner_range(self.start, self.end, self.dh)
+
+        self.assertRaises(AssertionError, numpy.testing.assert_array_equal, ar, cr)
+        self.assertRaises(AssertionError, numpy.testing.assert_array_equal, ar, self.truth)
+
+
+    def test_discrepancy_with_direct_input(self):
+
+        cr = cleaner_range(self.start, self.end, self.dh)
+        numpy.testing.assert_array_equal(self.truth, cr)
 
 class TestBin1d(unittest.TestCase):
 
