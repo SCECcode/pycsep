@@ -7,11 +7,10 @@ from xml.etree import ElementTree as ET
 # Third-party imports
 import matplotlib.path
 import numpy
-
-# PyCSEP imports
 import numpy as np
 import pyproj
 
+# PyCSEP imports
 from csep.utils.calc import bin1d_vec
 from csep.utils.scaling_relationships import WellsAndCoppersmith
 
@@ -173,8 +172,14 @@ def global_region(dh=0.1, name="global", magnitudes=None):
         csep.utils.CartesianGrid2D:
     """
     # generate latitudes
-    lats = numpy.arange(-90.0, 89.9 + dh/2, dh)
-    lons = numpy.arange(-180, 179.9 + dh/2, dh)
+    const = 1000000
+    start_lat = numpy.floor(-90 * const)
+    end_lat = numpy.floor(90 * const)
+    start_lon = numpy.floor(-180 * const)
+    end_lon = numpy.floor(180 * const)
+    d = numpy.floor(const * dh)
+    lats = numpy.arange(start_lat, end_lat, d) / const
+    lons = numpy.arange(start_lon, end_lon, d) / const
     coords = itertools.product(lons,lats)
     region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name)
     if magnitudes is not None:
@@ -195,13 +200,20 @@ def magnitude_bins(start_magnitude, end_magnitude, dmw):
     Returns:
         bin_edges (numpy.ndarray)
     """
-    return numpy.arange(start_magnitude, end_magnitude+dmw/2, dmw)
+    # convert to integers to prevent accumulating floating point errors
+    const = 10000
+    start = numpy.floor(const * start_magnitude)
+    end = numpy.floor(const * end_magnitude)
+    d = const * dmw
+    return numpy.arange(start, end + d / 2, d) / const
 
 def create_space_magnitude_region(region, magnitudes):
     """Simple wrapper to create space-magnitude region """
     if not isinstance(region, CartesianGrid2D):
         raise TypeError("region must be CartesianGrid2D")
     # bind to region class
+    if magnitudes is None:
+        raise ValueError("magnitudes should not be None if creating space-magnitude region.")
     region.magnitudes = magnitudes
     region.num_mag_bins = len(region.magnitudes)
     return region
@@ -370,7 +382,7 @@ def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
     """
     return list(map(lambda x: compute_vertex(x, dh, tol=tol), origin_points))
 
-def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins):
+def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins, tol=0.00001):
     """
     Returns a list of event counts as ndarray with shape (n_poly, n_cat) where each value
     represents the event counts within the polygon.
@@ -388,7 +400,7 @@ def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map
     # index in 2d grid
     idx = bin1d_vec(lons, binx)
     idy = bin1d_vec(lats, biny)
-    mag_idxs = bin1d_vec(mags, mag_bins, right_continuous=True)
+    mag_idxs = bin1d_vec(mags, mag_bins, tol=tol, right_continuous=True)
     # start with zero event counts in each bin
     event_counts = numpy.zeros((n_poly, len(mag_bins)))
     # does not seem that we can vectorize this part

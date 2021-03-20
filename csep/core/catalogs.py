@@ -1,4 +1,5 @@
 import csv
+import gzip
 import json
 import operator
 import os
@@ -20,7 +21,8 @@ from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
 from csep.utils.readers import csep_ascii
-
+from csep.utils.file import get_file_extension
+from csep.utils.plots import plot_catalog
 
 class AbstractBaseCatalog(LoggingMixin):
     """
@@ -377,7 +379,7 @@ class AbstractBaseCatalog(LoggingMixin):
     def get_mag_idx(self):
         """ Return magnitude index from region magnitudes """
         try:
-            return bin1d_vec(self.get_magnitudes(), self.region.magnitudes, right_continuous=True)
+            return bin1d_vec(self.get_magnitudes(), self.region.magnitudes, tol=0.00001, right_continuous=True)
         except AttributeError:
             raise CSEPCatalogException("Cannot return magnitude index without self.region.magnitudes")
 
@@ -451,6 +453,19 @@ class AbstractBaseCatalog(LoggingMixin):
         """
         return self.catalog['longitude']
 
+    def get_bbox(self):
+        """
+        Returns bounding box of all events in the catalog
+
+        Returns:
+            (numpy.array): [lon_min, lon_max, lat_min, lat_max]
+        """
+        bbox = numpy.array([numpy.min(self.catalog['longitude']),
+                            numpy.max(self.catalog['longitude']),
+                            numpy.min(self.catalog['latitude']),
+                            numpy.max(self.catalog['latitude'])])
+        return bbox
+
     def get_depths(self):
         """ Returns depths of all events in catalog """
         return self.catalog['depth']
@@ -472,21 +487,6 @@ class AbstractBaseCatalog(LoggingMixin):
         if not self.filters and statements is None:
             raise CSEPCatalogException("Must provide filter statements to function or class to filter")
 
-        def parse_datetime_to_origin_time(dt_input):
-            """ Parses datetime strings with various formats. Handles datetime objects and datetime strings.
-            If datetime object is not time aware will assume that time is UTC, if it is timezone aware will convert to UTC timezone. """
-            if type(dt_input) == datetime.datetime:
-                # check for time zone
-                if dt_input.tzinfo == None:
-                    return create_utc_datetime(dt_input)
-            # handle it as string
-            try:
-                format = parse_string_format(dt_input)
-            except:
-                raise CSEPIOException(
-                    "Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
-            return strptime_to_utc_datetime(dt_input, format)
-
         # programmatically assign operators
         operators = {'>': operator.gt,
                      '<': operator.lt,
@@ -501,13 +501,13 @@ class AbstractBaseCatalog(LoggingMixin):
         if isinstance(statements, str):
             name = statements.split(' ')[0]
             if name == 'datetime':
-                name, oper, date, time = statements.split(' ')
+                _, oper, date, time = statements.split(' ')
+                name = 'origin_time'
                 # can be a datetime.datetime object or datetime string, if we want to support filtering on meta data it
                 # can happen here. but need to determine what to do if entry are not present bc meta data does not
                 # need to be square
                 value = strptime_to_utc_epoch(' '.join([date, time]))
-                idx = numpy.where(operators[oper](self.get_epoch_times(), value))
-                filtered = self.catalog[idx]
+                filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
             else:
                 name, oper, value = statements.split(' ')
                 filtered = self.catalog[operators[oper](self.catalog[name], float(value))]
@@ -517,14 +517,13 @@ class AbstractBaseCatalog(LoggingMixin):
             filtered = numpy.copy(self.catalog)
             for filt in filters:
                 name = filt.split(' ')[0]
+                # create indexing array, start with all events
                 if name == 'datetime':
-                    name, oper, date, time = filt.split(' ')
-                    # can be a datetime.datetime object or datetime string, if we want to support filtering on meta data it
-                    # can happen here. but need to determine what to do if entry are not present bc meta data does not
-                    # need to be square
+                    _, oper, date, time = filt.split(' ')
+                    # we map the requested datetime to an epoch time so we act like the user requested origin_time
+                    name = 'origin_time'
                     value = strptime_to_utc_epoch(' '.join([date, time]))
-                    idx = numpy.where(operators[oper](self.get_epoch_times(), value))
-                    filtered = self.catalog[idx]
+                    filtered = filtered[operators[oper](filtered[name], float(value))]
                 else:
                     name, oper, value = filt.split(' ')
                     filtered = filtered[operators[oper](filtered[name], float(value))]
@@ -539,16 +538,18 @@ class AbstractBaseCatalog(LoggingMixin):
             # make and return new object
             cls = self.__class__
             inst = cls(data=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name,
-                       region=self.region)
+                       region=self.region, filters=statements)
             return inst
 
-    def filter_spatial(self, region=None, update_stats=False):
+    def filter_spatial(self, region=None, update_stats=False, in_place=True):
         """
         Removes events outside of the region. This takes some time and should be used sparingly. Typically for isolating a region
         near the mainshock or inside a testing region. This should not be used to create gridded style data sets.
 
         Args:
             region: csep.utils.spatial.Region
+            update_stats (bool): if true will update catalog statistics
+            in_place (bool): if false, will create a new instance of the catalog preserving state
 
         Returns:
             self
@@ -563,12 +564,18 @@ class AbstractBaseCatalog(LoggingMixin):
 
         mask = self.region.get_masked(self.get_longitudes(), self.get_latitudes())
         # logical index uses opposite boolean values than masked arrays.
-        filtered = self.catalog[~mask]
-        self.catalog = filtered
 
-        if update_stats:
-            self.update_catalog_stats()
-        return self
+        filtered = self.catalog[~mask]
+        if in_place:
+            self.catalog = filtered
+            if update_stats:
+                self.update_catalog_stats()
+            return self
+        else:
+            cls = self.__class__
+            inst = cls(data=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name,
+                       region=self.region, compute_stats=update_stats)
+            return inst
 
     def apply_mct(self, m_main, event_epoch, mc=2.5):
         """
@@ -682,7 +689,7 @@ class AbstractBaseCatalog(LoggingMixin):
                                                   self.region.ys)
         return output
 
-    def magnitude_counts(self, mag_bins=None, retbins=False):
+    def magnitude_counts(self, mag_bins=None, tol=0.00001, retbins=False):
         """ Computes the count of events within mag_bins
 
 
@@ -710,14 +717,14 @@ class AbstractBaseCatalog(LoggingMixin):
                 return (mag_bins, out)
             else:
                 return out
-        idx = bin1d_vec(self.get_magnitudes(), mag_bins, right_continuous=True)
+        idx = bin1d_vec(self.get_magnitudes(), mag_bins, tol=tol, right_continuous=True)
         numpy.add.at(out, idx, 1)
         if retbins:
             return (mag_bins, out)
         else:
             return out
 
-    def spatial_magnitude_counts(self, mag_bins=None, ret_skipped=False):
+    def spatial_magnitude_counts(self, mag_bins=None, tol=0.00001, ret_skipped=False):
         """ Return counts of events in space-magnitude region.
 
         We figure out the index of the polygons and create a map that relates the spatial coordinate in the
@@ -765,7 +772,8 @@ class AbstractBaseCatalog(LoggingMixin):
                                                                            self.region.idx_map,
                                                                            self.region.xs,
                                                                            self.region.ys,
-                                                                           mag_bins)
+                                                                           mag_bins,
+                                                                           tol=tol)
         if ret_skipped:
             return output, skipped
         else:
@@ -822,6 +830,30 @@ class AbstractBaseCatalog(LoggingMixin):
             return (bval, err)
         else:
             return bval
+
+    def plot(self, ax=None, show=False, extent=None, set_global=False, plot_args=None):
+        """ Plot catalog according to plate-carree projection
+
+        Args:
+            ax (`matplotlib.pyplot.axes`): Previous axes onto which catalog can be drawn
+            show (bool): if true, show the figure. this call is blocking.
+            extent (list): Force an extent [lon_min, lon_max, lat_min, lat_max]
+            plot_args (optional/dict): dictionary containing plotting arguments for making figures
+
+        Returns:
+            axes: matplotlib.Axes.axes
+        """
+        # no mutable function arguments
+
+
+        plot_args = plot_args or {}
+        plot_args.setdefault('figsize', (10, 10))
+        plot_args.setdefault('title', self.name)
+
+        # this call requires internet connection and basemap
+        ax = plot_catalog(self, ax=ax,show=show, extent=extent,
+                          set_global=set_global, plot_args=plot_args)
+        return ax
 
 
 class CSEPCatalog(AbstractBaseCatalog):
@@ -967,6 +999,17 @@ class CSEPCatalog(AbstractBaseCatalog):
         new_class = cls(data=event_list, catalog_id=catalog_id, **kwargs)
         return new_class
 
+    def get_csep_format(self):
+        """ Returns CSEP format for a catalog
+
+        This catalog is already in CSEP format so it will return self.
+
+        Returns:
+            self
+
+        """
+        return self
+
 
 class UCERF3Catalog(AbstractBaseCatalog):
     """
@@ -997,21 +1040,45 @@ class UCERF3Catalog(AbstractBaseCatalog):
         Returns:
             list of catalogs of type UCERF3Catalog
         """
-        with open(filename, 'rb') as catalog_file:
-            # parse 4byte header from merged file
-            number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
-            # load all catalogs from merged file
-            for catalog_id in range(number_simulations_in_set):
-                dtype = cls._get_header_dtype(version)
-                version = numpy.fromfile(catalog_file, dtype=">i2", count=1)[0]
-                header = numpy.fromfile(catalog_file, dtype=dtype, count=1)
-                catalog_size = header['catalog_size'][0]
-                # read catalog
-                catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
-                # add column that stores catalog_id in case we want to store in database
-                u3_catalog = cls(filename=filename, data=catalog, catalog_id=catalog_id, **kwargs)
-                u3_catalog.dtype = dtype
-                yield u3_catalog
+
+        # handle uncompressed binary file
+        if get_file_extension(filename) == 'bin':
+            with open(filename, 'rb') as catalog_file:
+                # parse 4byte header from merged file
+                number_simulations_in_set = numpy.fromfile(catalog_file, dtype='>i4', count=1)[0]
+                # load all catalogs from merged file
+                for catalog_id in range(number_simulations_in_set):
+                    version = numpy.fromfile(catalog_file, dtype=">i2", count=1)[0]
+                    dtype = cls._get_header_dtype(version)
+                    header = numpy.fromfile(catalog_file, dtype=dtype, count=1)
+                    catalog_size = header['catalog_size'][0]
+                    # read catalog
+                    catalog = numpy.fromfile(catalog_file, dtype=cls._get_catalog_dtype(version), count=catalog_size)
+                    # add column that stores catalog_id in case we want to store in database
+                    u3_catalog = cls(filename=filename, data=catalog, catalog_id=catalog_id, **kwargs)
+                    u3_catalog.dtype = dtype
+                    yield u3_catalog
+
+        # handle compressed file by decompressing inline
+        elif get_file_extension(filename) == 'gz':
+            with gzip.open(filename, 'rb') as catalog_file:
+                number_simulations_in_set = numpy.frombuffer(catalog_file.read(4), dtype='>i4')[0]
+                for catalog_id in range(number_simulations_in_set):
+                    version = numpy.frombuffer(catalog_file.read(2), dtype='>i2')[0]
+                    dtype = cls._get_header_dtype(version)
+                    header_bytes = dtype.itemsize
+                    header = numpy.frombuffer(catalog_file.read(header_bytes), dtype=dtype)
+                    catalog_size = header['catalog_size'][0]
+                    catalog_dtype = cls._get_catalog_dtype(version)
+                    event_bytes = catalog_dtype.itemsize
+                    catalog = numpy.frombuffer(
+                        catalog_file.read(event_bytes*catalog_size),
+                        dtype=catalog_dtype,
+                        count=catalog_size
+                    )
+                    u3_catalog = cls(filename=filename, data=catalog, catalog_id=catalog_id, **kwargs)
+                    u3_catalog.dtype = dtype
+                    yield u3_catalog
 
     @classmethod
     def load_catalog(cls, filename, loader=None, **kwargs):
@@ -1080,10 +1147,8 @@ class UCERF3Catalog(AbstractBaseCatalog):
                                  ("fss_index", ">i4"),
                                  ("grid_node_index", ">i4"),
                                  ("etas_k", ">f8")])
-
         else:
             raise ValueError("unknown catalog version, cannot read catalog.")
-
         return dtype
 
     @staticmethod

@@ -503,10 +503,13 @@ def _poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000,
     if use_observed_counts:
         scale = n_obs / n_fore
         expected_forecast_count = int(n_obs)
-        log_bin_expectations = numpy.log(forecast_data.ravel() * scale)
+        # Numpy warnings can occur if forecasts have masked cells and thus zero valued rates
+        with numpy.errstate(divide='ignore'):
+            log_bin_expectations = numpy.log(forecast_data.ravel() * scale)
     else:
         expected_forecast_count = numpy.sum(forecast_data)
-        log_bin_expectations = numpy.log(forecast_data.ravel())
+        with numpy.errstate(divide='ignore'):
+            log_bin_expectations = numpy.log(forecast_data.ravel())
 
     # gets the 1d indices to bins that contain target events, these indexes perform copies and not views into the array
     target_idx = numpy.nonzero(observed_data.ravel())

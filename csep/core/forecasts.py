@@ -15,9 +15,15 @@ from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.plots import plot_spatial_dataset
 
 
-# idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet
+# idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet, bc of functions like
+#       get_latitudes(), and get_longitudes()
+#       or this class should be refactored as to use the underlying region
+
 # idea: this needs to handle non-carteisan regions, so maybe (lons, lats) should be a single variable like locations
+
 # note: these are specified to 2D data sets and some minor refactoring needs to happen here.
+
+# todo: add mask to dataset that has the shape of data. consider using numpy.ma module to hold these values
 class GriddedDataSet(LoggingMixin):
     """Represents space-magnitude discretized seismicity implementation.
 
@@ -192,7 +198,7 @@ class MarkedGriddedDataSet(GriddedDataSet):
         """ Returns counts of events in magnitude bins """
         return numpy.sum(self.data, axis=0)
 
-    def get_magnitude_index(self, mags):
+    def get_magnitude_index(self, mags, tol=0.00001):
         """ Returns the indices into the magnitude bins of selected magnitudes
 
         Note: the right-most bin is treated as extending to infinity.
@@ -206,11 +212,10 @@ class MarkedGriddedDataSet(GriddedDataSet):
         Raises:
             ValueError
         """
-        idm = bin1d_vec(mags, self.magnitudes, right_continuous=True)
+        idm = bin1d_vec(mags, self.magnitudes, tol=tol, right_continuous=True)
         if numpy.any(idm == -1):
             raise ValueError("mags outside the range of forecast magnitudes.")
         return idm
-
 
 class GriddedForecast(MarkedGriddedDataSet):
     """ Class to represent grid-based forecasts """
@@ -257,7 +262,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         res = self.scale(fore_frac)
         return res
 
-    def target_event_rates(self, target_catalog, scale=True):
+    def target_event_rates(self, target_catalog, scale=False):
         """ Generates data set of target event rates given a target data.
 
         The data should already be scaled to the same length as the forecast time horizon. Explicit checks for these
@@ -402,8 +407,8 @@ class GriddedForecast(MarkedGriddedDataSet):
         gds = cls(start_date, end_date, magnitudes=mws, name=name, region=region, data=rates)
         return gds
 
-    def plot(self, show=False, log=True, plot_args=None):
-        """ Plot gridded forecast according to plate-carree proejction
+    def plot(self, ax=None, show=False, log=True, extent=None, set_global=False, plot_args=None):
+        """ Plot gridded forecast according to plate-carree projection
 
         Args:
             show (bool): if true, show the figure. this call is blocking.
@@ -429,10 +434,12 @@ class GriddedForecast(MarkedGriddedDataSet):
         if log:
             plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
             with numpy.errstate(divide='ignore'):
-                ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, show=show, plot_args=plot_args)
+                ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, ax=ax,
+                                          show=show, extent=extent, set_global=set_global, plot_args=plot_args)
         else:
             plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
-            ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, show=show, plot_args=plot_args)
+            ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, ax=ax,show=show, extent=extent,
+                                      set_global=set_global, plot_args=plot_args)
         return ax
 
 
@@ -443,7 +450,7 @@ class CatalogForecast(LoggingMixin):
                  filter_spatial=False, filters=None, apply_mct=False,
                  region=None, expected_rates=None, start_time=None, end_time=None,
                  n_cat=None, event=None, loader=None, catalog_type='ascii',
-                 catalog_format='native'):
+                 catalog_format='native', store=True, apply_filters=False):
 
 
         """
@@ -469,7 +476,10 @@ class CatalogForecast(LoggingMixin):
             name (str): name of the forecast, will be used for defaults in plotting and other places
             n_cat (int): number of catalogs in the forecast
             event (:class:`csep.models.Event`): if the forecast is associated with a particular event
-
+            store (bool): if true, will store catalogs on object in memory. this should only be made false if working
+                          with very large forecast files that cannot be stored in memory
+            apply_filters (bool): if true, filters will be applied automatically to the catalogs as the forecast
+                                  is iterated through
         """
 
         super().__init__()
@@ -482,12 +492,16 @@ class CatalogForecast(LoggingMixin):
 
         # should be iterable
         self.catalogs = catalogs or []
+        self._catalogs = []
 
         # should be a generator function
         self.loader = loader
 
         # used if the forecast is associated with a particular event
         self.event = event
+
+        # if false, no filters will be applied when iterating though forecast
+        self.apply_filters = apply_filters
 
         # these can be used to filter catalogs to a desired experiment region
         self.filters = filters or []
@@ -509,10 +523,12 @@ class CatalogForecast(LoggingMixin):
         self.start_time = start_time
         self.end_time = end_time
 
+        # stores catalogs in memory
+        self.store = store
+
         # time horizon in years
         if self.start_time is not None and self.end_time is not None:
             self.time_horizon_years = (self.end_epoch - self.start_epoch) / SECONDS_PER_ASTRONOMICAL_YEAR / 1000
-            # add time filters only if filters are not provied and user wants to filter in time
 
         # number of simulated catalogs
         self.n_cat = n_cat
@@ -531,8 +547,10 @@ class CatalogForecast(LoggingMixin):
         """ Allows the class to be used in a for-loop. Handles the case where the catalogs are stored as a list or
         loaded in using a generator function. The latter solves the problem where memory is a concern or all of the
         catalogs should not be held in memory at once. """
+        is_generator = True
         try:
             n_items = len(self.catalogs)
+            is_generator = False
             assert self.n_cat == n_items
             # here, we have reached the end of the list, simply reset the index to the front
             if self._idx >= self.n_cat:
@@ -547,18 +565,31 @@ class CatalogForecast(LoggingMixin):
                 self._idx += 1
             except StopIteration:
                 # gets a new generator function after the old one is exhausted
-                self.catalogs = self.loader(format=self.catalog_format, filename=self.filename,
-                                            region=self.region, name=self.name)
+                if not self.store:
+                    self.catalogs = self.loader(format=self.catalog_format, filename=self.filename,
+                                                region=self.region, name=self.name)
+                else:
+                    self.catalogs = self._catalogs
+                    del self._catalogs
+                    if self.apply_filters:
+                        self.apply_filters = False
+
                 self.n_cat = self._idx
                 self._idx = 0
                 raise StopIteration()
+
         # apply filtering to catalogs, these can throw errors if not configured properly
-        if self.filters:
-            catalog = catalog.filter(self.filters)
-        if self.apply_mct:
-            catalog = catalog.apply_mct(self.event.magnitude, datetime_to_utc_epoch(self.event.time))
-        if self.filter_spatial:
-            catalog = catalog.filter_spatial(self.region)
+        if self.apply_filters:
+            if self.filters:
+                catalog = catalog.filter(self.filters)
+            if self.apply_mct:
+                catalog = catalog.apply_mct(self.event.magnitude, datetime_to_utc_epoch(self.event.time))
+            if self.filter_spatial:
+                catalog = catalog.filter_spatial(self.region)
+
+        if is_generator and self.store:
+            self._catalogs.append(catalog)
+
         # return potentially filtered data
         return catalog
 
@@ -641,6 +672,11 @@ class CatalogForecast(LoggingMixin):
             else:
                 return self.expected_rates
 
+    def plot(self, **kwargs):
+        if self.expected_rates is None:
+            self.get_expected_rates()
+        self.expected_rates.plot(**kwargs)
+
     def get_dataframe(self):
         """Return a single dataframe with all of the events from all of the catalogs."""
         raise NotImplementedError("get_dataframe is not implemented.")
@@ -657,7 +693,6 @@ class CatalogForecast(LoggingMixin):
         Returns:
             NoneType
         """
-
         raise NotImplementedError('write_ascii is not implemented!')
 
     @classmethod

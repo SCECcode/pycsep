@@ -39,7 +39,7 @@ def number_test(forecast, observed_catalog):
                                      name='Catalog N-Test',
                                      observed_statistic=obs_count,
                                      quantile=(delta_1, delta_2),
-                                     status='Normal',
+                                     status='normal',
                                      obs_catalog_repr=str(observed_catalog),
                                      sim_name=forecast.name,
                                      min_mw=forecast.min_magnitude,
@@ -64,8 +64,7 @@ def spatial_test(forecast, observed_catalog):
 
     # get observed likelihood
     if observed_catalog.event_count == 0:
-        print(f'Skipping spatial tests because no events in observed catalog.')
-        return None
+        print(f'Spatial test not-invalid because no events in observed catalog.')
 
     test_distribution = []
 
@@ -97,16 +96,8 @@ def spatial_test(forecast, observed_catalog):
         print(f"Found -inf as the observed likelihood score. "
               f"Assuming event(s) occurred in undersampled region of forecast.\n"
               f"Recomputing with {new_n_obs} events after removing {n_obs - new_n_obs} events.")
-        if new_n_obs == 0:
-            print(
-                f'Skipping pseudo-likelihood based tests for because no events in observed catalog '
-                f'after correcting for under-sampling in forecast.'
-            )
-            return None
 
         new_ard = forecast_mean_spatial_rates[idx_good_sim]
-        # we need to use the old n_obs here, because if we normalize the ard to a different value the observed
-        # statistic will not be computed correctly.
         _, obs_lh_norm = _compute_likelihood(new_gridded_obs, new_ard, expected_cond_count, n_obs)
         message = "undersampled"
 
@@ -144,7 +135,18 @@ def magnitude_test(forecast, observed_catalog):
     # short-circuit if zero events
     if observed_catalog.event_count == 0:
         print("Cannot perform magnitude test when observed event count is zero.")
-        return None
+        # prepare result
+        result = CatalogMagnitudeTestResult(test_distribution=test_distribution,
+                                            name='M-Test',
+                                            observed_statistic=None,
+                                            quantile=(None, None),
+                                            status='not-valid',
+                                            min_mw=forecast.min_magnitude,
+                                            obs_catalog_repr=str(observed_catalog),
+                                            obs_name=observed_catalog.name,
+                                            sim_name=forecast.name)
+
+        return result
 
     # compute expected rates for forecast if needed
     if forecast.expected_rates is None:
@@ -183,7 +185,7 @@ def magnitude_test(forecast, observed_catalog):
                               name='M-Test',
                               observed_statistic=obs_d_statistic,
                               quantile=(delta_1, delta_2),
-                              status='Normal',
+                              status='normal',
                               min_mw=forecast.min_magnitude,
                               obs_catalog_repr=str(observed_catalog),
                               obs_name=observed_catalog.name,
@@ -288,6 +290,7 @@ def calibration_test(evaluation_results, delta_1=False):
             delta_1 (bool): use delta_1 for quantiles. default false -> use delta_2 quantile score for calibration test
     """
 
+    # this is using "delta_2" which is the cdf value less-equal
     idx = 0 if delta_1 else 1
     quantiles = [result.quantile[idx] for result in evaluation_results]
     ks, p_value = scipy.stats.kstest(quantiles, 'uniform')

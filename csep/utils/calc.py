@@ -51,7 +51,7 @@ def discretize(data, bin_edges, right_continuous=False):
     x_new = bin_edges[idx]
     return x_new
 
-def bin1d_vec(p, bins, right_continuous=False):
+def bin1d_vec(p, bins, tol=None, right_continuous=False):
     """Efficient implementation of binning routine on 1D Cartesian Grid.
 
     Returns the indices of the points into bins. Bins are inclusive on the lower bound
@@ -69,12 +69,24 @@ def bin1d_vec(p, bins, right_continuous=False):
     Raises:
         ValueError:
     """
+    bins = numpy.array(bins)
+    p = numpy.array(p)
     a0 = numpy.min(bins)
     h = bins[1] - bins[0]
-    eps = numpy.finfo(numpy.float).eps
+
+    a0_tol = numpy.abs(a0) * numpy.finfo(numpy.float).eps
+    h_tol = numpy.abs(h) * numpy.finfo(numpy.float).eps
+    p_tol = numpy.abs(p) * numpy.finfo(numpy.float).eps
+
+    # absolute tolerance
+    if tol is None:
+        idx = numpy.floor((p + (p_tol + a0_tol) - a0) / (h - h_tol))
+    else:
+        idx = numpy.floor((p + (tol + a0_tol) - a0) / (h - h_tol))
     if h < 0:
         raise ValueError("grid spacing must be positive and monotonically increasing.")
-    idx = numpy.floor((p + eps - a0) / h)
+    # account for floating point uncertainties by considering extreme case
+
     if right_continuous:
         # set upper bin index to last
         try:
@@ -89,7 +101,10 @@ def bin1d_vec(p, bins, right_continuous=False):
         except (TypeError):
             if idx < 0 or idx >= len(bins):
                 idx = -1
-    idx = idx.astype(numpy.int)
+    try:
+        idx = idx.astype(numpy.int)
+    except (AttributeError):
+        idx = int(idx)
     return idx
 
 def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
@@ -98,8 +113,8 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
 
     # this value is: -inf obs at idx and no apprx_rate_density
     #                -expected_cond_count if no target earthquakes
-    n_cat = numpy.sum(gridded_data)
-    if n_cat == 0:
+    n_events = numpy.sum(gridded_data)
+    if n_events == 0:
         return(-expected_cond_count, numpy.nan)
     else:
         with numpy.errstate(divide='ignore'):
@@ -116,7 +131,7 @@ def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n
     # value could be: -inf if no value in apprx_rate_dens
     #                  nan if n_cat is 0
     with numpy.errstate(divide='ignore'):
-        likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log(norm_apprx_rate_density[idx])) / n_cat
+        likelihood_norm = numpy.sum(gridded_data[idx] * numpy.log(norm_apprx_rate_density[idx])) / n_events
 
     return (likelihood, likelihood_norm)
 

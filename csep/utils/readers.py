@@ -410,6 +410,7 @@ def csep_ascii(fname, return_catalog_id=False):
     """
 
     def is_header_line(line):
+        # ascii file has csv header with column names as text
         if line[0] == 'lon':
             return True
         else:
@@ -444,7 +445,10 @@ def csep_ascii(fname, return_catalog_id=False):
             # maybe fractional seconds are not included
             origin_time = parse_datetime(line[3])
             depth = float(line[4])
-            catalog_id = int(line[5])
+            try:
+                catalog_id = int(line[5])
+            except ValueError:
+                catalog_id = int(-1)
             event_id = line[6]
             try:
                 event_id = event_id.decode('utf-8')
@@ -492,13 +496,20 @@ def ingv_emrcmt(fname):
            'depth': 6,
            'Mw': 61}
 
+    def is_header_line(line):
+        if line[0] == 'ev_id':
+            return True
+        else:
+            return False
+
     out = []
     evcat_id = []
     n_event = 0
     with open(fname) as file_:
         reader = csv.reader(file_)
-        
         for n, line in enumerate(reader):
+            if is_header_line(line):
+                continue
             try:
                 date = line[ind['date']].replace('-', '/')
                 time = line[ind['time']].replace(' ', '0')
@@ -545,7 +556,6 @@ def ingv_emrcmt(fname):
         print('Removed %i repeated events' % len(rep_events))
         
     return out
-
 
 def ingv_horus(fname):
     """
@@ -641,7 +651,6 @@ def jma_csv(fname):
             events.append((id, origin_time, lat, lon, depth, magnitude))
             is_first_event = False
     return events
-
 
 def _query_comcat(start_time, end_time, min_magnitude=2.50,
                  min_latitude=31.50, max_latitude=43.00,
