@@ -1443,3 +1443,94 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
         pyplot.show()
 
     return ax
+
+def plot_ROC_Curves(forecast, catalogs, name=None, savepdf=False, savepng=False):
+    """
+    Plot Receiver operating characteristic (ROC) Curves based on forecast and testing-catalog
+
+    Written by Han Bao, UCLA, March 2021.
+    
+    Args:
+        forecast:  csep.forecast 
+        catalogs:  csep.catalog or a list of csep.catalog (catalogs to test against the forecast)
+        
+    Note that: 
+        (1) the testing catalog and forecast should have exactly the same time-window (duration)
+        (2) grids of forecast has to be regular rectangular shape that are defined by 
+            [min_lat,max_lat,d_lat; min_lon,max_lon,d_lon]. And the grids are ordered as such:
+            it scan through the rectangular region from [min_lat,min_lon] to [max_lat,min_lon], 
+            than move to next longitude line, i.e. from [min_lat+d_lat,min_lon] to [max_lat+d_lat,min_lon].
+            The gridded region can be the entire globe. (THIS IS IMPORTANT TO FIND WHICH BIN DOES EACH
+            TESTED EVENT FALLS IN)
+    """
+    ### Determine if input 'catalogs' is a list of csep.catalogs or a single csep.catalog
+    try:
+        N_cat = len(catalogs) # the input catalogs is a list of csep.catalogs
+    except:  
+        N_cat = 1             # the input catalogs is a single csep.catalog
+        catalogs = [catalogs]
+    
+    ### GET area for each geological bin (cell)
+    bin_lat = forecast.get_latitudes()                   # bin location in forecast
+    bin_lon = forecast.get_longitudes()                  # bin location in forecast
+    rate    = forecast.spatial_counts()                  # [eq per cell per duration] in forecast
+    lats = np.unique(bin_lat) 
+    lons = np.unique(bin_lon)
+    min_lat = np.min(lats); max_lat = np.max(lats) # get min/max of grids' lat
+    min_lon = np.min(lons); max_lon = np.max(lons) # get min/max of grids' lon
+    d_lat = lats[1] - lats[0]                      # get grid interval [d_lat]
+    d_lon = lons[1] - lons[0]                      # get grid interval [d_lon]
+    
+    area_km2 = np.zeros(bin_lon.shape, dtype=np.float64) # Initialze
+    for i, bot_lat in enumerate(bin_lat):
+        bot_lon = bin_lon[i]
+        top_lat = bot_lat + d_lat
+        top_lon = bot_lon + d_lon
+        strip_area_steradian = 2 * np.pi * (1.0e0 - np.cos((90.0e0 - bot_lat) * rad_per_deg)) \
+                             - 2 * np.pi * (1.0e0 - np.cos((90.0e0 - top_lat) * rad_per_deg))
+        area_km2[i] = strip_area_steradian * R2 / (360.0/d_lon)
+    # Get normalized & sorted [prob] (probability) and [area]
+    rate = forecast.spatial_counts() # get [rate per cell] for all cells
+    I = np.argsort(rate)             # get index of descending sort
+    I = np.flip(I)                   # get index of descending sort
+    area_norm_sorted = np.cumsum(area_km2[I])/ np.sum(area_km2)
+    prob_norm_sorted = np.cumsum(rate[I])    / np.sum(rate)
+    
+    ### GET information score contribution from each testing catalog
+    cats_norm_sorted   = np.zeros((N_cat,len(rate)), dtype=np.float64) # initialze 
+    for j,subcatalog in enumerate(catalogs):
+        evt_lat = subcatalog.get_latitudes()    # event location in the testing catalog
+        evt_lon = subcatalog.get_longitudes()   # event location in the testing catalog
+        N_event = subcatalog.event_count        # total number of events of the testing catalog
+        
+        evt_counts = np.zeros(rate.shape, dtype=np.int32) # Initialize (number of events in all bins)
+        for i in np.arange(N_event):
+            idx = int( np.floor((evt_lon[i] - (min_lon)) * (1.0/d_lon)) ) * len(lats) \
+                + int( np.floor((evt_lat[i] - (min_lat)) * (1.0/d_lat)) ) 
+            evt_counts[idx] = evt_counts[idx] + 1
+        cats_norm_sorted[j,:] = np.cumsum(evt_counts[I])/np.sum(evt_counts)
+    
+    ### PLOT ROC Curves
+    # outFile = 'ROC_comp_M5M7.png'
+    fig, ax = plt.subplots(figsize=(9,8))
+    ax.plot(area_norm_sorted,area_norm_sorted,'k--', label='Uniform') # [area_norm_sorted, area_norm_sorted] '--'
+    ax.plot(area_norm_sorted,prob_norm_sorted,'k-' , label='Forecast')  # [area_norm_sorted, prob_norm_sorted] '-'
+    for j in np.arange(N_cat):
+        ax.step(area_norm_sorted,cats_norm_sorted[j,:], label=f"Catalog {j+1}")  
+    ax.set_ylabel("True Positive Rate",fontsize=18)
+    ax.set_xlabel('False Positive Rate (Normalized Area)',fontsize=18)
+    ax.set_xscale('log')
+
+    legend = ax.legend(loc='upper left', shadow=True, fontsize='x-large')
+    
+    if name is None:
+        name='ROC Curves'
+    fig.suptitle(name,fontsize=18)
+    
+    if savepdf:
+        outFile = "{}.pdf".format(name)
+        plt.savefig(outFile,format='pdf')
+    if savepng:
+        outFile = "{}.png".format(name)
+        plt.savefig(outFile,format='png')
+    return fig, ax
