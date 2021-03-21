@@ -1470,6 +1470,10 @@ def plot_ROC_Curves(forecast, catalogs, name=None, savepdf=False, savepng=False)
         N_cat = 1             # the input catalogs is a single csep.catalog
         catalogs = [catalogs]
     
+    earth_radius_km = 6371.
+    R2 = earth_radius_km ** 2
+    rad_per_deg = np.pi / 180.0e0
+    
     ### GET area for each geological bin (cell)
     bin_lat = forecast.get_latitudes()                   # bin location in forecast
     bin_lon = forecast.get_longitudes()                  # bin location in forecast

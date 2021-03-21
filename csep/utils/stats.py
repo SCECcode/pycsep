@@ -235,7 +235,7 @@ def get_Kagan_I1_score(forecast, catalogs):
             TESTED EVENT FALLS IN)
 
     Returns:
-       I_1: as a list
+       I_1
     """
     ### Determine if input 'catalogs' is a list of csep.catalogs or a single csep.catalog
     try:
@@ -283,7 +283,7 @@ def get_Kagan_I1_score(forecast, catalogs):
         for i in np.arange(N_event):
             idx = int( np.floor((evt_lon[i] - (min_lon)) * (1.0/d_lon)) ) * len(lats) \
                 + int( np.floor((evt_lat[i] - (min_lat)) * (1.0/d_lat)) ) 
-            score[i] = np.log2(rate_dens[idx]/uniform_forecast)
+            score[i] = np.log2(rateDen[idx]/uniform_forecast)
         ### GET I_1 score
         I_1[j] = sum(score)/N_event
     
