@@ -744,23 +744,19 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region is None:
             raise CSEPCatalogException("Cannot create binned rates without region information.")
 
+        if self.region.magnitudes is None or mag_bins is None:
+            raise CSEPCatalogException("Region must have magnitudes or mag_bins must be defined to "
+                                       "compute space magnitude binning.")
+
         # short-circuit if zero-events in catalog... return array of zeros
         if self.event_count == 0:
             n_poly = self.region.num_nodes
             n_mws = self.region.num_mag_bins
             output = numpy.zeros((n_poly, n_mws))
             skipped = []
-
         else:
             if mag_bins is None:
-                try:
-                    # a forecast is a type of region, but region does not need a magnitude
-                    mag_bins = self.region.magnitudes
-                except AttributeError:
-                    # use default magnitude bins from csep
-                    mag_bins = CSEP_MW_BINS
-                    self.region.magnitudes = mag_bins
-                    self.region.num_mag_bins = len(mag_bins)
+                mag_bins = self.region.magnitudes
 
             # compute if not
             # todo: this should be routed through self.region to allow for different types of regions
