@@ -845,14 +845,33 @@ class AbstractBaseCatalog(LoggingMixin):
         """
         # no mutable function arguments
 
+        plot_args_default = {
+             'basemap': 'ESRI_terrain',
+             'markersize': 2,
+             'markercolor': 'red',
+             'alpha': 0.3,
+             'mag_scale': 7,
+             'legend': True,
+             'grid_labels': True,
+             'legend_loc': 3,
+             'figsize': (8, 8),
+             'title': self.name,
+             'mag_ticks': [4.0, 5.0, 6.0, 7.0]
+        }
+        # Plot the region border (if it exists) by default
+        try:
+            # This will throw error if catalog does not have region
+            _ = self.region.num_nodes
+            plot_args_default['region_border'] = True
+        except AttributeError:
+            pass
 
         plot_args = plot_args or {}
-        plot_args.setdefault('figsize', (10, 10))
-        plot_args.setdefault('title', self.name)
+        plot_args_default.update(plot_args)
 
         # this call requires internet connection and basemap
         ax = plot_catalog(self, ax=ax,show=show, extent=extent,
-                          set_global=set_global, plot_args=plot_args)
+                          set_global=set_global, plot_args=plot_args_default)
         return ax
 
 

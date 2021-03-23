@@ -11,7 +11,7 @@ import numpy as np
 import pyproj
 
 # PyCSEP imports
-from csep.utils.calc import bin1d_vec, cleaner_range
+from csep.utils.calc import bin1d_vec, cleaner_range, first_nonnan, last_nonnan
 from csep.utils.scaling_relationships import WellsAndCoppersmith
 
 def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection"):
@@ -729,4 +729,27 @@ class CartesianGrid2D:
                     a[idy[i], idx[i], 0] = 0
 
         return a, xs, ys
+
+    def tight_bbox(self):
+        # creates tight bounding box around the region, probably a faster way to do this.
+        ny, nx = self.idx_map.shape
+        asc = []
+        desc = []
+        for j in range(ny):
+            row = self.idx_map[j, :]
+            argmin = first_nonnan(row)
+            argmax = last_nonnan(row)
+            # points are stored clockwise
+            poly_min = self.polygons[int(row[argmin])].points
+            asc.insert(0, poly_min[0])
+            asc.insert(0, poly_min[1])
+            poly_max = self.polygons[int(row[argmax])].points
+            desc.append(poly_max[3])
+            desc.append(poly_max[2])
+        # close the loop
+        poly = np.array(asc + desc)
+        sorted_idx = np.sort(np.unique(poly, return_index=True, axis=0)[1], kind='stable')
+        unique_poly = poly[sorted_idx]
+        unique_poly = np.append(unique_poly, [unique_poly[0, :]], axis=0)
+        return unique_poly
 
