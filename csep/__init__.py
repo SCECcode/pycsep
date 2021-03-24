@@ -217,7 +217,10 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
     print("Fetched ComCat catalog in {} seconds.\n".format(t1 - t0))
 
     if apply_filters:
-        comcat = comcat.filter().filter_spatial()
+        try:
+            comcat = comcat.filter().filter_spatial()
+        except CSEPCatalogException:
+            comcat = comcat.filter()
 
     if verbose:
         print("Downloaded catalog from ComCat with following parameters")
