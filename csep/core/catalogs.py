@@ -744,7 +744,7 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region is None:
             raise CSEPCatalogException("Cannot create binned rates without region information.")
 
-        if self.region.magnitudes is None or mag_bins is None:
+        if self.region.magnitudes is None and mag_bins is None:
             raise CSEPCatalogException("Region must have magnitudes or mag_bins must be defined to "
                                        "compute space magnitude binning.")
 
