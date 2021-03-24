@@ -682,7 +682,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
 
 
     bbox = catalog.get_bbox()
-    if plot_args['region_border']:
+    if region_border:
         try:
             bbox = catalog.region.get_bbox()
         except AttributeError:
