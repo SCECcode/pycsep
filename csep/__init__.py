@@ -13,6 +13,8 @@ from csep.core.repositories import (
     write_json
 )
 
+from csep.core.exceptions import CSEPCatalogException
+
 from csep.utils import datasets
 from csep.utils import readers
 
@@ -112,10 +114,12 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_
         format (str): ('native', 'csep') determines whether the catalog should be converted into the csep
                       formatted catalog or kept as native.
         apply_filters (bool): if true, will apply filters and spatial filter to catalog. time-varying magnitude completeness
-                              will still need to be applied.
+                              will still need to be applied. filters kwarg should be included. see catalog
+                              documentation for more details.
 
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
+
 
     if type not in ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ingv_horus', 'ingv_emrcmt', 'ndk') and loader is None:
         raise ValueError("type must be one of the following: ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk', 'ingv_horus', 'ingv_emrcmt').")
@@ -172,7 +176,10 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_
         raise ValueError('format must be either "native" or "csep"')
 
     if apply_filters:
-        return_val = return_val.filter().filter_spatial()
+        try:
+            return_val = return_val.filter().filter_spatial()
+        except CSEPCatalogException:
+            return_val = return_val.filter()
 
     return return_val
 
@@ -210,7 +217,10 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
     print("Fetched ComCat catalog in {} seconds.\n".format(t1 - t0))
 
     if apply_filters:
-        comcat = comcat.filter().filter_spatial()
+        try:
+            comcat = comcat.filter().filter_spatial()
+        except CSEPCatalogException:
+            comcat = comcat.filter()
 
     if verbose:
         print("Downloaded catalog from ComCat with following parameters")

@@ -6,6 +6,7 @@ import scipy.stats
 
 from csep.models import EvaluationResult
 from csep.utils.stats import poisson_joint_log_likelihood_ndarray
+from csep.core.exceptions import CSEPCatalogException
 
 
 def paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0.05, scale=False):
@@ -174,7 +175,12 @@ def conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulati
     """
 
     # grid catalog onto spatial grid
+    try:
+        _ = observed_catalog.region.magnitudes
+    except CSEPCatalogException:
+        observed_catalog.region = gridded_forecast.region
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
+
 
     # simply call likelihood test on catalog data and forecast
     qs, obs_ll, simulated_ll = _poisson_likelihood_test(gridded_forecast.data, gridded_catalog_data,
@@ -304,6 +310,11 @@ def likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, se
     """
 
     # grid catalog onto spatial grid
+    # grid catalog onto spatial grid
+    try:
+        _ = observed_catalog.region.magnitudes
+    except CSEPCatalogException:
+        observed_catalog.region = gridded_forecast.region
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
     # simply call likelihood test on catalog and forecast
