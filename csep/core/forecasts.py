@@ -673,10 +673,20 @@ class CatalogForecast(LoggingMixin):
             else:
                 return self.expected_rates
 
-    def plot(self, **kwargs):
+    def plot(self, plot_args = None, **kwargs):
+        plot_args = plot_args or {}
         if self.expected_rates is None:
             self.get_expected_rates()
-        self.expected_rates.plot(**kwargs)
+        args_dict = {'title': self.name,
+                     'grid_labels': True,
+                     'grid': True,
+                     'borders': True,
+                     'feature_lw': 0.5,
+                     'basemap': 'ESRI_terrain',
+                     }
+        args_dict.update(plot_args)
+        ax = self.expected_rates.plot(**kwargs, plot_args=args_dict)
+        return ax
 
     def get_dataframe(self):
         """Return a single dataframe with all of the events from all of the catalogs."""

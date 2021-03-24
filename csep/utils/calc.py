@@ -214,3 +214,12 @@ def cleaner_range(start, end, h):
     end = numpy.floor(const * end)
     d = const * h
     return numpy.arange(start, end + d / 2, d) / const
+
+def first_nonnan(arr, axis=0, invalid_val=-1):
+    mask = arr==arr
+    return numpy.where(mask.any(axis=axis), mask.argmax(axis=axis), invalid_val)
+
+def last_nonnan(arr, axis=0, invalid_val=-1):
+    mask = arr==arr
+    val = arr.shape[axis] - numpy.flip(mask, axis=axis).argmax(axis=axis) - 1
+    return numpy.where(mask.any(axis=axis), val, invalid_val)

@@ -652,11 +652,6 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
 
     """
     # Get spatial information for plotting
-    bbox = catalog.get_bbox()
-    if extent is None:
-        dh = (bbox[1] - bbox[0])/20.
-        dv = (bbox[3] - bbox[2]) / 20.
-        extent = [bbox[0] - dh, bbox[1]+dh, bbox[2] -dv, bbox[3] + dv]
 
     # Retrieve plot arguments
     plot_args = plot_args or {}
@@ -674,6 +669,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     legend_loc = plot_args.get('legend_loc', 1)
     mag_ticks = plot_args.get('mag_ticks', False)
     labelspacing = plot_args.get('labelspacing', 1)
+    region_border = plot_args.get('region_border', True)
     # cartopy properties
     projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
     grid = plot_args.get('grid', True)
@@ -685,8 +681,19 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     linecolor = plot_args.get('linecolor', 'black')
 
 
-    # Instantiage GeoAxes object
+    bbox = catalog.get_bbox()
+    if plot_args['region_border']:
+        try:
+            bbox = catalog.region.get_bbox()
+        except AttributeError:
+            pass
 
+    if extent is None:
+        dh = (bbox[1] - bbox[0])/20.
+        dv = (bbox[3] - bbox[2]) / 20.
+        extent = [bbox[0] - dh, bbox[1]+dh, bbox[2] -dv, bbox[3] + dv]
+
+    # Instantiage GeoAxes object
     if ax is None:
         fig = pyplot.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection=projection)
@@ -726,6 +733,13 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
         ax.legend(handles, mag_ticks,
                   loc=legend_loc, title=r"Magnitudes",title_fontsize=16,
                   labelspacing=labelspacing, handletextpad=5, framealpha=False)
+
+    if region_border:
+        try:
+            pts = catalog.region.tight_bbox()
+            ax.plot(pts[:, 0], pts[:, 1], lw=1, color='black')
+        except AttributeError:
+            print("unable to get tight bbox")
 
     # Gridline options
     if grid:
@@ -801,6 +815,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     borders = plot_args.get('borders', False)
     linewidth = plot_args.get('linewidth', True)
     linecolor = plot_args.get('linecolor', 'black')
+    region_border = plot_args.get('region_border', True)
     # color bar properties
     cmap = plot_args.get('cmap', None)
     clabel = plot_args.get('clabel', '')
@@ -856,6 +871,10 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
         gl.right_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
+
+    if region_border:
+        pts = region.tight_bbox()
+        ax.plot(pts[:,0], pts[:,1], lw=1, color='black')
 
     # matplotlib figure options
     ax.set_title(title, y=1.06)
