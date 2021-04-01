@@ -990,44 +990,42 @@ class CSEPCatalog(AbstractBaseCatalog):
                         prev_id = 0
                         # if the first catalog doesn't start at zero
                         if catalog_id != prev_id:
-                            prev_id = catalog_id
                             if not empty:
-                                events.append(temp_event)
+                                events = [temp_event]
                             else:
                                 events = []
                             for id in range(catalog_id):
                                 yield cls(data=[], catalog_id=id, **kwargs)
+                            prev_id = catalog_id
+                            continue
                     # accumulate event if catalog_id is the same as previous event
                     if catalog_id == prev_id:
-                        prev_id = catalog_id
                         if not all([val in (None, '') for val in temp_event]):
                             events.append(temp_event)
+                        prev_id = catalog_id
                     # create and yield class if the events are from different catalogs
                     elif catalog_id == prev_id + 1:
-                        catalog = cls(data=events, catalog_id=prev_id, **kwargs)
-                        prev_id = catalog_id
+                        yield cls(data=events, catalog_id=prev_id, **kwargs)
                         # add event to new event list
                         if not empty:
                             events = [temp_event]
                         else:
                             events = []
-                        yield catalog
+                        prev_id = catalog_id
                     # this implies there are empty catalogs, because they are not listed in the ascii file
                     elif catalog_id > prev_id + 1:
-                        catalog = cls(data=events, catalog_id=prev_id, **kwargs)
-                        yield catalog
+                        yield cls(data=events, catalog_id=prev_id, **kwargs)
+                        # if prev_id = 0 and catalog_id = 2, then we skipped one catalog. thus, we skip catalog_id - prev_id - 1 catalogs
+                        num_empty_catalogs = catalog_id - prev_id - 1
+                        # first yield empty catalog classes
+                        for id in range(num_empty_catalogs):
+                            yield cls(data=[], catalog_id=catalog_id - num_empty_catalogs + id, **kwargs)
+                        prev_id = catalog_id
                         # add event to new event list
                         if not empty:
                             events = [temp_event]
                         else:
                             events = []
-                        # if prev_id = 0 and catalog_id = 2, then we skipped one catalog. thus, we skip catalog_id - prev_id - 1 catalogs
-                        num_empty_catalogs = catalog_id - prev_id - 1
-                        # create empty catalog classes
-                        for id in range(num_empty_catalogs):
-                            yield cls(data=[], catalog_id=catalog_id - num_empty_catalogs + id, **kwargs)
-                        # finally we want to yield the buffered catalog to preserve order
-                        prev_id = catalog_id
                     else:
                         raise ValueError(
                             "catalog_id should be monotonically increasing and events should be ordered by catalog_id")

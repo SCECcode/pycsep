@@ -1,7 +1,6 @@
 import os, unittest
 import numpy
 from csep import load_catalog_forecast
-from csep.core.catalogs import CSEPCatalog
 
 def get_test_catalog_root():
     root_dir = os.path.dirname(os.path.abspath(__file__))
