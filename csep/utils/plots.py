@@ -577,15 +577,21 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
 
      """
     if ax is None:
-        fig = pyplot.figure()
-        ax = fig.add_subplot(111, projection=projection)
         if apprx:
+            projection = ccrs.PlateCarree()
+            fig = pyplot.figure()
+            ax = fig.add_subplot(111, projection=projection)
             # Re-aspect plot (only for plain matplotlib plots, or when using PlateCarree)
             LATKM = 110.574
-            ax.set_aspect(1 / (LATKM / 111.320 * numpy.cos(numpy.deg2rad(central_latitude))))
+            ax.set_aspect(111.320 * numpy.cos(numpy.deg2rad(central_latitude)) / LATKM)
+        else:
+            fig = pyplot.figure()
+            ax = fig.add_subplot(111, projection=projection)
 
     if set_global:
         ax.set_global()
+    else:
+        ax.set_extent(extents=extent, crs=ccrs.PlateCarree())
 
     try:
         # Set adaptive scaling
@@ -697,7 +703,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
             pass
 
     if extent is None:
-        dh = (bbox[1] - bbox[0])/20.
+        dh = (bbox[1] - bbox[0]) / 20.
         dv = (bbox[3] - bbox[2]) / 20.
         extent = [bbox[0] - dh, bbox[1]+dh, bbox[2] -dv, bbox[3] + dv]
 
@@ -713,8 +719,6 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     if ax is None:
         fig = pyplot.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection=projection)
-    else:
-        fig = ax.get_figure()
 
     if set_global:
         ax.set_global()
