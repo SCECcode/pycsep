@@ -109,11 +109,11 @@ Consistency tests
 Publication reference
 =====================
 
-1. Number test (:ref:`Savran et al., 2020`<savran-2020>`)
-2. Spatial test (:ref:`Savran et al., 2020`<savran-2020>`)
-3. Magnitude test (:ref:`Savran et al., 2020`<savran-2020>`)
-4. Pseudolikelihood test (:ref:`Savran et al., 2020`<savran-2020>`)
-5. Calibration test (:ref:`Savran et al., 2020`<savran-2020>`)
+1. Number test (:ref:`Savran et al., 2020<savran-2020>`)
+2. Spatial test (:ref:`Savran et al., 2020<savran-2020>`)
+3. Magnitude test (:ref:`Savran et al., 2020<savran-2020>`)
+4. Pseudolikelihood test (:ref:`Savran et al., 2020<savran-2020>`)
+5. Calibration test (:ref:`Savran et al., 2020<savran-2020>`)
 
 ****************************
 Preparing evaluation catalog

@@ -72,8 +72,6 @@ PyCSEP data model.
     Going between a DataFrame and CSEPCatalog is a lossy transformation. It essentially only retains the essential event
     attributes that are defined by the ``dtype`` of the class.
 
-
-
 ****************
 Loading catalogs
 ****************

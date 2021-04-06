@@ -935,7 +935,7 @@ class CSEPCatalog(AbstractBaseCatalog):
             return val
 
         def is_header_line(line):
-            if line[0] == 'lon':
+            if line[0].lower() == 'lon':
                 return True
             else:
                 return False
