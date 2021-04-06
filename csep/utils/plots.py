@@ -554,7 +554,8 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
         pyplot.show()
 
 def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linecolor='black', linewidth=True,
-                 grid=False, grid_labels=False, set_global=False, show=False):
+                 grid=False, grid_labels=False, set_global=False, show=False, projection=ccrs.PlateCarree(), apprx=False,
+                 central_latitude=0.0):
     """ Wrapper function for multiple cartopy base plots, including access to standard raster webservices
 
      Args:
@@ -568,16 +569,29 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
          linecolor (str): Color of borders and coast lines. default 'black',
          grid (bool): Draws a grid in the basemap
          grid_labels (bool): Annotate grid values
+         apprx (bool): If true, approximates transformation by setting aspect ratio of axes based on middle latitude
+         central_latitude (float): average latitude from plotting region
 
      Returns:
          :class:`matplotlib.pyplot.ax` object
 
      """
     if ax is None:
-        fig = pyplot.figure()
-        ax = fig.add_subplot(111, projection=ccrs.PlateCarree(central_longitude=0.0))
+        if apprx:
+            projection = ccrs.PlateCarree()
+            fig = pyplot.figure()
+            ax = fig.add_subplot(111, projection=projection)
+            # Re-aspect plot (only for plain matplotlib plots, or when using PlateCarree)
+            LATKM = 110.574
+            ax.set_aspect(111.320 * numpy.cos(numpy.deg2rad(central_latitude)) / LATKM)
+        else:
+            fig = pyplot.figure()
+            ax = fig.add_subplot(111, projection=projection)
+
     if set_global:
         ax.set_global()
+    else:
+        ax.set_extent(extents=extent, crs=ccrs.PlateCarree())
 
     try:
         # Set adaptive scaling
@@ -613,7 +627,6 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
 
     return ax
 
-
 def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, plot_args=None):
     """ Plot catalog in a region
 
@@ -629,7 +642,8 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
            - :title: :class:`str` - default :class:`catalog.name`
            - :title_size: :class:`int` - default 10
            - :filename: :class:`str` - File to save figure. default None
-           - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`
+           - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`. Note: this can be
+                'fast' to apply an approximate transformation of axes.
            - :grid: :class:`bool` - default True
            - :grid_labels: :class:`bool` - default True
            - :marker: :class:`str` - Marker type
@@ -689,22 +703,32 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
             pass
 
     if extent is None:
-        dh = (bbox[1] - bbox[0])/20.
+        dh = (bbox[1] - bbox[0]) / 20.
         dv = (bbox[3] - bbox[2]) / 20.
         extent = [bbox[0] - dh, bbox[1]+dh, bbox[2] -dv, bbox[3] + dv]
+
+    apprx = False
+    central_latitude = 0.0
+    if projection == 'fast':
+        projection = ccrs.PlateCarree()
+        apprx = True
+        n_lats = len(catalog.region.ys) // 2
+        central_latitude = catalog.region.ys[n_lats]
 
     # Instantiage GeoAxes object
     if ax is None:
         fig = pyplot.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection=projection)
-        if set_global:
-            ax.set_global()
-        else:
-            ax.set_extent(extents=extent, crs=ccrs.PlateCarree()) # Defined extent always in lat/lon
+
+    if set_global:
+        ax.set_global()
+    else:
+        ax.set_extent(extents=extent, crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
 
     # Basemap plotting
     ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
-                      linecolor=linecolor, linewidth=linewidth)
+                      linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
+                      central_latitude=central_latitude)
 
     # Scaling function
     mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
@@ -757,7 +781,6 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
         pyplot.show()
 
     return ax
-
 
 def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_global=False, plot_args=None):
     """ Plot spatial dataset such as data from a gridded forecast
@@ -823,6 +846,13 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     alpha = plot_args.get('alpha', 1)
     alpha_exp = plot_args.get('alpha_exp', 0)
 
+    apprx = False
+    central_latitude = 0.0
+    if projection == 'fast':
+        projection = ccrs.PlateCarree()
+        apprx = True
+        n_lats = len(region.ys) // 2
+        central_latitude = region.ys[n_lats]
 
     # Instantiage GeoAxes object
     if ax is None:
@@ -838,7 +868,8 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
 
     # Basemap plotting
     ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
-                      linecolor=linecolor, linewidth=linewidth)
+                      linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
+                      central_latitude=central_latitude)
 
     ## Define colormap and transparency function
     if isinstance(cmap, str) or not cmap:
@@ -874,7 +905,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
 
     if region_border:
         pts = region.tight_bbox()
-        ax.plot(pts[:,0], pts[:,1], lw=1, color='black')
+        ax.plot(pts[:,0], pts[:,1], lw=1, color='black', transform=ccrs.PlateCarree())
 
     # matplotlib figure options
     ax.set_title(title, y=1.06)
