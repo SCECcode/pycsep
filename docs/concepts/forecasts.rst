@@ -87,7 +87,6 @@ they are trying to model. A grid-based forecast can be easily computed from a ca
 space-magnitude region and counting events within each bin from each catalog in the forecast. There can be issues with
 under sampling, especially for larger magnitude events.
 
-
 Working with catalog-based forecasts
 ####################################
 
@@ -95,6 +94,63 @@ Working with catalog-based forecasts
 
 Please see visit :ref:`this<catalog-forecast-evaluation>` example for an end-to-end tutorial on how to evaluate a catalog-based
 earthquake forecast. An example of a catalog-based forecast stored in the default PyCSEP format can be found
-`here<https://github.com/SCECcode/csep2/blob/dev/csep/artifacts/ExampleForecasts/CatalogForecasts/ucerf3-landers_1992-06-28T11-57-34-14.csv>_`.
+`here<https://github.com/SCECcode/pycsep/blob/dev/csep/artifacts/ExampleForecasts/CatalogForecasts/ucerf3-landers_1992-06-28T11-57-34-14.csv>`_.
 
-We will be adding more to these documentation pages, so stay tuned for updated.
+
+The standard format for catalog-based forecasts a comma separated value ASCII format. This format was chosen to be
+human-readable and easy to implement in all programming languages. Information about the format is shown below.
+
+.. note::
+    Custom formats can be supported by writing a custom function or sub-classing the
+    :ref:`AbstractBaseCatalog<csep.core.forecasts.AbstractBaseCatalog>`.
+
+The event format matches the follow specfication: ::
+
+    LON, LAT, MAG, ORIGIN_TIME, DEPTH, CATALOG_ID, EVENT_ID
+    -125.4, 40.1, 3.96, 1992-01-05T0:40:3.1, 8, 0, 0
+
+Each row in the catalog corresponds to an event. The catalogs are expected to be placed into the same file and are
+differentiated through their `catalog_id`. Catalogs with no events can be handled in a couple different ways intended to
+save storage.
+
+The events within a catalog should be sorted in time, and the *catalog_id* should be increasing sequentially. Breaks in
+the *catalog_id* are interpreted as missing catalogs.
+
+The following two examples show how you represent a forecast with 5 catalogs each containing zero events.
+
+**1. Including all events (verbose)** ::
+
+    LON, LAT, MAG, ORIGIN_TIME, DEPTH, CATALOG_ID, EVENT_ID
+    ,,,,,0,
+    ,,,,,1,
+    ,,,,,2,
+    ,,,,,3,
+    ,,,,,4,
+
+**2. Short-hand** ::
+
+    LON, LAT, MAG, ORIGIN_TIME, DEPTH, CATALOG_ID, EVENT_ID
+    ,,,,,4,
+
+The following three example show how you could represent a forecast with 5 catalogs. Four of the catalogs contain zero events
+and one catalog contains one event.
+
+**3. Including all events (verbose)** ::
+
+    LON, LAT, MAG, ORIGIN_TIME, DEPTH, CATALOG_ID, EVENT_ID
+    ,,,,,0,
+    ,,,,,1,
+    ,,,,,2,
+    ,,,,,3,
+    -125.4, 40.1, 3.96, 1992-01-05T0:40:3.1, 8, 4, 0
+
+**4. Short-hand** ::
+
+    LON, LAT, MAG, ORIGIN_TIME, DEPTH, CATALOG_ID, EVENT_ID
+    -125.4, 40.1, 3.96, 1992-01-05T0:40:3.1, 8, 4, 0
+
+The simplest way to orient the file follow (3) in the case where some catalogs contain zero events. The zero oriented
+catalog_id should be assigned to correspond with the total number of catalogs in the forecast. In the case where every catalog
+contains zero forecasted events, you would specify the forecasting using (2). The *catalog_id* should be assigned to
+correspond with the total number of catalogs in the forecast.
+

@@ -92,7 +92,6 @@ class CatalogFiltering(unittest.TestCase):
         filtered_test_cat = test_cat.filter_spatial(region=self.cart_grid)
         numpy.testing.assert_equal(numpy.array([b'2', b'3'], dtype='S256').T, filtered_test_cat.get_event_ids())
 
-
     def test_filter_spatial_in_place_return(self):
         test_cat = copy.deepcopy(self.test_cat1)
         filtered_test_cat = test_cat.filter_spatial(region=self.cart_grid, in_place=False)
