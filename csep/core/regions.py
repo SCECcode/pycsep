@@ -753,3 +753,442 @@ class CartesianGrid2D:
         unique_poly = np.append(unique_poly, [unique_poly[0, :]], axis=0)
         return unique_poly
 
+
+
+#---Quadtree region class
+class GlobalQuadtreeGrid:
+    
+    def __init__(self, lon, lat, threshold = [], zoom=11, name='quadtree'):
+        self.name = name
+        
+        self.grid_origin = []
+        self.grid_top_right = []
+        self.grid_center = []
+        self.grid_bounds = []
+        self.grid_cell_area = []
+        self.grid_qk = []
+        self.earthquake_per_cell = []
+        self._generate_quadtree_grid(lon,lat,threshold,zoom)
+
+
+    def _create_tile_fix_len(self, quadk, zoom,qk):
+        """
+        **Alert: This Function uses GLOBAL variable (qk).
+        
+        This funcation takes in a Main Quadkey (Quadrant of Globe),
+        then keeps increasing the depth unless it reaches the maximum depth "Length"
+        
+        Parameters
+        ----------
+        quadk : String
+            0, 1, 2, 3 or any desired starting level of Quad key.
+            zoom : TYPE
+            Length of Quad Key OR Depth of grid.
+            
+            
+            Returns
+            -------
+            None.
+            
+            """
+
+        if len(quadk)<zoom:
+            #        print('inside If, Current Quad key ', quadk)
+            #        print('Len of QK: ', len(quadk))
+            
+            self._create_tile_fix_len(quadk+'0', zoom,qk)
+            
+            self._create_tile_fix_len(quadk+'1', zoom,qk)
+            
+            self._create_tile_fix_len(quadk+'2', zoom,qk)
+            
+            self._create_tile_fix_len(quadk+'3', zoom,qk)
+                
+        else:
+            # print('inside ELSE, Current Quad key ', quadk)
+            # print('Num of Eqs ', num_eqs) 
+            #        qk = numpy.append(qk, quadk)
+            qk.append(quadk)
+                    
+    def _create_tile(self, quadk, threshold, zoom, lon, lat,qk,num):
+        """
+        **Alert: This Function uses GLOBAL variable (qk) and (num).
+
+        
+        This funcation takes in a Main Quadkey (Quadrant of Globe),
+        then keeps increasing the depth unless it reaches the minimum size tile
+        threshold level of seismic activity
+            
+        Parameters
+        ----------
+        quadk : String
+            0, 1, 2, 3 or any desired starting level of Quad key.
+            threshold : TYPE
+            No of earthquakes for max threshold.
+            lon : Latitude
+            DESCRIPTION.
+            lat : Longitude
+            DESCRIPTION.
+            
+            Returns
+            -------
+            None.
+                
+        """
+        boundary = mercantile.bounds(mercantile.quadkey_to_tile(quadk))
+        eqs = numpy.logical_and(numpy.logical_and(lon>=boundary.west, lat>=boundary.south), numpy.logical_and(lon<boundary.east, lat<boundary.north) )
+        num_eqs = numpy.size(lat[eqs])
+        #    global qk
+        #    global num
+        
+        #Setting the Min Threshold of Area 1 sq. km. Instead of Depth
+        #It will by default lead of the Deph of 15 near Equator.
+        #And depth of 14 away from Equator
+        if num_eqs>threshold and  len(quadk) < zoom: #  #qk_area_km(quadk)>4:
+            # print('inside If, Current Quad key ', quadk)
+            # print('Length of Quadkey ', len(quadk))
+            # # print('Num of Eqs ', num_eqs)
+                
+            self._create_tile(quadk+'0', threshold,zoom,lon,lat,qk,num)
+            
+            self._create_tile(quadk+'1', threshold,zoom,lon,lat,qk,num)
+            
+            self._create_tile(quadk+'2', threshold,zoom,lon,lat,qk,num)
+                
+            self._create_tile(quadk+'3', threshold,zoom,lon,lat,qk,num)
+        
+        else:
+            # print('inside ELSE, Current Quad key ', quadk)
+            # print('Num of Eqs ', num_eqs) 
+#           qk = numpy.append(qk, quadk)
+            qk.append(quadk)
+#            num = numpy.append(num, num_eqs)
+            num.append(num_eqs)
+            # return quadk
+
+
+
+    def _generate_quadtree_grid(self, lon, lat, threshold=None, zoom=11):
+        """
+        It takes in the Lon and lat of earthquake catalog and generates a quadtree grid based on given criteria
+        It is basically a wrapper around functions _create_tile and _create_tile_fix_len and uses them as required
+        Parameters
+        ----------
+            lon: Longitudes of earthquake catalog
+                nX1 numpy array
+                
+                lat: Latitudes of earthquake catalog
+                nX1 numpy array
+                
+                threshold: Threshold value of maximum number of earthquakes allowed per cell
+                
+                zoom: Maximum zoom-level allowed for each cell in grid
+                Returns
+                -------
+                qk: Quadtree grid
+                num: Number of earthquakes per cells (if threshold value is provided, otherwise not)
+                Note: If Threshold for max earthquakes allowed per cell is not provided, then it will generate a regular grid at fix "zoom-level"
+
+
+        """    
+
+        if threshold is None or threshold == []:
+        
+            qk = []
+            self._create_tile_fix_len('0',zoom,qk)
+            self._create_tile_fix_len('1',zoom,qk)
+            self._create_tile_fix_len('2',zoom,qk)
+            self._create_tile_fix_len('3',zoom,qk)
+            qk = numpy.array(qk)
+#            return qk
+            self.grid_qk = qk
+        
+        else:
+            qk = [] # numpy.array([])
+            num = [] # numpy.array([])
+        
+            self._create_tile('0',threshold, zoom, lon, lat,qk,num)
+            self._create_tile('1',threshold, zoom, lon, lat,qk,num)
+            self._create_tile('2',threshold, zoom, lon, lat,qk,num)
+            self._create_tile('3',threshold, zoom, lon, lat,qk,num)
+            qk = numpy.array(qk)
+            num = numpy.array(num)
+#            return qk, num
+            self.grid_qk = qk
+            self.earthquake_per_cell = num
+
+    
+    def get_origin_coordinates(self):
+        """
+        Parameters
+        ----------
+        qk : Array of Strings
+            Quad keys.
+            
+        Returns
+        -------
+        grid_coords : Array of floats
+            Origin Coordinates of Grid formed by Quad keys boxes
+            [Longitude Latitude]
+
+        """
+    
+        grid_lat =[]
+        grid_lon = []
+        for i in range(len(self.grid_qk)):
+            grid_lon = numpy.append(grid_lon,mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).west)
+            grid_lat = numpy.append(grid_lat,mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).south)
+
+        self.grid_origin = numpy.column_stack([grid_lon, grid_lat])
+#    return grid_coords
+    
+    
+    def get_center_coordinates(self):
+        """
+        Parameters
+        ----------
+        qk : Array of Strings
+            Quad keys.
+
+        Returns
+        -------
+        grid_coords : Array of floats
+            Middle Coordinates of Grid formed by Quad keys boxes
+            Acquired by averaging Bottom Left and Top Right
+            [Longitude Latitude]
+
+        """
+    
+        grid_lat =[]
+        grid_lon = []
+        for i in range(len(self.grid_qk)):
+            grid_lon = numpy.append(grid_lon,numpy.mean([mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).west, mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).east]))
+            grid_lat = numpy.append(grid_lat,numpy.mean([mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).south, mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).north]))
+
+        self.grid_center = numpy.column_stack([grid_lon, grid_lat])
+#    return grid_coords
+    
+    def get_top_right_coordinates(self):
+        """
+        Parameters
+        ----------
+        qk : Array of Strings
+            Quad keys.
+
+        Returns
+        -------
+        grid_top_coords : Array of floats
+            Top-Right Coordinates of Grid formed by Quad keys boxes
+            [Longitude Latitude]
+
+        """
+    
+        grid_lat =[]
+        grid_lon = []
+        for i in range(len(self.grid_qk)):
+            grid_lon = numpy.append(grid_lon,mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).east)
+            grid_lat = numpy.append(grid_lat,mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).north)
+
+        self.grid_top_right = numpy.column_stack([grid_lon, grid_lat])
+#    return grid_top_coords
+    
+    def get_grid_bounds(self):
+        """
+        Computes the origin coordinates and top right cooridantes
+        
+        Returns
+        -------
+        grid bounding coordiates: Numpy array [nx4]
+            [origin_lon, origin_lat, top_right_lon, top_right_lat]
+            
+        """
+        if len(self.grid_origin) == 0:
+            self.get_origin_coordinates()
+        if len(self.grid_top_right) == 0:
+            self.get_top_right_coordinates()
+        
+        self.grid_bounds = numpy.column_stack((self.grid_origin, self.grid_top_right))
+        
+    
+    def testing(self, a, b):
+        return a*b
+
+    def _tile_bounds(self, qk_cell_id):
+        """
+        It takes in a single Quadk key and returns lat,longs of two diagonal corners using mercantile
+        Parameters
+        ----------
+        qk_cell_id : Stirng
+            Quad key of a cell.
+
+        Returns
+        -------
+        bounds : Mercantile object
+            Latitude and Longitude of top right and bottom left corners.
+
+        """
+
+        bound = mercantile.bounds(mercantile.quadkey_to_tile(qk_cell_id))
+        return bound
+
+    
+    def get_cell_area(self):
+        """
+        Takes in a Cell (quad key) and computes area in sq. km
+        It uses a packages area: https://pypi.org/project/area/
+        It aslso used a function "tile_bounds" 
+        Parameters
+        ----------
+        quadk : String
+            Quadkey of a cell.
+
+        Returns
+        -------
+        Area in Sq. Km.
+
+        """
+        cell_area = []
+        for i in range(len(self.grid_qk)):
+                  
+            bounds = self._tile_bounds(self.grid_qk[i])
+            obj = {'type':'Polygon','coordinates':[[[bounds.west,bounds.south],[bounds.west, bounds.north],[bounds.east, bounds.north],[bounds.east, bounds.south],[bounds.west,bounds.south]]]}
+            cell_area = numpy.append(cell_area, area(obj)/1e+6)
+        self.grid_cell_area = cell_area
+
+
+        
+    def _quadkey2bbox(self, qk):
+        """
+        This finction converts a quad keys tile into a bounding box.
+        It uses function tile_bound that uses package pygeotile to get the lat, long of two corners.
+        Then it further uses shapely.geometery to convert them into a polygon bounding box.
+        Parameters
+        ----------
+        qk : string
+            Quad key of a cell
+
+        Returns
+        -------
+        bb : Shapely object
+            A bounding box.
+
+        """
+        bounds = self._tile_bounds(qk) #This will change for Mercantile
+        # bb = shape(box(bounds[0].longitude, bounds[0].latitude, bounds[1].longitude, bounds[1].latitude)) #This will change for Mercantile
+        bb = shape(box(bounds.west, bounds.south, bounds.east, bounds.north))
+        return bb
+    
+    
+    def bbox_list(self):
+        """
+        This functions takes in a list of Quadkeys and converts them into a list of Shapely.Geometery types bound boxes
+        It used quadkey2bbox function
+    
+
+        Parameters
+        ----------
+        unique_qk_list : string
+            List of unique quad keys
+
+        Returns
+        -------
+        bound_boxes_list : List of Shapely.Geometery
+            
+        """
+        bound_boxes_list = []
+        for i in range(len(self.grid_qk)):
+            #print(i)
+            bound_boxes_list.append(mapping(self._quadkey2bbox(self.grid_qk[i])))
+        return bound_boxes_list
+
+
+    def write_grid_to_geojson(self, filename=[]):
+        """
+        Write quadtree grid along with cell area as feature
+        This functions converts the quadkeys into Shape.Geometery type list of shapes (polygon) and writes
+        them in the format of geojason file. The geojason file will be then used to plot in QGIS
+        
+        Parameters
+        ----------
+        shape_list : List of Shapely.geometery
+            Bounding boxes or points or lines that are used for display in QGIS
+            filename : string
+            Intended name of GEOJSON file
+            
+       Returns 
+       -------
+       Writes GEOJSON file
+
+        """
+        shape_list = self.bbox_list()
+        if len(self.grid_cell_area) == 0:
+            self.get_cell_area()
+        feature = self.grid_cell_area
+        
+        geo_shape = {"type":"FeatureCollection",
+                     "features":[]}
+        for bb, ff in zip(shape_list, feature):
+            feature = {"type":"Feature",
+                       "properties":{"cell_area": ff,
+                                     },
+                                     "geometry":bb};
+            geo_shape['features'].append(feature)
+
+        #   poly['features'][0]['geometry']['coordinates']
+
+        if filename == [] or filename == None:
+            filename = self.name
+        with open(filename+'.geojson', 'a') as f:
+            json.dump(geo_shape, f)
+    
+
+
+    def get_earthquakes_per_cell(self,lon,lat):
+        """
+        Note: This function is only required, when Regular-sized grid is acquried.
+                Because 'earthquakes_per_cell' are already computed incase of multi-res grid. 
+                Iterates over Training catalog amd provides earthquakes/Cell
+        
+        Performs gridding on a catalog with respect to Spatial Grids Cells only.
+        Does not consider magnitude bins
+        Performs gridding for All the Earthquakes provided in Training Catalog with Lons & Lats. 
+        Parameters
+        ----------
+        qk : Array of String
+            List of Quad Keys strings.
+        lat : Array of float
+            Latitutde of Observed Catalog.
+        lon : Array of float
+            Longitude ofObserved Catalog
+        mag : Array of float
+            Magnitudes of the Observed Catalog
+
+        Returns
+        -------
+
+        spatial_grid : Just Global Cells
+            list of earthquakes corresponding to each quadkey
+
+        """
+
+        if len(self.earthquake_per_cell) == 0:
+        
+            num = numpy.zeros(len(self.grid_qk))
+            
+            if len(self.grid_bounds) == 0:
+                self.get_grid_bounds()
+                
+            grid_bounds = self.grid_bounds
+            
+            #Spatial binning arrangement
+            for i in range(len(lat)):
+                llat = lat[i]
+                llon = lon[i]
+                eqs = numpy.logical_and(numpy.logical_and(llon>=grid_bounds[:,0], llat>=grid_bounds[:,1]), 
+                                numpy.logical_and(llon<grid_bounds[:,2], llat<grid_bounds[:,3]) )
+    
+    
+                num[numpy.where(eqs==True)] = num[numpy.where(eqs==True)]+1
+        self.earthquake_per_cell = num
+#           return num
+
