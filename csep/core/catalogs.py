@@ -22,7 +22,7 @@ from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
 from csep.utils.readers import csep_ascii
 from csep.utils.file import get_file_extension
-
+from csep.utils.plots import plot_catalog
 
 class AbstractBaseCatalog(LoggingMixin):
     """
@@ -453,6 +453,19 @@ class AbstractBaseCatalog(LoggingMixin):
         """
         return self.catalog['longitude']
 
+    def get_bbox(self):
+        """
+        Returns bounding box of all events in the catalog
+
+        Returns:
+            (numpy.array): [lon_min, lon_max, lat_min, lat_max]
+        """
+        bbox = numpy.array([numpy.min(self.catalog['longitude']),
+                            numpy.max(self.catalog['longitude']),
+                            numpy.min(self.catalog['latitude']),
+                            numpy.max(self.catalog['latitude'])])
+        return bbox
+
     def get_depths(self):
         """ Returns depths of all events in catalog """
         return self.catalog['depth']
@@ -561,7 +574,7 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             cls = self.__class__
             inst = cls(data=filtered, catalog_id=self.catalog_id, format=self.format, name=self.name,
-                       region=region, compute_stats=update_stats)
+                       region=self.region, compute_stats=update_stats)
             return inst
 
     def apply_mct(self, m_main, event_epoch, mc=2.5):
@@ -731,23 +744,19 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region is None:
             raise CSEPCatalogException("Cannot create binned rates without region information.")
 
+        if self.region.magnitudes is None and mag_bins is None:
+            raise CSEPCatalogException("Region must have magnitudes or mag_bins must be defined to "
+                                       "compute space magnitude binning.")
+
         # short-circuit if zero-events in catalog... return array of zeros
         if self.event_count == 0:
             n_poly = self.region.num_nodes
             n_mws = self.region.num_mag_bins
             output = numpy.zeros((n_poly, n_mws))
             skipped = []
-
         else:
             if mag_bins is None:
-                try:
-                    # a forecast is a type of region, but region does not need a magnitude
-                    mag_bins = self.region.magnitudes
-                except AttributeError:
-                    # use default magnitude bins from csep
-                    mag_bins = CSEP_MW_BINS
-                    self.region.magnitudes = mag_bins
-                    self.region.num_mag_bins = len(mag_bins)
+                mag_bins = self.region.magnitudes
 
             # compute if not
             # todo: this should be routed through self.region to allow for different types of regions
@@ -818,6 +827,49 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             return bval
 
+    def plot(self, ax=None, show=False, extent=None, set_global=False, plot_args=None):
+        """ Plot catalog according to plate-carree projection
+
+        Args:
+            ax (`matplotlib.pyplot.axes`): Previous axes onto which catalog can be drawn
+            show (bool): if true, show the figure. this call is blocking.
+            extent (list): Force an extent [lon_min, lon_max, lat_min, lat_max]
+            plot_args (optional/dict): dictionary containing plotting arguments for making figures
+
+        Returns:
+            axes: matplotlib.Axes.axes
+        """
+        # no mutable function arguments
+
+        plot_args_default = {
+             'basemap': 'ESRI_terrain',
+             'markersize': 2,
+             'markercolor': 'red',
+             'alpha': 0.3,
+             'mag_scale': 7,
+             'legend': True,
+             'grid_labels': True,
+             'legend_loc': 3,
+             'figsize': (8, 8),
+             'title': self.name,
+             'mag_ticks': [4.0, 5.0, 6.0, 7.0]
+        }
+        # Plot the region border (if it exists) by default
+        try:
+            # This will throw error if catalog does not have region
+            _ = self.region.num_nodes
+            plot_args_default['region_border'] = True
+        except AttributeError:
+            pass
+
+        plot_args = plot_args or {}
+        plot_args_default.update(plot_args)
+
+        # this call requires internet connection and basemap
+        ax = plot_catalog(self, ax=ax,show=show, extent=extent,
+                          set_global=set_global, plot_args=plot_args_default)
+        return ax
+
 
 class CSEPCatalog(AbstractBaseCatalog):
     """
@@ -853,10 +905,10 @@ class CSEPCatalog(AbstractBaseCatalog):
 
     @classmethod
     def load_ascii_catalogs(cls, filename, **kwargs):
-        """ Loads multiple CSEP catalogs in ASCII format.
+        """ Loads multiple catalogs in csep-ascii format.
 
-        This function can load multiple catalogs stored in a single file or directories. This typically called to
-        load a catalog-based forecast.
+        This function can load multiple catalogs stored in a single file. This typically called to
+        load a catalog-based forecast, but could also load a collection of catalogs stored in the same file
 
         Args:
             filename (str): filepath or directory of catalog files
@@ -874,15 +926,46 @@ class CSEPCatalog(AbstractBaseCatalog):
             start_time = strptime_to_utc_datetime(split_fname[1], format="%Y-%m-%dT%H-%M-%S-%f")
             return (name, start_time)
 
+        def read_float(val):
+            """Returns val as float or None if unable"""
+            try:
+                val = float(val)
+            except:
+                val = None
+            return val
+
         def is_header_line(line):
-            if line[0] == 'lon':
+            if line[0].lower() == 'lon':
                 return True
             else:
                 return False
 
-        name_from_file, start_time = parse_filename(filename)
+        def read_catalog_line(line):
+            # convert to correct types
+            lon = read_float(line[0])
+            lat = read_float(line[1])
+            magnitude = read_float(line[2])
+            # maybe fractional seconds are not included
+            origin_time = line[3]
+            if origin_time:
+                try:
+                    origin_time = strptime_to_utc_epoch(line[3], format='%Y-%m-%dT%H:%M:%S.%f')
+                except ValueError:
+                    origin_time = strptime_to_utc_epoch(line[3], format='%Y-%m-%dT%H:%M:%S')
+            depth = read_float(line[4])
+            catalog_id = int(line[5])
+            event_id = line[6]
+            # temporary event
+            temp_event = (event_id, origin_time, lat, lon, depth, magnitude)
+            return temp_event, catalog_id
+
         # overwrite filename, if user specifies
-        kwargs.setdefault('name', name_from_file)
+        try:
+            name_from_file, start_time = parse_filename(filename)
+            kwargs.setdefault('name', name_from_file)
+        except:
+            pass
+
         # handle all catalogs in single file
         if os.path.isfile(filename):
             with open(filename, 'r', newline='') as input_file:
@@ -896,52 +979,53 @@ class CSEPCatalog(AbstractBaseCatalog):
                     if prev_id is None:
                         if is_header_line(line):
                             continue
-                    # convert to correct types
-                    lon = float(line[0])
-                    lat = float(line[1])
-                    magnitude = float(line[2])
-                    # maybe fractional seconds are not included
-                    try:
-                        origin_time = strptime_to_utc_epoch(line[3], format='%Y-%m-%dT%H:%M:%S.%f')
-                    except ValueError:
-                        origin_time = strptime_to_utc_epoch(line[3], format='%Y-%m-%dT%H:%M:%S')
-                    depth = float(line[4])
-                    catalog_id = int(line[5])
-                    event_id = line[6]
+                    # read line and return catalog id
+                    temp_event, catalog_id = read_catalog_line(line)
+                    empty = False
+                    # OK if event_id is empty
+                    if all([val in (None, '') for val in temp_event[1:]]):
+                        empty = True
                     # first event is when prev_id is none, catalog_id should always start at zero
                     if prev_id is None:
                         prev_id = 0
                         # if the first catalog doesn't start at zero
                         if catalog_id != prev_id:
-                            prev_id = catalog_id
-                            # store this event for next time
-                            events = [(event_id, origin_time, lat, lon, depth, magnitude)]
+                            if not empty:
+                                events = [temp_event]
+                            else:
+                                events = []
                             for id in range(catalog_id):
                                 yield cls(data=[], catalog_id=id, **kwargs)
-                    # deal with cases of events
+                            prev_id = catalog_id
+                            continue
+                    # accumulate event if catalog_id is the same as previous event
                     if catalog_id == prev_id:
+                        if not all([val in (None, '') for val in temp_event]):
+                            events.append(temp_event)
                         prev_id = catalog_id
-                        events.append((event_id, origin_time, lat, lon, depth, magnitude))
                     # create and yield class if the events are from different catalogs
                     elif catalog_id == prev_id + 1:
-                        catalog = cls(data=events, catalog_id=prev_id, **kwargs)
+                        yield cls(data=events, catalog_id=prev_id, **kwargs)
+                        # add event to new event list
+                        if not empty:
+                            events = [temp_event]
+                        else:
+                            events = []
                         prev_id = catalog_id
-                        # add first event to new event list
-                        events = [(event_id, origin_time, lat, lon, depth, magnitude)]
-                        yield catalog
                     # this implies there are empty catalogs, because they are not listed in the ascii file
                     elif catalog_id > prev_id + 1:
-                        catalog = cls(data=events, catalog_id=prev_id, **kwargs)
-                        # add event to new event list
-                        events = [(event_id, origin_time, lat, lon, depth, magnitude)]
+                        yield cls(data=events, catalog_id=prev_id, **kwargs)
                         # if prev_id = 0 and catalog_id = 2, then we skipped one catalog. thus, we skip catalog_id - prev_id - 1 catalogs
                         num_empty_catalogs = catalog_id - prev_id - 1
-                        # create empty catalog classes
+                        # first yield empty catalog classes
                         for id in range(num_empty_catalogs):
                             yield cls(data=[], catalog_id=catalog_id - num_empty_catalogs + id, **kwargs)
-                        # finally we want to yield the buffered catalog to preserve order
                         prev_id = catalog_id
-                        yield catalog
+                        # add event to new event list
+                        if not empty:
+                            events = [temp_event]
+                        else:
+                            events = []
                     else:
                         raise ValueError(
                             "catalog_id should be monotonically increasing and events should be ordered by catalog_id")

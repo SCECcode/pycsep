@@ -104,13 +104,13 @@ rate_sum = forecast.region.get_cartesian(rate_sum)
 #
 # We define the arguments and a global projection, centered at $lon=-180$
 
-plot_args={'figsize': (10,6), 'coastline':True, 'feature_color':'black',
-           'projection': cartopy.crs.Robinson(central_longitude=-180.0),
-           'title': forecast.name, 'grid_labels': False,
-           'cmap': 'magma',
-           'clabel': r'$\log_{10}\lambda\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
-                     r'${%.1f}^\circ\times {%.1f}^\circ $ per forecast period' %
-                     (low_bound, upper_bound, forecast.region.dh, forecast.region.dh)}
+plot_args = {'figsize': (10,6), 'coastline':True, 'feature_color':'black',
+             'projection': cartopy.crs.Robinson(central_longitude=-180.0),
+             'title': forecast.name, 'grid_labels': False,
+             'cmap': 'magma',
+             'clabel': r'$\log_{10}\lambda\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
+                       r'${%.1f}^\circ\times {%.1f}^\circ $ per forecast period' %
+                       (low_bound, upper_bound, forecast.region.dh, forecast.region.dh)}
 
 ####################################################################################################################################
 # **Plotting the dataset**
@@ -125,9 +125,48 @@ ax = plots.plot_spatial_dataset(numpy.log10(rate_sum), forecast.region,
 
 
 
+####################################################################################################################################
+# Example 3: Plot a catalog
+# -------------------------------------------
 
 ####################################################################################################################################
-# Example 3: Plot multiple evaluation results
+# **Load a Catalog from ComCat**
+
+start_time = csep.utils.time_utils.strptime_to_utc_datetime('1995-01-01 00:00:00.0')
+end_time = csep.utils.time_utils.strptime_to_utc_datetime('2015-01-01 00:00:00.0')
+min_mag = 3.95
+catalog = csep.query_comcat(start_time, end_time, min_magnitude=min_mag, verbose=False)
+
+# **Define plotting arguments**
+plot_args = {'basemap': 'ESRI_terrain',
+             'markersize': 2,
+             'markercolor': 'red',
+             'alpha': 0.3,
+             'mag_scale': 7,
+             'legend': True,
+             'legend_loc': 3,
+             'mag_ticks': [4.0, 5.0, 6.0, 7.0]}
+
+####################################################################################################################################
+# These arguments are, in order:
+#
+# * Assign as basemap the ESRI_terrain webservice
+# * Set minimum markersize of 2 with red color
+# * Set a 0.3 transparency
+# * mag_scale is used to exponentially scale the size with respect to magnitude. Recommended 1-8
+# * Set legend True and location in 3 (lower-left corner)
+# * Set a list of Magnitude ticks to display in the legend
+#
+# The complete description of plot arguments can be found in :func:`csep.utils.plots.plot_catalog`
+
+####################################################################################################################################
+
+# **Plot the catalog**
+ax = catalog.plot(show=True, plot_args=plot_args)
+
+
+####################################################################################################################################
+# Example 4: Plot multiple evaluation results
 # -------------------------------------------
 
 ####################################################################################################################################

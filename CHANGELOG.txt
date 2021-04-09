@@ -1,7 +1,14 @@
-v0.2.x
-  Unreleased 
+v0.4.0 03/24/2021 
     - Fixed issue in plot_poisson_consistency_test where one_sided_lower argument not coloring markers correctly
-
+    - Added several plot configurations based on Cartopy 
+      - Plotting spatial datasets with ESRI basemap
+      - Plotting catalog
+      - Plotting regions using outline of polygon
+      - Added defaults to forecasts and catalogs
+    - Added reader for gzipped UCERF3-ETAS forecasts
+    - Updates for INGV readers
+    - Fixed bug causing certain events to be placed into incorrrect bins
+      
 v0.2 11/11/2020
   Added new catalog formats, support for masked forecast bins, and bug fixes, where applicable PR id are shown in parenthesis.
 

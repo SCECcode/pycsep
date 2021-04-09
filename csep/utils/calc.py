@@ -193,3 +193,33 @@ def _distribution_test(stochastic_event_set_data, observation_data):
     _, quantile = get_quantiles(test_distribution, d_obs)
 
     return test_distribution, d_obs, quantile
+
+def cleaner_range(start, end, h):
+    """ Returns array holding bin edges that doesn't contain floating point wander.
+
+    Floating point wander can occur when repeatedly adding floating point numbers together. The errors propogate and become worse over the sum. This function generates the
+    values on an integer grid and converts back to floating point numbers through multiplication.
+
+     Args:
+        start (float)
+        end (float)
+        h (float): magnitude spacing
+
+    Returns:
+        bin_edges (numpy.ndarray)
+    """
+    # convert to integers to prevent accumulating floating point errors
+    const = 100000
+    start = numpy.floor(const * start)
+    end = numpy.floor(const * end)
+    d = const * h
+    return numpy.arange(start, end + d / 2, d) / const
+
+def first_nonnan(arr, axis=0, invalid_val=-1):
+    mask = arr==arr
+    return numpy.where(mask.any(axis=axis), mask.argmax(axis=axis), invalid_val)
+
+def last_nonnan(arr, axis=0, invalid_val=-1):
+    mask = arr==arr
+    val = arr.shape[axis] - numpy.flip(mask, axis=axis).argmax(axis=axis) - 1
+    return numpy.where(mask.any(axis=axis), val, invalid_val)

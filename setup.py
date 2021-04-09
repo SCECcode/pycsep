@@ -6,7 +6,7 @@ with open("README.md",'r') as fh:
 
 setup(
     name='pycsep',
-    version='0.2.0',
+    version='0.4.0',
     author='William Savran',
     author_email='wsavran@usc.edu',
     packages=find_packages(),
@@ -47,5 +47,5 @@ setup(
     include_package_data=True,
     python_requires=">=3.7",
     zip_safe=False,
-    url='https://github.com/SCECCode/csep2'
+    url='https://github.com/SCECCode/pycsep'
 )

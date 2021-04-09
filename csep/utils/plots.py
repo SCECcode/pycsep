@@ -553,7 +553,236 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
     if show:
         pyplot.show()
 
-def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=False, plot_args=None):
+def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linecolor='black', linewidth=True,
+                 grid=False, grid_labels=False, set_global=False, show=False, projection=ccrs.PlateCarree(), apprx=False,
+                 central_latitude=0.0):
+    """ Wrapper function for multiple cartopy base plots, including access to standard raster webservices
+
+     Args:
+         basemap (str): Possible values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain, or webservice link (see examples in :func:`csep.utils.plots._get_basemap`. Default is None
+         extent (list):  [lon_min, lon_max, lat_min, lat_max]
+         show (bool): Flag if the figure is displayed
+         set_global (bool): Display the complete globe as basemap
+         coastline (str): Flag to plot coastline. default True,
+         borders (bool): Flag to plot country borders. default False,
+         linewidth (float): Line width of borders and coast lines. default 1.5,
+         linecolor (str): Color of borders and coast lines. default 'black',
+         grid (bool): Draws a grid in the basemap
+         grid_labels (bool): Annotate grid values
+         apprx (bool): If true, approximates transformation by setting aspect ratio of axes based on middle latitude
+         central_latitude (float): average latitude from plotting region
+
+     Returns:
+         :class:`matplotlib.pyplot.ax` object
+
+     """
+    if ax is None:
+        if apprx:
+            projection = ccrs.PlateCarree()
+            fig = pyplot.figure()
+            ax = fig.add_subplot(111, projection=projection)
+            # Re-aspect plot (only for plain matplotlib plots, or when using PlateCarree)
+            LATKM = 110.574
+            ax.set_aspect(111.320 * numpy.cos(numpy.deg2rad(central_latitude)) / LATKM)
+        else:
+            fig = pyplot.figure()
+            ax = fig.add_subplot(111, projection=projection)
+
+    if set_global:
+        ax.set_global()
+    else:
+        ax.set_extent(extents=extent, crs=ccrs.PlateCarree())
+
+    try:
+        # Set adaptive scaling
+        line_autoscaler = cartopy.feature.AdaptiveScaler('110m', (('50m', 50), ('10m', 5)))
+        tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
+        tiles = None
+        # Set tile depth
+        tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(extent)
+        if coastline:
+            ax.coastlines(color=linecolor, linewidth=linewidth)
+        if borders:
+            borders =  cartopy.feature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land',
+                                                           line_autoscaler, edgecolor=linecolor, facecolor='never')
+            ax.add_feature(borders, linewidth=linewidth)
+        if basemap == 'stock_img':
+            ax.stock_img()
+        elif basemap is not None:
+            tiles = _get_basemap(basemap)
+        if tiles:
+            ax.add_image(tiles, tile_depth)
+    except:
+        print("Unable to plot basemap. This might be due to no internet access, try pre-downloading the files.")
+
+    # Gridline options
+    if grid:
+        gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
+        gl.right_labels = False
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+
+    if show:
+        pyplot.show()
+
+    return ax
+
+def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, plot_args=None):
+    """ Plot catalog in a region
+
+    Args:
+        catalog (:class:`CSEPCatalog`): Catalog object to be plotted
+        ax (:class:`matplotlib.pyplot.ax`): Previously defined ax object (e.g from plot_spatial_dataset)
+        show (bool): Flag if the figure is displayed
+        extent (list):  default 1.05-:func:`catalog.region.get_bbox()`
+        set_global (bool): Display the complete globe as basemap
+        plot_args (dict): matplotlib and cartopy plot arguments. The dictionary keys are str, whose items can be:
+
+           - :figsize: :class:`tuple`/:class:`list` - default [6.4, 4.8]
+           - :title: :class:`str` - default :class:`catalog.name`
+           - :title_size: :class:`int` - default 10
+           - :filename: :class:`str` - File to save figure. default None
+           - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`. Note: this can be
+                'fast' to apply an approximate transformation of axes.
+           - :grid: :class:`bool` - default True
+           - :grid_labels: :class:`bool` - default True
+           - :marker: :class:`str` - Marker type
+           - :markersize: :class:`float` - Constant size for all earthquakes
+           - :markercolor: :class:`str` - Color for all earthquakes
+           - :basemap:  :class:`str`/:class:`None`. Possible values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain, or webservice link. Default is None
+           - :coastline: :class:`bool` - Flag to plot coastline. default True,
+           - :borders: :class:`bool` - Flag to plot country borders. default False,
+           - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
+           - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
+           - :alpha: :class:`float` - Transparency for the earthquakes scatter
+           - :mag_scale: :class:`float` - Scaling of the scatter
+           - :legend: :class:`bool` - Flag to display the legend box
+           - :legend_loc: :class:`int`/:class:`str` - Position of the legend
+           - :mag_ticks: :class:`list` - Ticks to display in the legend
+           - :labelspacing: :class:`int` - Separation between legend ticks
+
+    Returns:
+        :class:`matplotlib.pyplot.ax` object
+
+    """
+    # Get spatial information for plotting
+
+    # Retrieve plot arguments
+    plot_args = plot_args or {}
+    # figure and axes properties
+    figsize = plot_args.get('figsize', None)
+    title = plot_args.get('title', catalog.name)
+    title_size = plot_args.get('title_size', None)
+    filename = plot_args.get('filename', None)
+    # scatter properties
+    markersize = plot_args.get('markersize', 2)
+    markercolor = plot_args.get('markercolor', 'blue')
+    alpha = plot_args.get('alpha', 1)
+    mag_scale = plot_args.get('mag_scale', 1)
+    legend = plot_args.get('legend', False)
+    legend_loc = plot_args.get('legend_loc', 1)
+    mag_ticks = plot_args.get('mag_ticks', False)
+    labelspacing = plot_args.get('labelspacing', 1)
+    region_border = plot_args.get('region_border', True)
+    # cartopy properties
+    projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
+    grid = plot_args.get('grid', True)
+    grid_labels = plot_args.get('grid_labels', False)
+    basemap = plot_args.get('basemap', None)
+    coastline = plot_args.get('coastline', True)
+    borders = plot_args.get('borders', False)
+    linewidth = plot_args.get('linewidth', True)
+    linecolor = plot_args.get('linecolor', 'black')
+
+
+    bbox = catalog.get_bbox()
+    if region_border:
+        try:
+            bbox = catalog.region.get_bbox()
+        except AttributeError:
+            pass
+
+    if extent is None:
+        dh = (bbox[1] - bbox[0]) / 20.
+        dv = (bbox[3] - bbox[2]) / 20.
+        extent = [bbox[0] - dh, bbox[1]+dh, bbox[2] -dv, bbox[3] + dv]
+
+    apprx = False
+    central_latitude = 0.0
+    if projection == 'fast':
+        projection = ccrs.PlateCarree()
+        apprx = True
+        n_lats = len(catalog.region.ys) // 2
+        central_latitude = catalog.region.ys[n_lats]
+
+    # Instantiage GeoAxes object
+    if ax is None:
+        fig = pyplot.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection=projection)
+
+    if set_global:
+        ax.set_global()
+    else:
+        ax.set_extent(extents=extent, crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
+
+    # Basemap plotting
+    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
+                      linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
+                      central_latitude=central_latitude)
+
+    # Scaling function
+    mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
+    def size_map(markersize, values, scale):
+        if isinstance(mag_scale, (int, float)):
+            return (markersize/(scale**mw_range[0]) * numpy.power(values, scale))
+        elif isinstance(scale, (numpy.ndarray, list)):
+            return scale
+        else:
+            raise ValueError('scale data type not supported')
+
+    ## Plot catalog
+    scatter = ax.scatter(catalog.get_longitudes(), catalog.get_latitudes(),
+                           s=size_map(markersize, catalog.get_magnitudes(), mag_scale),
+                           transform=cartopy.crs.PlateCarree(),
+                           color=markercolor,
+                           alpha=alpha)
+
+    # Legend
+    if legend:
+        if not mag_ticks:
+            mag_ticks = numpy.round(numpy.linspace(mw_range[0], mw_range[1], 4), 1)
+        handles, labels = scatter.legend_elements(prop="sizes",
+                                                  num=list(size_map(markersize, mag_ticks, mag_scale)),
+                                                  alpha=0.3)
+        ax.legend(handles, mag_ticks,
+                  loc=legend_loc, title=r"Magnitudes",title_fontsize=16,
+                  labelspacing=labelspacing, handletextpad=5, framealpha=False)
+
+    if region_border:
+        try:
+            pts = catalog.region.tight_bbox()
+            ax.plot(pts[:, 0], pts[:, 1], lw=1, color='black')
+        except AttributeError:
+            print("unable to get tight bbox")
+
+    # Gridline options
+    if grid:
+        gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
+        gl.right_labels = False
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+
+    # Figure options
+    ax.set_title(title, fontsize=title_size, y=1.06)
+    if filename is not None:
+        ax.get_figure().savefig(filename + '.pdf')
+        ax.get_figure().savefig(filename + '.png', dpi=300)
+    if show:
+        pyplot.show()
+
+    return ax
+
+def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_global=False, plot_args=None):
     """ Plot spatial dataset such as data from a gridded forecast
 
     Args:
@@ -564,27 +793,28 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
         set_global (bool): Display the complete globe as basemap
         plot_args (dict): matplotlib and cartopy plot arguments. Dict keys are str, whose values can be:
 
-    Optional plot arguments:
-       - :figsize: :class:`tuple`/:class:`list` - default [6.4, 4.8]
-       - :title: :class:`str` - default None
-       - :title_size: :class:`int` - default 10
-       - :filename: :class:`str` - default None
-       - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`
-       - :grid: :class:`bool` - default True
-       - :grid_labels: :class:`bool` - default True
-       - :basemap:  :class:`str`/:class:`None` -Possible :class:`str` values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain. Default is None
-       - :coastline: :class:`bool` - Flag to plot coastline. default True,
-       - :borders: :class:`str`bool - Flag to plot country borders. default False,
-       - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
-       - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
-       - :cmap: :class:`str`/:class:`pyplot.colors.Colormap` -  default 'viridis'
-       - :clabel: :class:`str` - default None
-       - :clim: :class:`list` - default None
-       - :alpha: :class:`float` - default 1
-       - :alpha_exp: :class:`float` - Exponent for the alpha func (recommended between 0.4 and 1). default 0
+           - :figsize: :class:`tuple`/:class:`list` - default [6.4, 4.8]
+           - :title: :class:`str` - default None
+           - :title_size: :class:`int` - default 10
+           - :filename: :class:`str` - default None
+           - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`
+           - :grid: :class:`bool` - default True
+           - :grid_labels: :class:`bool` - default True
+           - :basemap:  :class:`str`. Possible  values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain, or webservice link. Default is None
+           - :coastline: :class:`bool` - Flag to plot coastline. default True,
+           - :borders: :class:`bool` - Flag to plot country borders. default False,
+           - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
+           - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
+           - :cmap: :class:`str`/:class:`pyplot.colors.Colormap` -  default 'viridis'
+           - :clabel: :class:`str` - default None
+           - :clim: :class:`list` - default None
+           - :alpha: :class:`float` - default 1
+           - :alpha_exp: :class:`float` - Exponent for the alpha func (recommended between 0.4 and 1). default 0
+
 
     Returns:
-        :ax :class:`matplotlib.pyplot.ax` object
+        :class:`matplotlib.pyplot.ax` object
+
 
     """
     # Get spatial information for plotting
@@ -608,6 +838,7 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
     borders = plot_args.get('borders', False)
     linewidth = plot_args.get('linewidth', True)
     linecolor = plot_args.get('linecolor', 'black')
+    region_border = plot_args.get('region_border', True)
     # color bar properties
     cmap = plot_args.get('cmap', None)
     clabel = plot_args.get('clabel', '')
@@ -615,45 +846,39 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
     alpha = plot_args.get('alpha', 1)
     alpha_exp = plot_args.get('alpha_exp', 0)
 
+    apprx = False
+    central_latitude = 0.0
+    if projection == 'fast':
+        projection = ccrs.PlateCarree()
+        apprx = True
+        n_lats = len(region.ys) // 2
+        central_latitude = region.ys[n_lats]
 
     # Instantiage GeoAxes object
-    fig = pyplot.figure(figsize=figsize)
-    ax = fig.add_subplot(111, projection=projection)
+    if ax is None:
+        fig = pyplot.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection=projection)
+    else:
+        fig = ax.get_figure()
+
     if set_global:
         ax.set_global()
     else:
         ax.set_extent(extents=extent, crs=ccrs.PlateCarree()) # Defined extent always in lat/lon
 
     # Basemap plotting
-    try:
-        # Set adaptive scaling
-        line_autoscaler = cartopy.feature.AdaptiveScaler('110m', (('50m', 50), ('10m', 5)))
-        tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
-        tiles = None
-        # Set tile depth
-        tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(extent)
-        if coastline:
-            ax.coastlines(color=linecolor, linewidth=linewidth)
-        if borders:
-            borders =  cartopy.feature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land',
-                                                           line_autoscaler, edgecolor=linecolor, facecolor='never')
-            ax.add_feature(borders, linewidth=linewidth)
-        if basemap == 'stock_img':
-            ax.stock_img()
-        elif basemap is not None:
-            tiles = _get_basemap(basemap)
-        if tiles:
-            ax.add_image(tiles, tile_depth)
-    except:
-        print("Unable to plot basemap. This might be due to no internet access, try pre-downloading the files.")
+    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
+                      linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
+                      central_latitude=central_latitude)
 
     ## Define colormap and transparency function
     if isinstance(cmap, str) or not cmap:
         cmap = pyplot.get_cmap(cmap)
     cmap_tup = cmap(numpy.arange(cmap.N))
     if isinstance(alpha_exp, (float,int)):
-        cmap_tup[:, -1] = numpy.linspace(0, 1, cmap.N) ** alpha_exp
-        alpha = None
+        if alpha_exp != 0:
+            cmap_tup[:, -1] = numpy.linspace(0, 1, cmap.N) ** alpha_exp
+            alpha = None
     cmap = matplotlib.colors.ListedColormap(cmap_tup)
 
     ## Plot spatial dataset
@@ -666,7 +891,8 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
     # Colorbar options
     # create an axes on the right side of ax. The width of cax will be 5%
     # of ax and the padding between cax and ax will be fixed at 0.05 inch.
-    cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height])
+    cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height],
+                       label='Colorbar')
     cbar = fig.colorbar(im, ax=ax, cax=cax)
     cbar.set_label(clabel)
 
@@ -676,11 +902,16 @@ def plot_spatial_dataset(gridded, region, show=False, extent=None, set_global=Fa
         gl.right_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
-    ax.set_title(title, y=1.06)
 
+    if region_border:
+        pts = region.tight_bbox()
+        ax.plot(pts[:,0], pts[:,1], lw=1, color='black', transform=ccrs.PlateCarree())
+
+    # matplotlib figure options
+    ax.set_title(title, y=1.06)
     if filename is not None:
-        fig.savefig(filename + '.pdf')
-        fig.savefig(filename + '.png', dpi=300)
+        ax.get_figure().savefig(filename + '.pdf')
+        ax.get_figure().savefig(filename + '.png', dpi=300)
     if show:
         pyplot.show()
 
@@ -1206,7 +1437,11 @@ def _get_basemap(basemap):
                  'MapServer/tile/{z}/{y}/{x}.jpg'
         tiles = img_tiles.GoogleTiles(url=webservice)
     else:
-        raise ValueError('Basemap type not valid or not implemented')
+        try:
+            webservice = basemap
+            tiles = img_tiles.GoogleTiles(url=webservice)
+        except:
+            raise ValueError('Basemap type not valid or not implemented')
 
     return tiles
 

@@ -11,7 +11,7 @@ import numpy as np
 import pyproj
 
 # PyCSEP imports
-from csep.utils.calc import bin1d_vec
+from csep.utils.calc import bin1d_vec, cleaner_range, first_nonnan, last_nonnan
 from csep.utils.scaling_relationships import WellsAndCoppersmith
 
 def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection"):
@@ -172,14 +172,9 @@ def global_region(dh=0.1, name="global", magnitudes=None):
         csep.utils.CartesianGrid2D:
     """
     # generate latitudes
-    const = 1000000
-    start_lat = numpy.floor(-90 * const)
-    end_lat = numpy.floor(90 * const)
-    start_lon = numpy.floor(-180 * const)
-    end_lon = numpy.floor(180 * const)
-    d = numpy.floor(const * dh)
-    lats = numpy.arange(start_lat, end_lat, d) / const
-    lons = numpy.arange(start_lon, end_lon, d) / const
+
+    lons = cleaner_range(-180.0, 179.9, dh)
+    lats = cleaner_range(-90, 89.9, dh)
     coords = itertools.product(lons,lats)
     region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name)
     if magnitudes is not None:
@@ -707,13 +702,9 @@ class CartesianGrid2D:
         # get midpoints for hashing
         midpoints = numpy.array([poly.centroid() for poly in self.polygons])
 
-        # compute nx and ny
-        nx = numpy.rint((bbox[1][0] - bbox[0][0]) / self.dh)
-        ny = numpy.rint((bbox[1][1] - bbox[0][1]) / self.dh)
-
-        # set up grid of bounding box
-        xs = self.dh * numpy.arange(nx + 1) + bbox[0][0]
-        ys = self.dh * numpy.arange(ny + 1) + bbox[0][1]
+        # set up grid over bounding box
+        xs = cleaner_range(bbox[0][0], bbox[1][0], self.dh)
+        ys = cleaner_range(bbox[0][1], bbox[1][1], self.dh)
 
         # set up mask array, 1 is index 0 is mask
         a = numpy.ones([len(ys), len(xs), 2])
@@ -738,4 +729,27 @@ class CartesianGrid2D:
                     a[idy[i], idx[i], 0] = 0
 
         return a, xs, ys
+
+    def tight_bbox(self):
+        # creates tight bounding box around the region, probably a faster way to do this.
+        ny, nx = self.idx_map.shape
+        asc = []
+        desc = []
+        for j in range(ny):
+            row = self.idx_map[j, :]
+            argmin = first_nonnan(row)
+            argmax = last_nonnan(row)
+            # points are stored clockwise
+            poly_min = self.polygons[int(row[argmin])].points
+            asc.insert(0, poly_min[0])
+            asc.insert(0, poly_min[1])
+            poly_max = self.polygons[int(row[argmax])].points
+            desc.append(poly_max[3])
+            desc.append(poly_max[2])
+        # close the loop
+        poly = np.array(asc + desc)
+        sorted_idx = np.sort(np.unique(poly, return_index=True, axis=0)[1], kind='stable')
+        unique_poly = poly[sorted_idx]
+        unique_poly = np.append(unique_poly, [unique_poly[0, :]], axis=0)
+        return unique_poly
 

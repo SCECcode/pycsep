@@ -54,6 +54,7 @@ Input and output operations for catalogs:
    CSEPCatalog.write_ascii
    CSEPCatalog.load_ascii_catalogs
    CSEPCatalog.get_csep_format
+   CSEPCatalog.plot
 
 Accessing event information:
 
@@ -225,6 +226,7 @@ General plotting:
 
    plot_histogram
    plot_ecdf
+   plot_basemap
 
 Plotting from catalogs:
 
@@ -232,6 +234,7 @@ Plotting from catalogs:
    :toctree: generated
 
    plot_magnitude_versus_time
+   plot_catalog
 
 Plotting from stochastic event sets:
 
@@ -240,7 +243,6 @@ Plotting from stochastic event sets:
 
    plot_cumulative_events_versus_time
    plot_magnitude_histogram
-   plot_spatial_dataset
    plot_number_test
    plot_magnitude_test
    plot_distribution_test
