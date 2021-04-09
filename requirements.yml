@@ -17,3 +17,7 @@ dependencies:
   - sphinx_rtd_theme
   - pillow
   - vcrpy
+  - mercantile
+  - area
+  - shapely
+  - json
