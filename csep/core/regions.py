@@ -9,6 +9,11 @@ import matplotlib.path
 import numpy
 import numpy as np
 import pyproj
+import mercantile
+from area import area
+import json
+from shapely.geometry import box, shape, mapping
+
 
 # PyCSEP imports
 from csep.utils.calc import bin1d_vec, cleaner_range, first_nonnan, last_nonnan
