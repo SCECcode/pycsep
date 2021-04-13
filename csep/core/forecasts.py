@@ -6,6 +6,7 @@ import datetime
 # third-party imports
 import numpy
 
+from csep.core import catalogs
 from csep.utils.log import LoggingMixin
 from csep.core.regions import CartesianGrid2D, Polygon, create_space_magnitude_region
 from csep.utils.calc import bin1d_vec
@@ -778,7 +779,7 @@ class CatalogForecast(LoggingMixin):
             """
             self.forecast_data = self.forecast_data * val
 
-        def target_evet_rate(self, observed_catalog):
+        def target_event_rate(self, observed_catalog):
             """
             Provides forecast rates corresponding to every the earthquake that occured in observed catalog
             OR
@@ -791,13 +792,13 @@ class CatalogForecast(LoggingMixin):
             ---The implementation works using gridded catalog and yields forecast rates
                by using the counts of bins of observed catalog
             Args:
-                target_catalog (QuadtreeCatalog): data containing target events
+                observed_catalog (QuadtreeGriddedCatalog):
 
             Returns:
                 out (tuple): target_event_rates, n_fore
             """
-            if not isinstance(observed_catalog, QuadtreeGriddedCatalog):
-                raise TypeError("target_catalog must be csep.core.data.AbstractBaseCatalog class.")
+            if not isinstance(observed_catalog, catalogs.QuadtreeGriddedCatalog):
+                raise TypeError("target_catalog must be csep.core.catalogs.QuadtreeGriddedCatalog class.")
 
             obs = observed_catalog.gridded_catalog.flatten('C')  # ------
             fcst = self.forecast_data.flatten('C')
