@@ -23,6 +23,7 @@ from csep.utils.log import LoggingMixin
 from csep.utils.readers import csep_ascii
 from csep.utils.file import get_file_extension
 from csep.utils.plots import plot_catalog
+import mercantile
 
 class AbstractBaseCatalog(LoggingMixin):
     """
@@ -1231,3 +1232,131 @@ def _none_or_datetime(value):
         format = parse_string_format(value)
         value = strptime_to_utc_datetime(value, format=format)
     return value
+
+
+#----Quadtree gridded catalog
+class QuadtreeGriddedCatalog:
+
+    def __init__(self, grid_qk, lon, lat, mag, mbins=[], name=None):
+        self.grid_qk = grid_qk
+        self.grid_origin = []
+        self.grid_top_right = []
+        self.name = name
+        self.gridded_catalog = self._catalog_gridding(grid_qk, lon, lat, mag, mbins)
+
+    def _catalog_gridding(self, qk, lon, lat, mag, mbins):
+        """
+        ---Iterates over catalog, instead of GRID
+
+        Performs gridding on a catalog with respect to Spatial Grids Cells only.
+        Does not consider magnitude bins
+        Performs gridding for Magnitude 5.95 and above ONLY. Thus good for evaluation gridding.
+        Parameters
+        ----------
+        qk : Array of String
+            List of Quad Keys strings.
+        lon : Array of float
+            Latitutde of Observed Catalog.
+        lat : Array of float
+            Longitude ofObserved Catalog
+        mag : Array of float
+        Magnitudes of the Observed Catalog
+
+        Returns
+        -------
+
+        spatial_grid : Just Global Cells
+            list of earthquakes corresponding to each quad key
+
+        """
+        #    mag1 = mag[mag>=5.15]
+        #    lon1= lon[mag>=5.15]
+        #    lat1= lat[mag>=5.15]
+        gridded_num = numpy.zeros([len(qk), len(mbins) - 1])
+        self.get_origin_coordinates()
+        self.get_top_right_coordinates()
+        grid_bounds = numpy.column_stack((self.grid_origin, self.grid_top_right))
+
+        # Spatial binning arrangement
+        for i in range(len(mag)):
+            llat = lat[i]
+            llon = lon[i]
+            mmag = mag[i]
+            eqs = numpy.logical_and(numpy.logical_and(llon >= grid_bounds[:, 0], llat >= grid_bounds[:, 1]),
+                                    numpy.logical_and(llon < grid_bounds[:, 2], llat < grid_bounds[:, 3]))
+
+            gridded_num[numpy.where(eqs == True)] = gridded_num[numpy.where(eqs == True)] + \
+                                                    numpy.histogram(mmag, bins=mbins)[0]
+
+        return gridded_num
+
+    def get_top_right_coordinates(self):
+        """
+        Parameters
+        ----------
+        qk : Array of Strings
+            Quad keys.
+
+        Returns
+        -------
+        grid_top_coords : Array of floats
+            Top-Right Coordinates of Grid formed by Quad keys boxes
+            [Longitude Latitude]
+
+        """
+
+        grid_lat = []
+        grid_lon = []
+        for i in range(len(self.grid_qk)):
+            grid_lon = numpy.append(grid_lon, mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).east)
+            grid_lat = numpy.append(grid_lat, mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).north)
+
+        self.grid_top_right = numpy.column_stack([grid_lon, grid_lat])
+
+
+    def get_origin_coordinates(self):
+        """
+        Parameters
+        ----------
+        qk : Array of Strings
+            Quad keys.
+
+        Returns
+        -------
+        grid_coords : Array of floats
+            Origin Coordinates of Grid formed by Quad keys boxes
+            [Longitude Latitude]
+
+        """
+
+        grid_lat = []
+        grid_lon = []
+        for i in range(len(self.grid_qk)):
+            grid_lon = numpy.append(grid_lon, mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).west)
+            grid_lat = numpy.append(grid_lat, mercantile.bounds(mercantile.quadkey_to_tile(self.grid_qk[i])).south)
+
+        self.grid_origin = numpy.column_stack([grid_lon, grid_lat])
+
+    #    return grid_coords
+
+    def spatial_magnitude_counts(self):
+        return self.gridded_catalog
+
+    def spatial_counts(self):
+        """
+        It would do return the spatial counts by summing up magnitude bins (rows)
+        Or if they are already 1D, return the same data
+        """
+
+        if len(numpy.shape(self.gridded_catalog)) > 1:
+            spatial_count = numpy.sum(self.gridded_catalog, axis=1)
+        else:
+            spatial_count = self.gridded_catalog
+        return spatial_count
+
+    def magnitude_counts(self):
+        """
+        It would do return the spatial counts by summing up all spatial bins (columns)
+
+        """
+        return numpy.sum(self.gridded_catalog, axis=0)
