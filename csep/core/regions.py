@@ -1013,10 +1013,6 @@ class GlobalQuadtreeGrid:
             self.get_top_right_coordinates()
         
         self.grid_bounds = numpy.column_stack((self.grid_origin, self.grid_top_right))
-        
-    
-    def testing(self, a, b):
-        return a*b
 
     def _tile_bounds(self, qk_cell_id):
         """

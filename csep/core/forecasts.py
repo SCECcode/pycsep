@@ -717,3 +717,103 @@ class CatalogForecast(LoggingMixin):
               :class:`csep.core.forecasts.CatalogForecast
         """
         raise NotImplementedError("load_ascii is not implemented!")
+
+    #---Quadtree grid based forecast
+    class QuadtreeGridForecast:
+        """
+        This class reads forecast data in to the class, that is acceptable by the pyCSEP for conducting tests.
+        It requires the quadtree grid specific to the forecast along with forecast data.
+
+        Inputs:
+            grid_qk:
+                The quadtree grid acquired for generating forecast.
+                Array/List of quadtree strings
+            data:
+                Forecast data showing earthquakes per cell
+                numpy array: n_cells x n_mag_bins
+        """
+
+        def __init__(self, grid_qk, data, name=None):
+            self.name = name
+            self.grid_qk = grid_qk
+            self.forecast_data = data
+            self.name = name
+
+        def get_data(self):
+            """
+            It returns the forecast data as numpy array
+
+            Returns
+            -------
+                Forecast data
+                n_cells x n_mag_bins
+
+            """
+            return self.forecast_data
+
+        def sum(self):
+            """ Sums over all of the forecast data"""
+            return numpy.sum(self.forecast_data)
+
+        def spatial_counts(self):
+
+            """
+            It would do return the spatial counts by summing up magnitude bins
+            Or if they are already 1D, return the same data
+            """
+
+            if len(numpy.shape(self.forecast_data)) > 1:
+                spatial_count = numpy.sum(self.forecast_data, axis=1)
+            else:
+                spatial_count = self.forecast_data
+            return spatial_count
+
+        def scale(self, val):
+            """
+            It re-scales the values of forecast according to val
+            Returns
+            -------
+            None.
+
+            """
+            self.forecast_data = self.forecast_data * val
+
+        def target_evet_rate(self, observed_catalog):
+            """
+            Provides forecast rates corresponding to every the earthquake that occured in observed catalog
+            OR
+            Generates data set of target event rates given a target data.
+
+            Please see Rhoades, D. A., D. Schorlemmer, M. C. Gerstenberger,
+            A. Christophersen, J. D. Zechar, and M. Imoto (2011). Efficient testing of earthquake forecasting models,
+            Acta Geophys 59 728-747.
+
+            ---The implementation works using gridded catalog and yields forecast rates
+               by using the counts of bins of observed catalog
+            Args:
+                target_catalog (QuadtreeCatalog): data containing target events
+
+            Returns:
+                out (tuple): target_event_rates, n_fore
+            """
+            if not isinstance(observed_catalog, QuadtreeGriddedCatalog):
+                raise TypeError("target_catalog must be csep.core.data.AbstractBaseCatalog class.")
+
+            obs = observed_catalog.gridded_catalog.flatten('C')  # ------
+            fcst = self.forecast_data.flatten('C')
+
+            # ignore all zero values from gridded observation
+            obs_flag = obs > 0
+            obs = obs[obs_flag]
+            fcst = fcst[obs_flag]
+
+            rates = []
+            for i in range(len(obs)):
+                # if obs[i]>0:
+                #            print("i = :",i)
+                #            print("Obs[i] = :", obs[i])
+                counter = obs[i]
+                while counter > 0:
+                    rates = numpy.append(rates, fcst[i])
+                    counter = counter - 1
+            return rates, numpy.sum(self.forecast_data)
