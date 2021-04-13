@@ -732,13 +732,15 @@ class QuadtreeGriddedForecast:
             data:
                 Forecast data showing earthquakes per cell
                 numpy array: n_cells x n_mag_bins
+            mbins:
+                 Left edge of Magnitude bins
         """
 
-        def __init__(self, grid_qk, data, name=None):
+        def __init__(self, grid_qk, data, mbins = [], name=None):
             self.name = name
             self.grid_qk = grid_qk
             self.forecast_data = data
-
+            self.magnitudes = mbins
         def get_data(self):
             """
             It returns the forecast data as numpy array
@@ -772,6 +774,13 @@ class QuadtreeGriddedForecast:
             else:
                 spatial_count = self.forecast_data
             return spatial_count
+
+        def magnitude_counts(self):
+            """
+            It would do return the spatial counts by summing up all spatial bins (columns)
+
+            """
+            return numpy.sum(self.forecast_data, axis=0)
 
         def scale(self, val):
             """

@@ -1272,6 +1272,7 @@ class QuadtreeGriddedCatalog:
         #    mag1 = mag[mag>=5.15]
         #    lon1= lon[mag>=5.15]
         #    lat1= lat[mag>=5.15]
+        mbins = numpy.round(numpy.append(mbins, 10), 2)
         gridded_num = numpy.zeros([len(qk), len(mbins) - 1])
         self.get_origin_coordinates()
         self.get_top_right_coordinates()
