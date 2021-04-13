@@ -720,7 +720,7 @@ class CatalogForecast(LoggingMixin):
         raise NotImplementedError("load_ascii is not implemented!")
 
     #---Quadtree grid based forecast
-    class QuadtreeGridForecast:
+class QuadtreeGriddedForecast:
         """
         This class reads forecast data in to the class, that is acceptable by the pyCSEP for conducting tests.
         It requires the quadtree grid specific to the forecast along with forecast data.
@@ -738,7 +738,6 @@ class CatalogForecast(LoggingMixin):
             self.name = name
             self.grid_qk = grid_qk
             self.forecast_data = data
-            self.name = name
 
         def get_data(self):
             """
@@ -751,6 +750,11 @@ class CatalogForecast(LoggingMixin):
 
             """
             return self.forecast_data
+
+        @property
+        def event_count(self):
+            """ Returns a sum of the forecast data """
+            return self.sum()
 
         def sum(self):
             """ Sums over all of the forecast data"""
@@ -818,3 +822,4 @@ class CatalogForecast(LoggingMixin):
                     rates = numpy.append(rates, fcst[i])
                     counter = counter - 1
             return rates, numpy.sum(self.forecast_data)
+

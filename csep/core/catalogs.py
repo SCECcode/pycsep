@@ -1338,6 +1338,14 @@ class QuadtreeGriddedCatalog:
         self.grid_origin = numpy.column_stack([grid_lon, grid_lat])
 
     #    return grid_coords
+    @property
+    def event_count(self):
+        """ Returns a sum of the forecast data """
+        return self.get_number_of_events()
+
+    def get_number_of_events(self):
+        """ Sums over all of the forecast data"""
+        return numpy.sum(self.gridded_catalog)
 
     def spatial_magnitude_counts(self):
         return self.gridded_catalog
