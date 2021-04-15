@@ -11,7 +11,7 @@ from csep.utils.log import LoggingMixin
 from csep.core.regions import CartesianGrid2D, Polygon, create_space_magnitude_region
 from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
-from csep.core.catalogs import AbstractBaseCatalog
+from csep.core.catalogs import AbstractBaseCatalog, QuadtreeGriddedCatalog
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
 from csep.utils.plots import plot_spatial_dataset
 
@@ -719,116 +719,120 @@ class CatalogForecast(LoggingMixin):
         """
         raise NotImplementedError("load_ascii is not implemented!")
 
+
     #---Quadtree grid based forecast
+
+
 class QuadtreeGriddedForecast:
+    """
+    This class reads forecast data in to the class, that is acceptable by the pyCSEP for conducting tests.
+    It requires the quadtree grid specific to the forecast along with forecast data.
+
+    Inputs:
+        grid_qk:
+            The quadtree grid acquired for generating forecast.
+            Array/List of quadtree strings
+        data:
+            Forecast data showing earthquakes per cell
+            numpy array: n_cells x n_mag_bins
+        mbins:
+            Left edge of Magnitude bins
+    """
+
+    def __init__(self, grid_qk, data, mbins, name=None):
+        self.name = name
+        self.grid_qk = grid_qk
+        self.data = data
+        self.name = name
+        self.magnitudes = mbins
+
+    def get_data(self):
         """
-        This class reads forecast data in to the class, that is acceptable by the pyCSEP for conducting tests.
-        It requires the quadtree grid specific to the forecast along with forecast data.
+        It returns the forecast data as numpy array
 
-        Inputs:
-            grid_qk:
-                The quadtree grid acquired for generating forecast.
-                Array/List of quadtree strings
-            data:
-                Forecast data showing earthquakes per cell
-                numpy array: n_cells x n_mag_bins
-            mbins:
-                 Left edge of Magnitude bins
+        Returns
+        -------
+            Forecast data
+            n_cells x n_mag_bins
+
+        """
+        return self.data
+
+    @property
+    def event_count(self):
+        """ Returns a sum of the forecast data """
+        return self.sum()
+
+    def sum(self):
+        """ Sums over all of the forecast data"""
+        return numpy.sum(self.data)
+
+    def spatial_counts(self):
+
+        """
+        It would do return the spatial counts by summing up magnitude bins
+        Or if they are already 1D, return the same data
         """
 
-        def __init__(self, grid_qk, data, mbins = [], name=None):
-            self.name = name
-            self.grid_qk = grid_qk
-            self.forecast_data = data
-            self.magnitudes = mbins
-        def get_data(self):
-            """
-            It returns the forecast data as numpy array
+        if len(numpy.shape(self.data)) > 1:
+            spatial_count = numpy.sum(self.data, axis=1)
+        else:
+            spatial_count = self.data
+        return spatial_count
 
-            Returns
-            -------
-                Forecast data
-                n_cells x n_mag_bins
+    def magnitude_counts(self):
+        """
+        It would do return the spatial counts by summing up all spatial bins (columns)
 
-            """
-            return self.forecast_data
+        """
+        return numpy.sum(self.data, axis=0)
 
-        @property
-        def event_count(self):
-            """ Returns a sum of the forecast data """
-            return self.sum()
+    def scale(self, val):
+        """
+        It re-scales the values of forecast according to val
+        Returns
+        -------
+        None.
 
-        def sum(self):
-            """ Sums over all of the forecast data"""
-            return numpy.sum(self.forecast_data)
+        """
+        self.data = self.data * val
 
-        def spatial_counts(self):
+    def target_evet_rate(self, observed_catalog):
+        """
+        Provides forecast rates corresponding to every the earthquake that occured in observed catalog
+        OR
+        Generates data set of target event rates given a target data.
 
-            """
-            It would do return the spatial counts by summing up magnitude bins
-            Or if they are already 1D, return the same data
-            """
+        Please see Rhoades, D. A., D. Schorlemmer, M. C. Gerstenberger,
+        A. Christophersen, J. D. Zechar, and M. Imoto (2011). Efficient testing of earthquake forecasting models,
+        Acta Geophys 59 728-747.
 
-            if len(numpy.shape(self.forecast_data)) > 1:
-                spatial_count = numpy.sum(self.forecast_data, axis=1)
-            else:
-                spatial_count = self.forecast_data
-            return spatial_count
+        ---The implementation works using gridded catalog and yields forecast rates
+           by using the counts of bins of observed catalog
+        Args:
+            target_catalog (QuadtreeCatalog): data containing target events
 
-        def magnitude_counts(self):
-            """
-            It would do return the spatial counts by summing up all spatial bins (columns)
+        Returns:
+            out (tuple): target_event_rates, n_fore
+        """
+        if not isinstance(observed_catalog, QuadtreeGriddedCatalog):
+            raise TypeError("target_catalog must be csep.core.data.AbstractBaseCatalog class.")
 
-            """
-            return numpy.sum(self.forecast_data, axis=0)
+        obs = observed_catalog.gridded_catalog.flatten('C')  # ------
+        fcst = self.data.flatten('C')
 
-        def scale(self, val):
-            """
-            It re-scales the values of forecast according to val
-            Returns
-            -------
-            None.
+        # ignore all zero values from gridded observation
+        obs_flag = obs > 0
+        obs = obs[obs_flag]
+        fcst = fcst[obs_flag]
 
-            """
-            self.forecast_data = self.forecast_data * val
-
-        def target_event_rate(self, observed_catalog):
-            """
-            Provides forecast rates corresponding to every the earthquake that occured in observed catalog
-            OR
-            Generates data set of target event rates given a target data.
-
-            Please see Rhoades, D. A., D. Schorlemmer, M. C. Gerstenberger,
-            A. Christophersen, J. D. Zechar, and M. Imoto (2011). Efficient testing of earthquake forecasting models,
-            Acta Geophys 59 728-747.
-
-            ---The implementation works using gridded catalog and yields forecast rates
-               by using the counts of bins of observed catalog
-            Args:
-                observed_catalog (QuadtreeGriddedCatalog):
-
-            Returns:
-                out (tuple): target_event_rates, n_fore
-            """
-            if not isinstance(observed_catalog, catalogs.QuadtreeGriddedCatalog):
-                raise TypeError("target_catalog must be csep.core.catalogs.QuadtreeGriddedCatalog class.")
-
-            obs = observed_catalog.gridded_catalog.flatten('C')  # ------
-            fcst = self.forecast_data.flatten('C')
-
-            # ignore all zero values from gridded observation
-            obs_flag = obs > 0
-            obs = obs[obs_flag]
-            fcst = fcst[obs_flag]
-
-            rates = []
-            for i in range(len(obs)):
-                # if obs[i]>0:
-                #            print("i = :",i)
-                #            print("Obs[i] = :", obs[i])
-                counter = obs[i]
-                while counter > 0:
-                    rates = numpy.append(rates, fcst[i])
-                    counter = counter - 1
-            return rates, numpy.sum(self.forecast_data)
-
+        rates = []
+        for i in range(len(obs)):
+            # if obs[i]>0:
+            #            print("i = :",i)
+            #            print("Obs[i] = :", obs[i])
+            counter = obs[i]
+            while counter > 0:
+                rates = numpy.append(rates, fcst[i])
+                counter = counter - 1
+        return rates, numpy.sum(self.data)

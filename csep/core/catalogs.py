@@ -1237,11 +1237,12 @@ def _none_or_datetime(value):
 #----Quadtree gridded catalog
 class QuadtreeGriddedCatalog:
 
-    def __init__(self, grid_qk, lon, lat, mag, mbins=[], name=None):
+    def __init__(self, grid_qk, lon, lat, mag, mbins, name=None):
         self.grid_qk = grid_qk
         self.grid_origin = []
         self.grid_top_right = []
         self.name = name
+        self.magnitudes = mbins
         self.gridded_catalog = self._catalog_gridding(grid_qk, lon, lat, mag, mbins)
 
     def _catalog_gridding(self, qk, lon, lat, mag, mbins):
@@ -1363,9 +1364,15 @@ class QuadtreeGriddedCatalog:
             spatial_count = self.gridded_catalog
         return spatial_count
 
-    def magnitude_counts(self):
+    def magnitude_counts(self, mag_bins=None):
         """
-        It would do return the spatial counts by summing up all spatial bins (columns)
+        It would return the spatial counts by summing up all spatial bins (columns)
 
         """
-        return numpy.sum(self.gridded_catalog, axis=0)
+        if mag_bins is None:
+            mag_bins = self.magnitudes
+
+        if len(mag_bins) == numpy.shape(self.gridded_catalog)[1]:
+            return numpy.sum(self.gridded_catalog, axis=0)
+        else:
+            print("Gridded forecast magnitudes are not equal to Gridded Observation magnitude bins")
