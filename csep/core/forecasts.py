@@ -797,7 +797,7 @@ class QuadtreeGriddedForecast:
         """
         self.data = self.data * val
 
-    def target_evet_rate(self, observed_catalog):
+    def target_event_rates(self, observed_catalog, scale=False):
         """
         Provides forecast rates corresponding to every the earthquake that occured in observed catalog
         OR
