@@ -30,7 +30,7 @@ html_show_sphinx = False
 # The short X.Y version
 version = 'v0.4'
 # The full version, including alpha/beta/rc tags
-release = 'v0.4.0'
+release = 'v0.4.1'
 
 
 # -- General configuration ---------------------------------------------------
