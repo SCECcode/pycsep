@@ -15,6 +15,7 @@ from area  import area
 # PyCSEP imports
 from csep.utils.calc import bin1d_vec, cleaner_range, first_nonnan, last_nonnan
 from csep.utils.scaling_relationships import WellsAndCoppersmith
+from csep.core.catalogs import CSEPCatalog
 
 def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection"):
     """ Return collection region for California RELM testing region
