@@ -805,9 +805,6 @@ def area_from_bounds(lon1, lat1, lon2, lat2):
 
     return area(obj) / 1e+6
 
-
-# -------
-#
 def compute_vertex_bounds(bound_point, tol=numpy.finfo(float).eps):
     """
     Computes the bounding box of a rectangular polygon given its origin and top_left coordinates.
@@ -824,7 +821,6 @@ def compute_vertex_bounds(bound_point, tol=numpy.finfo(float).eps):
             (bound_point[2] - tol, bound_point[1]))
     return bbox
 
-
 def compute_vertices_bounds(bounds, tol=numpy.finfo(float).eps):
     """
     Wrapper function to compute vertices for multiple points. Default tolerance is set to machine precision
@@ -839,7 +835,6 @@ def compute_vertices_bounds(bounds, tol=numpy.finfo(float).eps):
     return list(map(lambda x: compute_vertex_bounds(x, tol=tol), bounds))
 
 
-# -----------
 def _create_tile(quadk, threshold, zoom, lon, lat, qk, num):
     """
     **Alert: This Function uses GLOBAL variable (qk) and (num).
@@ -898,7 +893,6 @@ def _create_tile(quadk, threshold, zoom, lon, lat, qk, num):
         # return quadk
 
 
-# -------------------
 def _create_tile_fix_len(quadk, zoom, qk):
     """
     **Alert: This Function uses GLOBAL variable (qk).
@@ -1070,7 +1064,7 @@ class QuadtreeGrid2D:
         return region
 
     @classmethod
-    def from_regular_grid(cls, zoom, magnitudes=None, name=None):  # ---------
+    def from_regular_grid(cls, zoom, magnitudes=None, name=None):
         """Creates instance of class from fixed zoom level grid.
         Note: Fixed zoom-level grid is generated
         Args:
