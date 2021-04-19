@@ -9,6 +9,8 @@ import matplotlib.path
 import numpy
 import numpy as np
 import pyproj
+import mercantile
+from area  import area
 
 # PyCSEP imports
 from csep.utils.calc import bin1d_vec, cleaner_range, first_nonnan, last_nonnan
@@ -753,3 +755,357 @@ class CartesianGrid2D:
         unique_poly = np.append(unique_poly, [unique_poly[0, :]], axis=0)
         return unique_poly
 
+#--- Quadtree relevant functions and QuadtreeGrid2D class
+def quadtree_grid_bounds(quadk):
+        """
+        Parameters
+        ----------
+        qk : Array of Strings
+            Quad keys.
+
+        Returns
+        -------
+        grid_coords : Array of floats
+            Origin Coordinates of Grid formed by Quad keys boxes
+            [Longitude Latitude]
+
+        """
+
+        origin_lat = []
+        origin_lon = []
+        top_right_lon = []
+        top_right_lat = []
+
+        for i in range(len(quadk)):
+            origin_lon = numpy.append(origin_lon, mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).west)
+            origin_lat = numpy.append(origin_lat, mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).south)
+
+            top_right_lon = numpy.append(top_right_lon, mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).east)
+            top_right_lat = numpy.append(top_right_lat, mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).north)
+
+        grid_origin = numpy.column_stack([origin_lon, origin_lat])
+        grid_top_right = numpy.column_stack([top_right_lon, top_right_lat])
+        grid_bounds = numpy.column_stack((grid_origin, grid_top_right))
+
+        return grid_bounds
+
+
+def area_from_bounds(lon1, lat1, lon2, lat2):
+    """
+    Give it Bottom left and top right coords
+    lon1 and Lat 1 = Bottom Left
+    lon2 and lat 2 = Top right
+
+    returns:
+        Area in terms is Km2
+
+    """
+
+    obj = {'type': 'Polygon', 'coordinates': [[[lon1, lat1], [lon1, lat2], [lon2, lat2], [lon2, lat1], [lon1, lat1]]]}
+
+    return area(obj) / 1e+6
+
+
+# -------
+#
+def compute_vertex_bounds(bound_point, tol=numpy.finfo(float).eps):
+    """
+    Computes the bounding box of a rectangular polygon given its origin and top_left coordinates.
+    Args:
+        bound_points: [lon_origin, lat_origin, lon_top_right, lat_origin]
+        tol: used to eliminate overlapping polygons in the case of a rectangular mesh, defaults to
+             the machine tolerance.
+    Returns:
+        list of polygon edges
+    """
+    bbox = ((bound_point[0], bound_point[1]),
+            (bound_point[0], bound_point[3] - tol),
+            (bound_point[2] - tol, bound_point[3] - tol),
+            (bound_point[2] - tol, bound_point[1]))
+    return bbox
+
+
+def compute_vertices_bounds(bounds, tol=numpy.finfo(float).eps):
+    """
+    Wrapper function to compute vertices for multiple points. Default tolerance is set to machine precision
+    of floating point number.
+    Args:
+        origin_points: nx4 ndarray
+    Notes:
+        (x,y) should be accessible like:
+        >>> origin coords = origin_points[:,0:1]
+        >>> Top right coords = origin_points[:,2:3]
+    """
+    return list(map(lambda x: compute_vertex_bounds(x, tol=tol), bounds))
+
+
+# -----------
+def _create_tile(quadk, threshold, zoom, lon, lat, qk, num):
+    """
+    **Alert: This Function uses GLOBAL variable (qk) and (num).
+
+
+    This funcation takes in a Main Quadkey (Quadrant of Globe),
+    then keeps increasing the depth unless it reaches the minimum size tile
+    threshold level of seismic activity
+
+    Parameters
+    ----------
+    quadk : String
+        0, 1, 2, 3 or any desired starting level of Quad key.
+        threshold : TYPE
+        No of earthquakes for max threshold.
+        lon : Latitude
+        DESCRIPTION.
+        lat : Longitude
+        DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+    """
+    boundary = mercantile.bounds(mercantile.quadkey_to_tile(quadk))
+    eqs = numpy.logical_and(numpy.logical_and(lon >= boundary.west, lat >= boundary.south),
+                            numpy.logical_and(lon < boundary.east, lat < boundary.north))
+    num_eqs = numpy.size(lat[eqs])
+    #    global qk
+    #    global num
+
+    # Setting the Min Threshold of Area 1 sq. km. Instead of Depth
+    # It will by default lead of the Deph of 15 near Equator.
+    # And depth of 14 away from Equator
+    if num_eqs > threshold and len(quadk) < zoom:  # #qk_area_km(quadk)>4:
+        # print('inside If, Current Quad key ', quadk)
+        # print('Length of Quadkey ', len(quadk))
+        # # print('Num of Eqs ', num_eqs)
+
+        _create_tile(quadk + '0', threshold, zoom, lon, lat, qk, num)
+
+        _create_tile(quadk + '1', threshold, zoom, lon, lat, qk, num)
+
+        _create_tile(quadk + '2', threshold, zoom, lon, lat, qk, num)
+
+        _create_tile(quadk + '3', threshold, zoom, lon, lat, qk, num)
+
+    else:
+        # print('inside ELSE, Current Quad key ', quadk)
+        # print('Num of Eqs ', num_eqs)
+        #           qk = numpy.append(qk, quadk)
+        qk.append(quadk)
+        #            num = numpy.append(num, num_eqs)
+        num.append(num_eqs)
+        # return quadk
+
+
+# -------------------
+def _create_tile_fix_len(quadk, zoom, qk):
+    """
+    **Alert: This Function uses GLOBAL variable (qk).
+
+    This funcation takes in a Main Quadkey (Quadrant of Globe),
+    then keeps increasing the depth unless it reaches the maximum depth "Length"
+
+    Parameters
+    ----------
+    quadk : String
+        0, 1, 2, 3 or any desired starting level of Quad key.
+        zoom : TYPE
+        Length of Quad Key OR Depth of grid.
+
+
+        Returns
+        -------
+        None.
+
+        """
+
+    if len(quadk) < zoom:
+        #        print('inside If, Current Quad key ', quadk)
+        #        print('Len of QK: ', len(quadk))
+
+        _create_tile_fix_len(quadk + '0', zoom, qk)
+
+        _create_tile_fix_len(quadk + '1', zoom, qk)
+
+        _create_tile_fix_len(quadk + '2', zoom, qk)
+
+        _create_tile_fix_len(quadk + '3', zoom, qk)
+
+    else:
+        # print('inside ELSE, Current Quad key ', quadk)
+        # print('Num of Eqs ', num_eqs)
+        #        qk = numpy.append(qk, quadk)
+        qk.append(quadk)
+
+
+class QuadtreeGrid2D:
+    """ Replecate CartesianGrid2D Class with implementation of all the relevant functions
+
+    """
+
+    def __init__(self, polygons, quadkeys, bounds, name='QuadtreeGrid2d', mask=None):
+        self.polygons = polygons
+        self.quadkeys = quadkeys
+        self.bounds = bounds  # -----
+        self.poly_mask = mask
+        self.name = name
+
+    @property
+    def num_nodes(self):
+        """ Number of polygons in region """
+        return len(self.polygons)
+
+    @property
+    def get_cell_area(self):
+        """ Area of each cell in grid"""
+        cell_area = []
+        for i in range(len(self.quadkeys)):
+            cell_area = numpy.append(cell_area,
+                                     area_from_bounds(self.bounds[i, 0], self.bounds[i, 1], self.bounds[i, 2],
+                                                      self.bounds[i, 3]))
+        self.cell_area = cell_area
+        return self.cell_area
+
+    def get_index_of(self, lons, lats):  # -----
+        """ Returns the index of lons, lats in self.polygons
+        Args:
+            lons: ndarray-like
+            lats: ndarray-like
+        Returns:
+            idx: ndarray-like
+        """
+        #        ------Do my Own Implementation
+        if isinstance(lons, (list, numpy.ndarray)):  # --If its array or many coords
+            idx = []
+            for i in range(len(lons)):
+                idx = numpy.append(idx, self._find_location(lons[i], lats[i]))
+            idx = idx.astype(int)
+        if isinstance(lons, (int, float)):  # --It its just one Lon/Lon
+            idx = self._find_location(lons, lats)
+
+        return idx
+
+    def _find_location(self, lon, lat):
+        """
+        Takes in single Lon and Lat and finds its Polygon Index.
+        -----Improve this function for End Case scenerios: i.e. Lat = 90 and Lon = -180---
+
+        Returns:
+            index number of polyons
+        """
+
+        loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
+                                numpy.logical_and(lon < self.bounds[:, 2], lat < self.bounds[:, 3]))
+
+        return numpy.where(loc == True)[0][0]
+
+    def get_location_of(self, indices):
+        """
+        Returns the polygon associated with the index idx.
+        Args:
+            idx: index of polygon in region
+        Returns:
+            Polygon
+        """
+        indices = list(indices)
+        polys = [self.polygons[idx] for idx in indices]
+        return polys
+
+    def get_bbox(self):  # -----
+        """ Returns rectangular bounding box around region. """
+        #        return (self.xs.min(), self.xs.max(), self.ys.min(), self.ys.max())
+        return (min(self.bounds[:, 0]), max(self.bounds[:, 2]), min(self.bounds[:, 1]), max(self.bounds[:, 3]))
+
+    #        ---DO OWN IMPLEMENTATION---
+
+    def midpoints(self):
+        """ Returns midpoints of rectangular polygons in region """
+        return numpy.array([poly.centroid() for poly in self.polygons])
+
+    def origins(self):
+        """ Returns origins of rectangular polygons in region """
+        return numpy.array([poly.origin for poly in self.polygons])
+
+    def to_dict(self):  # ------
+        adict = {
+            'name': str(self.name),
+            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
+        }
+        return adict
+
+    @classmethod  # ------
+    def from_catalog(cls, catalog, threshold, zoom=11, magnitudes=None, name=None):  # -----
+        """Creates instance of class from 2d numpy.array of lon/lat of Catalog.
+        Note: Density based grid resoltion is generated
+        Args:
+            catalog (CSEPCatalog):
+            threshold: Max earthquakes allowed per cells
+            zoom: Max zoom allowed for a cell
+        Returns:
+            cls
+        """
+        # ensure we can access the lons and lats
+        if not isinstance(catalog, CSEPCatalog):
+            raise TypeError("region must be CSEPCatalog")
+        lon = catalog.get_longitudes()
+        lat = catalog.get_latitudes()
+
+        qk = []  # numpy.array([])
+        num = []  # numpy.array([])
+
+        _create_tile('0', threshold, zoom, lon, lat, qk, num)
+        _create_tile('1', threshold, zoom, lon, lat, qk, num)
+        _create_tile('2', threshold, zoom, lon, lat, qk, num)
+        _create_tile('3', threshold, zoom, lon, lat, qk, num)
+        qk = numpy.array(qk)
+        num = numpy.array(num)
+
+        bounds = quadtree_grid_bounds(qk)
+
+        region = QuadtreeGrid2D([Polygon(bbox) for bbox in compute_vertices_bounds(bounds)], qk, bounds,
+                                name=name)  # -----
+        if magnitudes is not None:
+            region.magnitudes = magnitudes
+        return region
+
+    @classmethod
+    def from_regular_grid(cls, zoom, magnitudes=None, name=None):  # ---------
+        """Creates instance of class from fixed zoom level grid.
+        Note: Fixed zoom-level grid is generated
+        Args:
+            zoom: Max zoom allowed for a cell
+        Returns:
+            cls
+        """
+        qk = []
+        _create_tile_fix_len('0', zoom, qk)
+        _create_tile_fix_len('1', zoom, qk)
+        _create_tile_fix_len('2', zoom, qk)
+        _create_tile_fix_len('3', zoom, qk)
+        qk = numpy.array(qk)
+
+        bounds = quadtree_grid_bounds(qk)
+
+        region = QuadtreeGrid2D([Polygon(bbox) for bbox in compute_vertices_bounds(bounds)], qk, bounds,
+                                name=name)  # -----
+        if magnitudes is not None:
+            region.magnitudes = magnitudes
+        return region
+
+    @classmethod
+    def from_quadkeys(cls, quadk, magnitudes=None, name=None):
+        """Creates instance of class from availabel quadtree grid.
+        Note: Fixed zoom-level grid is generated
+        Args:
+            quadk: List of quad keys strings corresponding to quadtree grid
+        Returns:
+            cls
+        """
+        bounds = quadtree_grid_bounds(numpy.array(quadk))
+
+        region = QuadtreeGrid2D([Polygon(bbox) for bbox in compute_vertices_bounds(bounds)], quadk, bounds,
+                                name=name)  # -----
+        if magnitudes is not None:
+            region.magnitudes = magnitudes
+        return region
