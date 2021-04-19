@@ -206,7 +206,7 @@ def magnitude_bins(start_magnitude, end_magnitude, dmw):
 
 def create_space_magnitude_region(region, magnitudes):
     """Simple wrapper to create space-magnitude region """
-    if not isinstance(region, CartesianGrid2D):
+    if not (isinstance(region, CartesianGrid2D) or isinstance(region, QuadtreeGrid2D))  :
         raise TypeError("region must be CartesianGrid2D")
     # bind to region class
     if magnitudes is None:
