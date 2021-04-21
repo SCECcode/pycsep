@@ -989,11 +989,19 @@ class QuadtreeGrid2D:
         Returns:
             index number of polyons
         """
-
-        loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
-                                numpy.logical_and(lon < self.bounds[:, 2], lat < self.bounds[:, 3]))
-
-        return numpy.where(loc == True)[0][0]
+        if self.get_bbox()[1] == lon:  # Check for 180 lon. The last right corner
+            loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
+                                    numpy.logical_and(lon <= self.bounds[:, 2], lat < self.bounds[:, 3]))
+        elif self.get_bbox()[3] == lat:  # Check for 85.05 lat. The last top corner
+            loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
+                                    numpy.logical_and(lon < self.bounds[:, 2], lat <= self.bounds[:, 3]))
+        else:
+            loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
+                                    numpy.logical_and(lon < self.bounds[:, 2], lat < self.bounds[:, 3]))
+        if len(numpy.where(loc == True)[0]) > 0:
+            return numpy.where(loc == True)[0][0]
+        else:
+            return numpy.where(loc == True)[0]
 
     def get_location_of(self, indices):
         """
@@ -1006,6 +1014,73 @@ class QuadtreeGrid2D:
         indices = list(indices)
         polys = [self.polygons[idx] for idx in indices]
         return polys
+
+    def get_spatial_counts(self, catalog, mag_bins=None):
+        """
+        Gets the number of earthquakes in each cell.
+        Uses self.get_index_of function
+
+        """
+        if not isinstance(catalog, CSEPCatalog):
+            raise TypeError("region must be CSEPCatalog")
+        if mag_bins is None or mag_bins == []:
+            mag_bins = self.magnitudes
+
+        if min(catalog.get_magnitudes()) < min(mag_bins):
+            print("-----Warning-----")
+            print("Catalog contains magnitudes below the min magnitude range")
+            print("Filtering catalog with Magnitude: ", min(mag_bins))
+            catalog.filter('magnitude >= ' + str(min(mag_bins)))
+
+        if min(catalog.get_latitudes()) < self.get_bbox()[2] or max(catalog.get_latitudes()) > self.get_bbox()[3]:
+            print("----Warning---")
+            print("Catalog exceeds grid bounds, so catalog filtering")
+            catalog.filter('latitude < ' + str(self.get_bbox()[3]))
+            catalog.filter('latitude > ' + str(self.get_bbox()[2]))
+
+        lon = catalog.get_longitudes()
+        lat = catalog.get_latitudes()
+
+        out = numpy.zeros(len(self.quadkeys))
+        idx = self.get_index_of(lon, lat)
+        numpy.add.at(out, idx, 1)
+
+        return out
+
+    def get_spatial_magnitude_counts(self, catalog, mag_bins=None):
+        """
+        Gets the number of earthquakes in for each spatio-magnitude bins.
+        Uses self.get_index_of function
+
+        """
+        if not isinstance(catalog, CSEPCatalog):
+            raise TypeError("region must be CSEPCatalog")
+        if mag_bins is None or mag_bins == []:
+            mag_bins = self.magnitudes
+
+        if min(catalog.get_magnitudes()) < min(mag_bins):
+            print("-----Warning-----")
+            print("Catalog contains magnitudes below the min magnitude range")
+            print("Filtering catalog with Magnitude: ", min(mag_bins))
+            catalog.filter('magnitude >= ' + str(min(mag_bins)))
+
+        if min(catalog.get_latitudes()) < self.get_bbox()[2] or max(catalog.get_latitudes()) > self.get_bbox()[3]:
+            print("----Warning---")
+            print("Catalog exceeds grid bounds, so catalog filtering")
+            catalog.filter('latitude < ' + str(self.get_bbox()[3]))
+            catalog.filter('latitude > ' + str(self.get_bbox()[2]))
+
+        lon = catalog.get_longitudes()
+        lat = catalog.get_latitudes()
+        mag = catalog.get_magnitudes()
+        out = numpy.zeros([len(self.quadkeys), len(mag_bins)])
+
+        idx_loc = self.get_index_of(lon, lat)
+        idx_mag = bin1d_vec(mag, mag_bins, tol=0.00001, right_continuous=True)
+
+        numpy.add.at(out, (idx_loc, idx_mag), 1)  # REPLACE this line with better implementation....
+
+        return out
 
     def get_bbox(self):  # -----
         """ Returns rectangular bounding box around region. """
