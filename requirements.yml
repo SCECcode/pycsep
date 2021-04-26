@@ -18,4 +18,3 @@ dependencies:
   - pillow
   - vcrpy
   - mercantile
-  - area
