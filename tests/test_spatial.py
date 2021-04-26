@@ -5,7 +5,7 @@ import pytest
 import numpy
 
 from csep.core.regions import CartesianGrid2D, compute_vertex, compute_vertices, _bin_catalog_spatio_magnitude_counts, \
-    _bin_catalog_spatial_counts, _bin_catalog_probability, Polygon, global_region
+    _bin_catalog_spatial_counts, _bin_catalog_probability, Polygon, global_region, quadtree_grid_bounds, QuadtreeGrid2D
 
 
 class TestPolygon(unittest.TestCase):
@@ -244,6 +244,28 @@ class TestCatalogBinning(unittest.TestCase):
 
             assert lon >= found_poly.points[1][0] and lon < found_poly.points[2][0]
             assert lat >= found_poly.points[0][1] and lat < found_poly.points[2][1]
+
+
+class TestQuadtreeGrid2D(unittest.TestCase):
+
+    def setUp(self):
+        self.zoom = 5
+        self.mbins = numpy.arange(5.95, 8.95, 0.1)
+        self.grid = QuadtreeGrid2D.from_regular_grid(self.zoom, magnitudes=self.mbins)
+
+    def test_get_index(self):
+        lons = [0, 45, 60, -180]
+        lats = [0, 45, 60, -85.05]
+        idx = numpy.array([426, 410, 403, 682])
+        numpy.testing.assert_array_equal(self.grid.get_index_of(lons, lats), idx)
+
+        # point outside
+        numpy.testing.assert_array_equal(self.grid.get_index_of(0, 85.6), numpy.array([]))
+
+    def test_quadtree_bounds(self):
+        qk = ['0', '1']
+        bounds = [[-180., 0., 0., 85.05112878], [0., 0., 180., 85.05112878]]
+        numpy.testing.assert_array_almost_equal(quadtree_grid_bounds(qk), bounds)
 
 if __name__ == '__main__':
     unittest.main()
