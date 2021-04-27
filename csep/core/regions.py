@@ -1220,3 +1220,31 @@ class QuadtreeGrid2D:
         if magnitudes is not None:
             region.magnitudes = magnitudes
         return region
+
+
+def california_quadtree_region(magnitudes=None, name="california-quadtree"):
+    """
+    Returns class representing Quadtree grid for California testing region.
+    The grid is already generated at zoom-level = 12 and it is loaded through classmethod: QuadtreeGrid2D.from_quadkeys
+    The grid cells at zoom level 12 are selected using the external boundary of RELM california region.
+    This grid can be used to create gridded datasets for earthquake forecasts.
+
+
+    Args:
+        magnitudes: Magnitude discretization
+        name: string
+
+    Returns:
+        :class:`csep.core.spatial.QuadtreeGrid2D
+
+    """
+    # use default file path from python package
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    #    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'csep-forecast-template-M5.xml')
+    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'california_qk_zoom=12.txt')
+    #    filepath = 'artifacts/Regions/california_qk_zoom=12.txt'
+    qk = numpy.genfromtxt(filepath, delimiter=',', dtype='str')
+
+    california_region = QuadtreeGrid2D.from_quadkeys(qk, magnitudes=magnitudes, name=name)
+
+    return california_region
