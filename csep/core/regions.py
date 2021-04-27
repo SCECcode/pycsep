@@ -791,21 +791,23 @@ def quadtree_grid_bounds(quadk):
 
 def area_from_bounds(lon1, lat1, lon2, lat2):
     """
-    Computes area of spatial cell
+    Computes area of spatial cell identified by origin coordinate and top right cooridnate
 
     Args:
-        lon1, lat1, lon2, lat2
-            lon1,Lat 1 = Bottom Left
-            lon2,lat 2 = Top right
+        lon1,lat1 : Origin coordinates
+        lon2,lat2: Top right coordinates
 
-    returns:
-        Area in terms of Km2
-
+    Returns:
+        Area of cell in Km2
     """
+    earth_radius_km = 6371.
+    R2 = earth_radius_km ** 2
+    rad_per_deg = numpy.pi / 180.0e0
 
-    obj = {'type': 'Polygon', 'coordinates': [[[lon1, lat1], [lon1, lat2], [lon2, lat2], [lon2, lat1], [lon1, lat1]]]}
-
-    return area(obj) / 1e+6
+    strip_area_steradian = 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat1) * rad_per_deg)) \
+                           - 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat2) * rad_per_deg))
+    area_km2 = strip_area_steradian * R2 / (360.0 / (lon2 - lon1))
+    return area_km2
 
 def compute_vertex_bounds(bound_point, tol=numpy.finfo(float).eps):
     """
