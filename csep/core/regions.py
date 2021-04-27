@@ -10,7 +10,6 @@ import numpy
 import numpy as np
 import pyproj
 import mercantile
-from area  import area
 
 # PyCSEP imports
 from csep.utils.calc import bin1d_vec, cleaner_range, first_nonnan, last_nonnan
@@ -1108,12 +1107,12 @@ class QuadtreeGrid2D:
 
         return out
 
-    def get_bbox(self):  # -----
+    def get_bbox(self):
         """ Returns rectangular bounding box around region. """
         #        return (self.xs.min(), self.xs.max(), self.ys.min(), self.ys.max())
         return (min(self.bounds[:, 0]), max(self.bounds[:, 2]), min(self.bounds[:, 1]), max(self.bounds[:, 3]))
 
-    #        ---DO OWN IMPLEMENTATION---
+
 
     def midpoints(self):
         """ Returns midpoints of rectangular polygons in region """
@@ -1123,15 +1122,15 @@ class QuadtreeGrid2D:
         """ Returns origins of rectangular polygons in region """
         return numpy.array([poly.origin for poly in self.polygons])
 
-    def to_dict(self):  # ------
+    def to_dict(self):
         adict = {
             'name': str(self.name),
             'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
         }
         return adict
 
-    @classmethod  # ------
-    def from_catalog(cls, catalog, threshold, zoom=11, magnitudes=None, name=None):  # -----
+    @classmethod
+    def from_catalog(cls, catalog, threshold, zoom=11, magnitudes=None, name=None):
         """
         Creates instance of class from 2d numpy.array of lon/lat of Catalog.
         Provides multi-resolution quadtree spatial grid based on seismic density. It starts from whole globe as 4 cells (Quadkeys:'0','1','2','3'),
@@ -1198,7 +1197,7 @@ class QuadtreeGrid2D:
         bounds = quadtree_grid_bounds(qk)
 
         region = QuadtreeGrid2D([Polygon(bbox) for bbox in compute_vertices_bounds(bounds)], qk, bounds,
-                                name=name)  # -----
+                                name=name)
         if magnitudes is not None:
             region.magnitudes = magnitudes
         return region
