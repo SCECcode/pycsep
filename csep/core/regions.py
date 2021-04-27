@@ -759,16 +759,15 @@ class CartesianGrid2D:
 #--- Quadtree relevant functions and QuadtreeGrid2D class
 def quadtree_grid_bounds(quadk):
         """
-        Parameters
-        ----------
-        qk : Array of Strings
-            Quad keys.
+        Computes the bottom-left and top-right coordinates corresponding to every quadkey
 
-        Returns
-        -------
-        grid_coords : Array of floats
-            Origin Coordinates of Grid formed by Quad keys boxes
-            [Longitude Latitude]
+        Args:
+            qk : Array of Strings
+            Quadkeys.
+
+        Returns:
+            grid_coords : Array of floats
+                        [lon1,lat1,lon2,lat2]
 
         """
 
@@ -793,12 +792,15 @@ def quadtree_grid_bounds(quadk):
 
 def area_from_bounds(lon1, lat1, lon2, lat2):
     """
-    Give it Bottom left and top right coords
-    lon1 and Lat 1 = Bottom Left
-    lon2 and lat 2 = Top right
+    Computes area of spatial cell
+
+    Args:
+        lon1, lat1, lon2, lat2
+            lon1,Lat 1 = Bottom Left
+            lon2,lat 2 = Top right
 
     returns:
-        Area in terms is Km2
+        Area in terms of Km2
 
     """
 
@@ -808,13 +810,16 @@ def area_from_bounds(lon1, lat1, lon2, lat2):
 
 def compute_vertex_bounds(bound_point, tol=numpy.finfo(float).eps):
     """
-    Computes the bounding box of a rectangular polygon given its origin and top_left coordinates.
+    Wrapper function to compute vertices using bounding points for multiple points. Default tolerance is set to machine precision
+    of floating point number.
+
     Args:
-        bound_points: [lon_origin, lat_origin, lon_top_right, lat_origin]
-        tol: used to eliminate overlapping polygons in the case of a rectangular mesh, defaults to
-             the machine tolerance.
-    Returns:
-        list of polygon edges
+        bounding points: nx4 ndarray
+                        [lon_origin, lat_origin, lon_top_right, lat_origin]
+    Notes:
+        (x,y) should be accessible like:
+        >>> origin coords = origin_points[:,0:1]
+        >>> Top right coords = origin_points[:,2:3]
     """
     bbox = ((bound_point[0], bound_point[1]),
             (bound_point[0], bound_point[3] - tol),
@@ -824,10 +829,12 @@ def compute_vertex_bounds(bound_point, tol=numpy.finfo(float).eps):
 
 def compute_vertices_bounds(bounds, tol=numpy.finfo(float).eps):
     """
-    Wrapper function to compute vertices for multiple points. Default tolerance is set to machine precision
+    Wrapper function to compute vertices using bounding points for multiple points. Default tolerance is set to machine precision
     of floating point number.
+
     Args:
-        origin_points: nx4 ndarray
+        bounding points: nx4 ndarray
+                        [lon_origin, lat_origin, lon_top_right, lat_origin]
     Notes:
         (x,y) should be accessible like:
         >>> origin coords = origin_points[:,0:1]
@@ -840,26 +847,26 @@ def _create_tile(quadk, threshold, zoom, lon, lat, qk, num):
     """
     **Alert: This Function uses GLOBAL variable (qk) and (num).
 
+        Provides multi-resolution quadtree spatial grid based on seismic density. It takes in a starting quadtree Tile (Quadkey),
+        then keeps on increasing the zoom-level of every Tile (or dividing cell) recursively, unless every cell meets the cell dividion criteria.
 
-    This funcation takes in a Main Quadkey (Quadrant of Globe),
-    then keeps increasing the depth unless it reaches the minimum size tile
-    threshold level of seismic activity
+        The primary criterion of dividing a parent cell into 4 child cells is a threshold on seismic denisity.
+        The cells are divided unless evevry cell cas number of earthquakes less than "threshold".
+        The cell division of any also stops if it reaches maximum zoom-level (zoom)
 
-    Parameters
-    ----------
-    quadk : String
-        0, 1, 2, 3 or any desired starting level of Quad key.
-        threshold : TYPE
-        No of earthquakes for max threshold.
-        lon : Latitude
-        DESCRIPTION.
-        lat : Longitude
-        DESCRIPTION.
+        Args:
+            quadk : String
+                    0, 1, 2, 3 or any desired starting level of Quad key.
+            threshold : int
+                    Max number of earthquakes/cell allowed
+            zoom: int
+                    Maximum zoom level allowed for a quadkey
+            lon : float
+                    longitudes of earthquakes in catalog
+            lat : float
+                    latitude of earthquakes in catalog
 
-        Returns
-        -------
-        None.
-
+        Returns:
     """
     boundary = mercantile.bounds(mercantile.quadkey_to_tile(quadk))
     eqs = numpy.logical_and(numpy.logical_and(lon >= boundary.west, lat >= boundary.south),
@@ -896,23 +903,21 @@ def _create_tile(quadk, threshold, zoom, lon, lat, qk, num):
 
 def _create_tile_fix_len(quadk, zoom, qk):
     """
-    **Alert: This Function uses GLOBAL variable (qk).
+    ***Alert: This Function uses GLOBAL variable (qk).
 
-    This funcation takes in a Main Quadkey (Quadrant of Globe),
-    then keeps increasing the depth unless it reaches the maximum depth "Length"
+        Provides single-resolution quadtree grid. It takes in a starting quadkey (or Quadrant of Globe),
+        then keeps on keeps on dividing it into 4 children unless the maximum zoom-level is achieved
+        Parameters
+        ----------
+        quadk : String
+            0, 1, 2, 3 or any desired starting level of Quad key.
+            zoom : TYPE
+            Length of Quad Key OR Depth of grid.
 
-    Parameters
-    ----------
-    quadk : String
-        0, 1, 2, 3 or any desired starting level of Quad key.
-        zoom : TYPE
-        Length of Quad Key OR Depth of grid.
 
-
-        Returns
-        -------
-        None.
-
+            Returns
+            -------
+            None.
         """
 
     if len(quadk) < zoom:
@@ -935,7 +940,12 @@ def _create_tile_fix_len(quadk, zoom, qk):
 
 
 class QuadtreeGrid2D:
-    """ Replecate CartesianGrid2D Class with implementation of all the relevant functions
+    """
+    Respresents a 2D quadtree gridded region. The class provides functionality to generate multi-resolution or single-resolution quadtree grid.
+    It also enables users to load already available quadtree grird. It also provides functions to query onto an index 2D grid ad maintains mapping
+    between space coordinates and defined polygons and the index into the polygon array.
+
+    Note: It is replica of CartesianGrid2D class but with quadtree approach, with implementation of all the relevant functions required to CSEP1 tests
 
     """
 
@@ -1017,8 +1027,16 @@ class QuadtreeGrid2D:
 
     def get_spatial_counts(self, catalog, mag_bins=None):
         """
-        Gets the number of earthquakes in each cell.
-        Uses self.get_index_of function
+        Gets the number of earthquakes in each cell for available catalog.
+        Uses QuadtreeGrid2D.get_index_of function to map every earthquake location to its corresponding cell
+
+        Args:
+            catalog: CSEP Catalog
+            mag_bins: Magnitude discritization used in earthquake forecast mdoel
+                      Note: mag_bins are only required to filter catalog for minimum magnitude
+
+        Return:
+            spatial counts: Number of earthquakes in each cell
 
         """
         if not isinstance(catalog, CSEPCatalog):
@@ -1049,8 +1067,16 @@ class QuadtreeGrid2D:
 
     def get_spatial_magnitude_counts(self, catalog, mag_bins=None):
         """
-        Gets the number of earthquakes in for each spatio-magnitude bins.
-        Uses self.get_index_of function
+        Gets the number of earthquakes in for each spatio-magnitude bin for available catalog
+        Uses QuadtreeGrid2D.get_index_of function to map every earthquake location to its corresponding cell
+        Uses bin1d_vec function to map earthquake magnitude to its respecrtive bin.
+
+        Args:
+            catalog: CSEPCatalog
+            mag_bins: Magnitude discritization used in earthquake forecast model
+
+        Return:
+            Spatial-magnitude counts
 
         """
         if not isinstance(catalog, CSEPCatalog):
@@ -1106,14 +1132,23 @@ class QuadtreeGrid2D:
 
     @classmethod  # ------
     def from_catalog(cls, catalog, threshold, zoom=11, magnitudes=None, name=None):  # -----
-        """Creates instance of class from 2d numpy.array of lon/lat of Catalog.
-        Note: Density based grid resoltion is generated
+        """
+        Creates instance of class from 2d numpy.array of lon/lat of Catalog.
+        Provides multi-resolution quadtree spatial grid based on seismic density. It starts from whole globe as 4 cells (Quadkeys:'0','1','2','3'),
+        then keeps on increasing the zoom-level of every Tile recursively, unless every cell meets the dividion criteria.
+
+        The primary criterion of dividing a parent cell into 4 child cells is a threshold on seismic denisity.
+        The cells are divided unless every cell has number of earthquakes less than "threshold".
+        The division of a cell also stops if it reaches maximum zoom-level (zoom)
+
         Args:
             catalog (CSEPCatalog):
             threshold: Max earthquakes allowed per cells
             zoom: Max zoom allowed for a cell
+            magnitudes: magnitude discretization
+
         Returns:
-            cls
+            instance of QuadtreeGrid2Ds
         """
         # ensure we can access the lons and lats
         if not isinstance(catalog, CSEPCatalog):
@@ -1134,19 +1169,24 @@ class QuadtreeGrid2D:
         bounds = quadtree_grid_bounds(qk)
 
         region = QuadtreeGrid2D([Polygon(bbox) for bbox in compute_vertices_bounds(bounds)], qk, bounds,
-                                name=name)  # -----
+                                name=name)
         if magnitudes is not None:
             region.magnitudes = magnitudes
         return region
 
     @classmethod
     def from_regular_grid(cls, zoom, magnitudes=None, name=None):
-        """Creates instance of class from fixed zoom level grid.
-        Note: Fixed zoom-level grid is generated
+        """
+        Creates instance of class from fixed zoom level grid.
+        Provides single-resolution quadtree grid. It starts from whole globe as 4 cells (Quadkeys:'0','1','2','3'),
+        then keeps on keeps on dividing every cell into 4 children unless the maximum zoom-level is achieved
+
         Args:
             zoom: Max zoom allowed for a cell
+            magnitude: magnitude discretization
+
         Returns:
-            cls
+            instance of QuadtreeGrid2D
         """
         qk = []
         _create_tile_fix_len('0', zoom, qk)
@@ -1165,12 +1205,14 @@ class QuadtreeGrid2D:
 
     @classmethod
     def from_quadkeys(cls, quadk, magnitudes=None, name=None):
-        """Creates instance of class from availabel quadtree grid.
-        Note: Fixed zoom-level grid is generated
+        """
+        Creates instance of class from available quadtree grid.
+
         Args:
-            quadk: List of quad keys strings corresponding to quadtree grid
+            quadk: List of quad keys strings corresponding to an already available quadtree grid
+            magnitudes: magnitude discretization
         Returns:
-            cls
+            instance of QuadtreeGrid2D
         """
         bounds = quadtree_grid_bounds(numpy.array(quadk))
 
