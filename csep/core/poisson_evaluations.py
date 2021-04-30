@@ -201,6 +201,36 @@ def conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulati
 
     return result
 
+def poisson_spatial_likelihood(forecast, catalog):
+    """
+    This function computes the observed log-likehood score obtained by a gridded forecast in each cell, given a
+    seismicity catalog. In this case, we assume a Poisson distribution of earthquakes, so that the likelihood of
+    observing an event w given the expected value x in each cell is:
+    poll = -x + wlnx - ln(w!)
+    
+    Args:
+    	forecast: gridded forecast
+    	catalog: observed catalog
+    
+    Returns:
+    	poll: Poisson-based log-likelihood scores obtained by the forecast in each spatial cell.
+    
+    Notes:
+    	log(w!) = 0
+    	factorial(n) = loggamma(n+1)
+    """
+
+    scale = catalog.event_count / forecast.event_count
+    
+    first_term = -forecast.spatial_counts() * scale
+    second_term = catalog.spatial_counts() * np.log(forecast.spatial_counts() * scale)
+    third_term = -scipy.special.loggamma(catalog.spatial_counts() + 1)
+    
+    poll = first_term + second_term + third_term
+    
+    return poll
+    
+
 def magnitude_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None, verbose=False):
     """
     Performs the Magnitude Test on a Gridded Forecast using an observed catalog.
