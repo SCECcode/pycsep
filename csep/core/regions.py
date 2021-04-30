@@ -789,9 +789,10 @@ def quadtree_grid_bounds(quadk):
         return grid_bounds
 
 
-def area_from_bounds(lon1, lat1, lon2, lat2):
+def geographical_area_from_bounds(lon1,lat1,lon2,lat2):
     """
-    Computes area of spatial cell identified by origin coordinate and top right cooridnate
+    Computes area of spatial cell identified by origin coordinate and top right cooridnate.
+    The functions computes area only for square/rectangle bounding box by based on spherical earth assumption.
 
     Args:
         lon1,lat1 : Origin coordinates
@@ -968,7 +969,7 @@ class QuadtreeGrid2D:
         cell_area = []
         for i in range(len(self.quadkeys)):
             cell_area = numpy.append(cell_area,
-                                     area_from_bounds(self.bounds[i, 0], self.bounds[i, 1], self.bounds[i, 2],
+                                     geographical_area_from_bounds(self.bounds[i, 0], self.bounds[i, 1], self.bounds[i, 2],
                                                       self.bounds[i, 3]))
         self.cell_area = cell_area
         return self.cell_area
