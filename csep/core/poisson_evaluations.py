@@ -229,7 +229,8 @@ def magnitude_test(gridded_forecast, observed_catalog, num_simulations=1000, see
                                                         seed=seed,
                                                         random_numbers=random_numbers,
                                                         use_observed_counts=True,
-                                                        verbose=verbose)
+                                                        verbose=verbose,
+							normalize_likelihood=True)
 
     # populate result data structure
     result = EvaluationResult()
@@ -272,7 +273,8 @@ def spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=
                                                         seed=seed,
                                                         random_numbers=random_numbers,
                                                         use_observed_counts=True,
-                                                        verbose=verbose)
+                                                        verbose=verbose,
+							normalize_likelihood=True)
 
     # populate result data structure
     result = EvaluationResult()
@@ -486,86 +488,92 @@ def _simulate_catalog(num_events, sampling_weights, sim_fore, random_numbers=Non
 
     return sim_fore
 
-def _poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None, seed=None, use_observed_counts=True, verbose=True):
-    """
-    Computes the likelihood-test from CSEP using an efficient simulation based approach.
-    Args:
-        forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
-        observed_data (numpy.ndarray): same format as observation.
-        num_simulations: default number of simulations to use for likelihood based simulations
-        seed: used for reproducibility of the prng
-        random_numbers (numpy.ndarray): can supply an explicit list of random numbers, primarily used for software testing
-        use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson distrubtion
-    """
-    # set seed for the likelihood test
-    if seed is not None:
-        numpy.random.seed(seed)
+# def _poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None, 
+                         seed=None, use_observed_counts=True, verbose=True, normalize_likelihood=False):
+"""
+Computes the likelihood-test from CSEP using an efficient simulation based approach.
+Args:
+    forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
+    observed_data (numpy.ndarray): same format as observation.
+    num_simulations: default number of simulations to use for likelihood based simulations
+    seed: used for reproducibility of the prng
+    random_numbers (numpy.ndarray): can supply an explicit list of random numbers, primarily used for software testing
+    use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson distribution
+"""
+# set seed for the likelihood test
+if seed is not None:
+    numpy.random.seed(seed)
 
-    # used to determine where simulated earthquake should be placed, by definition of cumsum these are sorted
-    sampling_weights = numpy.cumsum(forecast_data.ravel()) / numpy.sum(forecast_data)
+# used to determine where simulated earthquake should be placed, by definition of cumsum these are sorted
+sampling_weights = numpy.cumsum(forecast_data.ravel()) / numpy.sum(forecast_data)
 
-    # data structures to store results
-    sim_fore = numpy.zeros(sampling_weights.shape)
-    simulated_ll = []
-    n_obs = numpy.sum(observed_data)
-    n_fore = numpy.sum(forecast_data)
+# data structures to store results
+sim_fore = numpy.zeros(sampling_weights.shape)
+simulated_ll = []
+n_obs = numpy.sum(observed_data)
+n_fore = numpy.sum(forecast_data)
 
-    # used for conditional-likelihood, magnitude, and spatial tests to normalize the rate-component of the forecasts.
-    if use_observed_counts:
-        scale = n_obs / n_fore
-        expected_forecast_count = int(n_obs)
-        # Numpy warnings can occur if forecasts have masked cells and thus zero valued rates
-        with numpy.errstate(divide='ignore'):
-            log_bin_expectations = numpy.log(forecast_data.ravel() * scale)
-    else:
+# used for conditional-likelihood, magnitude, and spatial tests to normalize the rate-component of the forecasts.
+if use_observed_counts:
+    scale = n_obs / n_fore
+    if normalize_likelihood:
         expected_forecast_count = numpy.sum(forecast_data)
-        with numpy.errstate(divide='ignore'):
-            log_bin_expectations = numpy.log(forecast_data.ravel())
+        log_bin_expectations = numpy.log(forecast_data.ravel())
+    else:    
+        expected_forecast_count = int(n_obs)
+        log_bin_expectations = numpy.log(forecast_data.ravel() * scale)
+else:
+    expected_forecast_count = numpy.sum(forecast_data)
+    log_bin_expectations = numpy.log(forecast_data.ravel())
 
-    # gets the 1d indices to bins that contain target events, these indexes perform copies and not views into the array
-    target_idx = numpy.nonzero(observed_data.ravel())
+# gets the 1d indices to bins that contain target events, these indexes perform copies and not views into the array
+target_idx = numpy.nonzero(observed_data.ravel())
 
-    # these operations perform copies
-    observed_data_nonzero = observed_data.ravel()[target_idx]
-    target_event_forecast = log_bin_expectations[target_idx] * observed_data_nonzero
+# these operations perform copies
+observed_data_nonzero = observed_data.ravel()[target_idx]
+target_event_forecast = log_bin_expectations[target_idx] * observed_data_nonzero
 
-    # main simulation step in this loop
-    for idx in range(num_simulations):
-        if use_observed_counts:
+# main simulation step in this loop
+for idx in range(num_simulations):
+    if use_observed_counts:
+        if normalize_likelihood:
+            num_events_to_simulate = int(n_obs)
+        else:    
             num_events_to_simulate = expected_forecast_count
-        else:
-            num_events_to_simulate = int(numpy.random.poisson(expected_forecast_count))
+    else:
+        num_events_to_simulate = int(numpy.random.poisson(expected_forecast_count))
 
-        if random_numbers is None:
-            sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore)
-        else:
-            sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore,
-                                         random_numbers=random_numbers[idx,:])
+    if random_numbers is None:
+        sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore)
+    else:
+        sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore,
+                                     random_numbers=random_numbers[idx,:])
 
-        # compute joint log-likelihood from simulation by leveraging that only cells with target events contribute to likelihood
-        sim_target_idx = numpy.nonzero(sim_fore)
-        sim_obs_nonzero = sim_fore[sim_target_idx]
-        sim_target_event_forecast = log_bin_expectations[sim_target_idx] * sim_obs_nonzero
+    # compute joint log-likelihood from simulation by leveraging that only cells with target events contribute to likelihood
+    sim_target_idx = numpy.nonzero(sim_fore)
+    sim_obs_nonzero = sim_fore[sim_target_idx]
+    sim_target_event_forecast = log_bin_expectations[sim_target_idx] * sim_obs_nonzero
 
-        # compute joint log-likelihood
-        current_ll = poisson_joint_log_likelihood_ndarray(sim_target_event_forecast, sim_obs_nonzero, expected_forecast_count)
+    # compute joint log-likelihood
+    current_ll = poisson_joint_log_likelihood_ndarray(sim_target_event_forecast, sim_obs_nonzero, expected_forecast_count)
 
-        # append to list of simulated log-likelihoods
-        simulated_ll.append(current_ll)
+    # append to list of simulated log-likelihoods
+    simulated_ll.append(current_ll)
 
-        # just be verbose
-        if verbose:
-            if (idx + 1) % 100 == 0:
-                print(f'... {idx + 1} catalogs simulated.')
+    # just be verbose
+    if verbose:
+        if (idx + 1) % 100 == 0:
+            print(f'... {idx + 1} catalogs simulated.')
 
-    # observed joint log-likelihood
-    obs_ll = poisson_joint_log_likelihood_ndarray(target_event_forecast, observed_data_nonzero, expected_forecast_count)
+# observed joint log-likelihood
+obs_ll = poisson_joint_log_likelihood_ndarray(target_event_forecast, observed_data_nonzero, expected_forecast_count)
 
-    # quantile score
-    qs = numpy.sum(simulated_ll <= obs_ll) / num_simulations
+# quantile score
+qs = numpy.sum(simulated_ll <= obs_ll) / num_simulations
 
-    # float, float, list
-    return qs, obs_ll, simulated_ll
+# float, float, list
+return qs, obs_ll, simulated_ll
+
 
 """
 Created on Thu Jan 23 20:06:58 2020
