@@ -201,6 +201,81 @@ def conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulati
 
     return result
 
+def plot_diff_spatial_likelihood(forecast1, forecast2, catalog, diff_LL, markersizem, marker_sizedLL, bg, lf):
+    """
+    This function plots residuals between log-likehood scores obtained by two earthquake forecasts.
+    
+    Args:
+    	forecast1: gridded forecast 1
+	forecast2: gridded forecast 2
+    	catalog: observed catalog'
+    	diff_LL: array containing differences in log-likelihood scores, computed in each grid cell.
+    	marker_sizem: numerical value controlling the size of the earthquake markers. In this example, a value of 3.5 is used.
+    	marker_sizedLL: numerical value controlling the size of (delta) log-likelihood markers. In this example, a value of 10 is employed.
+    	bg: Size of gray grid cells used to highlight the testing region.
+    	lf: Likelihood function used to compute log-likelihood scores; P=Poisson, B=binary.
+    
+    Returns:
+	ax_dLL: Cartopy GeoAxes subplot
+    """
+	
+    # We define plot parameters for the figure:
+    ax_dLL = fig.add_subplot(111, projection=ccrs.PlateCarree())
+    ax_dLL.add_feature(cartopy.feature.STATES, zorder=1)
+    ax_dLL.add_image(_get_basemap('ESRI_imagery'), 6)
+    ax_dLL.set_facecolor('lightgrey')
+    dh = round(forecast1.region.dh, 5)
+    gldLL = ax_dLL.gridlines(draw_labels=True, alpha=0)
+    gldLL.xlines = False
+    gldLL.ylines = False
+    gldLL.ylabels_right = False
+    gldLL.xlabel_style = {'size': 13}
+    gldLL.ylabel_style = {'size': 13}
+    ax_dLL.set_xlim(min(forecast1.get_longitudes())-0.1+dh/2, max(forecast1.get_longitudes())+0.1+dh/2)
+    ax_dLL.set_ylim(min(forecast1.get_latitudes())-0.1+dh/2, max(forecast1.get_latitudes())+0.1+dh/2)
+    ax_dLL.text(min(forecast1.get_longitudes()) + 0.11, min(forecast1.get_latitudes()) + 0.1, f'{forecast1.name}_'f'{forecast2.name}', fontsize=17, color='white')
+    
+    # We highlight the testing area for visualization purposes:
+    scatter_LL1 = ax_dLL.scatter(forecast1.get_longitudes()+ dh/2, forecast1.get_latitudes()+dh/2, 
+                           c='grey', s= bg, marker='s', alpha=0.4, zorder=1)
+    
+    # Here, we sort the catalog to plot earthquakes according to magnitudes:
+    catalog_s = np.sort(catalog.data, order=['magnitude']) 
+    
+    # We plot the earthquake catalog:
+    scatter_e = ax_dLL.scatter(catalog_s['longitude'], catalog_s['latitude'], 
+                              s = markersizem*2**(catalog_s['magnitude']), 
+                edgecolors= 'white', vmin = min(catalog_s['magnitude']), facecolor="None",
+                vmax = max(catalog_s['magnitude']), alpha =1, linewidth=1, marker='s', zorder=2)
+    
+    handles, labels = scatter_e.legend_elements(prop="sizes", num=4, markerfacecolor="None", 
+                                                  markeredgecolor='white', alpha=1)
+
+    mags_range = [f'{round(min(catalog.get_magnitudes()),0)}',
+                  f'{(round(min(catalog.get_magnitudes()),0) + round(max(catalog.get_magnitudes()),0))/2}',
+                  f'{round(max(catalog.get_magnitudes()),0)}']
+    legend2 = ax_dLL.legend(handles, mags_range, loc="upper right", 
+                            edgecolor='black', labelspacing=1, framealpha=1, fontsize=14, facecolor='darkgrey')
+    
+
+    legend2.set_title('Magnitude',prop={'size':'x-large'})   
+    
+    # We plot the differences in log-likelihood scores:
+    scatter_dLL = ax_dLL.scatter(forecast1.get_longitudes() + dh/2, forecast1.get_latitudes() + dh/2, 
+                       c=diff_LL, cmap='seismic_r', s= np.abs(marker_sizedLL * diff_LL), vmin=-5, vmax=5, marker='s', zorder=2)
+
+    cax = fig.add_axes([ax_dLL.get_position().x1 + 0.01, ax_dLL.get_position().y0, 0.025, ax_dLL.get_position().height])
+    cbar = fig.colorbar(scatter_dLL, cax=cax)
+    
+    if lf=='P':
+        cbar.set_label('Residuals between POLLs obtained by 'f'{forecast1.name} and ' f'{forecast2.name}', fontsize=14)
+    elif lf=='B':
+        cbar.set_label('Residuals between BILLs obtained by 'f'{forecast1.name} and ' f'{forecast2.name}', fontsize=14)
+        
+    cbar.ax.tick_params(labelsize='x-large')
+    
+    return ax_dLL
+
 def magnitude_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None, verbose=False):
     """
     Performs the Magnitude Test on a Gridded Forecast using an observed catalog.
