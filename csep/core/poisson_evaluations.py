@@ -229,7 +229,41 @@ def poisson_spatial_likelihood(forecast, catalog):
     poll = first_term + second_term + third_term
     
     return poll
+
+
+def _binary_spatial_likelihood(forecast, catalog):
+    """
+    This function computes log-likelihood scores (bills), using a binary likelihood distribution of earthquakes.
+    For this aim, we need an input variable 'forecast' and an variable'catalog'
     
+    This function computes the observed log-likehood score obtained by a gridded forecast in each cell, given a
+    seismicity catalog. In this case, we assume a binary distribution of earthquakes, so that the likelihood of
+    observing an event w given the expected value x in each cell is:'
+    bill = (1-X) * ln(exp(-λ)) + X * ln(1 - exp(-λ)), with X=1 if earthquake and X=0 if no earthquake.
+    
+    Args:
+    	forecast: gridded forecast
+    	catalog: observed catalog
+    
+    Returns:
+    bill: Binary-based log-likelihood scores obtained by the forecast in each spatial cell.
+    """
+    
+    scale = catalog.event_count / forecast.event_count
+    target_idx = numpy.nonzero(catalog.spatial_counts())
+    X = numpy.zeros(forecast.spatial_counts().shape)
+    X[target_idx[0]] = 1
+    
+    #First, we estimate the log-likelihood in cells where no events are observed:
+    first_term = (1-X) * (-forecast.spatial_counts() * scale)
+    
+    #Then, we compute the log-likelihood of observing one or more events given a Poisson distribution, i.e., 1 - Pr(0):
+    second_term = X * (np.log(1.0 - np.exp(-forecast.spatial_counts() * scale)))
+    
+    #Finally, we sum both terms to compute log-likelihood score in each spatial cell:
+    bill = first_term + second_term
+    
+    return bill
 
 def magnitude_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None, verbose=False):
     """
