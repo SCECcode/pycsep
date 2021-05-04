@@ -289,6 +289,76 @@ def spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=
         result.min_mw = -1
     return result
 
+def plot_spatial_likelihood(forecast, catalog, LL, markersizem, marker_sizeLL):
+    """
+    This function plots the spatial distribution of log-likehood scores obtained by an earthquake forecast,
+    given an observed catalog.
+    
+    Args:
+    	forecast: gridded forecast.
+    	catalog: observed catalog
+    	LL: array containing log-likelihood scores, computed in each spatial cell.
+    	marker_sizem: numerical value controlling the size of earthquake marker. In this example, a value of 3.5 is used.
+    	marker_sizeLL: numerical value controlling the size of log-likelihood markers. In this case, a value of -3 is employed.
+    	
+    Returns: 
+	ax_sl: Cartopy GeoAxes subplot
+    """
+
+    # We define some plot parameters for the figure:
+    ax_sl = fig.add_subplot(111, projection=ccrs.PlateCarree())
+    ax_sl.add_feature(cartopy.feature.STATES, zorder=1)
+    ax_sl.add_image(_get_basemap('ESRI_imagery'), 6)
+    ax_sl.set_facecolor('lightgrey')
+    dh = round(forecast.region.dh, 5)
+    gl = ax_sl.gridlines(draw_labels=True, alpha=0)
+    gl.xlines = False
+    gl.ylines = False
+    gl.ylabels_right = False
+    gl.xlabel_style = {'size': 13}
+    gl.ylabel_style = {'size': 13}
+    
+    ax_sl.set_xlim(min(forecast.get_longitudes())-0.1+dh/2, max(forecast.get_longitudes())+0.1+dh/2)
+    ax_sl.set_ylim(min(forecast.get_latitudes())-0.1+dh/2, max(forecast.get_latitudes())+0.1+dh/2)
+    ax_sl.text(min(forecast.get_longitudes())+0.1, min(forecast.get_latitudes())+0.1, f'{forecast.name}', fontsize=20, color='white')
+    
+    # We highlight the testing area for visualitazion purposes:
+    scatter_LL1 = ax_sl.scatter(forecast.get_longitudes()+ dh/2, forecast.get_latitudes()+dh/2, 
+                           c='grey', s= 50, marker='s', alpha=0.2, zorder=1)
+    
+    # Here, we sort the catalog to plot earthquakes according to magnitudes:
+    catalog_s = np.sort(catalog.data, order=['magnitude']) 
+    
+    # We plot the earthquake catalog:
+    scatter_e = ax_sl.scatter(catalog_s['longitude'], catalog_s['latitude'], 
+                              s = markersizem*2**(catalog_s['magnitude']), 
+                edgecolors= 'white', vmin = min(catalog_s['magnitude']), facecolor="None",
+                vmax = max(catalog_s['magnitude']), alpha =1, linewidth=1, marker='s', zorder=2)
+    
+    handles, labels = scatter_e.legend_elements(prop="sizes", num=4, markerfacecolor="None", 
+                                              markeredgecolor='white', alpha=1, linewidth=1, zorder=2)
+
+    
+    mags_range = [f'{round(min(catalog.get_magnitudes()),0)}',
+                  f'{(round(min(catalog.get_magnitudes()),0) + round(max(catalog.get_magnitudes()),0))/2}',
+                  f'{round(max(catalog.get_magnitudes()),0)}']
+    legend2 = ax_sl.legend(handles, mags_range, loc="upper right", 
+                            edgecolor='black', labelspacing=1, framealpha=1, fontsize=14, facecolor='darkgrey')
+ 
+    legend2.set_title('Magnitude',prop={'size':'x-large'}) 
+    
+    # Finally, we plot the log-likelihood scores:
+    scatter_LL = ax_sl.scatter(forecast.get_longitudes()+ dh/2, forecast.get_latitudes()+ dh/2, 
+                           c= LL, cmap='autumn', s= -3 * LL, vmin=-30, vmax=0, marker='s', alpha=0.7, zorder=2)        
+    
+    
+    cax = fig.add_axes([ax_sl.get_position().x1 + 0.01, ax_sl.get_position().y0, 0.025, ax_sl.get_position().height])
+    cbar = fig.colorbar(scatter_LL, cax=cax)
+    cbar.set_label('Log-likelihood score (space)', fontsize=15)
+    cbar.ax.tick_params(labelsize='x-large')
+    
+    return ax_sl
+
 def likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None, verbose=False):
     """
     Performs the likelihood test on Gridded Forecast using an Observed Catalog.
