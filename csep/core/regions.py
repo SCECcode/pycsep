@@ -966,11 +966,7 @@ class QuadtreeGrid2D:
     @property
     def get_cell_area(self):
         """ Area of each cell in grid"""
-        cell_area = []
-        for i in range(len(self.quadkeys)):
-            cell_area = numpy.append(cell_area,
-                                     geographical_area_from_bounds(self.bounds[i, 0], self.bounds[i, 1], self.bounds[i, 2],
-                                                      self.bounds[i, 3]))
+        cell_area = numpy.array([geographical_area_from_bounds(bb[0],bb[1],bb[2],bb[3]) for bb in self.bounds])
         self.cell_area = cell_area
         return self.cell_area
 
