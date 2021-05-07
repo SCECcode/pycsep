@@ -757,36 +757,36 @@ class CartesianGrid2D:
 
 #--- Quadtree relevant functions and QuadtreeGrid2D class
 def quadtree_grid_bounds(quadk):
-        """
-        Computes the bottom-left and top-right coordinates corresponding to every quadkey
+    """
+    Computes the bottom-left and top-right coordinates corresponding to every quadkey
 
-        Args:
-            qk : Array of Strings
-            Quadkeys.
+    Args:
+        qk : Array of Strings
+        Quadkeys.
 
-        Returns:
-            grid_coords : Array of floats
-                        [lon1,lat1,lon2,lat2]
+    Returns:
+        grid_coords : Array of floats
+                    [lon1,lat1,lon2,lat2]
 
-        """
+    """
 
-        origin_lat = []
-        origin_lon = []
-        top_right_lon = []
-        top_right_lat = []
+    origin_lat = []
+    origin_lon = []
+    top_right_lon = []
+    top_right_lat = []
 
-        for i in range(len(quadk)):
-            origin_lon = numpy.append(origin_lon, mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).west)
-            origin_lat = numpy.append(origin_lat, mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).south)
+    for i in range(len(quadk)):
+        origin_lon.append(mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).west)
+        origin_lat.append(mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).south)
 
-            top_right_lon = numpy.append(top_right_lon, mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).east)
-            top_right_lat = numpy.append(top_right_lat, mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).north)
+        top_right_lon.append(mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).east)
+        top_right_lat.append(mercantile.bounds(mercantile.quadkey_to_tile(quadk[i])).north)
 
-        grid_origin = numpy.column_stack([origin_lon, origin_lat])
-        grid_top_right = numpy.column_stack([top_right_lon, top_right_lat])
-        grid_bounds = numpy.column_stack((grid_origin, grid_top_right))
+    grid_origin = numpy.column_stack((numpy.array(origin_lon), numpy.array(origin_lat)))
+    grid_top_right = numpy.column_stack((numpy.array(top_right_lon), numpy.array(top_right_lat)))
+    grid_bounds = numpy.column_stack((grid_origin, grid_top_right))
 
-        return grid_bounds
+    return grid_bounds
 
 
 def geographical_area_from_bounds(lon1,lat1,lon2,lat2):
