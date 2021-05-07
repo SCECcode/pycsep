@@ -997,14 +997,14 @@ class QuadtreeGrid2D:
         Returns:
             index number of polyons
         """
-        if self.get_bbox()[1] == lon:  # Check for 180 lon. The last right corner
-            loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
-                                    numpy.logical_and(lon <= self.bounds[:, 2], lat < self.bounds[:, 3]))
-        elif self.get_bbox()[3] == lat:  # Check for 85.05 lat. The last top corner
-            loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
-                                    numpy.logical_and(lon < self.bounds[:, 2], lat <= self.bounds[:, 3]))
-        else:
-            loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
+        # if self.get_bbox()[1] == lon:  # Check for 180 lon. The last right corner
+        #     loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
+        #                             numpy.logical_and(lon <= self.bounds[:, 2], lat < self.bounds[:, 3]))
+        # elif self.get_bbox()[3] == lat:  # Check for 85.05 lat. The last top corner
+        #     loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
+        #                             numpy.logical_and(lon < self.bounds[:, 2], lat <= self.bounds[:, 3]))
+        # else:
+        loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
                                     numpy.logical_and(lon < self.bounds[:, 2], lat < self.bounds[:, 3]))
         if len(numpy.where(loc == True)[0]) > 0:
             return numpy.where(loc == True)[0][0]
