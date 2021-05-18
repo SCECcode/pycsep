@@ -662,15 +662,12 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned rates without region information.")
 
-        # todo: this should be routed through self.region to allow for different types of regions
-        output = regions._bin_catalog_spatial_counts(self.get_longitudes(),
-                                                     self.get_latitudes(),
-                                                     self.region.num_nodes,
-                                                     self.region.bbox_mask,
-                                                     self.region.idx_map,
-                                                     self.region.xs,
-                                                     self.region.ys)
-        return output
+        n_poly = self.region.num_nodes
+        event_counts = numpy.zeros(n_poly)
+        # this function could throw ValueError if points are outside of the region
+        idx = self.region.get_index_of(self.get_longitudes(), self.get_latitudes())
+        numpy.add.at(event_counts, idx, 1)
+        return event_counts
 
     def spatial_event_probability(self):
         # make sure region is specified with catalog
@@ -724,7 +721,7 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             return out
 
-    def spatial_magnitude_counts(self, mag_bins=None, tol=0.00001, ret_skipped=False):
+    def spatial_magnitude_counts(self, mag_bins=None, tol=0.00001):
         """ Return counts of events in space-magnitude region.
 
         We figure out the index of the polygons and create a map that relates the spatial coordinate in the
@@ -732,8 +729,6 @@ class AbstractBaseCatalog(LoggingMixin):
 
         Args:
             mag_bins: magnitude bins (optional). tries to use magnitue bins associated with region
-            ret_skipped (bool): if true, will return list of (lon, lat, mw) tuple of skipped points
-
 
         Returns:
             output: unnormalized event count in each bin, 1d ndarray where index corresponds to midpoints
@@ -747,33 +742,22 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region.magnitudes is None and mag_bins is None:
             raise CSEPCatalogException("Region must have magnitudes or mag_bins must be defined to "
                                        "compute space magnitude binning.")
-
+        # prefer user supplied mag_bins
+        if mag_bins is None:
+            mag_bins = self.region.magnitudes
         # short-circuit if zero-events in catalog... return array of zeros
-        if self.event_count == 0:
-            n_poly = self.region.num_nodes
-            n_mws = self.region.num_mag_bins
-            output = numpy.zeros((n_poly, n_mws))
-            skipped = []
-        else:
-            if mag_bins is None:
-                mag_bins = self.region.magnitudes
-
-            # compute if not
-            # todo: this should be routed through self.region to allow for different types of regions
-            output, skipped = regions._bin_catalog_spatio_magnitude_counts(self.get_longitudes(),
-                                                                           self.get_latitudes(),
-                                                                           self.get_magnitudes(),
-                                                                           self.region.num_nodes,
-                                                                           self.region.bbox_mask,
-                                                                           self.region.idx_map,
-                                                                           self.region.xs,
-                                                                           self.region.ys,
-                                                                           mag_bins,
-                                                                           tol=tol)
-        if ret_skipped:
-            return output, skipped
-        else:
-            return output
+        n_poly = self.region.num_nodes
+        event_counts = numpy.zeros((n_poly, len(mag_bins)))
+        if self.event_count != 0:
+            # this will throw ValueError if points outside range
+            spatial_idx = self.region.get_index_of(self.get_longitudes(), self.get_latitudes())
+            # also throwing the same error
+            mag_idx = bin1d_vec(self.get_magnitudes(), mag_bins, tol=tol, right_continuous=True)
+            for idx in range(spatial_idx.shape[0]):
+                if mag_idx[idx] == -1:
+                    raise ValueError("at least one magnitude value outside of the valid region.")
+                event_counts[(spatial_idx[idx], mag_idx[idx])] += 1
+        return event_counts
 
     def length_in_seconds(self):
         """ Returns catalog length in seconds assuming that the catalog is sorted by time. """

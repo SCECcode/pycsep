@@ -8,7 +8,7 @@ import numpy
 import csep
 from csep.core import regions, forecasts
 from csep.utils.time_utils import strptime_to_utc_epoch, strptime_to_utc_datetime
-from csep.core.catalogs import CSEPCatalog
+from csep.core.catalogs import CSEPCatalog, AbstractBaseCatalog
 from csep.core.regions import CartesianGrid2D, Polygon, compute_vertices
 
 def comcat_path():
@@ -16,6 +16,20 @@ def comcat_path():
     data_dir = os.path.join(root_dir, 'artifacts', 'Comcat',
                             'test_catalog.csv')
     return data_dir
+
+class MockCatalog(AbstractBaseCatalog):
+
+    def __init__(self):
+        super().__init__()
+
+    def get_number_of_events(self):
+        return len(self.get_latitudes())
+
+    def get_longitudes(self):
+        return numpy.array([0.05, 0.15])
+
+    def get_latitudes(self):
+        return numpy.array([0.15, 0.05])
 
 class CatalogFiltering(unittest.TestCase):
     def setUp(self):
@@ -108,7 +122,7 @@ class CatalogFiltering(unittest.TestCase):
         )
 
         # read catalog
-        comcat = csep.load_catalog(comcat_path(), region=region)
+        comcat = csep.load_catalog(comcat_path(), region=region).filter(f"magnitude >= 4.5")
 
         # create data set from data set
         d = forecasts.MarkedGriddedDataSet(
@@ -119,6 +133,7 @@ class CatalogFiltering(unittest.TestCase):
 
         for idm, m_min in enumerate(d.magnitudes):
             # catalog filtered cumulative
+            print(m_min)
             c = comcat.filter([f'magnitude >= {m_min}'], in_place=False)
             # catalog filtered incrementally
             c_int = comcat.filter([f'magnitude >= {m_min}', f'magnitude < {m_min + 0.1}'], in_place=False)
@@ -127,9 +142,42 @@ class CatalogFiltering(unittest.TestCase):
             # incremental counts
             gs_int = d.data[:, idm].sum()
             # event count from filtered catalog and events in binned data should be the same
-            numpy.testing.assert_almost_equal(gs, c.event_count)
-            numpy.testing.assert_almost_equal(gs_int, c_int.event_count)
+            numpy.testing.assert_equal(gs, c.event_count)
+            numpy.testing.assert_equal(gs_int, c_int.event_count)
 
+    def test_bin_spatial_counts(self):
+        """ this will test both good and bad points within the region.
+
+        1) 2 inside the domain
+        2) outside the bbox but not in domain
+        3) completely outside the domain
+
+        we will check that only 1 event is placed in the grid and ensure its location is correct.
+        """
+        # create some arbitrary grid
+        nx = 8
+        ny = 10
+        dh = 0.1
+        x_points = numpy.arange(nx) * dh
+        y_points = numpy.arange(ny) * dh
+        origins = list(itertools.product(x_points, y_points))
+        # grid is missing first and last block
+        origins.pop(0)
+        origins.pop(-1)
+        cart_grid = CartesianGrid2D(
+            [Polygon(bbox) for bbox in compute_vertices(origins, dh)],
+            dh
+        )
+        catalog = MockCatalog()
+        catalog.region = cart_grid
+        test_result = catalog.spatial_counts()
+
+        # we have tested 2 inside the domain
+        self.assertEqual(numpy.sum(test_result), 2)
+        # we know that (0.05, 0.15) corresponds to index 0
+        self.assertEqual(test_result[0], 1)
+        # we know that (0.15, 0.05) corresponds too index 9
+        self.assertEqual(test_result[9], 1)
 
 if __name__ == '__main__':
     unittest.main()
