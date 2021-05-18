@@ -677,14 +677,11 @@ class AbstractBaseCatalog(LoggingMixin):
         if self.region is None:
             raise CSEPSchedulerException("Cannot create binned probabilities without region information.")
 
-        output = regions._bin_catalog_probability(self.get_longitudes(),
-                                                  self.get_latitudes(),
-                                                  len(self.region.polygons),
-                                                  self.region.bbox_mask,
-                                                  self.region.idx_map,
-                                                  self.region.xs,
-                                                  self.region.ys)
-        return output
+        n_poly = self.region.num_nodes
+        event_flag = numpy.zeros(n_poly)
+        idx = self.region.get_index_of(self.get_longitudes(), self.get_latitudes())
+        event_flag[idx] = 1
+        return event_flag
 
     def magnitude_counts(self, mag_bins=None, tol=0.00001, retbins=False):
         """ Computes the count of events within mag_bins

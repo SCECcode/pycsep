@@ -179,5 +179,29 @@ class CatalogFiltering(unittest.TestCase):
         # we know that (0.15, 0.05) corresponds too index 9
         self.assertEqual(test_result[9], 1)
 
+    def test_bin_probability(self):
+        # we have tested 2 inside the domain
+        nx = 8
+        ny = 10
+        dh = 0.1
+        x_points = numpy.arange(nx) * dh
+        y_points = numpy.arange(ny) * dh
+        origins = list(itertools.product(x_points, y_points))
+        # grid is missing first and last block
+        origins.pop(0)
+        origins.pop(-1)
+        cart_grid = CartesianGrid2D(
+            [Polygon(bbox) for bbox in compute_vertices(origins, dh)],
+            dh
+        )
+        catalog = MockCatalog()
+        catalog.region = cart_grid
+        test_result = catalog.spatial_event_probability()
+        self.assertEqual(numpy.sum(test_result), 2)
+
+        # we know that (0.05, 0.15) corresponds to index 0 from the above test
+        self.assertEqual(test_result[0], 1)
+        self.assertEqual(test_result[9], 1)
+
 if __name__ == '__main__':
     unittest.main()
