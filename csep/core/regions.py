@@ -1023,7 +1023,7 @@ class QuadtreeGrid2D:
         polys = [self.polygons[idx] for idx in indices]
         return polys
 
-    def get_spatial_counts(self, catalog, mag_bins=None):
+    def _get_spatial_counts(self, catalog, mag_bins=None):
         """
         Gets the number of earthquakes in each cell for available catalog.
         Uses QuadtreeGrid2D.get_index_of function to map every earthquake location to its corresponding cell
@@ -1040,7 +1040,7 @@ class QuadtreeGrid2D:
         if not isinstance(catalog, CSEPCatalog):
             raise TypeError("region must be CSEPCatalog")
         if mag_bins is None or mag_bins == []:
-            mag_bins = self.magnitudes
+            mag_bins = catalog.magnitudes
 
         if min(catalog.get_magnitudes()) < min(mag_bins):
             print("-----Warning-----")
@@ -1063,7 +1063,7 @@ class QuadtreeGrid2D:
 
         return out
 
-    def get_spatial_magnitude_counts(self, catalog, mag_bins=None):
+    def _get_spatial_magnitude_counts(self, catalog, mag_bins=None):
         """
         Gets the number of earthquakes in for each spatio-magnitude bin for available catalog
         Uses QuadtreeGrid2D.get_index_of function to map every earthquake location to its corresponding cell
@@ -1080,7 +1080,7 @@ class QuadtreeGrid2D:
         if not isinstance(catalog, CSEPCatalog):
             raise TypeError("region must be CSEPCatalog")
         if mag_bins is None or mag_bins == []:
-            mag_bins = self.magnitudes
+            mag_bins = catalog.magnitudes
 
         if min(catalog.get_magnitudes()) < min(mag_bins):
             print("-----Warning-----")
