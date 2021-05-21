@@ -954,7 +954,8 @@ class QuadtreeGrid2D:
     def __init__(self, polygons, quadkeys, bounds, name='QuadtreeGrid2d', mask=None):
         self.polygons = polygons
         self.quadkeys = quadkeys
-        self.bounds = bounds  # -----
+        self.bounds = bounds
+        self.cell_area = []
         self.poly_mask = mask
         self.name = name
 
@@ -963,9 +964,11 @@ class QuadtreeGrid2D:
         """ Number of polygons in region """
         return len(self.polygons)
 
-    @property
-    def get_cell_area(self):
-        """ Area of each cell in grid"""
+    def compute_cell_area(self):
+        """
+        Calls function geographical_area_from_bounds and computes area of each grid cell. It also modified class variable "self.cell_area"
+        It iterates over all the cells of grid and passes bounding coordiates of every cell tofunction  geographical_area_from_bounds
+        """
         cell_area = numpy.array([geographical_area_from_bounds(bb[0],bb[1],bb[2],bb[3]) for bb in self.bounds])
         self.cell_area = cell_area
         return self.cell_area
