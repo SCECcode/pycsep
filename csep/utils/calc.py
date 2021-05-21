@@ -90,11 +90,13 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
     if right_continuous:
         # set upper bin index to last
         try:
-            idx[(idx >= len(bins) - 1)] = len(bins) - 1
             idx[(idx < 0)] = -1
+            idx[(idx >= len(bins) - 1)] = len(bins) - 1
         except (TypeError):
             if idx >= len(bins) - 1:
                 idx = len(bins) - 1
+            if idx < 0:
+                idx = -1
     else:
         try:
             idx[((idx < 0) | (idx >= len(bins)))] = -1
