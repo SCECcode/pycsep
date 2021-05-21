@@ -5,7 +5,7 @@ import pytest
 import numpy
 
 from csep.core.regions import CartesianGrid2D, compute_vertex, compute_vertices, _bin_catalog_spatio_magnitude_counts, \
-    _bin_catalog_spatial_counts, _bin_catalog_probability, Polygon, global_region, quadtree_grid_bounds, QuadtreeGrid2D
+    _bin_catalog_spatial_counts, _bin_catalog_probability, Polygon, global_region, quadtree_grid_bounds, QuadtreeGrid2D,geographical_area_from_bounds
 
 
 class TestPolygon(unittest.TestCase):
@@ -264,8 +264,17 @@ class TestQuadtreeGrid2D(unittest.TestCase):
 
     def test_quadtree_bounds(self):
         qk = ['0', '1']
-        bounds = [[-180., 0., 0., 85.05112878], [0., 0., 180., 85.05112878]]
-        numpy.testing.assert_array_almost_equal(quadtree_grid_bounds(qk), bounds)
+        bounds = [[-180., 0., 0., 85.0511287798066], [0., 0., 180.,85.0511287798066]]
+        numpy.testing.assert_array_equal(quadtree_grid_bounds(qk), bounds)
+
+
+
+def test_geographical_area_from_bounds():
+    area_globe = 510064471.90978825
+    area_equator = 12363.6839902611
+    numpy.testing.assert_array_equal(geographical_area_from_bounds(-180,-90, 180, 90), area_globe)
+    numpy.testing.assert_array_equal(geographical_area_from_bounds(0,0,1,1), area_equator)
+
 
 if __name__ == '__main__':
     unittest.main()
