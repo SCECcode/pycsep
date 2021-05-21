@@ -488,18 +488,18 @@ def _simulate_catalog(num_events, sampling_weights, sim_fore, random_numbers=Non
 
     return sim_fore
 
-# def _poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None, 
+def _poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None, 
                          seed=None, use_observed_counts=True, verbose=True, normalize_likelihood=False):
-"""
-Computes the likelihood-test from CSEP using an efficient simulation based approach.
-Args:
-    forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
-    observed_data (numpy.ndarray): same format as observation.
-    num_simulations: default number of simulations to use for likelihood based simulations
-    seed: used for reproducibility of the prng
-    random_numbers (numpy.ndarray): can supply an explicit list of random numbers, primarily used for software testing
-    use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson distribution
-"""
+	"""
+	Computes the likelihood-test from CSEP using an efficient simulation based approach.
+	Args:
+	    forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
+	    observed_data (numpy.ndarray): same format as observation.
+	    num_simulations: default number of simulations to use for likelihood based simulations
+    	seed: used for reproducibility of the prng
+	random_numbers (numpy.ndarray): can supply an explicit list of random numbers, primarily used for software testing
+	use_observed_counts (bool): if true, will simulate catalogs using the observed events, if false will draw from poisson distribution
+	"""
 # set seed for the likelihood test
 if seed is not None:
     numpy.random.seed(seed)
