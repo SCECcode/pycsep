@@ -34,14 +34,14 @@ IDEA: Since plotting functions are usable by these classes only that don't imple
 
 def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, show=False):
     """
-    
-    
+
+
     Args:
         xdata (ndarray): time bins for plotting shape (N,)
         ydata (ndarray or list like): ydata for plotting; shape (N,5) in order 2.5%Per, 25%Per, 50%Per, 75%Per, 97.5%Per
         obs_data (ndarry): same shape as xdata
-        plot_args: 
-        show: 
+        plot_args:
+        show:
 
     Returns:
 
@@ -581,9 +581,10 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
             projection = ccrs.PlateCarree()
             fig = pyplot.figure()
             ax = fig.add_subplot(111, projection=projection)
-            # Re-aspect plot (only for plain matplotlib plots, or when using PlateCarree)
-            LATKM = 110.574
-            ax.set_aspect(111.320 * numpy.cos(numpy.deg2rad(central_latitude)) / LATKM)
+            # Set plot aspect according to local longitude-latitude ratio in metric units
+            # (only compatible with plain PlateCarree "projection")
+            LATKM = 110.574  # length of a ° of latitude [km]; constant --> ignores Earth's flattening
+            ax.set_aspect(111.320 / LATKM / numpy.cos(numpy.deg2rad(central_latitude)))
         else:
             fig = pyplot.figure()
             ax = fig.add_subplot(111, projection=projection)
