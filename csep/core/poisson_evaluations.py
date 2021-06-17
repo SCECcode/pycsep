@@ -231,7 +231,7 @@ def poisson_spatial_likelihood(forecast, catalog):
     return poll
 
 
-def _binary_spatial_likelihood(forecast, catalog):
+def binary_spatial_likelihood(forecast, catalog):
     """
     This function computes log-likelihood scores (bills), using a binary likelihood distribution of earthquakes.
     For this aim, we need an input variable 'forecast' and an variable'catalog'
@@ -258,7 +258,7 @@ def _binary_spatial_likelihood(forecast, catalog):
     first_term = (1-X) * (-forecast.spatial_counts() * scale)
     
     #Then, we compute the log-likelihood of observing one or more events given a Poisson distribution, i.e., 1 - Pr(0):
-    second_term = X * (np.log(1.0 - np.exp(-forecast.spatial_counts() * scale)))
+    second_term = X * (numpy.log(1.0 - numpy.exp(-forecast.spatial_counts() * scale)))
     
     #Finally, we sum both terms to compute log-likelihood score in each spatial cell:
     bill = first_term + second_term
@@ -630,9 +630,3 @@ def _poisson_likelihood_test(forecast_data, observed_data, num_simulations=1000,
 
     # float, float, list
     return qs, obs_ll, simulated_ll
-
-"""
-Created on Thu Jan 23 20:06:58 2020
-
-@author: khawaja and wsavran
-"""
