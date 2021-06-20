@@ -124,7 +124,6 @@ def spatial_test(forecast, observed_catalog):
 
     return result
 
-
 def magnitude_test(forecast, observed_catalog):
     """ Performs magnitude test for catalog-based forecasts """
     test_distribution = []
@@ -292,7 +291,13 @@ def calibration_test(evaluation_results, delta_1=False):
 
     # this is using "delta_2" which is the cdf value less-equal
     idx = 0 if delta_1 else 1
-    quantiles = [result.quantile[idx] for result in evaluation_results]
+    quantiles = []
+    for result in evaluation_results:
+        if result.status == 'not-valid':
+            print(f'evaluation not valid for {result.name}. skipping in calibration test.')
+        else:
+            quantiles.append(result.quantile[idx])
+
     ks, p_value = scipy.stats.kstest(quantiles, 'uniform')
 
     result = CalibrationTestResult(
