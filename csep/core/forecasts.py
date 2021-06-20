@@ -217,6 +217,7 @@ class MarkedGriddedDataSet(GriddedDataSet):
             raise ValueError("mags outside the range of forecast magnitudes.")
         return idm
 
+
 class GriddedForecast(MarkedGriddedDataSet):
     """ Class to represent grid-based forecasts """
 
@@ -628,7 +629,7 @@ class CatalogForecast(LoggingMixin):
         else:
             return None
 
-    def get_expected_rates(self, verbose=False, return_skipped=False):
+    def get_expected_rates(self, verbose=False):
         """ Compute the expected rates in space-magnitude bins
 
         Args:
@@ -641,7 +642,6 @@ class CatalogForecast(LoggingMixin):
             and magnitude beforehand this list shoudl be empty.
         """
         # self.n_cat might be none here, if catalogs haven't been loaded and its not yet specified.
-        skipped_list = []
         if self.region is None or self.region.magnitudes is None:
             raise AttributeError("Forecast must have space-magnitude regions to compute expected rates.")
         # need to compute expected rates, else return.
@@ -651,8 +651,7 @@ class CatalogForecast(LoggingMixin):
             for i, cat in enumerate(self):
                 # compute spatial density from each data, force data region to use the forecast region
                 cat.region = self.region
-                gridded_counts, skipped = cat.spatial_magnitude_counts(ret_skipped=True)
-                skipped_list.extend(skipped)
+                gridded_counts = cat.spatial_magnitude_counts()
                 if i == 0:
                     data = numpy.array(gridded_counts)
                 else:
@@ -667,15 +666,22 @@ class CatalogForecast(LoggingMixin):
             data = data / self.n_cat
             self.expected_rates = GriddedForecast(self.start_time, self.end_time, data=data, region=self.region,
                                                   magnitudes=self.magnitudes, name=self.name)
-            if return_skipped:
-                return (self.expected_rates, skipped_list)
-            else:
-                return self.expected_rates
+            return self.expected_rates
 
-    def plot(self, **kwargs):
+    def plot(self, plot_args = None, **kwargs):
+        plot_args = plot_args or {}
         if self.expected_rates is None:
             self.get_expected_rates()
-        self.expected_rates.plot(**kwargs)
+        args_dict = {'title': self.name,
+                     'grid_labels': True,
+                     'grid': True,
+                     'borders': True,
+                     'feature_lw': 0.5,
+                     'basemap': 'ESRI_terrain',
+                     }
+        args_dict.update(plot_args)
+        ax = self.expected_rates.plot(**kwargs, plot_args=args_dict)
+        return ax
 
     def get_dataframe(self):
         """Return a single dataframe with all of the events from all of the catalogs."""

@@ -33,8 +33,8 @@ from csep.utils import datasets, time_utils
 # Forecasts should define a time horizon in which they are valid. The choice is flexible for catalog-based forecasts, because
 # the catalogs can be filtered to accommodate multiple end-times. Conceptually, these should be separate forecasts.
 
-start_time = time_utils.strptime_to_utc_datetime("1992-06-28 11:57:34.14")
-end_time = time_utils.strptime_to_utc_datetime("1992-07-28 11:57:34.14")
+start_time = time_utils.strptime_to_utc_datetime("1992-06-28 11:57:35.0")
+end_time = time_utils.strptime_to_utc_datetime("1992-07-28 11:57:35.0")
 
 ####################################################################################################################################
 # Define spatial and magnitude regions
@@ -72,7 +72,8 @@ space_magnitude_region = regions.create_space_magnitude_region(region, magnitude
 
 forecast = csep.load_catalog_forecast(datasets.ucerf3_ascii_format_landers_fname,
                                       start_time = start_time, end_time = end_time,
-                                      region = space_magnitude_region)
+                                      region = space_magnitude_region,
+                                      apply_filters = True)
 
 # Assign filters to forecast
 forecast.filters = [f'origin_time >= {forecast.start_epoch}', f'origin_time < {forecast.end_epoch}']
@@ -92,7 +93,12 @@ forecast.filters = [f'origin_time >= {forecast.start_epoch}', f'origin_time < {f
 comcat_catalog = csep.query_comcat(start_time, end_time, min_magnitude=forecast.min_magnitude)
 
 # Filter observed catalog using the same region as the forecast
+
 comcat_catalog = comcat_catalog.filter_spatial(forecast.region)
+print(comcat_catalog)
+
+# Plot the catalog
+comcat_catalog.plot()
 
 ####################################################################################################################################
 # Perform number test
