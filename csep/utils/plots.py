@@ -584,7 +584,7 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
             # Set plot aspect according to local longitude-latitude ratio in metric units
             # (only compatible with plain PlateCarree "projection")
             LATKM = 110.574  # length of a ° of latitude [km]; constant --> ignores Earth's flattening
-            ax.set_aspect(111.320 / LATKM / numpy.cos(numpy.deg2rad(central_latitude)))
+            ax.set_aspect(LATKM / (111.320 * numpy.cos(numpy.deg2rad(central_latitude))))
         else:
             fig = pyplot.figure()
             ax = fig.add_subplot(111, projection=projection)
