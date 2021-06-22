@@ -788,28 +788,6 @@ def quadtree_grid_bounds(quadk):
 
     return grid_bounds
 
-
-def geographical_area_from_bounds(lon1,lat1,lon2,lat2):
-    """
-    Computes area of spatial cell identified by origin coordinate and top right cooridnate.
-    The functions computes area only for square/rectangle bounding box by based on spherical earth assumption.
-
-    Args:
-        lon1,lat1 : Origin coordinates
-        lon2,lat2: Top right coordinates
-
-    Returns:
-        Area of cell in Km2
-    """
-    earth_radius_km = 6371.
-    R2 = earth_radius_km ** 2
-    rad_per_deg = numpy.pi / 180.0e0
-
-    strip_area_steradian = 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat1) * rad_per_deg)) \
-                           - 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat2) * rad_per_deg))
-    area_km2 = strip_area_steradian * R2 / (360.0 / (lon2 - lon1))
-    return area_km2
-
 def compute_vertex_bounds(bound_point, tol=numpy.finfo(float).eps):
     """
     Wrapper function to compute vertices using bounding points for multiple points. Default tolerance is set to machine precision
