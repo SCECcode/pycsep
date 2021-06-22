@@ -1130,6 +1130,11 @@ class QuadtreeGrid2D:
             'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
         }
         return adict
+    def save_quadtree(self, filename):
+        """Saves the quadtree grid (quadkeys) in a text file"""
+        filename = filename +'.txt'
+        numpy.savetxt(filename, self.quadkeys, delimiter=',', fmt='%s')
+
 
     @classmethod
     def from_catalog(cls, catalog, threshold, zoom=11, magnitudes=None, name=None):
