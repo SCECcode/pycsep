@@ -6,7 +6,6 @@ import enum
 import csv
 from itertools import zip_longest
 import os
-from csep.core.regions import QuadtreeGrid2D
 # Third-party imports
 import numpy
 
@@ -14,6 +13,8 @@ import numpy
 from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
 from csep.core.exceptions import CSEPIOException
+from csep.core.regions import QuadtreeGrid2D
+
 
 def ndk(filename):
     """
