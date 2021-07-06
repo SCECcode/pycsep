@@ -6,7 +6,7 @@ import enum
 import csv
 from itertools import zip_longest
 import os
-
+from csep.core.regions import QuadtreeGrid2D
 # Third-party imports
 import numpy
 
@@ -716,3 +716,55 @@ def _parse_datetime_to_zmap(date, time):
         out['minute'] = dt.minute
         out['second'] = dt.second
         return out
+
+
+def load_quadtree_forecast(ascii_fname):
+    """
+        Note: This function is adapted form csep.load_gridded_forecast
+        -----Test, Improve and Revisit this code later-----
+        ---- This function is not tested yet extensively ----
+        The ascii format from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:
+
+        'Quadkey' Lon_0, Lon_1, Lat_0, Lat_1, z_0, z_1, Mag_0, Mag_1, Rate
+
+        Quadkey is supposed to be a string. Rest of the values are floats.
+
+        For the purposes of defining region objects and magnitude bins use the Lat_0 and Lon_0 values along with Mag_0.
+        We can assume that the magnitude bins are regularly spaced to allow us to compute Deltas.
+
+        The file is row-ordered so that magnitude bins are fastest then followed by space.
+
+        Args:
+            ascii_fname: file name of csep forecast in .dat format
+
+
+     """
+
+    data = numpy.loadtxt(ascii_fname)
+    # this is very ugly, but since unique returns a sorted list, we want to get the index, sort that and then return
+    # from the original array. same for magnitudes below.
+    all_qk = data[:, 0]  # all_polys = data[:,:4]
+    # all_poly_mask = data[:,-1]
+    # uu = numpy.unique(all_qk, return_index=True, axis=0)[1]
+    sorted_idx = numpy.sort(numpy.unique(all_qk, return_index=True, axis=0)[1], kind='stable')
+    unique_qk = all_qk[sorted_idx]
+    # gives the flag for a spatial cell in the order it was presented in the file
+    #    poly_mask = all_poly_mask[sorted_idx]
+    # create magnitudes bins using Mag_0, ignoring Mag_1 bc they are regular until last bin. we dont want binary search for this
+    all_mws = data[:, -3]  # IGNOREING the Last column of flag.
+    sorted_idx = numpy.sort(numpy.unique(all_mws, return_index=True)[1], kind='stable')
+    mws = all_mws[sorted_idx]
+    # csep1 stores the lat lons as min values and not (x,y) tuples
+    # bboxes = [tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in unique_poly]
+    # the spatial cells are arranged fast in latitude, so this only works for the specific csep1 file format
+    # dh = float(unique_poly[0,3] - unique_poly[0,2])
+    # create CarteisanGrid of points
+    # region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, mask=poly_mask)
+    region = QuadtreeGrid2D.from_quadkeys(unique_qk, magnitudes=mws)
+    # get dims of 2d np.array
+    n_mag_bins = len(mws)
+    n_poly = len(region.quadkeys)
+    # reshape rates into correct 2d format
+    rates = data[:, -2].reshape(n_poly, n_mag_bins)
+
+    return rates, region, mws
