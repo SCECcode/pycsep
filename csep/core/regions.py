@@ -970,7 +970,7 @@ class QuadtreeGrid2D:
         self.cell_area = cell_area
         return self.cell_area
 
-    def get_index_of(self, lons, lats):  # -----
+    def get_index_of(self, lons, lats): 
         """ Returns the index of lons, lats in self.polygons
         Args:
             lons: ndarray-like
@@ -1220,7 +1220,7 @@ class QuadtreeGrid2D:
         bounds = quadtree_grid_bounds(numpy.array(quadk))
 
         region = QuadtreeGrid2D([Polygon(bbox) for bbox in compute_vertices_bounds(bounds)], quadk, bounds,
-                                name=name)  # -----
+                                name=name)
         if magnitudes is not None:
             region.magnitudes = magnitudes
         return region
