@@ -25,13 +25,28 @@ of seismicity that can accommodate forecasts without explicit likelihood functio
 seismicity models. Gridded forecasts can also be produced using simulation-based approaches like
 epidemic-type aftershock sequence models.
 
-Currently, grid-based forecasts define their spatial component using a 2D Cartesian (rectangular) grid, and
+Currently, pycsep offers support for two types of grid-baesd forecasts, i.e. conventional gridded forecasts and quadtree-based gridded forecasts. 
+Conventional grid-based forecasts define their spatial component using a 2D Cartesian (rectangular) grid, and
 their magnitude bins using a 1D Cartesian (rectangular) grid. The last bin (largest magnitude) bin is assumed to
 continue until infinity. Forecasts use latitude and longitude to define the bin edge of the spatial grid. Typical values
 for the are 0.1° x 0.1° (lat x lon) and 0.1 ΔMw units. These choices are not strictly enforced and can defined
 according the specifications of an experiment.
 
-Working with gridded forecasts
+.............Add here quadtree grid forecast details .........
+The other gridding approach quadtree supports is quadtree-based spatial gridding approach. 
+The quadtree is a hierarchical tiling strategy for storing and indexing geospatial data. In start whole globe is divided into 4 tiles,  identified as '0', '1', '2', '3'.  
+Then each tile can be divided into four children tiles, until a final desired grid is acquired.
+Each tile is identified by a unique identifier called quadkey, which are '0', '1', '2' or '3'. When a tile is divided further, the quadkey is also modified by appending the new number with the previous number. 
+The number of times a tile is divided is reffered as the zoom-level. And the length of quadkey denotes the number of times a tile has been divided. 
+If a single-resolution grid is acquired at zoom-level (L) or 5, it gives 1024 spatial cells in whole globe. Similary at L=11, the number of cells acquired in grid are 4.2 million approx. 
+The quadtree-based gridding approach that is also made capable of providing a multi-resolution spatial grid in addition to single-resolution grid.
+In a multi-resolution grid, the grid resolution is determined by a certain criterion (or multiple criteria), e.g. maximum number of earthquakes allowed per cell (Nmax). 
+This means that only those cells (tiles) are divided further into sub-cells that contain more earthquakes than Nmax. 
+Thus, quadtree approach can be employed to generate high-resolution (smaller) grid cells in seismically active regions and a low-resolution (bigger) grid cells in seismically quiet regions. 
+It offers earthquake forecast modellers the liberty of choosing a suitable spatial grid based on the dataset available for training of forecast models. 
+
+
+Working with conventional gridded forecasts
 ##############################
 
 PyCSEP provides the :class:`GriddedForecast<csep.core.forecasts.GriddedForecast>` class to handle working with
@@ -74,6 +89,77 @@ the forecast into the appropriate format in the first place. This function has n
 expected data.
 
 .. automethod:: csep.core.forecasts.GriddedForecast.from_custom
+
+
+Working with quadtree grid and quadtree-gridded forecasts
+##############################################
+
+PyCSEP offers :class:`QuadtreeRegion<csep.core.regions.QuadtreeGrid2D>` class to generate and handle quadtree based grid.
+During forecast modelling, a quadtree-based grid can be acquired by three methods, i.e. catalog based multi-resolution grid, single-resolution grid acquired at single zoom-level or load an already available grid for a .txt file.
+
+Catalog-based multi-resolution grid
+-----------------------------------------
+Read a global earthquake catalog in default csep format and generate a multi-resolution quadtree-based grid.
+ 
+.. code-block:: default
+
+    #Get global catalog in the format of csep.core.catalogs.CSEPCatalog
+    #Define allowed Max number of earthquakes per cell (Nmax)
+    Nmax = 10
+    r = QuadtreeGrid2D.from_catalog(catalog, Nmax)
+	#saving quadtree grid
+	r.save_quadtree(filename)
+
+Quadtree single-resolution grid
+-----------------------------------------
+Generate a grid at the same zoom-level everywhere. This grid does not require a catalog.
+
+.. code-block:: default
+	zoom_level = 11
+	r = QuadtreeGrid2D.from_regular_grid(zoom_level)
+	#saving quadtree grid
+	r.save_quadtree(filename)
+	
+Quadtree grid loading from file
+---------------------------------------
+An already saved quadtree grid can also be loaded in the pyCSEP.
+
+..code-block:: default
+	qk = numpy.genfromtxt(filename, dtype = 'str')
+    r = QuadtreeGrid2D.from_quadkeys(qk)
+	
+	
+
+Quadtree forecast handling
+-----------------------------------
+.......
+The same forecast :class:`GriddedForecast<csep.core.forecasts.GriddedForecast>` class also handles forecasts with
+quadtree grids. Please see visit :ref:`this example<grid-forecast-evaluation>` for an end-to-end tutorial on
+how to evaluate a grid-based earthquake forecast.
+
+.. autosummary:: csep.core.forecasts.GriddedForecast
+
+Default file format
+--------------------
+
+The default file format of a quadtree gridded-forecast is also a tab delimited ASCII file with the following columns. Just one additional column is added to the file format, i.e. quadkey to identify the spatial cells.
+If quadkeys for each spatial cell are known, it is enough to compute lon/lat bounds. However, lon/lat bounds are still kept in the default format to make it look consistent with conventional forecast format. 
+
+(names are not included): ::
+
+    QUADKEY	LON_0 	LON_1 	LAT_0 	LAT_1 	DEPTH_0 DEPTH_1 MAG_0 	MAG_1 	RATE					FLAG
+    '01001'			-125.4	-125.3	40.1	40.2	0.0     30.0	4.95	5.05	5.8499099999999998e-04	1
+
+Each row represents a single space-magnitude bin and the entire forecast file contains the rate for a specified
+time-horizon.
+
+The coordinates (LON, LAT, DEPTH, MAG) describe the independent space-magnitude region of the forecast. The lower
+coordinates are inclusive and the upper coordinates are exclusive. Rates are incremental within the magnitude range
+defined by [MAG_0, MAG_1). The FLAG is a legacy value from CSEP testing centers that indicates whether a spatial cell should
+be considered by the forecast. Please note that flagged functionality is not yet included for quadtree-gridded forecasts.
+
+PyCSEP offers :function:`QuadtreeForecastReader<csep.utils.readers.load_quadtree_forecast()>` function to read quadtree forecast in default format.
+Similary, custom forecast can be defined and read into PyCSEP as explained for conventional gridded forecast.
 
 
 ***********************
