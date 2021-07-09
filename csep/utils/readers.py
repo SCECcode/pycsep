@@ -13,7 +13,6 @@ import numpy
 from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
 from csep.core.exceptions import CSEPIOException
-#from csep.core.regions import QuadtreeGrid2D
 
 
 def ndk(filename):
@@ -740,7 +739,7 @@ def load_quadtree_forecast(ascii_fname):
 
 
      """
-
+    from csep.core.regions import QuadtreeGrid2D
     data = numpy.loadtxt(ascii_fname)
     # this is very ugly, but since unique returns a sorted list, we want to get the index, sort that and then return
     # from the original array. same for magnitudes below.
