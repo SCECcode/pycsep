@@ -32,7 +32,6 @@ continue until infinity. Forecasts use latitude and longitude to define the bin 
 for the are 0.1° x 0.1° (lat x lon) and 0.1 ΔMw units. These choices are not strictly enforced and can defined
 according the specifications of an experiment.
 
-.............Add here quadtree grid forecast details .........
 The other gridding approach quadtree supports is quadtree-based spatial gridding approach. 
 The quadtree is a hierarchical tiling strategy for storing and indexing geospatial data. In start whole globe is divided into 4 tiles,  identified as '0', '1', '2', '3'.  
 Then each tile can be divided into four children tiles, until a final desired grid is acquired.
@@ -128,11 +127,10 @@ An already saved quadtree grid can also be loaded in the pyCSEP.
 	qk = numpy.genfromtxt(filename, dtype = 'str')
     r = QuadtreeGrid2D.from_quadkeys(qk)
 	
-	
 
 Quadtree forecast handling
 -----------------------------------
-.......
+
 The same forecast :class:`GriddedForecast<csep.core.forecasts.GriddedForecast>` class also handles forecasts with
 quadtree grids. Please see visit :ref:`this example<grid-forecast-evaluation>` for an end-to-end tutorial on
 how to evaluate a grid-based earthquake forecast.
