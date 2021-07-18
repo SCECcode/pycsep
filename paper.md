@@ -17,14 +17,15 @@ authors:
   - name: Philip J. Maechling 
     affiliation: 1 
 affiliations:
-    - name: Southern California Earthquake Center, University of Southern California 
-      index: 1
-    - name: University of Bristol 
-      index: 2
-    - name: GFZ Potsdam 
-      index: 3 
+  - name: Southern California Earthquake Center, University of Southern California 
+    index: 1
+  - name: University of Bristol 
+    index: 2
+  - name: GFZ Potsdam 
+    index: 3 
 date: 01 February 2021 
 bibliography: paper.bib 
+
 ---
 
 # Summary
