@@ -7,7 +7,7 @@ tags:
   - statistical seismology
   - seismic hazard 
 authors:
-  - name: William H. Savran^[Corresponding author reachable at wsavran@usc.edu]
+  - name: William H. Savran^[Corresponding author reachable at wsavran \[at\] usc \[dot\] edu]
     orcid: 0000-0001-5404-0778
     affiliation: 1
   - name: Maximilian J. Werner
