@@ -7,22 +7,22 @@ tags:
   - statistical seismology
   - seismic hazard 
 authors:
-  - name: William H. Savran^[Corresponding author reachable at wsavran@usc.edu] 
-    orcid: 0000-0001-5404-0778 
+  - name: William H. Savran^[Corresponding author reachable at wsavran@usc.edu]
+    orcid: 0000-0001-5404-0778
     affiliation: 1
-  - name: Maximilian J. Werner 
+  - name: Maximilian J. Werner
     affiliation: 2
-  - name: Danijel Schorlemmer 
+  - name: Danijel Schorlemmer
     affiliation: 3
-  - name: Philip J. Maechling 
-    affiliation: 1 
+  - name: Philip J. Maechling
+    affiliation: 1
 affiliations:
-  - name: Southern California Earthquake Center, University of Southern California 
+  - name: Southern California Earthquake Center, University of Southern California
     index: 1
-  - name: University of Bristol 
+  - name: University of Bristol
     index: 2
-  - name: GFZ Potsdam 
-    index: 3 
+  - name: GFZ Potsdam
+    index: 3
 date: 01 February 2021 
 bibliography: paper.bib 
 
