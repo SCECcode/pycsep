@@ -362,7 +362,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         return cls(data=data, region=region, magnitudes=magnitudes, **kwargs)
 
     @classmethod
-    def load_ascii(cls, ascii_fname, start_date=None, end_date=None, name=None):
+    def load_ascii(cls, ascii_fname, start_date=None, end_date=None, name=None, swap_latlon=False):
         """ Reads Forecast file from CSEP1 ascii format.
 
         The ascii format from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:
@@ -376,6 +376,7 @@ class GriddedForecast(MarkedGriddedDataSet):
 
         Args:
             ascii_fname: file name of csep forecast in .dat format
+            swap_latlon (bool): if true, read forecast spatial cells as lat_0, lat_1, lon_0, lon_1
         """
         # Load data
         data = numpy.loadtxt(ascii_fname)
@@ -393,6 +394,8 @@ class GriddedForecast(MarkedGriddedDataSet):
         mws = all_mws[sorted_idx]
         # csep1 stores the lat lons as min values and not (x,y) tuples
         bboxes = [tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in unique_poly]
+        if swap_latlon:
+            bboxes = [tuple(itertools.product(bbox[2:], bbox[:2])) for bbox in unique_poly]
         # the spatial cells are arranged fast in latitude, so this only works for the specific csep1 file format
         dh = float(unique_poly[0,3] - unique_poly[0,2])
         # create CarteisanGrid of points
