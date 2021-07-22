@@ -764,7 +764,8 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
             pts = catalog.region.tight_bbox()
             ax.plot(pts[:, 0], pts[:, 1], lw=1, color='black')
         except AttributeError:
-            print("unable to get tight bbox")
+            pass
+            # print("unable to get tight bbox")
 
     # Gridline options
     if grid:
@@ -1287,7 +1288,7 @@ def plot_comparison_test(results, plot_args=None):
     fig.tight_layout()
     return ax
 
-def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, plot_args=None):
+def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, axes=None, plot_args=None):
     """ Plots results from CSEP1 tests following the CSEP1 convention.
 
     Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
@@ -1341,7 +1342,12 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
     tight_layout = plot_args.get('tight_layout', True)
     percentile = plot_args.get('percentile', 95)
 
-    fig, ax = pyplot.subplots(figsize=figsize)
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
     xlims = []
     for index, res in enumerate(results):
         # handle analytical distributions first, they are all in the form ['name', parameters].
