@@ -1264,28 +1264,91 @@ def _get_marker_style(obs_stat, p, one_sided_lower):
             fmt = 'gs'
     return fmt
 
-def plot_comparison_test(results, plot_args=None):
-    """Plots list of T-Test or W-Test Results"""
+def _get_marker_t_color(distribution):
+    """Returns matplotlib marker style as fmt string"""
+    if distribution[0] > 0. and distribution[1] > 0.:
+        fmt = 'green'
+    elif distribution[0] < 0. and distribution[1] < 0.:
+        fmt = 'red'
+    else:
+        fmt = 'grey'
+
+    return fmt
+
+def _get_marker_w_color(distribution, percentile):
+    """Returns matplotlib marker style as fmt string"""
+
+    if distribution < (1 - percentile/100):
+        fmt = True
+    else:
+        fmt = False
+
+    return fmt
+
+def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
+    """Plots list of T-Test (and W-Test) Results"""
+
     if plot_args is None:
         plot_args = {}
-    title = plot_args.get('title', 'CSEP1 Consistency Test')
+
+    figsize = plot_args.get('figsize', None)
+    title = plot_args.get('title', 'CSEP1 Comparison Test')
     xlabel = plot_args.get('xlabel', 'X')
     ylabel = plot_args.get('ylabel', 'Y')
+    ylims = plot_args.get('ylims', (None, None))
+    capsize = plot_args.get('capsize', 2)
+    linewidth = plot_args.get('linewidth', 1)
+    markersize = plot_args.get('markersize', 2)
+    percentile = plot_args.get('percentile', 95)
 
-    fig, ax = pyplot.subplots()
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
     ax.axhline(y=0, linestyle='--', color='black')
-    for index, result in enumerate(results):
-        ylow = result.observed_statistic - result.test_distribution[0]
-        yhigh = result.test_distribution[1] - result.observed_statistic
-        ax.errorbar(index, result.observed_statistic, yerr=numpy.array([[ylow, yhigh]]).T, color='black', capsize=4)
-        ax.plot(index, result.observed_statistic, 'ok')
-    ax.set_xticklabels([res.sim_name[0] for res in results])
-    ax.set_xticks(numpy.arange(len(results)))
+
+    Results = zip(results_t, results_w) if results_w else zip(results_t)
+
+    for index, result in enumerate(Results):
+        result_t = result[0]
+        result_w = result[1] if results_w else None
+
+        ylow = result_t.observed_statistic - result_t.test_distribution[0]
+        yhigh = result_t.test_distribution[1] - result_t.observed_statistic
+        color = _get_marker_t_color( result_t.test_distribution)
+        ax.errorbar(index, result_t.observed_statistic,
+                    yerr=numpy.array([[ylow, yhigh]]).T ,
+                    color = color,
+                    linewidth=linewidth, capsize=capsize)
+
+        if result_w is not None:
+            if  _get_marker_w_color(result_w.quantile, percentile):
+                facecolor = _get_marker_t_color(result_t.test_distribution)
+            else:
+                facecolor = 'white'
+        else:
+            facecolor = 'white'
+
+        ax.plot(index, result_t.observed_statistic, marker='o', markerfacecolor=facecolor, markeredgecolor=color, markersize=markersize)
+
+    ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=90)
+    ax.set_xticks(numpy.arange(len(results_t)))
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
+    ax.yaxis.grid()
+    xTickPos, _ = pyplot.xticks()
+    ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    ax.set_ylim([ylims[0], ylims[1]])
+    ax.set_xlim([ax.get_xlim()[0] + 0.5, ax.get_xlim()[1] - 0.5])
+    ax.bar(xTickPos, numpy.array([9999] * len(xTickPos)), bottom=-2000,
+            width=(xTickPos[1] - xTickPos[0]), color=['gray', 'w'], alpha=0.2)
     fig.tight_layout()
+
     return ax
+
 
 def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, plot_args=None):
     """ Plots results from CSEP1 tests following the CSEP1 convention.
