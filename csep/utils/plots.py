@@ -1339,14 +1339,15 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
     capsize = plot_args.get('capsize', 4)
     hbars = plot_args.get('hbars', True)
     tight_layout = plot_args.get('tight_layout', True)
+    percentile = plot_args.get('percentile', 95)
 
     fig, ax = pyplot.subplots(figsize=figsize)
     xlims = []
     for index, res in enumerate(results):
         # handle analytical distributions first, they are all in the form ['name', parameters].
         if res.test_distribution[0] == 'poisson':
-            plow = scipy.stats.poisson.ppf(0.025, res.test_distribution[1])
-            phigh = scipy.stats.poisson.ppf(0.975, res.test_distribution[1])
+            plow = scipy.stats.poisson.ppf((1 - percentile/100.)/2., res.test_distribution[1])
+            phigh = scipy.stats.poisson.ppf(1 - (1 - percentile/100.)/2., res.test_distribution[1])
             observed_statistic = res.observed_statistic
         # empirical distributions
         else:
@@ -1358,11 +1359,11 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
                 observed_statistic = res.observed_statistic
             # compute distribution depending on type of test
             if one_sided_lower:
-                plow = numpy.percentile(test_distribution, 5)
+                plow = numpy.percentile(test_distribution, 100 - percentile)
                 phigh = numpy.percentile(test_distribution, 100)
             else:
-                plow = numpy.percentile(test_distribution, 2.5)
-                phigh = numpy.percentile(test_distribution, 97.5)
+                plow = numpy.percentile(test_distribution, (100 - percentile)/2.)
+                phigh = numpy.percentile(test_distribution, 100 - (100 - percentile)/2.)
 
         if not numpy.isinf(observed_statistic): # Check if test result does not diverges
             low = observed_statistic - plow
