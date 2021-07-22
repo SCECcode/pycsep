@@ -1232,6 +1232,27 @@ def _get_marker_style(obs_stat, p, one_sided_lower):
             fmt = 'gs'
     return fmt
 
+def _get_marker_t_color(distribution):
+    """Returns matplotlib marker style as fmt string"""
+    if distribution[0] > 0. and distribution[1] > 0.:
+        fmt = 'green'
+    elif distribution[0] < 0. and distribution[1] < 0.:
+        fmt = 'red'
+    else:
+        fmt = 'grey'
+
+    return fmt
+
+def _get_marker_w_color(distribution):
+    """Returns matplotlib marker style as fmt string"""
+
+    if distribution < 0.05:
+        fmt = True
+    else:
+        fmt = False
+
+    return fmt
+
 def plot_comparison_test(results_t, results_w=None, plot_args=None):
     """Plots list of T-Test (and W-Test) Results"""
 
@@ -1246,10 +1267,10 @@ def plot_comparison_test(results_t, results_w=None, plot_args=None):
     markersize = plot_args.get('markersize', 2)
 
     fig, ax = pyplot.subplots()
-
     ax.axhline(y=0, linestyle='--', color='black')
 
     Results = zip(results_t, results_w) if results_w else zip(results_t)
+
     for index, result in enumerate(Results):
         result_t = result[0]
         result_w = result[1] if results_w else None
@@ -1262,10 +1283,14 @@ def plot_comparison_test(results_t, results_w=None, plot_args=None):
                     color = color,
                     linewidth=linewidth, capsize=capsize)
 
-        if  _get_marker_w_color( result_w.quantile):
-            facecolor = _get_marker_t_color(result_t.test_distribution)
+        if result_w is not None:
+            if  _get_marker_w_color(result_w.quantile):
+                facecolor = _get_marker_t_color(result_t.test_distribution)
+            else:
+                facecolor = 'white'
         else:
             facecolor = 'white'
+
         ax.plot(index, result_t.observed_statistic, marker='o', markerfacecolor=facecolor, markeredgecolor=color, markersize=markersize)
 
     ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=90)
@@ -1280,9 +1305,8 @@ def plot_comparison_test(results_t, results_w=None, plot_args=None):
     ax.set_xlim([ax.get_xlim()[0] + 0.5, ax.get_xlim()[1] - 0.5])
     ax.bar(xTickPos, numpy.array([9999] * len(xTickPos)), bottom=-2000,
             width=(xTickPos[1] - xTickPos[0]), color=['gray', 'w'], alpha=0.2)
-
-
     fig.tight_layout()
+
     return ax
 
 
