@@ -1243,21 +1243,23 @@ def _get_marker_t_color(distribution):
 
     return fmt
 
-def _get_marker_w_color(distribution):
+def _get_marker_w_color(distribution, percentile):
     """Returns matplotlib marker style as fmt string"""
 
-    if distribution < 0.05:
+    if distribution < (1 - percentile/100):
         fmt = True
     else:
         fmt = False
 
     return fmt
 
-def plot_comparison_test(results_t, results_w=None, plot_args=None):
+def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
     """Plots list of T-Test (and W-Test) Results"""
 
     if plot_args is None:
         plot_args = {}
+
+    figsize = plot_args.get('figsize', None)
     title = plot_args.get('title', 'CSEP1 Comparison Test')
     xlabel = plot_args.get('xlabel', 'X')
     ylabel = plot_args.get('ylabel', 'Y')
@@ -1265,8 +1267,14 @@ def plot_comparison_test(results_t, results_w=None, plot_args=None):
     capsize = plot_args.get('capsize', 2)
     linewidth = plot_args.get('linewidth', 1)
     markersize = plot_args.get('markersize', 2)
+    percentile = plot_args.get('percentile', 95)
 
-    fig, ax = pyplot.subplots()
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
     ax.axhline(y=0, linestyle='--', color='black')
 
     Results = zip(results_t, results_w) if results_w else zip(results_t)
@@ -1284,7 +1292,7 @@ def plot_comparison_test(results_t, results_w=None, plot_args=None):
                     linewidth=linewidth, capsize=capsize)
 
         if result_w is not None:
-            if  _get_marker_w_color(result_w.quantile):
+            if  _get_marker_w_color(result_w.quantile, percentile):
                 facecolor = _get_marker_t_color(result_t.test_distribution)
             else:
                 facecolor = 'white'
