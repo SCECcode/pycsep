@@ -1342,7 +1342,7 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
     xTickPos = ax.get_xticks()
     ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     ax.set_ylim([ylim[0], ylim[1]])
-    ax.set_xlim([ax.get_xlim()[0] - 0.5, ax.get_xlim()[1] + 0.5])
+    ax.set_xlim([0.5, len(results_t) - 0.5])
     ax.bar(xTickPos, numpy.array([9999] * len(xTickPos)), bottom=-2000,
             width=(xTickPos[1] - xTickPos[0]), color=['gray', 'w'], alpha=0.2)
     fig.tight_layout()
