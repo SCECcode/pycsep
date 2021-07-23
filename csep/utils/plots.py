@@ -620,6 +620,7 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
     if grid:
         gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
         gl.right_labels = False
+        gl.top_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
 
@@ -774,6 +775,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     if grid:
         gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
         gl.right_labels = False
+        gl.top_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
 
@@ -831,7 +833,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     plot_args = plot_args or {}
     # figure and axes properties
     figsize = plot_args.get('figsize', None)
-    title = plot_args.get('title', 'Spatial Dataset')
+    title = plot_args.get('title', None)
     title_size = plot_args.get('title_size', None)
     filename = plot_args.get('filename', None)
     # cartopy properties
@@ -905,6 +907,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     if grid:
         gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
         gl.right_labels = False
+        gl.top_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
 
