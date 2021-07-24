@@ -833,7 +833,7 @@ class AbstractBaseCatalog(LoggingMixin):
              'legend_loc': 3,
              'figsize': (8, 8),
              'title': self.name,
-             'mag_ticks': [4.0, 5.0, 6.0, 7.0]
+             'mag_ticks': False
         }
         # Plot the region border (if it exists) by default
         try:

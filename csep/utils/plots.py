@@ -620,6 +620,7 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
     if grid:
         gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
         gl.right_labels = False
+        gl.top_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
 
@@ -751,12 +752,16 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     # Legend
     if legend:
         if not mag_ticks:
-            mag_ticks = numpy.round(numpy.linspace(mw_range[0], mw_range[1], 4), 1)
+            mag_ticks = numpy.linspace(mw_range[0], mw_range[1], 4)
+        else:
+            if not numpy.all([ i >= mw_range[0] and i <= mw_range[1] for i in mag_ticks]):
+                print("Magnitude ticks do not lie within the catalog magnitude range")
+
         handles, labels = scatter.legend_elements(prop="sizes",
                                                   num=list(size_map(markersize, mag_ticks, mag_scale)),
                                                   alpha=0.3)
-        ax.legend(handles, mag_ticks,
-                  loc=legend_loc, title=r"Magnitudes",title_fontsize=16,
+        ax.legend(handles, numpy.round(mag_ticks, 1),
+                  loc=legend_loc, title=r"Magnitudes", title_fontsize=16,
                   labelspacing=labelspacing, handletextpad=5, framealpha=False)
 
     if region_border:
@@ -771,6 +776,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     if grid:
         gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
         gl.right_labels = False
+        gl.top_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
 
@@ -828,7 +834,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     plot_args = plot_args or {}
     # figure and axes properties
     figsize = plot_args.get('figsize', None)
-    title = plot_args.get('title', 'Spatial Dataset')
+    title = plot_args.get('title', None)
     title_size = plot_args.get('title_size', None)
     filename = plot_args.get('filename', None)
     # cartopy properties
@@ -902,6 +908,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     if grid:
         gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
         gl.right_labels = False
+        gl.top_labels = False
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
 
