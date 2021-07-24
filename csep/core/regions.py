@@ -744,8 +744,15 @@ class CartesianGrid2D:
             asc.insert(0, poly_min[0])
             asc.insert(0, poly_min[1])
             poly_max = self.polygons[int(row[argmax])].points
-            desc.append(poly_max[3])
-            desc.append(poly_max[2])
+            lat_0 = poly_max[2][1]
+            lat_1 = poly_max[3][1]
+            # last two points are 'right hand side of polygon'
+            if lat_0 < lat_1:
+                desc.append(poly_max[2])
+                desc.append(poly_max[3])
+            else:
+                desc.append(poly_max[3])
+                desc.append(poly_max[2])
         # close the loop
         poly = np.array(asc + desc)
         sorted_idx = np.sort(np.unique(poly, return_index=True, axis=0)[1], kind='stable')

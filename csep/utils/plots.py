@@ -764,7 +764,8 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
             pts = catalog.region.tight_bbox()
             ax.plot(pts[:, 0], pts[:, 1], lw=1, color='black')
         except AttributeError:
-            print("unable to get tight bbox")
+            pass
+            # print("unable to get tight bbox")
 
     # Gridline options
     if grid:
@@ -1295,7 +1296,7 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
     title = plot_args.get('title', 'CSEP1 Comparison Test')
     xlabel = plot_args.get('xlabel', 'X')
     ylabel = plot_args.get('ylabel', 'Y')
-    ylims = plot_args.get('ylims', (None, None))
+    ylim = plot_args.get('ylim', (None, None))
     capsize = plot_args.get('capsize', 2)
     linewidth = plot_args.get('linewidth', 1)
     markersize = plot_args.get('markersize', 2)
@@ -1330,7 +1331,6 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
                 facecolor = 'white'
         else:
             facecolor = 'white'
-
         ax.plot(index, result_t.observed_statistic, marker='o', markerfacecolor=facecolor, markeredgecolor=color, markersize=markersize)
 
     ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=90)
@@ -1339,18 +1339,17 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     ax.yaxis.grid()
-    xTickPos, _ = pyplot.xticks()
+    xTickPos = ax.get_xticks()
     ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    ax.set_ylim([ylims[0], ylims[1]])
-    ax.set_xlim([ax.get_xlim()[0] + 0.5, ax.get_xlim()[1] - 0.5])
+    ax.set_ylim([ylim[0], ylim[1]])
+    ax.set_xlim([-0.5, len(results_t) - 0.5])
     ax.bar(xTickPos, numpy.array([9999] * len(xTickPos)), bottom=-2000,
             width=(xTickPos[1] - xTickPos[0]), color=['gray', 'w'], alpha=0.2)
     fig.tight_layout()
 
     return ax
 
-
-def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, plot_args=None):
+def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, axes=None, plot_args=None):
     """ Plots results from CSEP1 tests following the CSEP1 convention.
 
     Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
@@ -1404,7 +1403,12 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
     tight_layout = plot_args.get('tight_layout', True)
     percentile = plot_args.get('percentile', 95)
 
-    fig, ax = pyplot.subplots(figsize=figsize)
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
     xlims = []
     for index, res in enumerate(results):
         # handle analytical distributions first, they are all in the form ['name', parameters].
