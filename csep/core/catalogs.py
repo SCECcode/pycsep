@@ -10,7 +10,6 @@ import numpy
 import pandas
 
 # CSEP Imports
-from csep.core import regions
 from csep.utils.time_utils import epoch_time_to_utc_datetime, datetime_to_utc_epoch, strptime_to_utc_datetime, \
     millis_to_days, parse_string_format, days_to_millis, strptime_to_utc_epoch, utc_now_datetime, create_utc_datetime
 from csep.utils.stats import min_or_none, max_or_none
