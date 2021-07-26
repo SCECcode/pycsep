@@ -47,7 +47,7 @@ prospective and independent manner, forming a critical step towards reliable ope
 
 Successfully predicting the time, location, and size of future earthquakes would have immense societal value, and this quest
 underlies much of the research in seismology and earthquake geology. To date, however there have been no reliable earthquake
-predictions methods. An earthquake prediction makes a deterministic statement about whether or not an earthquake will occur in
+predictions methods. An earthquake prediction is a deterministic statement about whether or not an earthquake will occur in
 a particular geographic region, time window, and magnitude range. On the other hand, an earthquake forecast provides the
 probability that such an earthquake will occur [@Jordan2011a]. Most of the current research effort focuses on developing
 probabilistic earthquake forecasting models that encode empirical or physics-based hypotheses about the occurrence of
@@ -68,7 +68,7 @@ model has been provided for evaluation.
 Over the last decade, CSEP has led numerous prospective earthquake forecasting experiments [see, e.g., @Michael2018a]. These
 experiments are formally conducted within testing centers [@Schorlemmer2007b] that contain the software required to
 autonomously run and evaluate earthquake forecasts in a fully prospective mode. The software design emphasized a carefully
-controlled computing and software environment which ensured integrity of testing results [@Zechar2009a]. However, the
+controlled computing and software environment which ensured integrity of testing results [@Zechar2009a]. However, its
 monolithic software design made it difficult for researchers to utilize various routines in the testing centers in their own
 work without replicating the entire testing center configuration on their own system. In addition, software was developed by a
 single developer, leading to personnel risk and a lack of opportunities for others to contribute directly.   
@@ -78,7 +78,7 @@ include directly in their research. The statistical tests and tools to evaluate 
 model developers, and greatly benefit from open-source development practices by providing standardized, well-tested, and
 community-reviewed software tools. At the time of publication, `pyCSEP` has been used for two published articles [@Bayona2020a;
 @Savran2020a], and is being used by several research groups participating in the [Real-time earthquake risk reduction for a
-resillient europe (RISE)](http://www.rise-eu.org/home) project and others.
+resillient Europe (RISE)](http://www.rise-eu.org/home) project and others.
 
 # pyCSEP Overview
 
@@ -96,19 +96,22 @@ magnitude. In addition, `pyCSEP` provides classes for working directly with fore
 Rupture Forecast with Epidemic-type Aftershock Sequences Version 3 [@Field2017a].  `pyCSEP` also provides classes for
 interacting with earthquake catalogs and performing operations on them, such as filtering and binning events on the
 space-magnitude grids needed for evaluation. `pyCSEP` also includes numerous plotting utilities that interface directly with
-`matplotlib` and `Cartopy`.  Space-magnitude regions facilite gridding operations that are necessary for evaluating earthquake
-forecasts.  These objects model regular latitude, longitude cells where earthquakes can be aggregated for evaluation and
-visualization purposes. `pyCSEP` provides pre-defined spatial regions that have been used in previous experiments
-[@Field2007a; @Taroni2018a]. 
+`matplotlib` and `Cartopy` [@hunter2007matplotlib; @cartopy].  Space-magnitude regions facilite gridding operations that 
+are necessary for evaluating earthquake forecasts.  These objects model regular latitude, longitude cells where 
+earthquakes can be aggregated for evaluation and visualization purposes. `pyCSEP` provides pre-defined spatial regions 
+that have been used in previous experiments [@Field2007a; @Taroni2018a].
 
-`pyCSEP` interfaces directly with popular numerical and plotting libraries such as `Numpy`, `matplotlib`, and `pandas`.
-Users already familiar with these librarys can adapt `pyCSEP` directly into their code. `pyCSEP` provides file-formats
-for forecasts and earthquake catalogs, and can allow users to specify custom filetypes.
+`pyCSEP` interfaces directly with popular numerical and plotting libraries such as `Numpy`, `matplotlib`, and `pandas` 
+[@harris2020; @hunter2007matplotlib; @mckinney-proc-scipy-2010]. Users already familiar with these librarys can adapt `pyCSEP` 
+directly into their code. `pyCSEP` provides file-formats for forecasts and earthquake catalogs, and can allow users to 
+specify custom filetypes.
 
 # Acknowledgements
 
 This research was supported by the Southern California Earthquake Center (Contribution No. 11030). SCEC is funded by NSF
-Cooperative Agreement EAR-1600087 & USGS Cooperative Agreement G17AC00047. Maximilian J. Werner and Danijel Schorlemmer received funding from the European Union’s Horizon 2020 research and innovation program (Number 821115, RISE: Real-Time Earthquake Risk Reduction for a Resilient Europe) 
+Cooperative Agreement EAR-1600087 & USGS Cooperative Agreement G17AC00047. Maximilian J. Werner and Danijel Schorlemmer 
+received funding from the European Union’s Horizon 2020 research and innovation program (Number 821115, RISE: Real-Time 
+Earthquake Risk Reduction for a Resilient Europe). 
 
 # References
 
