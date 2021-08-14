@@ -104,6 +104,20 @@ class GriddedDataSet(LoggingMixin):
         """ Returns the lognitude of the lower left node of the spatial grid """
         return self.region.origins()[:,0]
 
+    def get_valid_midpoints(self):
+        """ Returns the midpoints of the valid testing region
+
+            Returns:
+                lons (numpy.array), lats (numpy.array): two numpy arrays containing the valid midpoints from the forecast
+        """
+        latitudes = []
+        longitudes = []
+        for idx in range(self.region.num_nodes):
+            if self.region.bbox_max[idx] == 0:
+                latitudes.append(self.region.midpoints()[idx,1])
+                longitudes.append(self.region.midpoints()[idx,0])
+        return numpy.array(longitudes), numpy.array(latitudes)
+
     @property
     def polygons(self):
         return self.region.polygons
