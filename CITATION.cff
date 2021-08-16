@@ -2,16 +2,16 @@ cff-version: 1.1.0
 message: "If you use this software, please cite it as below."
 authors:
   - family-names: Savran
-    given-names: William
+    given-names: William H.
     orcid: 0000-0001-5404-0778
   - family-names: Werner
-    given-names: Maximilian
+    given-names: Maximilian J.
     orcid: 0000-0002-2430-2631
   - family-names: Schorlemmer
-    given-names: Danijel
+    given-names: Danijel 
     orcid: 0000-0003-3969-1059
   - family-names: Maechling
-    given-names: Philip
+    given-names: Philip J.
     orcid: 0000-0002-9221-7068
 title: "pyCSEP - Tools for Earthquake Forecast Developers"
 version: 0.4.1
