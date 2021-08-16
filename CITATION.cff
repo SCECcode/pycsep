@@ -15,4 +15,5 @@ authors:
     orcid: 0000-0002-9221-7068
 title: "pyCSEP - Tools for Earthquake Forecast Developers"
 version: 0.4.1
+repository: https://github.com/SCECcode/pycsep
 date-released: 2021-04-20 
