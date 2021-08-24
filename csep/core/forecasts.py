@@ -7,7 +7,8 @@ import datetime
 import numpy
 
 from csep.utils.log import LoggingMixin
-from csep.core.regions import CartesianGrid2D, Polygon, create_space_magnitude_region
+from csep.core.regions import CartesianGrid2D, create_space_magnitude_region
+from csep.models import Polygon
 from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 from csep.core.catalogs import AbstractBaseCatalog

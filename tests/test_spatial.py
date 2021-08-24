@@ -5,7 +5,8 @@ import pytest
 import numpy
 
 from csep.core.regions import CartesianGrid2D, compute_vertex, compute_vertices, _bin_catalog_spatio_magnitude_counts, \
-    _bin_catalog_spatial_counts, _bin_catalog_probability, Polygon, global_region
+    _bin_catalog_spatial_counts, _bin_catalog_probability, global_region
+from csep.models import Polygon
 
 
 class TestPolygon(unittest.TestCase):

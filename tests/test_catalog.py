@@ -9,7 +9,9 @@ import csep
 from csep.core import regions, forecasts
 from csep.utils.time_utils import strptime_to_utc_epoch, strptime_to_utc_datetime
 from csep.core.catalogs import CSEPCatalog, AbstractBaseCatalog
-from csep.core.regions import CartesianGrid2D, Polygon, compute_vertices
+from csep.core.regions import CartesianGrid2D, compute_vertices
+from csep.models import Polygon
+
 
 def comcat_path():
     root_dir = os.path.dirname(os.path.abspath(__file__))
