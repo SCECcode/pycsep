@@ -548,7 +548,7 @@ class CartesianGrid2D:
         self.name = name
         a, xs, ys = self._build_bitmask_vec()
         # in mask, True = bad value and False = good value
-        self.bbox_mask = a[:, :, 0]
+        self.bbox_mask = a[:,:,0]
         # contains the mapping from polygon_index to the mask
         self.idx_map = a[:,:,1]
         # index values of polygons array into the 2d cartesian grid, based on the midpoint.
