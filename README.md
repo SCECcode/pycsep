@@ -22,7 +22,12 @@ PyCSEP should:
 The easiest way to install PyCSEP is using `conda`. It can also be installed using `pip` or built from source. 
 If you plan on contributing to this package, visit the 
 [contribution guidelines](https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md) for 
-installation instructions.
+installation instructions. We recommend creating a `conda` environment for this installation, but this is not a required step.
+
+    conda create -n pycsep
+    conda activate pycsep
+    
+Install `pycsep`
 
     conda install --channel conda-forge pycsep
     
