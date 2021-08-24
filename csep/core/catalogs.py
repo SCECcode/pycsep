@@ -14,6 +14,7 @@ from csep.utils.time_utils import epoch_time_to_utc_datetime, datetime_to_utc_ep
     millis_to_days, parse_string_format, days_to_millis, strptime_to_utc_epoch, utc_now_datetime, create_utc_datetime
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
+from csep.core.regions import CartesianGrid2D
 from csep.utils.comcat import SummaryEvent
 from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException, CSEPIOException
 from csep.utils.calc import bin1d_vec
@@ -149,7 +150,7 @@ class AbstractBaseCatalog(LoggingMixin):
         """
 
         region_loader = {
-            'CartesianGrid2D': regions.CartesianGrid2D
+            'CartesianGrid2D': CartesianGrid2D
         }
 
         # could these be class values? can be changed later.
