@@ -487,6 +487,9 @@ class CartesianGrid2D:
         self.xs = xs
         self.ys = ys
 
+    def __eq__(self, other):
+        return self.to_dict() == other.to_dict()
+
     @property
     def num_nodes(self):
         """ Number of polygons in region """
@@ -582,13 +585,36 @@ class CartesianGrid2D:
         adict = {
             'name': str(self.name),
             'dh': float(self.dh),
-            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
+            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons],
+            'class_id': self.__class__.__name__
         }
         return adict
 
     @classmethod
     def from_dict(cls, adict):
-        raise NotImplementedError("Todo!")
+        """ Creates a region object from a dictionary """
+        origins = adict.get('polygons', None)
+        dh = adict.get('dh', None)
+        magnitudes = adict.get('magnitudes', None)
+        name = adict.get('name', 'CartesianGrid2D')
+
+        if origins is None:
+            raise AttributeError("cannot create region object without origins")
+        if dh is None:
+            raise AttributeError("cannot create region without dh")
+        if origins is not None:
+            try:
+                origins = numpy.array([[adict['lon'], adict['lat']] for adict in origins])
+            except:
+                raise TypeError('origins must be numpy array like.')
+        if magnitudes is not None:
+            try:
+                magnitudes = numpy.array(magnitudes)
+            except:
+                raise TypeError('magnitudes must be numpy array like.')
+
+        out = cls.from_origins(origins, dh=dh, magnitudes=magnitudes, name=name)
+        return out
 
     @classmethod
     def from_origins(cls, origins, dh=None, magnitudes=None, name=None):

@@ -23,6 +23,7 @@ from csep.utils.readers import csep_ascii
 from csep.utils.file import get_file_extension
 from csep.utils.plots import plot_catalog
 
+
 class AbstractBaseCatalog(LoggingMixin):
     """
     Abstract catalog base class for PyCSEP catalogs. This class should not and cannot be used on its own. This just
@@ -147,13 +148,17 @@ class AbstractBaseCatalog(LoggingMixin):
         This needs to handle reading in region information at some point.
         """
 
+        region_loader = {
+            'CartesianGrid2D': regions.CartesianGrid2D
+        }
+
         # could these be class values? can be changed later.
-        exclude = ['_catalog']
+        exclude = ['_catalog', 'region']
         time_members = ['date_accessed', 'start_time', 'end_time']
         catalog = adict.get('catalog', None)
-
         out = cls(data=catalog, **kwargs)
 
+        # here we are looping over the items in the class and finding the associated value in the dict
         for k, v in out.__dict__.items():
             if k not in exclude:
                 if k not in time_members:
@@ -163,6 +168,13 @@ class AbstractBaseCatalog(LoggingMixin):
                         pass
                 else:
                     setattr(out, k, _none_or_datetime(adict[k]))
+            else:
+                if k == 'region':
+                    # tries to read class id from
+                    class_id = adict[k].get('class_id', None)
+                    if class_id is None:
+                        class_id = 'CartesianGrid2D'
+                    setattr(out, k, region_loader[class_id].from_dict(adict[k]))
         return out
 
     @classmethod
