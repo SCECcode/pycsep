@@ -171,11 +171,14 @@ class AbstractBaseCatalog(LoggingMixin):
                     setattr(out, k, _none_or_datetime(adict[k]))
             else:
                 if k == 'region':
-                    # tries to read class id from
-                    class_id = adict[k].get('class_id', None)
-                    if class_id is None:
-                        class_id = 'CartesianGrid2D'
-                    setattr(out, k, region_loader[class_id].from_dict(adict[k]))
+                    # tries to read class id from catalog, should fail silently if catalog doesn't exist
+                    try:
+                        class_id = adict[k].get('class_id', None)
+                        if class_id is None:
+                            class_id = 'CartesianGrid2D'
+                        setattr(out, k, region_loader[class_id].from_dict(adict[k]))
+                    except AttributeError:
+                        pass
         return out
 
     @classmethod
