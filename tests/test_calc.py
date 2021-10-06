@@ -99,11 +99,11 @@ class TestBin1d(unittest.TestCase):
         self.assertListEqual(test.tolist(), expected)
 
     def test_bin1d_single_bin1(self):
-        data = [0, 2, 3, 1, 1.5, 1.0, 0.99]
+        data = [-1, 0, 2, 3, 1, 1.5, 1.0, 0.999999999999999]
         bin_edges = [1]
         # purposely leaving right_continous flag=False bc it should be forced in the bin1d_vec function
         test = bin1d_vec(data, bin_edges)
-        expected = [-1, 0, 0, 0, 0, 0, -1]
+        expected = [-1, -1, 0, 0, 0, 0, 0, -1]
         self.assertListEqual(test.tolist(), expected)
 
     def test_upper_limit_right_continuous(self):
