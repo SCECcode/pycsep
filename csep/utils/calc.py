@@ -72,7 +72,12 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
     bins = numpy.array(bins)
     p = numpy.array(p)
     a0 = numpy.min(bins)
-    h = bins[1] - bins[0]
+    # if user supplies only a single bin, do 2 things: 1) fix right continuous to true, and use of h is arbitrary
+    if bins.size == 1:
+        right_continuous = True
+        h = 1
+    else:
+        h = bins[1] - bins[0]
 
     a0_tol = numpy.abs(a0) * numpy.finfo(numpy.float).eps
     h_tol = numpy.abs(h) * numpy.finfo(numpy.float).eps
