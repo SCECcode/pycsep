@@ -686,10 +686,10 @@ class CatalogForecast(LoggingMixin):
                                                   magnitudes=self.magnitudes, name=self.name)
             return self.expected_rates
 
-    def plot(self, plot_args = None, **kwargs):
+    def plot(self, plot_args = None, verbose=True, **kwargs):
         plot_args = plot_args or {}
         if self.expected_rates is None:
-            self.get_expected_rates()
+            self.get_expected_rates(verbose=verbose)
         args_dict = {'title': self.name,
                      'grid_labels': True,
                      'grid': True,

@@ -14,13 +14,21 @@ from csep.utils.scaling_relationships import WellsAndCoppersmith
 from csep.models import Polygon
 
 
-def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection"):
+def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection", use_midpoint=True):
     """ Return collection region for California RELM testing region
 
-        Args:
-            dh_scale (int): factor of two multiple to change the grid size
-            mangitudes (array-like): array representing the lower bin edges of the magnitude bins
-            name (str): human readable identifer
+    Args:
+        dh_scale (int): factor of two multiple to change the grid size
+        mangitudes (array-like): array representing the lower bin edges of the magnitude bins
+        name (str): human readable identifer
+        use_midpoints (bool): if true, treat values in file as midpoints. default = true.
+
+    Returns:
+        :class:`csep.core.spatial.CartesianGrid2D`
+
+    Raises:
+        ValueError: dh_scale must be a factor of two
+
     """
     if dh_scale % 2 != 0 and dh_scale != 1:
         raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
@@ -29,8 +37,11 @@ def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-ca
     dh = 0.1
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'RELMCollectionArea.dat')
-    midpoints = numpy.loadtxt(filepath)
-    origins = midpoints - dh / 2
+    points = numpy.loadtxt(filepath)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
 
     if dh_scale > 1:
         origins = increase_grid_resolution(origins, dh, dh_scale)
@@ -45,7 +56,7 @@ def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-ca
 
     return relm_region
 
-def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california"):
+def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california", use_midpoint=True):
     """
     Returns class representing California testing region.
 
@@ -71,8 +82,11 @@ def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california"):
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'csep-forecast-template-M5.xml')
     csep_template = os.path.expanduser(filepath)
-    midpoints, dh = parse_csep_template(csep_template)
-    origins = numpy.array(midpoints) - dh / 2
+    points, dh = parse_csep_template(csep_template)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
 
     if dh_scale > 1:
         origins = increase_grid_resolution(origins, dh, dh_scale)
@@ -87,7 +101,7 @@ def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california"):
 
     return relm_region
 
-def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
+def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy", use_midpoint=True):
     """
         Returns class representing Italian testing region.
 
@@ -98,6 +112,8 @@ def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
             dh_scale: can resample this grid by factors of 2
             magnitudes (array-like): bin edges for magnitudes. if provided, will be bound to the output region class.
                                      this argument provides a short-cut for creating space-magnitude regions.
+            name (str): human readable identify given to the region
+            use_midpoint (bool): if true, treat values in file as midpoints. default = true.
 
         Returns:
             :class:`csep.core.spatial.CartesianGrid2D`
@@ -113,8 +129,12 @@ def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'forecast.italy.M5.xml')
     csep_template = os.path.expanduser(filepath)
-    midpoints, dh = parse_csep_template(csep_template)
-    origins = numpy.array(midpoints) - dh / 2
+    points, dh = parse_csep_template(csep_template)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
+
 
     if dh_scale > 1:
         origins = increase_grid_resolution(origins, dh, dh_scale)
@@ -129,13 +149,20 @@ def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
 
     return italy_region
 
-def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-collection"):
+def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-collection", use_midpoint=True):
     """ Return collection region for Italy CSEP collection region
 
         Args:
             dh_scale (int): factor of two multiple to change the grid size
             mangitudes (array-like): array representing the lower bin edges of the magnitude bins
             name (str): human readable identifer
+            use_midpoint (bool): if true, treat values in file as midpoints. default = true.
+
+        Returns:
+            :class:`csep.core.spatial.CartesianGrid2D`
+
+        Raises:
+            ValueError: dh_scale must be a factor of two
     """
     if dh_scale % 2 != 0 and dh_scale != 1:
         raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
@@ -144,8 +171,12 @@ def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-c
     dh = 0.1
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'italy.collection.nodes.dat')
-    midpoints = numpy.loadtxt(filepath)
-    origins = midpoints - dh / 2
+    points = numpy.loadtxt(filepath)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
+
 
     if dh_scale > 1:
         origins = increase_grid_resolution(origins, dh, dh_scale)
@@ -487,6 +518,9 @@ class CartesianGrid2D:
         self.xs = xs
         self.ys = ys
 
+    def __eq__(self, other):
+        return self.to_dict() == other.to_dict()
+
     @property
     def num_nodes(self):
         """ Number of polygons in region """
@@ -582,13 +616,36 @@ class CartesianGrid2D:
         adict = {
             'name': str(self.name),
             'dh': float(self.dh),
-            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
+            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons],
+            'class_id': self.__class__.__name__
         }
         return adict
 
     @classmethod
     def from_dict(cls, adict):
-        raise NotImplementedError("Todo!")
+        """ Creates a region object from a dictionary """
+        origins = adict.get('polygons', None)
+        dh = adict.get('dh', None)
+        magnitudes = adict.get('magnitudes', None)
+        name = adict.get('name', 'CartesianGrid2D')
+
+        if origins is None:
+            raise AttributeError("cannot create region object without origins")
+        if dh is None:
+            raise AttributeError("cannot create region without dh")
+        if origins is not None:
+            try:
+                origins = numpy.array([[adict['lon'], adict['lat']] for adict in origins])
+            except:
+                raise TypeError('origins must be numpy array like.')
+        if magnitudes is not None:
+            try:
+                magnitudes = numpy.array(magnitudes)
+            except:
+                raise TypeError('magnitudes must be numpy array like.')
+
+        out = cls.from_origins(origins, dh=dh, magnitudes=magnitudes, name=name)
+        return out
 
     @classmethod
     def from_origins(cls, origins, dh=None, magnitudes=None, name=None):

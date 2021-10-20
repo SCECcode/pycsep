@@ -121,6 +121,9 @@ class TestCartesian2D(unittest.TestCase):
         test_idx = self.cart_grid.get_index_of([test[0]], [test[1]])
         numpy.testing.assert_allclose(test_idx, 0)
 
+    def test_to_from_dict(self):
+        self.assertEqual(self.cart_grid, CartesianGrid2D.from_dict(self.cart_grid.to_dict()))
+
 class TestCatalogBinning(unittest.TestCase):
 
     def setUp(self):
@@ -226,7 +229,6 @@ class TestCatalogBinning(unittest.TestCase):
         # we know that (0.05, 0.15) corresponds to index 0 from the above test
         self.assertEqual(test_result[0, 1], 1)
         self.assertEqual(test_result[9, 0], 1)
-
 
     def test_global_region_binning(self):
 
