@@ -127,7 +127,7 @@ html_context = {
         ),
         (
             'Source Code',
-            "https://github.com/SCECCode/pycsep
+            "https://github.com/SCECCode/pycsep"
         ),
     ],
 }
