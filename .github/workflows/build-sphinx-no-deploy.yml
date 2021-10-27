@@ -17,28 +17,13 @@ jobs:
           python-version: 3.7
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install libproj-dev proj-data proj-bin
-          sudo apt-get install libgeos-dev
-          sudo apt-get install python3-sphinx
-          python -m pip install --upgrade pip
-          pip install numpy
-          pip install wheel
-          pip install pytest pytest-cov
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install sphinx-gallery>=0.7.0
-          pip install sphinx-rtd-theme
-          pip install pillow
-          pip uninstall -y shapely
-          pip install shapely --no-binary shapely
+          $CONDA/bin/conda env create -f requirements.yml
+          $CONDA/bin/conda activate csep-dev
       - name: Install PyCSEP
         run: |
-          python setup.py install
+          $CONDA/bin/conda develop .
       - name: Build documentation
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
           make -C docs clean
           make -C docs html
         shell: bash
