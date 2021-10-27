@@ -14,8 +14,7 @@ jobs:
       - name: Install dependencies
         run: |
           $CONDA/bin/conda env update --file requirements.yml --name base
-          $CONDA/bin/conda install conda-build
-          $CONDA/bin/conda develop .
+          $CONDA/bin/pip install -e .
       - name: Build documentation
         run: |
           make -C docs clean
