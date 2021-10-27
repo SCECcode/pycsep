@@ -11,15 +11,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      - name: Install dependencies
-        run: |
-          $CONDA/bin/conda env update --file requirements.yml --name base
-          $CONDA/bin/conda init bash
-          $CONDa/bin/conda activate base
-          $CONDA/bin/pip install -e .
-        shell: bash
       - name: Build documentation
         run: |
+          $CONDA/bin/conda env update --file requirements.yml --name base
+          $CONDA/bin/pip install -e .
+          alias sphinx-build="$CONDA/bin/sphinx-build"
           make -C docs clean
           make -C docs html
-        shell: bash
+        shell: bashs
