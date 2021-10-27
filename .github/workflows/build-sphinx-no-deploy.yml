@@ -7,15 +7,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v2
+      - uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: 3.7
-      - name: Install pyCSEP
-        run: |
-          $CONDA/bin/conda env update --file requirements.yml --name base
-          $CONDA/bin/pip install -e .
+          activate-environment: csep-dev
+          python-version: 3.9
+          channels: conda-forge
+          environment-file: requirements.yml
+      - run: |
+          conda install conda-build
+          conda develop .
       - name: Build documentation
-        uses: ammaraskar/sphinx-action@master
+      - uses: ammaraskar/sphinx-action@master
         with:
           docs-folder: "docs/"
+
