@@ -17,3 +17,6 @@ jobs:
       - run: |
           conda install conda-build
           conda develop .
+      - uses: ammaraskar/sphinx-action@master
+        with:
+          docs-folder: "docs/"
