@@ -1,6 +1,6 @@
-# Contributing to PyCSEP
+# Contributing to pyCSEP
 
-This document provides an overview on how to contribute to PyCSEP. It will provide step-by-step instructions and hope to 
+This document provides an overview on how to contribute to pyCSEP. It will provide step-by-step instructions and hope to 
 answer some questions.
 
 
@@ -9,8 +9,8 @@ answer some questions.
 * Make sure you have an active GitHub account
 * Download and install git
 * Read the git documentation
-* Install a development version of PyCSEP
-* If you haven't worked with Git Forks before, make sure to read the documentation linked here:
+* Install a **development version** of PyCSEP
+* If you haven't worked with git Forks before, make sure to read the documentation linked here:
 [some helping info](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/working-with-forks).
 
 ## Developer Installation
@@ -24,17 +24,20 @@ We recommend using `conda` to install the development environment.
     conda env create -f requirements.yml
     conda activate csep-dev
     pip install -e .[all]
-    # sync with default repository
+    # add upstream repository with default repository
     git remote add upstream https://github.com/SCECCode/pycsep.git
     
 Note: use the commend `conda deactivate` to go back to your regular environment.
 
 ## Submitting a Pull Request
 
+### Some notes for starting a pull request
+
 Pull requests are great! Please submit them to us! Here's how:
 
 1. Make a new branch. For features/additions base your new branch at `master`.
-2. Add a test! Only pull requests for documentation and refactoring do not require a test.
+2. Add a test! Only pull requests for documentation, refactoring, or plotting features do not require a test.
+3. Also, documentation must accompany new feature requests.
 3. Make sure the tests pass. Run `./run_tests.sh` in the top-level directory of the repo.
 4. Push your changes to your fork and submit a pull request. Make sure to set the branch to `pycsep:master`.
 5. Wait for our review. There may be some suggested changes or improvements. Changes can be made after
@@ -43,8 +46,22 @@ the pull request has been opening by simply adding more commits to your branch.
 Pull requests can be changed after they are opened, so create a pull request as early as possible.
 This allows us to provide feedback during development and to answer any questions.
 
+Also, if you find pyCSEP to be useful, but don't want to contribute to the code we highly encourage updates to the documentation!
+
 Please make sure to set the correct branch for your pull request. Also, please do not include large files in your pull request.
 If you feel that you need to add large files, let us know and we can figure something out.
+
+### Tips to get your pull request accepted quickly
+
+1. Any new feature that contains calculations must contain a unit-test to ensure that the calculations are doing what you
+expect. Some exceptions to this are documentation changes and new plotting features. 
+2. Documentation should accompany any new feature additions into the package.
+    * Plotting functions should provide a sphinx-gallery example, which can be found [here](https://github.com/SCECcode/pycsep/blob/master/examples/tutorials/catalog_filtering.py).
+    * More complex features might require additional documentation. We will let you know upon seeing your pull request.
+    * The documentation use sphinx which compiles reST. Some notes on that can be found [here](https://www.sphinx-doc.org/en/master/usage/quickstart.html).
+3. pyCSEP uses pytest as a test runner. Add new tests to the `tests` folder in an existing file or new file starting matching `test_*.py`
+4. New scientific capabilities that are not previously published should be presented to the CSEP science group as part of a 
+science review. This will consist of a presentation that provides a scientific justification for the feature.
 
 ## Submitting an Issue
 

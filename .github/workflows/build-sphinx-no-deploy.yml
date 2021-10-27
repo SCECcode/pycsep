@@ -1,7 +1,9 @@
 name: docs
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
+    tags:
+      descriptions: 'Manually trigger documentation build'
   pull_request:
     branches: [ master ]
 
