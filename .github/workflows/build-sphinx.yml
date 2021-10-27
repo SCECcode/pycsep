@@ -6,9 +6,7 @@ on:
 
 jobs:
   build_docs:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.7
@@ -26,11 +24,7 @@ jobs:
           pip install wheel
           pip install pytest pytest-cov
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install sphinx-gallery>=0.7.0
-          pip install sphinx-rtd-theme
           pip install pillow
-          pip uninstall -y shapely
-          pip install shapely --no-binary shapely
       - name: Install PyCSEP
         run: |
           python setup.py install
