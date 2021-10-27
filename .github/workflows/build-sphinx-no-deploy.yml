@@ -5,7 +5,6 @@ on:
 jobs:
   build_docs:
     runs-on: ubuntu-latest
-    shell: bash
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.7
