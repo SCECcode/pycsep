@@ -18,4 +18,4 @@ jobs:
           alias sphinx-build="$CONDA/bin/sphinx-build"
           make -C docs clean
           make -C docs html
-        shell: bashs
+        shell: bash
