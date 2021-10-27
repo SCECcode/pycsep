@@ -16,7 +16,7 @@ jobs:
           $CONDA/bin/conda env update --file requirements.yml --name base
       - name: Install PyCSEP
         run: |
-          $CONDA/bin/conda develop .
+          pip install -e .
       - name: Build documentation
         run: |
           make -C docs clean
