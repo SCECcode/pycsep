@@ -5,7 +5,7 @@ import pytest
 import numpy
 
 from csep.core.regions import CartesianGrid2D, compute_vertex, compute_vertices, _bin_catalog_spatio_magnitude_counts, \
-    _bin_catalog_spatial_counts, _bin_catalog_probability, global_region
+    _bin_catalog_spatial_counts, _bin_catalog_probability, global_region, california_relm_region
 from csep.models import Polygon
 
 
@@ -230,13 +230,17 @@ class TestCatalogBinning(unittest.TestCase):
         self.assertEqual(test_result[0, 1], 1)
         self.assertEqual(test_result[9, 0], 1)
 
-    def test_global_region_binning(self):
+    def test_binning_using_bounds(self):
+        """ Tests whether point correctly fall within the bin edges.
 
-        gr = global_region()
+        This test is not exhaustive but checks a few points within the region and verifies that the points correctly fall
+        within the bin edges.
+        """
+        gr = california_relm_region()
 
         # test points
-        lons = numpy.array([-178.6, -178.6, -178.02, -177.73, -177.79])
-        lats = numpy.array([-15.88, -51.75, -30.61, -29.98, -30.6])
+        lons = numpy.array([-117.430, -117.505, -117.466, -117.5808, -117.612])
+        lats = numpy.array([35.616, 35.714, 35.652, 35.7776, 35.778])
 
         # directly compute the indexes from the region object
         idxs = gr.get_index_of(lons, lats)
