@@ -1,14 +1,10 @@
 name: docs
-
 on:
   pull_request:
     branches: [ master ]
-
 jobs:
   build_docs:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.7
@@ -17,8 +13,7 @@ jobs:
           python-version: 3.7
       - name: Install dependencies
         run: |
-          $CONDA/bin/conda env create -f requirements.yml
-          $CONDA/bin/conda activate csep-dev
+          $CONDA/bin/conda env update --file requirements.yml --name base
       - name: Install PyCSEP
         run: |
           $CONDA/bin/conda develop .
