@@ -11,11 +11,12 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
-      - name: Build documentation
+      - name: Install pyCSEP
         run: |
           $CONDA/bin/conda env update --file requirements.yml --name base
           $CONDA/bin/pip install -e .
-          alias sphinx-build="$CONDA/bin/sphinx-build"
-          make -C docs clean
-          make -C docs html
+      - name: Build documentation
+        uses: ammaraskar/sphinx-action@master
+        with:
+          docs-folder: "docs/"
         shell: bash
