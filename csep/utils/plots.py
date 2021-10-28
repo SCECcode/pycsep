@@ -2,6 +2,8 @@ import time
 
 # Third-party imports
 import numpy
+import string
+
 import scipy.stats
 import matplotlib
 from matplotlib import cm
@@ -705,6 +707,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     mag_ticks = plot_args.get('mag_ticks', False)
     labelspacing = plot_args.get('labelspacing', 1)
     region_border = plot_args.get('region_border', True)
+    legend_borderpad = plot_args.get('legend_borderpad', 0.4)
     # cartopy properties
     projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
     basemap = plot_args.get('basemap', None)
@@ -782,7 +785,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
                                                   alpha=0.3)
         ax.legend(handles, numpy.round(mag_ticks, 1),
                   loc=legend_loc, title=legend_title, fontsize=legend_fontsize, title_fontsize=legend_titlesize,
-                  labelspacing=labelspacing, handletextpad=5, framealpha=legend_framealpha)
+                  labelspacing=labelspacing, handletextpad=5, borderpad=legend_borderpad, framealpha=legend_framealpha)
 
     if region_border:
         try:
@@ -1603,3 +1606,17 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
         pyplot.show()
 
     return ax
+
+def add_labels_for_publication(figure, style='bssa', labelsize=16):
+    """ Adds publication labels too the outside of a figure. """
+    all_axes = figure.get_axes()
+    ascii_iter = iter(string.ascii_lowercase)
+    for ax in all_axes:
+        # check for colorbar and ignore for annotations
+        if ax.get_label() == 'Colorbar':
+            continue
+        annot = next(ascii_iter)
+        if style == 'bssa':
+            ax.annotate(f'({annot})', (0.025, 1.025), xycoords='axes fraction', fontsize=labelsize)
+
+    return
