@@ -696,6 +696,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     # scatter properties
     markersize = plot_args.get('markersize', 2)
     markercolor = plot_args.get('markercolor', 'blue')
+    markeredgecolor = plot_args.get('markeredgecolor', 'black')
     alpha = plot_args.get('alpha', 1)
     mag_scale = plot_args.get('mag_scale', 1)
     legend = plot_args.get('legend', False)
@@ -771,6 +772,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
                            s=size_map(markersize, catalog.get_magnitudes(), mag_scale),
                            transform=cartopy.crs.PlateCarree(),
                            color=markercolor,
+                           edgecolors=markeredgecolor,
                            alpha=alpha)
 
     # Legend
@@ -1345,6 +1347,9 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
     linewidth = plot_args.get('linewidth', 1)
     markersize = plot_args.get('markersize', 2)
     percentile = plot_args.get('percentile', 95)
+    xticklabels_rotation = plot_args.get('xticklabels_rotation', 90)
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', 12)
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', 12)
 
     if axes is None:
         fig, ax = pyplot.subplots(figsize=figsize)
@@ -1377,10 +1382,10 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
             facecolor = 'white'
         ax.plot(index, result_t.observed_statistic, marker='o', markerfacecolor=facecolor, markeredgecolor=color, markersize=markersize)
 
-    ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=90)
+    ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=xticklabels_rotation)
     ax.set_xticks(numpy.arange(len(results_t)))
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
     ax.set_title(title)
     ax.yaxis.grid()
     xTickPos = ax.get_xticks()
