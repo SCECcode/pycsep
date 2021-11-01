@@ -1382,9 +1382,9 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
             facecolor = 'white'
         ax.plot(index, result_t.observed_statistic, marker='o', markerfacecolor=facecolor, markeredgecolor=color, markersize=markersize)
 
-    ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=xticklabels_rotation)
+    ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=xticklabels_rotation, fontsize=xlabel_fontsize)
     ax.set_xticks(numpy.arange(len(results_t)))
-    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
     ax.set_title(title)
     ax.yaxis.grid()
