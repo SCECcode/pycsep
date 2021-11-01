@@ -63,11 +63,11 @@ Software support for PyCSEP is provided by that Southern California Earthquake C
 2. Email Contact: software@scec.usc.edu
 
 # Contributing:
-We welcome contributions to the PyCSEP Toolkit.  If you would like to contribute to this package, including software, tests, and documentation, please visit the [contribution guidelines](https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md) for guidelines on how pyCSEP commuinty development instructions.
+We welcome contributions to the PyCSEP Toolkit.  If you would like to contribute to this package, including software, tests, and documentation, please visit the [contribution guidelines](https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md) for guidelines on how PyCSEP commuinty development instructions.
 
 # Credits:
-Development of PyhCSEP is a group effort. A list of developers that have contributed to the PyCSEP Toolkit 
+Development of PyCSEP is a group effort. A list of developers that have contributed to the PyCSEP Toolkit 
 are listed in the [Credits](CREDITS.md) file in this repository.
 
 # License:
-The pyCSEP software is distributed under the BSD 3-Clause open-source license. Please see the [LICENSE.txt](LICENSE.txt) file for more information.
+The PyCSEP software is distributed under the BSD 3-Clause open-source license. Please see the [LICENSE.txt](LICENSE.txt) file for more information.
