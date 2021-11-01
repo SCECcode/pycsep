@@ -1,6 +1,6 @@
 # PyCSEP: Collaboratory for the Study of Earthquake Predictability
-![](http://hypocenter.usc.edu/research/badges/CSEP2_Logo_CMYK.png)
-![Python version](http://hypocenter.usc.edu/research/badges/pycsep-python.svg)
+![](https://g-c662a6.a78b8.36fe.data.globus.org/csep/badges/CSEP2_Logo_CMYK.png)
+![Python version](https://g-c662a6.a78b8.36fe.data.globus.org/csep/badges/pycsep-python.svg)
 ![Python application](https://github.com/SCECCode/csep2/workflows/Python%20application/badge.svg)
 [![Build sphinx documentation](https://github.com/SCECCode/csep2/workflows/Build%20sphinx%20documentation/badge.svg)](https://cseptesting.org)
 [![codecov](https://codecov.io/gh/SCECcode/pycsep/branch/master/graph/badge.svg?token=HTMKM29MAU)](https://codecov.io/gh/SCECcode/pycsep)
