@@ -3,13 +3,14 @@ PyCSEP development is a group effort.
 Contributors:
 * William Savran, Southern California Earthquake Center
 * Pablo Iturrieta
-* khawajasim 
+* Muhammad Asim Khawaja
+* Thomas Beutin
+* Toño Bayona, University of Bristol
 * gen2
 * mherrmann3
-* bayonato89 
 * levin422
-* Max Werner, Southern California Earthquake Center
-* Danijel Schorlemmner, 
+* Max Werner, University of Bristol
+* Danijel Schorlemmner, GFZ Potsdam
 * Philip Maechling, Southern California Earthquake Center
 
 Thanks to everyone for all your contributions! 
