@@ -26,16 +26,16 @@ PyCSEP should:
 7. [License](#license)
 
 # Installation:
-* [Detailed PyCSEP Installation Instructions](https://docs.cseptesting.org/getting_started/installing.html)
-
-PyCSEP can be installed multiple ways in multiple computing environments. PyCSEP can be installed using conda or pip package managers or
-from source code found in the PyCSEP github repo. Researchers interested in contributing should install pyCSEP from source code. 
-PyCSEP depends on the following software packages. 
+PyCSEP can be installed in several ways. It can be installed using conda or pip package managers or from the 
+source code found in the PyCSEP github repo. Researchers interested in contributing to PyCSEP development should 
+install PyCSEP from source code. PyCSEP depends on the following software packages. 
 These which may be installed automatically, or manually, depending on the installation method used.
 * Python 3.7 or later (https://python.org)
 * NumPy 1.10 or later (https://numpy.org)  
 * GEOS 3.3.3 or later (https://trac.osgeo.org/geos/)  
 * PROJ 4.9.0 or later (https://proj4.org/)  
+
+* [Detailed PyCSEP Installation Instructions](https://docs.cseptesting.org/getting_started/installing.html)
 
 # Usage: 
 Once installed, PyCSEP methods can be invoked from python code by importing package csep. PyCSEP provides objects and utilities related to several key concepts:
@@ -70,4 +70,4 @@ Development of PyhCSEP is a group effort. A list of developers that have contrib
 are listed in the [Credits](CREDITS.md) file in this repository.
 
 # License:
-The pyCSEP software is distributed under the BSD 3-Clause open-source license. Please see the [LICENSE.txt file](LICENSE.txt) for more information.
+The pyCSEP software is distributed under the BSD 3-Clause open-source license. Please see the [LICENSE.txt](LICENSE.txt) file for more information.
