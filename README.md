@@ -35,7 +35,7 @@ These which may be installed automatically, or manually, depending on the instal
 * GEOS 3.3.3 or later (https://trac.osgeo.org/geos/)  
 * PROJ 4.9.0 or later (https://proj4.org/)  
 
-* [Detailed PyCSEP Installation Instructions](https://docs.cseptesting.org/getting_started/installing.html)
+[Detailed PyCSEP Installation Instructions](https://docs.cseptesting.org/getting_started/installing.html)
 
 # Usage: 
 Once installed, PyCSEP methods can be invoked from python code by importing package csep. PyCSEP provides objects and utilities related to several key concepts:
