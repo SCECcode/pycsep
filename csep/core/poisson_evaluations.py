@@ -226,7 +226,7 @@ def poisson_spatial_likelihood(forecast, catalog):
     scale = catalog.event_count / forecast.event_count
     
     first_term = -forecast.spatial_counts() * scale
-    second_term = catalog.spatial_counts() * np.log(forecast.spatial_counts() * scale)
+    second_term = catalog.spatial_counts() * numpy.log(forecast.spatial_counts() * scale)
     third_term = -scipy.special.loggamma(catalog.spatial_counts() + 1)
     
     poll = first_term + second_term + third_term
