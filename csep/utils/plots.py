@@ -2,6 +2,8 @@ import time
 
 # Third-party imports
 import numpy
+import string
+
 import scipy.stats
 import matplotlib
 from matplotlib import cm
@@ -553,24 +555,31 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
     if show:
         pyplot.show()
 
-def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linecolor='black', linewidth=True,
-                 grid=False, grid_labels=False, set_global=False, show=False, projection=ccrs.PlateCarree(), apprx=False,
-                 central_latitude=0.0):
+def plot_basemap(basemap, extent, ax=None, figsize=None, coastline=True, borders=False, tile_scaling='auto',
+                 set_global=False, projection=ccrs.PlateCarree(), apprx=False, central_latitude=0.0,
+                 linecolor='black', linewidth=True,
+                 grid=False, grid_labels=False, grid_fontsize=None,
+                 show=False):
     """ Wrapper function for multiple cartopy base plots, including access to standard raster webservices
 
      Args:
          basemap (str): Possible values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain, or webservice link (see examples in :func:`csep.utils.plots._get_basemap`. Default is None
          extent (list):  [lon_min, lon_max, lat_min, lat_max]
-         show (bool): Flag if the figure is displayed
-         set_global (bool): Display the complete globe as basemap
+         ax (:class:`matplotlib.pyplot.ax`): Previously defined ax object
+         figsize (tuple): If no ax is provided, a tuple of floats can be provided to define figure size
          coastline (str): Flag to plot coastline. default True,
          borders (bool): Flag to plot country borders. default False,
-         linewidth (float): Line width of borders and coast lines. default 1.5,
-         linecolor (str): Color of borders and coast lines. default 'black',
-         grid (bool): Draws a grid in the basemap
-         grid_labels (bool): Annotate grid values
+         tile_scaling (str/int): Zoom level (1-12) of the basemap tiles. If 'auto', is automatically derived from extent
+         set_global (bool): Display the complete globe as basemap
+         projection (:class:`cartopy.crs.Projection`): Projection to be used in the basemap
          apprx (bool): If true, approximates transformation by setting aspect ratio of axes based on middle latitude
          central_latitude (float): average latitude from plotting region
+         linecolor (str): Color of borders and coast lines. default 'black',
+         linewidth (float): Line width of borders and coast lines. default 1.5,
+         grid (bool): Draws a grid in the basemap
+         grid_labels (bool): Annotate grid values
+         grid_fontsize (float): Font size of the grid x and y labels
+         show (bool): Flag if the figure is displayed
 
      Returns:
          :class:`matplotlib.pyplot.ax` object
@@ -579,14 +588,14 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
     if ax is None:
         if apprx:
             projection = ccrs.PlateCarree()
-            fig = pyplot.figure()
+            fig = pyplot.figure(figsize=figsize)
             ax = fig.add_subplot(111, projection=projection)
             # Set plot aspect according to local longitude-latitude ratio in metric units
             # (only compatible with plain PlateCarree "projection")
             LATKM = 110.574  # length of a ° of latitude [km]; constant --> ignores Earth's flattening
-            ax.set_aspect(111.320 / LATKM / numpy.cos(numpy.deg2rad(central_latitude)))
+            ax.set_aspect(LATKM / (111.320 * numpy.cos(numpy.deg2rad(central_latitude))))
         else:
-            fig = pyplot.figure()
+            fig = pyplot.figure(figsize=figsize)
             ax = fig.add_subplot(111, projection=projection)
 
     if set_global:
@@ -600,7 +609,10 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
         tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
         tiles = None
         # Set tile depth
-        tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(extent)
+        if tile_scaling == 'auto':
+            tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(extent)
+        else:
+            tile_depth = tile_scaling
         if coastline:
             ax.coastlines(color=linecolor, linewidth=linewidth)
         if borders:
@@ -620,6 +632,9 @@ def plot_basemap(basemap, extent, ax=None,  coastline=True, borders=False, linec
     if grid:
         gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
         gl.right_labels = False
+        gl.top_labels = False
+        gl.xlabel_style['fontsize'] = grid_fontsize
+        gl.ylabel_style['fontsize'] = grid_fontsize
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
 
@@ -645,22 +660,25 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
            - :filename: :class:`str` - File to save figure. default None
            - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`. Note: this can be
                 'fast' to apply an approximate transformation of axes.
+           - :basemap:  :class:`str`/:class:`None`. Possible values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain, or webservice link. Default is None
+           - :coastline: :class:`bool` - Flag to plot coastline. default True,
            - :grid: :class:`bool` - default True
            - :grid_labels: :class:`bool` - default True
+           - :grid_fontsize: :class:`float` - default 10.0
            - :marker: :class:`str` - Marker type
            - :markersize: :class:`float` - Constant size for all earthquakes
            - :markercolor: :class:`str` - Color for all earthquakes
-           - :basemap:  :class:`str`/:class:`None`. Possible values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain, or webservice link. Default is None
-           - :coastline: :class:`bool` - Flag to plot coastline. default True,
            - :borders: :class:`bool` - Flag to plot country borders. default False,
-           - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
-           - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
+           - :region_border: :class:`bool` - Flag to plot the catalog region border. default True,
            - :alpha: :class:`float` - Transparency for the earthquakes scatter
            - :mag_scale: :class:`float` - Scaling of the scatter
            - :legend: :class:`bool` - Flag to display the legend box
            - :legend_loc: :class:`int`/:class:`str` - Position of the legend
            - :mag_ticks: :class:`list` - Ticks to display in the legend
            - :labelspacing: :class:`int` - Separation between legend ticks
+           - :tile_scaling: :class:`str`/:class:`int`. Zoom level (1-12) of the basemap tiles. If 'auto', is automatically derived from extent
+           - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
+           - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
 
     Returns:
         :class:`matplotlib.pyplot.ax` object
@@ -678,20 +696,28 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     # scatter properties
     markersize = plot_args.get('markersize', 2)
     markercolor = plot_args.get('markercolor', 'blue')
+    markeredgecolor = plot_args.get('markeredgecolor', 'black')
     alpha = plot_args.get('alpha', 1)
     mag_scale = plot_args.get('mag_scale', 1)
     legend = plot_args.get('legend', False)
+    legend_title = plot_args.get('legend_title', r"Magnitudes")
     legend_loc = plot_args.get('legend_loc', 1)
+    legend_framealpha = plot_args.get('legend_framealpha', None)
+    legend_fontsize = plot_args.get('legend_fontsize', None)
+    legend_titlesize = plot_args.get('legend_titlesize', None)
     mag_ticks = plot_args.get('mag_ticks', False)
     labelspacing = plot_args.get('labelspacing', 1)
     region_border = plot_args.get('region_border', True)
+    legend_borderpad = plot_args.get('legend_borderpad', 0.4)
     # cartopy properties
     projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
-    grid = plot_args.get('grid', True)
-    grid_labels = plot_args.get('grid_labels', False)
     basemap = plot_args.get('basemap', None)
     coastline = plot_args.get('coastline', True)
+    grid = plot_args.get('grid', True)
+    grid_labels = plot_args.get('grid_labels', False)
+    grid_fontsize = plot_args.get('grid_fontsize', False)
     borders = plot_args.get('borders', False)
+    tile_scaling = plot_args.get('tile_scaling', 'auto')
     linewidth = plot_args.get('linewidth', True)
     linecolor = plot_args.get('linecolor', 'black')
 
@@ -727,7 +753,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
         ax.set_extent(extents=extent, crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
 
     # Basemap plotting
-    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
+    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders, tile_scaling=tile_scaling,
                       linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
                       central_latitude=central_latitude)
 
@@ -746,30 +772,38 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
                            s=size_map(markersize, catalog.get_magnitudes(), mag_scale),
                            transform=cartopy.crs.PlateCarree(),
                            color=markercolor,
+                           edgecolors=markeredgecolor,
                            alpha=alpha)
 
     # Legend
     if legend:
-        if not mag_ticks:
-            mag_ticks = numpy.round(numpy.linspace(mw_range[0], mw_range[1], 4), 1)
+        if isinstance(mag_ticks, (tuple, list, numpy.ndarray)):
+            if not numpy.all([ i >= mw_range[0] and i <= mw_range[1] for i in mag_ticks]):
+                print("Magnitude ticks do not lie within the catalog magnitude range")
+        elif mag_ticks is False:
+            mag_ticks = numpy.linspace(mw_range[0], mw_range[1], 4)
         handles, labels = scatter.legend_elements(prop="sizes",
                                                   num=list(size_map(markersize, mag_ticks, mag_scale)),
                                                   alpha=0.3)
-        ax.legend(handles, mag_ticks,
-                  loc=legend_loc, title=r"Magnitudes",title_fontsize=16,
-                  labelspacing=labelspacing, handletextpad=5, framealpha=False)
+        ax.legend(handles, numpy.round(mag_ticks, 1),
+                  loc=legend_loc, title=legend_title, fontsize=legend_fontsize, title_fontsize=legend_titlesize,
+                  labelspacing=labelspacing, handletextpad=5, borderpad=legend_borderpad, framealpha=legend_framealpha)
 
     if region_border:
         try:
             pts = catalog.region.tight_bbox()
             ax.plot(pts[:, 0], pts[:, 1], lw=1, color='black')
         except AttributeError:
-            print("unable to get tight bbox")
+            pass
+            # print("unable to get tight bbox")
 
     # Gridline options
     if grid:
         gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
         gl.right_labels = False
+        gl.top_labels = False
+        gl.xlabel_style['fontsize'] = grid_fontsize
+        gl.ylabel_style['fontsize'] = grid_fontsize
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
 
@@ -801,14 +835,19 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
            - :projection: :class:`cartopy.crs.Projection` - default :class:`cartopy.crs.PlateCarree`
            - :grid: :class:`bool` - default True
            - :grid_labels: :class:`bool` - default True
+           - :grid_fontsize: :class:`float` - default 10.0
            - :basemap:  :class:`str`. Possible  values are: stock_img, stamen_terrain, stamen_terrain-background, google-satellite, ESRI_terrain, ESRI_imagery, ESRI_relief, ESRI_topo, ESRI_terrain, or webservice link. Default is None
            - :coastline: :class:`bool` - Flag to plot coastline. default True,
            - :borders: :class:`bool` - Flag to plot country borders. default False,
+           - :region_border: :class:`bool` - Flag to plot the dataset region border. default True,
+           - :tile_scaling: :class:`str`/:class:`int`. Zoom level (1-12) of the basemap tiles. If 'auto', is automatically derived from extent
            - :linewidth: :class:`float` - Line width of borders and coast lines. default 1.5,
            - :linecolor: :class:`str` - Color of borders and coast lines. default 'black',
            - :cmap: :class:`str`/:class:`pyplot.colors.Colormap` -  default 'viridis'
-           - :clabel: :class:`str` - default None
-           - :clim: :class:`list` - default None
+           - :clim: :class:`list` - Range of the colorbar. default None
+           - :clabel: :class:`str` - Label of the colorbar. default None
+           - :clabel_fontsize: :class:`float` - default None
+           - :cticks_fontsize: :class:`float` - default None
            - :alpha: :class:`float` - default 1
            - :alpha_exp: :class:`float` - Exponent for the alpha func (recommended between 0.4 and 1). default 0
 
@@ -827,23 +866,27 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     plot_args = plot_args or {}
     # figure and axes properties
     figsize = plot_args.get('figsize', None)
-    title = plot_args.get('title', 'Spatial Dataset')
+    title = plot_args.get('title', None)
     title_size = plot_args.get('title_size', None)
     filename = plot_args.get('filename', None)
     # cartopy properties
     projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
     grid = plot_args.get('grid', True)
     grid_labels = plot_args.get('grid_labels', False)
+    grid_fontsize = plot_args.get('grid_fontsize', False)
     basemap = plot_args.get('basemap', None)
     coastline = plot_args.get('coastline', True)
     borders = plot_args.get('borders', False)
+    tile_scaling = plot_args.get('tile_scaling', 'auto')
     linewidth = plot_args.get('linewidth', True)
     linecolor = plot_args.get('linecolor', 'black')
     region_border = plot_args.get('region_border', True)
     # color bar properties
     cmap = plot_args.get('cmap', None)
-    clabel = plot_args.get('clabel', '')
     clim = plot_args.get('clim', None)
+    clabel = plot_args.get('clabel', None)
+    clabel_fontsize = plot_args.get('clabel_fontsize', None)
+    cticks_fontsize = plot_args.get('cticks_fontsize', None)
     alpha = plot_args.get('alpha', 1)
     alpha_exp = plot_args.get('alpha_exp', 0)
 
@@ -855,7 +898,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
         n_lats = len(region.ys) // 2
         central_latitude = region.ys[n_lats]
 
-    # Instantiage GeoAxes object
+    # Instantiate GeoAxes object
     if ax is None:
         fig = pyplot.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection=projection)
@@ -870,7 +913,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     # Basemap plotting
     ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
                       linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
-                      central_latitude=central_latitude)
+                      central_latitude=central_latitude, tile_scaling=tile_scaling)
 
     ## Define colormap and transparency function
     if isinstance(cmap, str) or not cmap:
@@ -895,21 +938,25 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height],
                        label='Colorbar')
     cbar = fig.colorbar(im, ax=ax, cax=cax)
-    cbar.set_label(clabel)
+    cbar.set_label(clabel, fontsize=clabel_fontsize)
+    cbar.ax.tick_params(labelsize=cticks_fontsize)
 
     # Gridline options
     if grid:
         gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
         gl.right_labels = False
+        gl.top_labels = False
+        gl.xlabel_style['fontsize'] = grid_fontsize
+        gl.ylabel_style['fontsize'] = grid_fontsize
         gl.xformatter = LONGITUDE_FORMATTER
         gl.yformatter = LATITUDE_FORMATTER
 
     if region_border:
         pts = region.tight_bbox()
-        ax.plot(pts[:,0], pts[:,1], lw=1, color='black', transform=ccrs.PlateCarree())
+        ax.plot(pts[:, 0], pts[:, 1], lw=1, color='black', transform=ccrs.PlateCarree())
 
     # matplotlib figure options
-    ax.set_title(title, y=1.06)
+    ax.set_title(title, y=1.06, fontsize=title_size)
     if filename is not None:
         ax.get_figure().savefig(filename + '.pdf')
         ax.get_figure().savefig(filename + '.png', dpi=300)
@@ -1264,30 +1311,94 @@ def _get_marker_style(obs_stat, p, one_sided_lower):
             fmt = 'gs'
     return fmt
 
-def plot_comparison_test(results, plot_args=None):
-    """Plots list of T-Test or W-Test Results"""
+def _get_marker_t_color(distribution):
+    """Returns matplotlib marker style as fmt string"""
+    if distribution[0] > 0. and distribution[1] > 0.:
+        fmt = 'green'
+    elif distribution[0] < 0. and distribution[1] < 0.:
+        fmt = 'red'
+    else:
+        fmt = 'grey'
+
+    return fmt
+
+def _get_marker_w_color(distribution, percentile):
+    """Returns matplotlib marker style as fmt string"""
+
+    if distribution < (1 - percentile/100):
+        fmt = True
+    else:
+        fmt = False
+
+    return fmt
+
+def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
+    """Plots list of T-Test (and W-Test) Results"""
+
     if plot_args is None:
         plot_args = {}
-    title = plot_args.get('title', 'CSEP1 Consistency Test')
+
+    figsize = plot_args.get('figsize', None)
+    title = plot_args.get('title', 'CSEP1 Comparison Test')
     xlabel = plot_args.get('xlabel', 'X')
     ylabel = plot_args.get('ylabel', 'Y')
+    ylim = plot_args.get('ylim', (None, None))
+    capsize = plot_args.get('capsize', 2)
+    linewidth = plot_args.get('linewidth', 1)
+    markersize = plot_args.get('markersize', 2)
+    percentile = plot_args.get('percentile', 95)
+    xticklabels_rotation = plot_args.get('xticklabels_rotation', 90)
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', 12)
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', 12)
 
-    fig, ax = pyplot.subplots()
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
     ax.axhline(y=0, linestyle='--', color='black')
-    for index, result in enumerate(results):
-        ylow = result.observed_statistic - result.test_distribution[0]
-        yhigh = result.test_distribution[1] - result.observed_statistic
-        ax.errorbar(index, result.observed_statistic, yerr=numpy.array([[ylow, yhigh]]).T, color='black', capsize=4)
-        ax.plot(index, result.observed_statistic, 'ok')
-    ax.set_xticklabels([res.sim_name[0] for res in results])
-    ax.set_xticks(numpy.arange(len(results)))
+
+    Results = zip(results_t, results_w) if results_w else zip(results_t)
+
+    for index, result in enumerate(Results):
+        result_t = result[0]
+        result_w = result[1] if results_w else None
+
+        ylow = result_t.observed_statistic - result_t.test_distribution[0]
+        yhigh = result_t.test_distribution[1] - result_t.observed_statistic
+        color = _get_marker_t_color( result_t.test_distribution)
+        ax.errorbar(index, result_t.observed_statistic,
+                    yerr=numpy.array([[ylow, yhigh]]).T ,
+                    color = color,
+                    linewidth=linewidth, capsize=capsize)
+
+        if result_w is not None:
+            if  _get_marker_w_color(result_w.quantile, percentile):
+                facecolor = _get_marker_t_color(result_t.test_distribution)
+            else:
+                facecolor = 'white'
+        else:
+            facecolor = 'white'
+        ax.plot(index, result_t.observed_statistic, marker='o', markerfacecolor=facecolor, markeredgecolor=color, markersize=markersize)
+
+    ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=xticklabels_rotation, fontsize=xlabel_fontsize)
+    ax.set_xticks(numpy.arange(len(results_t)))
     ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
     ax.set_title(title)
+    ax.yaxis.grid()
+    xTickPos = ax.get_xticks()
+    ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    ax.set_ylim([ylim[0], ylim[1]])
+    ax.set_xlim([-0.5, len(results_t) - 0.5])
+    ax.bar(xTickPos, numpy.array([9999] * len(xTickPos)), bottom=-2000,
+            width=(xTickPos[1] - xTickPos[0]), color=['gray', 'w'], alpha=0.2)
     fig.tight_layout()
+
     return ax
 
-def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, plot_args=None):
+def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, axes=None, plot_args=None):
     """ Plots results from CSEP1 tests following the CSEP1 convention.
 
     Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
@@ -1339,14 +1450,20 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
     capsize = plot_args.get('capsize', 4)
     hbars = plot_args.get('hbars', True)
     tight_layout = plot_args.get('tight_layout', True)
+    percentile = plot_args.get('percentile', 95)
 
-    fig, ax = pyplot.subplots(figsize=figsize)
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
     xlims = []
     for index, res in enumerate(results):
         # handle analytical distributions first, they are all in the form ['name', parameters].
         if res.test_distribution[0] == 'poisson':
-            plow = scipy.stats.poisson.ppf(0.025, res.test_distribution[1])
-            phigh = scipy.stats.poisson.ppf(0.975, res.test_distribution[1])
+            plow = scipy.stats.poisson.ppf((1 - percentile/100.)/2., res.test_distribution[1])
+            phigh = scipy.stats.poisson.ppf(1 - (1 - percentile/100.)/2., res.test_distribution[1])
             observed_statistic = res.observed_statistic
         # empirical distributions
         else:
@@ -1358,11 +1475,11 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
                 observed_statistic = res.observed_statistic
             # compute distribution depending on type of test
             if one_sided_lower:
-                plow = numpy.percentile(test_distribution, 5)
+                plow = numpy.percentile(test_distribution, 100 - percentile)
                 phigh = numpy.percentile(test_distribution, 100)
             else:
-                plow = numpy.percentile(test_distribution, 2.5)
-                phigh = numpy.percentile(test_distribution, 97.5)
+                plow = numpy.percentile(test_distribution, (100 - percentile)/2.)
+                phigh = numpy.percentile(test_distribution, 100 - (100 - percentile)/2.)
 
         if not numpy.isinf(observed_statistic): # Check if test result does not diverges
             low = observed_statistic - plow
@@ -1494,3 +1611,17 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
         pyplot.show()
 
     return ax
+
+def add_labels_for_publication(figure, style='bssa', labelsize=16):
+    """ Adds publication labels too the outside of a figure. """
+    all_axes = figure.get_axes()
+    ascii_iter = iter(string.ascii_lowercase)
+    for ax in all_axes:
+        # check for colorbar and ignore for annotations
+        if ax.get_label() == 'Colorbar':
+            continue
+        annot = next(ascii_iter)
+        if style == 'bssa':
+            ax.annotate(f'({annot})', (0.025, 1.025), xycoords='axes fraction', fontsize=labelsize)
+
+    return

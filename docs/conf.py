@@ -111,23 +111,23 @@ html_context = {
     "github_links": [
         (
             'Contributing',
-            "https://github.com/SCECCode/csep2/blob/dev/CONTRIBUTING.md",
+            "https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md",
         ),
         (
             'Code of Conduct',
-            "https://github.com/SCECCode/csep2/blob/dev/CODE_OF_CONDUCT.md",
+            "https://github.com/SCECcode/pycsep/blob/master/CODE_OF_CONDUCT.md",
         ),
         (
             'License',
-            "https://github.com/SCECCode/csep2/blob/dev/LICENSE",
+            "https://github.com/SCECcode/pycsep/blob/master/LICENSE",
         ),
         (
             'Getting help',
-            "https://github.com/SCECCode/csep2/issues",
+            "https://github.com/SCECCode/pycsep/issues",
         ),
         (
             'Source Code',
-            "https://github.com/SCECCode/csep2",
+            "https://github.com/SCECCode/pycsep"
         ),
     ],
 }
