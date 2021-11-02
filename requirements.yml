@@ -13,6 +13,7 @@ dependencies:
   - python-dateutil
   - pytest
   - cartopy
+  - sphinx
   - sphinx-gallery
   - sphinx_rtd_theme
   - pillow

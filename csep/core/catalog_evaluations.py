@@ -1,4 +1,6 @@
 # Third-Party Imports
+import time
+
 import numpy
 import scipy.stats
 
@@ -15,7 +17,7 @@ from csep.utils.calc import _compute_likelihood
 from csep.utils.stats import get_quantiles, cumulative_square_diff
 
 
-def number_test(forecast, observed_catalog):
+def number_test(forecast, observed_catalog, verbose=True):
     """ Performs the number test on a catalog-based forecast.
 
     The number test builds an empirical distribution of the event counts for each data. By default, this
@@ -30,7 +32,14 @@ def number_test(forecast, observed_catalog):
         evaluation result (:class:`csep.models.EvaluationResult`): evaluation result
     """
     event_counts = []
-    for catalog in forecast:
+    t0 = time.time()
+    for i, catalog in enumerate(forecast):
+        # output status
+        if verbose:
+            tens_exp = numpy.floor(numpy.log10(i + 1))
+            if (i + 1) % 10 ** tens_exp == 0:
+                t1 = time.time()
+                print(f'Processed {i + 1} catalogs in {t1 - t0} seconds', flush=True)
         event_counts.append(catalog.event_count)
     obs_count = observed_catalog.event_count
     delta_1, delta_2 = get_quantiles(event_counts, obs_count)
@@ -46,7 +55,7 @@ def number_test(forecast, observed_catalog):
                                      obs_name=observed_catalog.name)
     return result
 
-def spatial_test(forecast, observed_catalog):
+def spatial_test(forecast, observed_catalog, verbose=True):
     """ Performs spatial test for catalog-based forecasts.
 
 
@@ -70,7 +79,7 @@ def spatial_test(forecast, observed_catalog):
 
     # compute expected rates for forecast if needed
     if forecast.expected_rates is None:
-        forecast.get_expected_rates()
+        forecast.get_expected_rates(verbose=verbose)
 
     expected_cond_count = forecast.expected_rates.sum()
     forecast_mean_spatial_rates = forecast.expected_rates.spatial_counts()
@@ -81,10 +90,17 @@ def spatial_test(forecast, observed_catalog):
     n_obs = numpy.sum(gridded_obs)
 
     # iterate through catalogs in forecast and compute likelihood
-    for catalog in forecast:
+    t0 = time.time()
+    for i, catalog in enumerate(forecast):
         gridded_cat = catalog.spatial_counts()
         _, lh_norm = _compute_likelihood(gridded_cat, forecast_mean_spatial_rates, expected_cond_count, n_obs)
         test_distribution.append(lh_norm)
+        # output status
+        if verbose:
+            tens_exp = numpy.floor(numpy.log10(i + 1))
+            if (i + 1) % 10 ** tens_exp == 0:
+                t1 = time.time()
+                print(f'Processed {i + 1} catalogs in {t1 - t0} seconds', flush=True)
 
     _, obs_lh_norm = _compute_likelihood(gridded_obs, forecast_mean_spatial_rates, expected_cond_count, n_obs)
     # if obs_lh is -numpy.inf, recompute but only for indexes where obs and simulated are non-zero
@@ -124,7 +140,7 @@ def spatial_test(forecast, observed_catalog):
 
     return result
 
-def magnitude_test(forecast, observed_catalog):
+def magnitude_test(forecast, observed_catalog, verbose=True):
     """ Performs magnitude test for catalog-based forecasts """
     test_distribution = []
 
@@ -149,7 +165,7 @@ def magnitude_test(forecast, observed_catalog):
 
     # compute expected rates for forecast if needed
     if forecast.expected_rates is None:
-        forecast.get_expected_rates()
+        forecast.get_expected_rates(verbose=verbose)
 
     # returns the average events in the magnitude bins
     union_histogram = forecast.expected_rates.magnitude_counts()
@@ -160,7 +176,8 @@ def magnitude_test(forecast, observed_catalog):
     scaled_union_histogram = union_histogram * union_scale
 
     # compute the test statistic for each catalog
-    for catalog in forecast:
+    t0 = time.time()
+    for i, catalog in enumerate(forecast):
         mag_counts = catalog.magnitude_counts()
         n_events = numpy.sum(mag_counts)
         if n_events == 0:
@@ -172,6 +189,12 @@ def magnitude_test(forecast, observed_catalog):
         test_distribution.append(
             cumulative_square_diff(numpy.log10(catalog_histogram + 1), numpy.log10(scaled_union_histogram + 1))
         )
+        # output status
+        if verbose:
+            tens_exp = numpy.floor(numpy.log10(i + 1))
+            if (i + 1) % 10 ** tens_exp == 0:
+                t1 = time.time()
+                print(f'Processed {i + 1} catalogs in {t1 - t0} seconds', flush=True)
 
     # compute observed statistic
     obs_d_statistic = cumulative_square_diff(numpy.log10(obs_histogram + 1), numpy.log10(scaled_union_histogram + 1))
@@ -192,7 +215,7 @@ def magnitude_test(forecast, observed_catalog):
 
     return result
 
-def pseudolikelihood_test(forecast, observed_catalog):
+def pseudolikelihood_test(forecast, observed_catalog, verbose=True):
     """ Performs the spatial pseudolikelihood test for catalog forecasts.
 
     Performs the spatial pseudolikelihood test as described by Savran et al., 2020. The tests uses a pseudolikelihood
@@ -216,7 +239,7 @@ def pseudolikelihood_test(forecast, observed_catalog):
 
     # compute expected rates for forecast if needed
     if forecast.expected_rates is None:
-        _ = forecast.get_expected_rates()
+        _ = forecast.get_expected_rates(verbose=verbose)
 
     expected_cond_count = forecast.expected_rates.sum()
     forecast_mean_spatial_rates = forecast.expected_rates.spatial_counts()
@@ -226,10 +249,17 @@ def pseudolikelihood_test(forecast, observed_catalog):
     gridded_obs = observed_catalog.spatial_counts()
     n_obs = numpy.sum(gridded_obs)
 
-    for catalog in forecast:
+    t0 = time.time()
+    for i, catalog in enumerate(forecast):
         gridded_cat = catalog.spatial_counts()
         plh, _ = _compute_likelihood(gridded_cat, forecast_mean_spatial_rates, expected_cond_count, n_obs)
         test_distribution.append(plh)
+        # output status
+        if verbose:
+            tens_exp = numpy.floor(numpy.log10(i + 1))
+            if (i + 1) % 10 ** tens_exp == 0:
+                t1 = time.time()
+                print(f'Processed {i + 1} catalogs in {t1 - t0} seconds', flush=True)
 
     obs_plh, _ = _compute_likelihood(gridded_obs, forecast_mean_spatial_rates, expected_cond_count, n_obs)
     # if obs_lh is -numpy.inf, recompute but only for indexes where obs and simulated are non-zero

@@ -7,7 +7,8 @@ import datetime
 import numpy
 
 from csep.utils.log import LoggingMixin
-from csep.core.regions import CartesianGrid2D, Polygon, create_space_magnitude_region
+from csep.core.regions import CartesianGrid2D, create_space_magnitude_region
+from csep.models import Polygon
 from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 from csep.core.catalogs import AbstractBaseCatalog
@@ -103,6 +104,20 @@ class GriddedDataSet(LoggingMixin):
     def get_longitudes(self):
         """ Returns the lognitude of the lower left node of the spatial grid """
         return self.region.origins()[:,0]
+
+    def get_valid_midpoints(self):
+        """ Returns the midpoints of the valid testing region
+
+            Returns:
+                lons (numpy.array), lats (numpy.array): two numpy arrays containing the valid midpoints from the forecast
+        """
+        latitudes = []
+        longitudes = []
+        for idx in range(self.region.num_nodes):
+            if self.region.bbox_max[idx] == 0:
+                latitudes.append(self.region.midpoints()[idx,1])
+                longitudes.append(self.region.midpoints()[idx,0])
+        return numpy.array(longitudes), numpy.array(latitudes)
 
     @property
     def polygons(self):
@@ -362,7 +377,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         return cls(data=data, region=region, magnitudes=magnitudes, **kwargs)
 
     @classmethod
-    def load_ascii(cls, ascii_fname, start_date=None, end_date=None, name=None):
+    def load_ascii(cls, ascii_fname, start_date=None, end_date=None, name=None, swap_latlon=False):
         """ Reads Forecast file from CSEP1 ascii format.
 
         The ascii format from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:
@@ -376,6 +391,7 @@ class GriddedForecast(MarkedGriddedDataSet):
 
         Args:
             ascii_fname: file name of csep forecast in .dat format
+            swap_latlon (bool): if true, read forecast spatial cells as lat_0, lat_1, lon_0, lon_1
         """
         # Load data
         data = numpy.loadtxt(ascii_fname)
@@ -393,6 +409,8 @@ class GriddedForecast(MarkedGriddedDataSet):
         mws = all_mws[sorted_idx]
         # csep1 stores the lat lons as min values and not (x,y) tuples
         bboxes = [tuple(itertools.product(bbox[:2], bbox[2:])) for bbox in unique_poly]
+        if swap_latlon:
+            bboxes = [tuple(itertools.product(bbox[2:], bbox[:2])) for bbox in unique_poly]
         # the spatial cells are arranged fast in latitude, so this only works for the specific csep1 file format
         dh = float(unique_poly[0,3] - unique_poly[0,2])
         # create CarteisanGrid of points
@@ -517,6 +535,8 @@ class CatalogForecast(LoggingMixin):
         # should be a MarkedGriddedDataSet
         self.expected_rates = expected_rates
 
+        self._event_counts = []
+
         # defines the space, time, and magnitude region of the forecasts
         self.region = region
 
@@ -588,6 +608,8 @@ class CatalogForecast(LoggingMixin):
             if self.filter_spatial:
                 catalog = catalog.filter_spatial(self.region)
 
+        self._event_counts.append(catalog.event_count)
+
         if is_generator and self.store:
             self._catalogs.append(catalog)
 
@@ -629,6 +651,22 @@ class CatalogForecast(LoggingMixin):
         else:
             return None
 
+    def get_event_counts(self):
+        """ Returns a numpy array containing the number of event counts for each catalog.
+
+            Note: This function can take a while to compute if called without already iterating through a forecast that
+            is being stored on disk. This should only happen to large forecasts that have been initialized with
+            store = False. This should only happen on the first iteration of the catalog.
+
+            Returns:
+                (numpy.array): event counts with size equal of catalogs in forecast
+        """
+        if len(self._event_counts) == 0:
+            # event counts is filled while iterating over the catalog
+            for _ in self:
+                pass
+        return numpy.array(self._event_counts)
+
     def get_expected_rates(self, verbose=False):
         """ Compute the expected rates in space-magnitude bins
 
@@ -668,10 +706,10 @@ class CatalogForecast(LoggingMixin):
                                                   magnitudes=self.magnitudes, name=self.name)
             return self.expected_rates
 
-    def plot(self, plot_args = None, **kwargs):
+    def plot(self, plot_args = None, verbose=True, **kwargs):
         plot_args = plot_args or {}
         if self.expected_rates is None:
-            self.get_expected_rates()
+            self.get_expected_rates(verbose=verbose)
         args_dict = {'title': self.name,
                      'grid_labels': True,
                      'grid': True,

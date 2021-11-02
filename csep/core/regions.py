@@ -5,22 +5,30 @@ from itertools import compress
 from xml.etree import ElementTree as ET
 
 # Third-party imports
-import matplotlib.path
 import numpy
 import numpy as np
-import pyproj
 
 # PyCSEP imports
 from csep.utils.calc import bin1d_vec, cleaner_range, first_nonnan, last_nonnan
 from csep.utils.scaling_relationships import WellsAndCoppersmith
+from csep.models import Polygon
 
-def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection"):
+
+def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection", use_midpoint=True):
     """ Return collection region for California RELM testing region
 
-        Args:
-            dh_scale (int): factor of two multiple to change the grid size
-            mangitudes (array-like): array representing the lower bin edges of the magnitude bins
-            name (str): human readable identifer
+    Args:
+        dh_scale (int): factor of two multiple to change the grid size
+        mangitudes (array-like): array representing the lower bin edges of the magnitude bins
+        name (str): human readable identifer
+        use_midpoints (bool): if true, treat values in file as midpoints. default = true.
+
+    Returns:
+        :class:`csep.core.spatial.CartesianGrid2D`
+
+    Raises:
+        ValueError: dh_scale must be a factor of two
+
     """
     if dh_scale % 2 != 0 and dh_scale != 1:
         raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
@@ -29,8 +37,11 @@ def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-ca
     dh = 0.1
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'RELMCollectionArea.dat')
-    midpoints = numpy.loadtxt(filepath)
-    origins = midpoints - dh / 2
+    points = numpy.loadtxt(filepath)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
 
     if dh_scale > 1:
         origins = increase_grid_resolution(origins, dh, dh_scale)
@@ -45,7 +56,7 @@ def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-ca
 
     return relm_region
 
-def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california"):
+def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california", use_midpoint=True):
     """
     Returns class representing California testing region.
 
@@ -71,8 +82,11 @@ def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california"):
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'csep-forecast-template-M5.xml')
     csep_template = os.path.expanduser(filepath)
-    midpoints, dh = parse_csep_template(csep_template)
-    origins = numpy.array(midpoints) - dh / 2
+    points, dh = parse_csep_template(csep_template)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
 
     if dh_scale > 1:
         origins = increase_grid_resolution(origins, dh, dh_scale)
@@ -87,7 +101,7 @@ def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california"):
 
     return relm_region
 
-def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
+def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy", use_midpoint=True):
     """
         Returns class representing Italian testing region.
 
@@ -98,6 +112,8 @@ def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
             dh_scale: can resample this grid by factors of 2
             magnitudes (array-like): bin edges for magnitudes. if provided, will be bound to the output region class.
                                      this argument provides a short-cut for creating space-magnitude regions.
+            name (str): human readable identify given to the region
+            use_midpoint (bool): if true, treat values in file as midpoints. default = true.
 
         Returns:
             :class:`csep.core.spatial.CartesianGrid2D`
@@ -113,8 +129,12 @@ def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'forecast.italy.M5.xml')
     csep_template = os.path.expanduser(filepath)
-    midpoints, dh = parse_csep_template(csep_template)
-    origins = numpy.array(midpoints) - dh / 2
+    points, dh = parse_csep_template(csep_template)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
+
 
     if dh_scale > 1:
         origins = increase_grid_resolution(origins, dh, dh_scale)
@@ -129,13 +149,20 @@ def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy"):
 
     return italy_region
 
-def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-collection"):
+def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-collection", use_midpoint=True):
     """ Return collection region for Italy CSEP collection region
 
         Args:
             dh_scale (int): factor of two multiple to change the grid size
             mangitudes (array-like): array representing the lower bin edges of the magnitude bins
             name (str): human readable identifer
+            use_midpoint (bool): if true, treat values in file as midpoints. default = true.
+
+        Returns:
+            :class:`csep.core.spatial.CartesianGrid2D`
+
+        Raises:
+            ValueError: dh_scale must be a factor of two
     """
     if dh_scale % 2 != 0 and dh_scale != 1:
         raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
@@ -144,8 +171,12 @@ def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-c
     dh = 0.1
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'italy.collection.nodes.dat')
-    midpoints = numpy.loadtxt(filepath)
-    origins = midpoints - dh / 2
+    points = numpy.loadtxt(filepath)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
+
 
     if dh_scale > 1:
         origins = increase_grid_resolution(origins, dh, dh_scale)
@@ -463,74 +494,6 @@ def _bin_catalog_probability(lons, lats, n_poly, mask, idx_map, binx, biny):
     event_counts[hash_idx] = 1
     return event_counts
 
-class Polygon:
-    """
-    Represents polygons defined through a collection of vertices.
-
-    This polygon is assumed to be 2d, but could contain an arbitrary number of vertices. The path is treated as not being
-    closed.
-    """
-    def __init__(self, points):
-        # instance members
-        self.points = points
-        self.origin = self.points[0]
-
-        # https://matplotlib.org/3.1.1/api/path_api.html
-        self.path = matplotlib.path.Path(self.points)
-
-    def __str__(self):
-        return str(self.origin)
-
-    def contains(self, points):
-        """ Returns a bool array which is True if the path contains the corresponding point.
-
-        Args:
-            points: 2d numpy array
-
-        """
-        nd_points = np.array(points)
-        if nd_points.ndim == 1:
-            nd_points = nd_points.reshape(1,-1)
-        return self.path.contains_points(nd_points)
-
-    def centroid(self):
-        """ return the centroid of the polygon."""
-        c0, c1 = 0, 0
-        k = len(self.points)
-        for p in self.points:
-            c0 = c0 + p[0]
-            c1 = c1 + p[1]
-        return c0 / k, c1 / k
-
-    def get_xcoords(self):
-        return np.array(self.points)[:,0]
-
-    def get_ycoords(self):
-        return np.array(self.points)[:,1]
-
-    @classmethod
-    def from_great_circle_radius(cls, centroid, radius, num_points=10):
-        """
-        Generates a polygon object from a given radius and centroid location.
-
-        Args:
-            centroid: (lon, lat)
-            radius: should be in (meters)
-            num_points: more points is higher resolution polygon
-
-        Returns:
-            polygon
-        """
-        geod = pyproj.Geod(ellps='WGS84')
-        azim = np.linspace(0, 360, num_points)
-        # create vectors with same length as azim for computations
-        center_lons = np.ones(num_points) * centroid[0]
-        center_lats = np.ones(num_points) * centroid[1]
-        radius = np.ones(num_points) * radius
-        # get new lons and lats
-        endlon, endlat, backaz = geod.fwd(center_lons, center_lats, azim, radius)
-        # class method
-        return cls(np.column_stack([endlon, endlat]))
 
 class CartesianGrid2D:
     """Represents a 2D cartesian gridded region.
@@ -548,12 +511,15 @@ class CartesianGrid2D:
         self.name = name
         a, xs, ys = self._build_bitmask_vec()
         # in mask, True = bad value and False = good value
-        self.bbox_mask = a[:, :, 0]
+        self.bbox_mask = a[:,:,0]
         # contains the mapping from polygon_index to the mask
         self.idx_map = a[:,:,1]
         # index values of polygons array into the 2d cartesian grid, based on the midpoint.
         self.xs = xs
         self.ys = ys
+
+    def __eq__(self, other):
+        return self.to_dict() == other.to_dict()
 
     @property
     def num_nodes(self):
@@ -650,13 +616,36 @@ class CartesianGrid2D:
         adict = {
             'name': str(self.name),
             'dh': float(self.dh),
-            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
+            'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons],
+            'class_id': self.__class__.__name__
         }
         return adict
 
     @classmethod
     def from_dict(cls, adict):
-        raise NotImplementedError("Todo!")
+        """ Creates a region object from a dictionary """
+        origins = adict.get('polygons', None)
+        dh = adict.get('dh', None)
+        magnitudes = adict.get('magnitudes', None)
+        name = adict.get('name', 'CartesianGrid2D')
+
+        if origins is None:
+            raise AttributeError("cannot create region object without origins")
+        if dh is None:
+            raise AttributeError("cannot create region without dh")
+        if origins is not None:
+            try:
+                origins = numpy.array([[adict['lon'], adict['lat']] for adict in origins])
+            except:
+                raise TypeError('origins must be numpy array like.')
+        if magnitudes is not None:
+            try:
+                magnitudes = numpy.array(magnitudes)
+            except:
+                raise TypeError('magnitudes must be numpy array like.')
+
+        out = cls.from_origins(origins, dh=dh, magnitudes=magnitudes, name=name)
+        return out
 
     @classmethod
     def from_origins(cls, origins, dh=None, magnitudes=None, name=None):
@@ -744,8 +733,15 @@ class CartesianGrid2D:
             asc.insert(0, poly_min[0])
             asc.insert(0, poly_min[1])
             poly_max = self.polygons[int(row[argmax])].points
-            desc.append(poly_max[3])
-            desc.append(poly_max[2])
+            lat_0 = poly_max[2][1]
+            lat_1 = poly_max[3][1]
+            # last two points are 'right hand side of polygon'
+            if lat_0 < lat_1:
+                desc.append(poly_max[2])
+                desc.append(poly_max[3])
+            else:
+                desc.append(poly_max[3])
+                desc.append(poly_max[2])
         # close the loop
         poly = np.array(asc + desc)
         sorted_idx = np.sort(np.unique(poly, return_index=True, axis=0)[1], kind='stable')
