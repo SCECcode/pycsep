@@ -115,3 +115,20 @@ number_test_result = catalog_evaluations.number_test(forecast, comcat_catalog)
 # We can create a simple visualization of the number test from the evaluation result class.
 
 ax = number_test_result.plot()
+
+####################################################################################################################################
+# Calculate Kagan's I_1 score 
+# -----------------------
+#
+# We can also get the Kagan's I_1 score (see Kagan, Yan Y. [2009] Testing long-term earthquake forecasts: likelihood methods and error diagrams, Geophys. J. Int., v. 177, pages 532-542.
+
+I_1 = get_Kagan_I1_score(forecast,comcat_catalog)
+print("I_1 score is: ", I_1)
+
+####################################################################################################################################
+# Plot ROC Curves
+# -----------------------
+#
+# We can also plot the Receiver operating characteristic (ROC) Curves based on forecast and testing-catalog
+
+plot_ROC_Curves(forecast, comcat_catalog)
