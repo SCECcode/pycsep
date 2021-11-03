@@ -21,7 +21,7 @@ pyCSEP should:
 2. [Installation](#installation)
 3. [Usage](#usage)
 4. [Contributing](#contributing)
-5. [Change Log](https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.txt)
+5. [Change Log](https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.md)
 6. [Credits](#credits)
 7. [License](#license)
 
