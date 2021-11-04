@@ -729,7 +729,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
         except AttributeError:
             pass
 
-    if extent is None:
+    if extent is None and not set_global:
         dh = (bbox[1] - bbox[0]) / 20.
         dv = (bbox[3] - bbox[2]) / 20.
         extent = [bbox[0] - dh, bbox[1]+dh, bbox[2] -dv, bbox[3] + dv]
@@ -749,13 +749,14 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
 
     if set_global:
         ax.set_global()
+        region_border = False
     else:
         ax.set_extent(extents=extent, crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
 
     # Basemap plotting
     ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders, tile_scaling=tile_scaling,
                       linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
-                      central_latitude=central_latitude)
+                      central_latitude=central_latitude, set_global=set_global)
 
     # Scaling function
     mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
@@ -859,7 +860,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     """
     # Get spatial information for plotting
     bbox = region.get_bbox()
-    if extent is None:
+    if extent is None and not set_global:
         extent = [bbox[0], bbox[1], bbox[2] + region.dh, bbox[3] + region.dh]
 
     # Retrieve plot arguments
@@ -907,13 +908,14 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
 
     if set_global:
         ax.set_global()
+        region_border = False
     else:
         ax.set_extent(extents=extent, crs=ccrs.PlateCarree()) # Defined extent always in lat/lon
 
     # Basemap plotting
     ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
                       linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
-                      central_latitude=central_latitude, tile_scaling=tile_scaling)
+                      central_latitude=central_latitude, tile_scaling=tile_scaling, set_global=set_global)
 
     ## Define colormap and transparency function
     if isinstance(cmap, str) or not cmap:
