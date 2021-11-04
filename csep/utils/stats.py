@@ -2,7 +2,7 @@ import numpy
 import scipy.stats
 import scipy.special
 # PyCSEP imports
-from csep.core.regions import geographical_area_from_bounds
+from csep.core import regions
 
 def sup_dist(cdf1, cdf2):
     """
@@ -240,37 +240,37 @@ def get_Kagan_I1_score(forecasts, catalog):
         N_forecast = 1             # the input forecasts is a single csep.forecast
         forecasts = [forecasts]
     
-    I_1   = np.zeros((N_forecast,), dtype=np.float64)
+    I_1   = numpy.zeros((N_forecast,), dtype=numpy.float64)
     
     for j,forecast in enumerate(forecasts):
         ### GET area for each geological bin (cell)
         bin_lat = forecast.get_latitudes()                   # bin location in forecast
         bin_lon = forecast.get_longitudes()                  # bin location in forecast
         rate    = forecast.spatial_counts()                  # [eq per cell per duration] in forecast
-        lats = np.unique(bin_lat) 
-        lons = np.unique(bin_lon)
-        min_lat = np.min(lats); max_lat = np.max(lats) # get min/max of grids' lat
-        min_lon = np.min(lons); max_lon = np.max(lons) # get min/max of grids' lon
+        lats = numpy.unique(bin_lat) 
+        lons = numpy.unique(bin_lon)
+        min_lat = numpy.min(lats); max_lat = numpy.max(lats) # get min/max of grids' lat
+        min_lon = numpy.min(lons); max_lon = numpy.max(lons) # get min/max of grids' lon
         d_lat = lats[1] - lats[0]                      # get grid interval [d_lat]
         d_lon = lons[1] - lons[0]                      # get grid interval [d_lon]
-        area_km2 = np.zeros(bin_lon.shape, dtype=np.float64) # Initialze
+        area_km2 = numpy.zeros(bin_lon.shape, dtype=numpy.float64) # Initialze
         for i, bot_lat in enumerate(bin_lat):
             bot_lon = bin_lon[i]
             top_lat = bot_lat + d_lat
             top_lon = bot_lon + d_lon
-            area_km2[i] = geographical_area_from_bounds(bot_lon,bot_lat,top_lon,top_lat)
-        total_area = np.sum(area_km2) # Total Area
+            area_km2[i] = regions.geographical_area_from_bounds(bot_lon,bot_lat,top_lon,top_lat)
+        total_area = numpy.sum(area_km2) # Total Area
 
         # Get Rate Density and uniform_forecast of the Forecast
         rateDen = rate/area_km2                      # Rate Density for all bins
-        uniform_forecast = np.sum(rate)/total_area   # Uniform Forecast
+        uniform_forecast = numpy.sum(rate)/total_area   # Uniform Forecast
     
         ### GET I_1 score
         N_event = catalog.event_count         # total number of events of the testing catalog
         catalog.region = forecast.region
         counts = catalog.spatial_counts()
-        nonZero_idx = np.argwhere(rateDen > 0)
+        nonZero_idx = numpy.argwhere(rateDen > 0)
         nonZero_idx = nonZero_idx[:,0]
-        I_1[j] = np.dot(counts[nonZero_idx], np.log2(rateDen[nonZero_idx]/uniform_forecast)) / N_event
+        I_1[j] = numpy.dot(counts[nonZero_idx], numpy.log2(rateDen[nonZero_idx]/uniform_forecast)) / N_event
     
     return I_1
