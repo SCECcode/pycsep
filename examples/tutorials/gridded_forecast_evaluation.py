@@ -100,3 +100,23 @@ csep.write_json(spatial_test_result, 'example_spatial_test.json')
 
 ax = plots.plot_poisson_consistency_test(spatial_test_result,
                                         plot_args={'xlabel': 'Spatial likelihood'})
+
+####################################################################################################################################
+# Calculate Kagan's I_1 score 
+# -----------------------
+#
+# We can also get the Kagan's I_1 score (see Kagan, Yan Y. [2009] Testing long-term earthquake forecasts: likelihood methods and error diagrams, Geophys. J. Int., v. 177, pages 532-542.
+
+from csep.utils.stats import get_Kagan_I1_score
+I_1 = get_Kagan_I1_score(forecast,comcat_catalog)
+print("I_1 score is: ", I_1)
+
+####################################################################################################################################
+# Plot ROC Curves
+# -----------------------
+#
+# We can also plot the Receiver operating characteristic (ROC) Curves based on forecast and testing-catalog.
+# In the figure below, False Positive Rate is the normalized cumulative forecast rate, after sorting cells in decreasing order of rate. The "True Positive Rate" is the normalized cumulative area. The dashed line is the ROC curver of a uniform forecast, meaning the likelihood for an earthquake to occur at any position is the same. The further the ROC curve of a forecast is to the uniform forecast, the specific the forecast is. When comparing the forecast ROC curve against an catalog, one can evaluate if the forecast is more or less specific (or smooth) at different level or seismic rate.
+
+from csep.utils.plots import plot_ROC_Curves
+plot_ROC_Curves(forecast, comcat_catalog)
