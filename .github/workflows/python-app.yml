@@ -24,8 +24,10 @@ jobs:
         sudo apt-get install libproj-dev proj-data proj-bin  
         sudo apt-get install libgeos-dev 
         pip install --upgrade pip
+        pip install setuptools==58.4.0
+        pip install wheel
         pip install numpy
-    - name: Install PyCSEP
+    - name: Install pyCSEP
       run: |
         pip install .[all]
     - name: Test with pytest
