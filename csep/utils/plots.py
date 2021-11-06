@@ -389,7 +389,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         pyplot.show()
     return ax
 
-def plot_ecdf(x, ecdf, axes=None, xv=None, show=False, plot_args = None):
+def plot_ecdf(x, ecdf, axes=None, xv=None, show=False, plot_args=None):
     """ Plots empirical cumulative distribution function.  """
     plot_args = plot_args or {}
     # get values from plotting args
@@ -972,32 +972,56 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the n-test.
 
-
     Args:
         evaluation_result: object-like var that implements the interface of the above EvaluationResult
+        axes (matplotlib.Axes): axes object used to chain this plot
+        show (bool): if true, call pyplot.show()
+        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
+
+    Optional plotting arguments:
+        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
+        * title: (:class:`str`) - default: name of the first evaluation result type
+        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
+        * xlabel: (:class:`str`) - default: 'X'
+        * xlabel_fontsize: (:class:`float`) - default: 10
+        * xticks_fontsize: (:class:`float`) - default: 10
+        * ylabel_fontsize: (:class:`float`) - default: 10
+        * text_fontsize: (:class:`float`) - default: 14
+        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
+        * percentile (:class:`float`) Critial region to shade on histogram - default: 95
+        * bins: (:class:`str`) - Set binning type. see matplotlib.hist for more info - default: 'auto'
+        * xy: (:class:`list`/:class:`tuple`) - default: (0.55, 0.3)
 
     Returns:
         ax (matplotlib.axes.Axes): can be used to modify the figure
 
     """
-    plot_args = plot_args or {}
-    # handle plotting
+
+    # chain plotting axes if requested
     if axes:
         chained = True
     else:
         chained = False
-    # supply fixed arguments to plots
-    # might want to add other defaults here
-    filename = plot_args.get('filename', None)
-    xlabel = plot_args.get('xlabel', 'Event count of catalog')
+
+    # default plotting arguments
+    plot_args = plot_args or {}
+    title = plot_args.get('title', 'Number Test')
+    title_fontsize = plot_args.get('title_fontsize', None)
+    xlabel = plot_args.get('xlabel', 'Event count of catalogs')
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
     ylabel = plot_args.get('ylabel', 'Number of catalogs')
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
+    text_fontsize = plot_args.get('text_fontsize', 14)
+    tight_layout = plot_args.get('tight_layout', True)
+    percentile = plot_args.get('percentile', 95)
+    filename = plot_args.get('filename', None)
+    bins = plot_args.get('bins', 'auto')
     xy = plot_args.get('xy', (0.5, 0.3))
 
+    # set default plotting arguments
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
-    bins = plot_args.get('mag_bins', 'auto')
-    percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
@@ -1012,18 +1036,20 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
                     .format(*evaluation_result.quantile, evaluation_result.observed_statistic),
                     xycoords='axes fraction',
                     xy=xy,
-                    fontsize=14)
+                    fontsize=text_fontsize)
         except:
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
                         .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
-                        fontsize=14)
+                        fontsize=text_fontsize)
 
-    title = plot_args.get('title', evaluation_result.name)
-    ax.set_title(title, fontsize=14)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
+
+    if tight_layout:
+        ax.figure.tight_layout()
 
     if filename is not None:
         ax.figure.savefig(filename + '.pdf')
@@ -1042,31 +1068,54 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args=None)
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the M-test.
 
-
     Args:
-        evaluation_result: object that implements the interface of EvaluationResult
+        evaluation_result: object-like var that implements the interface of the above EvaluationResult
+        axes (matplotlib.Axes): axes object used to chain this plot
+        show (bool): if true, call pyplot.show()
+        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
+
+    Optional plotting arguments:
+        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
+        * title: (:class:`str`) - default: name of the first evaluation result type
+        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
+        * xlabel: (:class:`str`) - default: 'X'
+        * xlabel_fontsize: (:class:`float`) - default: 10
+        * xticks_fontsize: (:class:`float`) - default: 10
+        * ylabel_fontsize: (:class:`float`) - default: 10
+        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
+        * percentile (:class:`float`) Critial region to shade on histogram - default: 95
+        * bins: (:class:`str`) - Set binning type. see matplotlib.hist for more info - default: 'auto'
+        * xy: (:class:`list`/:class:`tuple`) - default: (0.55, 0.6)
 
     Returns:
-        ax (matplotlib.axes.Axes): can be used to modify the figure
+        ax (matplotlib.Axes): containing the new plot
 
     """
     plot_args = plot_args or {}
+    title = plot_args.get('title', 'Magnitude Test')
+    title_fontsize = plot_args.get('title_fontsize', None)
+    xlabel = plot_args.get('xlabel', 'D* Statistic')
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
+    ylabel = plot_args.get('ylabel', 'Number of catalogs')
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
+    tight_layout = plot_args.get('tight_layout', True)
+    percentile = plot_args.get('percentile', 95)
+    text_fontsize = plot_args.get('text_fontsize', 14)
+    filename = plot_args.get('filename', None)
+    bins = plot_args.get('bins', 'auto')
+    xy = plot_args.get('xy', (0.55, 0.6))
+
     # handle plotting
     if axes:
         chained = True
     else:
         chained = False
+
     # supply fixed arguments to plots
     # might want to add other defaults here
-    filename = plot_args.get('filename', None)
-    xy = plot_args.get('xy', (0.55, 0.6))
-    fixed_plot_args = {'xlabel': 'D* Statistic',
-                       'ylabel': 'Number of Catalogs',
-                       'obs_label': evaluation_result.obs_name,
+    fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
-    bins = plot_args.get('bins', 'auto')
-    percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
@@ -1081,17 +1130,22 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args=None)
                         .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
-                        fontsize=14)
+                        fontsize=text_fontsize)
         except TypeError:
             # if both quantiles are provided, we want to plot the greater-equal quantile
             ax.annotate('$\gamma = P(X \geq x) = {:.2f}$\n$\omega = {:.2f}$'
                         .format(evaluation_result.quantile[0], evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
-                        fontsize=14)
+                        fontsize=text_fontsize)
 
-    title = plot_args.get('title', 'Magnitude Test')
-    ax.set_title(title, fontsize=14)
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
+
+    if tight_layout:
+        var = ax.get_figure().tight_layout
+        ()
 
     if filename is not None:
         ax.figure.savefig(filename + '.pdf')
@@ -1151,7 +1205,6 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args=No
 
     title = plot_args.get('title', evaluation_result.name)
     ax.set_title(title, fontsize=14)
-    ax.set_title(title, fontsize=14)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
@@ -1172,15 +1225,43 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the L-test.
 
-
     Args:
         evaluation_result: object-like var that implements the interface of the above EvaluationResult
+        axes (matplotlib.Axes): axes object used to chain this plot
+        show (bool): if true, call pyplot.show()
+        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
+
+    Optional plotting arguments:
+        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
+        * title: (:class:`str`) - default: name of the first evaluation result type
+        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
+        * xlabel: (:class:`str`) - default: 'X'
+        * xlabel_fontsize: (:class:`float`) - default: 10
+        * xticks_fontsize: (:class:`float`) - default: 10
+        * ylabel_fontsize: (:class:`float`) - default: 10
+        * text_fontsize: (:class:`float`) - default: 14
+        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
+        * percentile (:class:`float`) Critial region to shade on histogram - default: 95
+        * bins: (:class:`str`) - Set binning type. see matplotlib.hist for more info - default: 'auto'
+        * xy: (:class:`list`/:class:`tuple`) - default: (0.55, 0.3)
 
     Returns:
         ax (matplotlib.axes.Axes): can be used to modify the figure
-
     """
     plot_args = plot_args or {}
+    title = plot_args.get('title', 'Pseudo-likelihood Test')
+    title_fontsize = plot_args.get('title_fontsize', None)
+    xlabel = plot_args.get('xlabel', 'Pseudo likelihood')
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
+    ylabel = plot_args.get('ylabel', 'Number of catalogs')
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
+    text_fontsize = plot_args.get('text_fontsize', 14)
+    tight_layout = plot_args.get('tight_layout', True)
+    percentile = plot_args.get('percentile', 95)
+    filename = plot_args.get('filename', None)
+    bins = plot_args.get('bins', 'auto')
+    xy = plot_args.get('xy', (0.55, 0.3))
+
     # handle plotting
     if axes:
         chained = True
@@ -1188,14 +1269,9 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None
         chained = False
     # supply fixed arguments to plots
     # might want to add other defaults here
-    filename = plot_args.get('filename', None)
-    fixed_plot_args = {'xlabel': 'Pseudo likelihood',
-                       'ylabel': 'Number of catalogs',
-                       'obs_label': evaluation_result.obs_name,
+    fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
-    bins = plot_args.get('bins', 'auto')
-    percentile = plot_args.get('percentile', 95)
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
@@ -1209,19 +1285,22 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
                         .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                         xycoords='axes fraction',
-                        xy=(0.55, 0.3),
-                        fontsize=14)
+                        xy=xy,
+                        fontsize=text_fontsize)
         except TypeError:
             # if both quantiles are provided, we want to plot the greater-equal quantile
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
                         .format(evaluation_result.quantile[1], evaluation_result.observed_statistic),
                         xycoords='axes fraction',
-                        xy=(0.55, 0.3),
-                        fontsize=14)
+                        xy=xy,
+                        fontsize=text_fontsize)
 
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
 
-    title = plot_args.get('title', 'Likelihood Test')
-    ax.set_title(title, fontsize=14)
+    if tight_layout:
+        ax.figure.tight_layout()
 
     if filename is not None:
         ax.figure.savefig(filename + '.pdf')
@@ -1239,31 +1318,59 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
     Plot spatial test result from catalog based forecast
 
     Args:
-        evaluation_result:
+        evaluation_result: object-like var that implements the interface of the above EvaluationResult
+        axes (matplotlib.Axes): axes object used to chain this plot
+        show (bool): if true, call pyplot.show()
+        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
+
+    Optional plotting arguments:
+        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
+        * title: (:class:`str`) - default: name of the first evaluation result type
+        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
+        * xlabel: (:class:`str`) - default: 'X'
+        * xlabel_fontsize: (:class:`float`) - default: 10
+        * xticks_fontsize: (:class:`float`) - default: 10
+        * ylabel_fontsize: (:class:`float`) - default: 10
+        * text_fontsize: (:class:`float`) - default: 14
+        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
+        * percentile (:class:`float`) Critial region to shade on histogram - default: 95
+        * bins: (:class:`str`) - Set binning type. see matplotlib.hist for more info - default: 'auto'
+        * xy: (:class:`list`/:class:`tuple`) - default: (0.2, 0.6)
 
     Returns:
-
+        ax (matplotlib.axes.Axes): can be used to modify the figure
     """
+
     plot_args = plot_args or {}
+    title = plot_args.get('title', 'Spatial Test')
+    title_fontsize = plot_args.get('title_fontsize', None)
+    xlabel = plot_args.get('xlabel', 'Normalized pseudo-likelihood')
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
+    ylabel = plot_args.get('ylabel', 'Number of catalogs')
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
+    text_fontsize = plot_args.get('text_fontsize', 14)
+    tight_layout = plot_args.get('tight_layout', True)
+    percentile = plot_args.get('percentile', 95)
+    filename = plot_args.get('filename', None)
+    bins = plot_args.get('bins', 'auto')
+    xy = plot_args.get('xy', (0.2, 0.6))
+
     # handle plotting
     if axes:
         chained = True
     else:
         chained = False
+
     # supply fixed arguments to plots
     # might want to add other defaults here
-    filename = plot_args.get('filename', None)
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
-                       'sim_label': evaluation_result.sim_name,
-                       'xlabel': 'Normalized pseudo likelihood',
-                       'ylabel': 'Number of catalogs'}
+                       'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
-    title = plot_args.get('title', 'Spatial Test')
-    percentile = plot_args.get('percentile', 95)
+
     ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
-                        bins='fd',
+                        bins=bins,
                         axes=axes,
                         percentile=percentile)
 
@@ -1273,18 +1380,22 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
                         .format(evaluation_result.quantile, evaluation_result.observed_statistic),
                         xycoords='axes fraction',
-                        xy=(0.2, 0.6),
-                        fontsize=14)
+                        xy=xy,
+                        fontsize=text_fontsize)
         except TypeError:
             # if both quantiles are provided, we want to plot the greater-equal quantile
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
                         .format(evaluation_result.quantile[1], evaluation_result.observed_statistic),
                         xycoords='axes fraction',
-                        xy=(0.2, 0.6),
-                        fontsize=14)
+                        xy=xy,
+                        fontsize=text_fontsize)
 
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
 
-    ax.set_title(title, fontsize=14)
+    if tight_layout:
+        ax.figure.tight_layout()
 
     if filename is not None:
         ax.figure.savefig(filename + '.pdf')
