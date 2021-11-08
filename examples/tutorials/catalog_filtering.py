@@ -24,6 +24,7 @@ Overview:
 import csep
 from csep.core import regions
 from csep.utils import time_utils, comcat
+# sphinx_gallery_thumbnail_path = '_static/CSEP2_Logo_CMYK.png'
 
 ####################################################################################################################################
 # Load catalog
@@ -55,7 +56,8 @@ print(catalog)
 # We need to define desired start and end times for the catalog using a time-string format. PyCSEP uses integer times for doing
 # time manipulations. Time strings can be converted into integer times using
 # :func:`csep.utils.time_utils.strptime_to_utc_epoch`. The :meth:`csep.core.catalog.AbstractBaseCatalog.filter` also
-# accepts a list of strings to apply multiple filters.
+# accepts a list of strings to apply multiple filters. Note: The number of events may differ if this script is ran
+# at a later date than shown in this example.
 
 # create epoch times from time-string formats
 start_epoch = csep.utils.time_utils.strptime_to_utc_epoch('2019-07-06 03:19:54.040000')
