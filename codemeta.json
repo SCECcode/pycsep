@@ -1,0 +1,46 @@
+{
+    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+    "@type": "SoftwareSourceCode",
+    "license": "https://spdx.org/licenses/BSD-3-Clause",
+    "codeRepository": "https://github.com/sceccode/pycsep.git",
+    "dateCreated": "2021-10-31",
+    "datePublished": "2020-10-20",
+    "dateModified": "2021-04-02",
+    "downloadUrl": "https://github.com/sceccode/pycsep",
+    "issueTracker": "https://github.com/sceccode/pycsep/issues",
+    "name": "PyCSEP",
+    "version": "0.4.0",
+    "description": "The PyCSEP Toolkit helps earthquake forecast model developers evaluate their forecasts with the goal of understanding earthquake predictability.",
+    "applicationCategory": "Seismology",
+    "developmentStatus": "active",
+    "funder": {
+        "@type": "Organization",
+        "name": "Southern California Earthquake Center"
+    },
+    "keywords": [
+        "earthquake",
+        "forecasting",
+        "validation"
+    ],
+    "programmingLanguage": [
+        "Python 3"
+    ],
+    "softwareRequirements": [
+        "Python 3.7 or later (https://python.org)",
+        "NumPy 1.10 or later (https://numpy.org)",
+        "GEOS 3.3.3 or later (https://trac.osgeo.org/geos/)",
+        "PROJ 4.9.0 or later (https://proj4.org/)"
+    ],
+    "author": [
+        {
+            "@type": "Person",
+            "givenName": "William",
+            "familyName": "Savran",
+            "email": "wsavran@usc.edu",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "University of Southern California"
+            }
+        }
+    ]
+}

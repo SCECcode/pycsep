@@ -535,6 +535,8 @@ class CatalogForecast(LoggingMixin):
         # should be a MarkedGriddedDataSet
         self.expected_rates = expected_rates
 
+        self._event_counts = []
+
         # defines the space, time, and magnitude region of the forecasts
         self.region = region
 
@@ -606,6 +608,8 @@ class CatalogForecast(LoggingMixin):
             if self.filter_spatial:
                 catalog = catalog.filter_spatial(self.region)
 
+        self._event_counts.append(catalog.event_count)
+
         if is_generator and self.store:
             self._catalogs.append(catalog)
 
@@ -647,6 +651,22 @@ class CatalogForecast(LoggingMixin):
         else:
             return None
 
+    def get_event_counts(self):
+        """ Returns a numpy array containing the number of event counts for each catalog.
+
+            Note: This function can take a while to compute if called without already iterating through a forecast that
+            is being stored on disk. This should only happen to large forecasts that have been initialized with
+            store = False. This should only happen on the first iteration of the catalog.
+
+            Returns:
+                (numpy.array): event counts with size equal of catalogs in forecast
+        """
+        if len(self._event_counts) == 0:
+            # event counts is filled while iterating over the catalog
+            for _ in self:
+                pass
+        return numpy.array(self._event_counts)
+
     def get_expected_rates(self, verbose=False):
         """ Compute the expected rates in space-magnitude bins
 
@@ -686,10 +706,10 @@ class CatalogForecast(LoggingMixin):
                                                   magnitudes=self.magnitudes, name=self.name)
             return self.expected_rates
 
-    def plot(self, plot_args = None, **kwargs):
+    def plot(self, plot_args = None, verbose=True, **kwargs):
         plot_args = plot_args or {}
         if self.expected_rates is None:
-            self.get_expected_rates()
+            self.get_expected_rates(verbose=verbose)
         args_dict = {'title': self.name,
                      'grid_labels': True,
                      'grid': True,

@@ -3,6 +3,7 @@
 
 import numpy
 import scipy.stats
+import scipy.spatial
 
 from csep.models import EvaluationResult
 from csep.utils.stats import poisson_joint_log_likelihood_ndarray

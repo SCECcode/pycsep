@@ -51,8 +51,10 @@ class TestCatalogForecastCreation(unittest.TestCase):
         self.assertEqual(10, test_fore.n_cat)
         numpy.testing.assert_array_equal([cat.catalog_id for cat in test_fore], numpy.arange(10))
 
-    def test_ascii_all_present(self):
-        pass
+    def test_get_event_counts(self):
+        fname = os.path.join(get_test_catalog_root(), 'all_present.csv')
+        test_fore = load_catalog_forecast(fname)
+        numpy.testing.assert_array_equal(numpy.ones(10), test_fore.get_event_counts())
 
 if __name__ == '__main__':
     unittest.main()

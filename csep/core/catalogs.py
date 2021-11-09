@@ -14,6 +14,7 @@ from csep.utils.time_utils import epoch_time_to_utc_datetime, datetime_to_utc_ep
     millis_to_days, parse_string_format, days_to_millis, strptime_to_utc_epoch, utc_now_datetime, create_utc_datetime
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
+from csep.core.regions import CartesianGrid2D
 from csep.utils.comcat import SummaryEvent
 from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException, CSEPIOException
 from csep.utils.calc import bin1d_vec
@@ -22,6 +23,7 @@ from csep.utils.log import LoggingMixin
 from csep.utils.readers import csep_ascii
 from csep.utils.file import get_file_extension
 from csep.utils.plots import plot_catalog
+
 
 class AbstractBaseCatalog(LoggingMixin):
     """
@@ -147,13 +149,17 @@ class AbstractBaseCatalog(LoggingMixin):
         This needs to handle reading in region information at some point.
         """
 
+        region_loader = {
+            'CartesianGrid2D': CartesianGrid2D
+        }
+
         # could these be class values? can be changed later.
-        exclude = ['_catalog']
+        exclude = ['_catalog', 'region']
         time_members = ['date_accessed', 'start_time', 'end_time']
         catalog = adict.get('catalog', None)
-
         out = cls(data=catalog, **kwargs)
 
+        # here we are looping over the items in the class and finding the associated value in the dict
         for k, v in out.__dict__.items():
             if k not in exclude:
                 if k not in time_members:
@@ -163,6 +169,16 @@ class AbstractBaseCatalog(LoggingMixin):
                         pass
                 else:
                     setattr(out, k, _none_or_datetime(adict[k]))
+            else:
+                if k == 'region':
+                    # tries to read class id from catalog, should fail silently if catalog doesn't exist
+                    try:
+                        class_id = adict[k].get('class_id', None)
+                        if class_id is None:
+                            class_id = 'CartesianGrid2D'
+                        setattr(out, k, region_loader[class_id].from_dict(adict[k]))
+                    except AttributeError:
+                        pass
         return out
 
     @classmethod

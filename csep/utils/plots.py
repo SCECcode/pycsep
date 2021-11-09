@@ -2,6 +2,8 @@ import time
 
 # Third-party imports
 import numpy
+import string
+
 import scipy.stats
 import matplotlib
 from matplotlib import cm
@@ -694,6 +696,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     # scatter properties
     markersize = plot_args.get('markersize', 2)
     markercolor = plot_args.get('markercolor', 'blue')
+    markeredgecolor = plot_args.get('markeredgecolor', 'black')
     alpha = plot_args.get('alpha', 1)
     mag_scale = plot_args.get('mag_scale', 1)
     legend = plot_args.get('legend', False)
@@ -705,6 +708,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     mag_ticks = plot_args.get('mag_ticks', False)
     labelspacing = plot_args.get('labelspacing', 1)
     region_border = plot_args.get('region_border', True)
+    legend_borderpad = plot_args.get('legend_borderpad', 0.4)
     # cartopy properties
     projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
     basemap = plot_args.get('basemap', None)
@@ -768,6 +772,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
                            s=size_map(markersize, catalog.get_magnitudes(), mag_scale),
                            transform=cartopy.crs.PlateCarree(),
                            color=markercolor,
+                           edgecolors=markeredgecolor,
                            alpha=alpha)
 
     # Legend
@@ -782,7 +787,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
                                                   alpha=0.3)
         ax.legend(handles, numpy.round(mag_ticks, 1),
                   loc=legend_loc, title=legend_title, fontsize=legend_fontsize, title_fontsize=legend_titlesize,
-                  labelspacing=labelspacing, handletextpad=5, framealpha=legend_framealpha)
+                  labelspacing=labelspacing, handletextpad=5, borderpad=legend_borderpad, framealpha=legend_framealpha)
 
     if region_border:
         try:
@@ -1342,6 +1347,9 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
     linewidth = plot_args.get('linewidth', 1)
     markersize = plot_args.get('markersize', 2)
     percentile = plot_args.get('percentile', 95)
+    xticklabels_rotation = plot_args.get('xticklabels_rotation', 90)
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', 12)
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', 12)
 
     if axes is None:
         fig, ax = pyplot.subplots(figsize=figsize)
@@ -1374,10 +1382,10 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
             facecolor = 'white'
         ax.plot(index, result_t.observed_statistic, marker='o', markerfacecolor=facecolor, markeredgecolor=color, markersize=markersize)
 
-    ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=90)
+    ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=xticklabels_rotation, fontsize=xlabel_fontsize)
     ax.set_xticks(numpy.arange(len(results_t)))
     ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
     ax.set_title(title)
     ax.yaxis.grid()
     xTickPos = ax.get_xticks()
@@ -1603,3 +1611,17 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
         pyplot.show()
 
     return ax
+
+def add_labels_for_publication(figure, style='bssa', labelsize=16):
+    """ Adds publication labels too the outside of a figure. """
+    all_axes = figure.get_axes()
+    ascii_iter = iter(string.ascii_lowercase)
+    for ax in all_axes:
+        # check for colorbar and ignore for annotations
+        if ax.get_label() == 'Colorbar':
+            continue
+        annot = next(ascii_iter)
+        if style == 'bssa':
+            ax.annotate(f'({annot})', (0.025, 1.025), xycoords='axes fraction', fontsize=labelsize)
+
+    return
