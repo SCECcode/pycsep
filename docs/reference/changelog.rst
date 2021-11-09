@@ -1,6 +1,0 @@
-Changelog
-=========
-
-Package change log.
-
-

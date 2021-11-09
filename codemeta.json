@@ -5,12 +5,12 @@
     "codeRepository": "https://github.com/sceccode/pycsep.git",
     "dateCreated": "2021-10-31",
     "datePublished": "2020-10-20",
-    "dateModified": "2021-04-02",
+    "dateModified": "2021-11-03",
     "downloadUrl": "https://github.com/sceccode/pycsep",
     "issueTracker": "https://github.com/sceccode/pycsep/issues",
-    "name": "PyCSEP",
-    "version": "0.4.0",
-    "description": "The PyCSEP Toolkit helps earthquake forecast model developers evaluate their forecasts with the goal of understanding earthquake predictability.",
+    "name": "pyCSEP",
+    "version": "0.5.0",
+    "description": "The pyCSEP Toolkit helps earthquake forecast model developers evaluate their forecasts with the goal of understanding earthquake predictability.",
     "applicationCategory": "Seismology",
     "developmentStatus": "active",
     "funder": {
@@ -27,9 +27,12 @@
     ],
     "softwareRequirements": [
         "Python 3.7 or later (https://python.org)",
-        "NumPy 1.10 or later (https://numpy.org)",
-        "GEOS 3.3.3 or later (https://trac.osgeo.org/geos/)",
-        "PROJ 4.9.0 or later (https://proj4.org/)"
+        "NumPy 1.21.3 or later (https://numpy.org)",
+        "SciPy 1.7.1 or later (https://scipy.org)",
+        "pandas 1.3.4 or later (https://pandas.pydata.org)",
+        "cartopy 0.20.0 or later (https://scitools.org.uk/cartopy/docs/latest)",
+        "GEOS 3.7.2 or later (https://trac.osgeo.org/geos/)",
+        "PROJ 8.0.0 or later (https://proj.org/)"
     ],
     "author": [
         {
