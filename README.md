@@ -2,7 +2,7 @@
 ![](https://i.postimg.cc/Bb60rVQP/CSEP2-Logo-CMYK.png)
 <p align=center>
     <a target="_blank" href="https://python.org" title="Python version"><img src="https://gist.githubusercontent.com/wsavran/efce311162c32460336a4f9892218532/raw/1b9c060efd1c6e52eb53f82d4249107417d6a5ec/pycsep_python_badge.svg">
-    <a target="_blank" href="https://pypi.org/project/pycsep"><img src="https://img.shields.io/pypi/dm/pycsep">
+    <a target="_blank" href="https://pypi.org/project/pycsep"><img src="https://anaconda.org/conda-forge/pycsep/badges/downloads.svg">
     <a target="_blank" href="https://github.com/SCECcode/pycsep/actions"><img src="https://github.com/SCECCode/pycsep/workflows/Python%20application/badge.svg">
     <a target="_blank" href="https://github.com/SCECcode/pycsep/actions"><img src="https://github.com/SCECCode/csep2/workflows/Build%20sphinx%20documentation/badge.svg">
     <a target="_blank" href="https://codecov.io/gh/SCECcode/pycsep"><img src="https://codecov.io/gh/SCECcode/pycsep/branch/master/graph/badge.svg?token=HTMKM29MAU">
