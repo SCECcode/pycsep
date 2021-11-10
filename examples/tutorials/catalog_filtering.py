@@ -24,7 +24,6 @@ Overview:
 import csep
 from csep.core import regions
 from csep.utils import time_utils, comcat
-# sphinx_gallery_thumbnail_path = '_static/CSEP2_Logo_CMYK.png'
 
 ####################################################################################################################################
 # Load catalog
