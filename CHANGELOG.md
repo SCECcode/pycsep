@@ -1,4 +1,4 @@
-# v0.4.2 (11/03/2021)
+# v0.5.0 (11/03/2021)
 
 ## Change-log
 - Removed normalization of rates on CL-Test (#117)
