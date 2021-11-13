@@ -883,6 +883,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     linecolor = plot_args.get('linecolor', 'black')
     region_border = plot_args.get('region_border', True)
     # color bar properties
+    include_cbar = plot_args.get('include_cbar', True)
     cmap = plot_args.get('cmap', None)
     clim = plot_args.get('clim', None)
     clabel = plot_args.get('clabel', None)
@@ -937,11 +938,12 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     # Colorbar options
     # create an axes on the right side of ax. The width of cax will be 5%
     # of ax and the padding between cax and ax will be fixed at 0.05 inch.
-    cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height],
-                       label='Colorbar')
-    cbar = fig.colorbar(im, ax=ax, cax=cax)
-    cbar.set_label(clabel, fontsize=clabel_fontsize)
-    cbar.ax.tick_params(labelsize=cticks_fontsize)
+    if include_cbar:
+        cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height],
+                           label='Colorbar')
+        cbar = fig.colorbar(im, ax=ax, cax=cax)
+        cbar.set_label(clabel, fontsize=clabel_fontsize)
+        cbar.ax.tick_params(labelsize=cticks_fontsize)
 
     # Gridline options
     if grid:

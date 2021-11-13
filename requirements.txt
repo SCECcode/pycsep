@@ -9,7 +9,7 @@ python-dateutil
 pytest
 vcrpy
 pytest-cov
-sphinx == 4.2.0
+sphinx
 sphinx-gallery
 sphinx-rtd-theme
 pillow
