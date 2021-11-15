@@ -211,7 +211,7 @@ Region utilities:
     increase_grid_resolution
     masked_region
     generate_aftershock_region
-    Polygon
+    california_relm_region
 
 
 Plotting
@@ -227,6 +227,8 @@ General plotting:
    plot_histogram
    plot_ecdf
    plot_basemap
+   plot_spatial_dataset
+   add_labels_for_publication
 
 Plotting from catalogs:
 
@@ -236,7 +238,7 @@ Plotting from catalogs:
    plot_magnitude_versus_time
    plot_catalog
 
-Plotting from stochastic event sets:
+Plotting stochastic event sets and evaluations:
 
 .. autosummary::
    :toctree: generated
@@ -248,6 +250,7 @@ Plotting from stochastic event sets:
    plot_distribution_test
    plot_likelihood_test
    plot_spatial_test
+   plot_calibration_test
 
 Plotting gridded forecasts and evaluations:
 
