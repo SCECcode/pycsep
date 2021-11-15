@@ -21,16 +21,16 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'PyCSEP'
+project = 'pyCSEP'
 author = 'William Savran'
 
 html_show_copyright = False
 html_show_sphinx = False
 
 # The short X.Y version
-version = 'v0.4'
+version = 'v0.5'
 # The full version, including alpha/beta/rc tags
-release = 'v0.4.1'
+release = 'v0.5.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -110,20 +110,24 @@ html_theme_options = {}
 html_context = {
     "github_links": [
         (
+            'Getting help',
+            "https://github.com/SCECCode/pycsep/issues"
+        ),
+        (
+            'Change log',
+            "https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.md"
+        ),
+        (
             'Contributing',
-            "https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md",
+            "https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md"
         ),
         (
             'Code of Conduct',
-            "https://github.com/SCECcode/pycsep/blob/master/CODE_OF_CONDUCT.md",
+            "https://github.com/SCECcode/pycsep/blob/master/CODE_OF_CONDUCT.md"
         ),
         (
             'License',
-            "https://github.com/SCECcode/pycsep/blob/master/LICENSE",
-        ),
-        (
-            'Getting help',
-            "https://github.com/SCECCode/pycsep/issues",
+            "https://github.com/SCECcode/pycsep/blob/master/LICENSE"
         ),
         (
             'Source Code',
@@ -135,7 +139,7 @@ html_context = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ["_static"]
+html_static_path = ["_static"]
 
 # These paths are either relative to html_static_path
 # or fully qualified paths (eg. https://...)
@@ -213,7 +217,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'pycsep', 'PyCSEP Documentation',
+    (master_doc, 'pycsep', 'pyCSEP Documentation',
      [author], 1)
 ]
 
@@ -224,7 +228,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'pycsep', 'PyCSEP Documentation',
+    (master_doc, 'pycsep', 'pyCSEP Documentation',
      author, 'William Savran', 'Python tools for earthquake forecast evaluation.',
      'Miscellaneous'),
 ]

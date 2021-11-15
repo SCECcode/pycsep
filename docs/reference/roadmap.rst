@@ -4,10 +4,16 @@
 Development Roadmap
 ###################
 
-1. Include simple examples that people should be able work through by hand
-2. Example scripts and/or programs that expand on the tutorials to show users how to complete more complex end-to-end
-   processing tasks
-3. Expand the :mod:`regions<csep.core.regions>` to accommodate more complex regions, such as a quad-tree or triangulated
-   mesh.
+This page contains expected changes for new releases of `pyCSEP`.
+Last updated 3 November 2021.
+
+v0.6.0
+======
+
+1. Include receiver operating characteristic (ROC) curve
+2. Kagan I1 score
+3. Add function to plot spatial log-likelihood scores
+4. Add documentation section to explain maths of CSEP tests
+
 
 
