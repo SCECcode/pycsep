@@ -1,3 +1,16 @@
+# v0.5.1 (11/15/2021)
+
+## Change-log
+Modified plot_spatial_dataset and plot_catalog to correctly handle Global plots (#150)  
+Updated plot_customizations example in the docs (#150)  
+Added DOI badge and conda downloads badge (#156)  
+Added plotting args to catalog evaluation plots (#154)  
+Add option to ignore colorbar in spatial dataset plots (#154)
+
+## Credits
+William Savran (@wsavran)  
+Pablo Iturrieta (@pabloitu)
+
 # v0.5.0 (11/03/2021)
 
 ## Change-log

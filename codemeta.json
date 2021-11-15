@@ -9,7 +9,7 @@
     "downloadUrl": "https://github.com/sceccode/pycsep",
     "issueTracker": "https://github.com/sceccode/pycsep/issues",
     "name": "pyCSEP",
-    "version": "0.5.0",
+    "version": "v0.5.1",
     "description": "The pyCSEP Toolkit helps earthquake forecast model developers evaluate their forecasts with the goal of understanding earthquake predictability.",
     "applicationCategory": "Seismology",
     "developmentStatus": "active",
