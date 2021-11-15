@@ -749,7 +749,20 @@ class CartesianGrid2D:
         unique_poly = np.append(unique_poly, [unique_poly[0, :]], axis=0)
         return unique_poly
 
-def geographical_area_from_bounds(lon1,lat1,lon2,lat2):
+    def get_cell_area(self):
+        """ Compute the area of each polygon in sq. kilometers.
+
+            Returns:
+                out (numpy.array): numpy array containing cell area in km^2
+        """
+        area = numpy.zeros(self.num_nodes)
+        for idx, origin in enumerate(self.origins()):
+            top_right = origin + self.dh
+            area[idx] = geographical_area_from_bounds(origin[0], origin[1], top_right[0], top_right[1])
+        return area
+
+
+def geographical_area_from_bounds(lon1, lat1, lon2, lat2):
     """
     Computes area of spatial cell identified by origin coordinate and top right cooridnate.
     The functions computes area only for square/rectangle bounding box by based on spherical earth assumption.

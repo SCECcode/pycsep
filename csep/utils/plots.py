@@ -1728,97 +1728,144 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
 
     return ax
 
-def plot_ROC_Curves(forecasts, catalog, axes=None, name=None, savepdf=False, savepng=False):
+def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True, savepng=True, show=True,
+                    plot_args=None):
     """
-    Plot Receiver operating characteristic (ROC) Curves based on forecast and testing-catalog
+    Plot Receiver operating characteristic (ROC) Curves based on forecast and test catalog.
 
-    Written by Han Bao, UCLA, March 2021. Modified June 2021.
+    The ROC is computed following this procedure:
+        (1) Obtain spatial rates from GriddedForecast
+        (2) Rank the rates in descending order (highest rates first).
+        (3) Sort forecasted rates by ordering found in (2), and normalize rates so the cumulative sum equals unity.
+        (4) Obtain binned spatial rates from observed catalog
+        (5) Sort gridded observed rates by ordering found in (2), and normalize so the cumulative sum equals unity.
+        (6) Compute spatial bin areas, sort by ordering found in (2), and normalize so the cumulative sum equals unity.
+        (7) Plot ordered and cumulated rates (forecast and catalog) against ordered and cumulated bin areas.
 
     Note that: 
-        (1) the testing catalog and forecast should have exactly the same time-window (duration)
-        
+        (1) The testing catalog and forecast should have exactly the same time-window (duration)
+        (2) Forecasts should be defined over the same region
+        (3) If calling this function multiple times, update the color in plot_args
+
     Args:
-        forecasts:  csep.forecast or a list of csep.forecast (one catalog to test against different forecasts)
-        catalog:    csep.catalog (:class:`CSEPCatalog`)
-        axes:       Previously defined ax object (:class:`matplotlib.pyplot.ax`)
-        name:       Title of the figure (:class: `string`)
-        savepdf:    output option of pdf file
-        savepng:    output option of png file
-        
+        forecast (:class: `csep.forecast.GriddedForecast`):
+        catalog (:class:`AbstractBaseCatalog`): evaluation catalog
+        axes (:class:`matplotlib.pyplot.ax`): Previously defined ax object
+        savepdf (str):    output option of pdf file
+        savepng (str):    output option of png file
+        plot_uniform (bool): if true, include uniform forecast on plot
+
+        Optional plotting arguments:
+            * figsize: (:class:`list`/:class:`tuple`) - default: [9, 8]
+            * forecast_linecolor: (:class:`str`) - default: 'black'
+            * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 18
+            * forecast_linecolor: (:class:`str`) - default: 'black'
+            * forecast_linestyle: (:class:`str`) - default: '-'
+            * observed_linecolor: (:class:`str`) - default: 'blue'
+            * observed_linestyle: (:class:`str`) - default: '-'
+            * forecast_label: (:class:`str`) - default: Observed (Forecast)
+            * legend_fontsize: (:class:`float`) Fontsize of the plot title - default: 16
+            * legend_loc: (:class:`str`) - default: 'upper left'
+            * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 18
+            * label_fontsize: (:class:`float`) Fontsize of the plot title - default: 14
+            * title: (:class:`str`) - default: 'ROC Curve'
+            * filename: (:class:`str`) - default: roc_curve.
+
     Returns:
         :class:`matplotlib.pyplot.ax` object
-        
+
+    Raises:
+        TypeError: throws error if CatalogForecast-like object is provided
+        RuntimeError: throws error if Catalog and Forecast do not have the same region
+
+        Written by Han Bao, UCLA, March 2021. Modified June 2021.
     """
-    ### Determine if input 'forecasts' is a list of csep.forecasts or a single csep.forecasts
-    try:
-        N_forecast = len(forecasts) # the input forecasts is a list of csep.forecast
-    except:  
-        N_forecast = 1             # the input forecasts is a single csep.forecast
-        forecasts = [forecasts]
-    
-    cats_norm_sorted   = numpy.zeros((N_forecast,len(forecasts[0].spatial_counts())), dtype=numpy.float64) # initialze 
-    
-    for j,forecast in enumerate(forecasts):
-        ### GET area for each geological bin (cell)
-        bin_lat = forecast.get_latitudes()                   # bin location in forecast
-        bin_lon = forecast.get_longitudes()                  # bin location in forecast
-        rate    = forecast.spatial_counts()                  # [eq per cell per duration] in forecast
-        lats = numpy.unique(bin_lat) 
-        lons = numpy.unique(bin_lon)
-        min_lat = numpy.min(lats); max_lat = numpy.max(lats) # get min/max of grids' lat
-        min_lon = numpy.min(lons); max_lon = numpy.max(lons) # get min/max of grids' lon
-        d_lat = lats[1] - lats[0]                      # get grid interval [d_lat]
-        d_lon = lons[1] - lons[0]                      # get grid interval [d_lon]
+    if not catalog.region == forecast.region:
+        raise RuntimeError("catalog region and forecast region must be identical.")
 
-        area_km2 = numpy.zeros(bin_lon.shape, dtype=numpy.float64) # Initialze
-        for i, bot_lat in enumerate(bin_lat):
-            bot_lon = bin_lon[i]
-            top_lat = bot_lat + d_lat
-            top_lon = bot_lon + d_lon
-            area_km2[i] = regions.geographical_area_from_bounds(bot_lon,bot_lat,top_lon,top_lat)
+    # Parse plotting arguments
+    plot_args = plot_args or {}
+    figsize = plot_args.get('figsize', (9, 8))
+    forecast_linecolor = plot_args.get('forecast_linecolor', 'black')
+    forecast_linestyle = plot_args.get('forecast_linestyle', '-')
+    observed_linecolor = plot_args.get('observed_linecolor', 'blue')
+    observed_linestyle = plot_args.get('observed_linestyle', '-')
+    legend_fontsize = plot_args.get('legend_fontsize', 16)
+    legend_loc = plot_args.get('legend_loc', 'upper left')
+    title_fontsize = plot_args.get('title_fontsize', 18)
+    label_fontsize = plot_args.get('label_fontsize', 14)
+    filename = plot_args.get('filename', 'roc_figure')
+    title = plot_args.get('title', 'ROC Curve')
 
-        # Get normalized & sorted [prob] (probability) and [area]
-        I = numpy.argsort(rate)             # get index of ascending sort
-        I = numpy.flip(I)                   # get index of descending sort
-        area_norm_sorted = numpy.cumsum(area_km2[I])/ numpy.sum(area_km2)
-        prob_norm_sorted = numpy.cumsum(rate[I])    / numpy.sum(rate)
-    
-        ### GET information score contribution from each testing catalog
-        evt_lat = catalog.get_latitudes()    # event location in the testing catalog
-        evt_lon = catalog.get_longitudes()   # event location in the testing catalog
-        N_event = catalog.event_count        # total number of events of the testing catalog
-        
-        catalog.region = forecast.region
-        evt_counts = catalog.spatial_counts()
-        cats_norm_sorted[j,:] = numpy.cumsum(evt_counts[I])/numpy.sum(evt_counts)
-    
-    
-    ### PLOT ROC Curves
+    # Plot catalog ordered by forecast rates
+    name = forecast.name
+    if not name:
+        name = ''
+    else:
+        name = f'({name})'
+
+    forecast_label = plot_args.get('forecast_label', f'Forecast {name}')
+    observed_label = plot_args.get('observed_label', f'Observed {name}')
+
+    # Initialize figure
     if axes is not None:
         ax = axes
     else:
-        fig, ax = pyplot.subplots(figsize=(9,8))
-    
-    ax.plot(area_norm_sorted,area_norm_sorted,'k--', label='Uniform') # [area_norm_sorted, area_norm_sorted] '--'
-    ax.plot(area_norm_sorted,prob_norm_sorted,'k-' , label='Forecast')  # [area_norm_sorted, prob_norm_sorted] '-'
-    for j in numpy.arange(N_forecast):
-        ax.step(area_norm_sorted,cats_norm_sorted[j,:], label=f"Catalog {j+1}")  
-    ax.set_ylabel("True Positive Rate",fontsize=18)
-    ax.set_xlabel('False Positive Rate (Normalized Area)',fontsize=18)
-    ax.set_xscale('log')
+        fig, ax = pyplot.subplots(figsize=figsize)
 
-    legend = ax.legend(loc='upper left', shadow=True, fontsize='x-large')
-    
-    if name is None:
-        name='ROC Curves'
-    fig.suptitle(name,fontsize=18)
-    
-    if savepdf:
-        outFile = "{}.pdf".format(name)
-        pyplot.savefig(outFile,format='pdf')
-    if savepng:
-        outFile = "{}.png".format(name)
-        pyplot.savefig(outFile,format='png')
+    # This part could be vectorized if optimizations become necessary
+    # Initialize array to store cell area in km^2
+    area_km2 = catalog.region.get_cell_area()
+    obs_counts = catalog.spatial_counts()
+
+    # Obtain rates (or counts) aggregated in spatial cells
+    # If CatalogForecast, needs expected rates. Might take some time to compute.
+    rate = forecast.spatial_counts()
+
+    # Get index of rates (descending sort)
+    I = numpy.argsort(rate)
+    I = numpy.flip(I)
+
+    # Order forecast and cells rates by highest rate cells first
+    fore_norm_sorted = numpy.cumsum(rate[I]) / numpy.sum(rate)
+    area_norm_sorted = numpy.cumsum(area_km2[I]) / numpy.sum(area_km2)
+
+    # Compute normalized and sorted rates of observations
+    obs_norm_sorted = numpy.cumsum(obs_counts[I]) / numpy.sum(obs_counts)
+
+    # Plot uniform forecast
+    if plot_uniform:
+        ax.plot(area_norm_sorted, area_norm_sorted, 'k--', label='Uniform')
+
+    # Plot sorted and normalized forecast (descending order)
+    ax.plot(area_norm_sorted, fore_norm_sorted,
+            label=forecast_label,
+            color=forecast_linecolor,
+            linestyle = forecast_linestyle)
+
+    # Plot cell-wise rates of observed catalog ordered by forecast rates (descending order)
+    ax.step(area_norm_sorted, obs_norm_sorted,
+            label=observed_label,
+            color=observed_linecolor,
+            linestyle = observed_linestyle)
+
+    # Plotting arguments
+    ax.set_ylabel("True Positive Rate", fontsize=label_fontsize)
+    ax.set_xlabel('False Positive Rate (Normalized Area)', fontsize=label_fontsize)
+    ax.set_xscale('log')
+    ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
+    ax.set_title(title, fontsize=title_fontsize)
+
+    if filename:
+        if savepdf:
+            outFile = "{}.pdf".format(filename)
+            pyplot.savefig(outFile, format='pdf')
+        if savepng:
+            outFile = "{}.png".format(filename)
+            pyplot.savefig(outFile,format='png')
+
+    if show:
+        pyplot.show()
     return ax
     
 def add_labels_for_publication(figure, style='bssa', labelsize=16):

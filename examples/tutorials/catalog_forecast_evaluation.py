@@ -24,7 +24,7 @@ Overview:
 
 import csep
 from csep.core import regions, catalog_evaluations
-from csep.utils import datasets, time_utils
+from csep.utils import datasets, time_utils, plots
 
 ####################################################################################################################################
 # Define start and end times of forecast
@@ -86,14 +86,13 @@ forecast.filters = [f'origin_time >= {forecast.start_epoch}', f'origin_time < {f
 # requires a region with magnitude information.
 #
 # We need to filter the ComCat catalog to be consistent with the forecast. This can be done either through the ComCat API
-# or using catalog filtering strings. Here we'll use the Comcat API to make the data access quicker for this example. We
+# or using catalog filtering strings. Here we'll use the ComCat API to make the data access quicker for this example. We
 # still need to filter the observed catalog in space though.
 
 # Obtain Comcat catalog and filter to region.
 comcat_catalog = csep.query_comcat(start_time, end_time, min_magnitude=forecast.min_magnitude)
 
 # Filter observed catalog using the same region as the forecast
-
 comcat_catalog = comcat_catalog.filter_spatial(forecast.region)
 print(comcat_catalog)
 
@@ -115,3 +114,20 @@ number_test_result = catalog_evaluations.number_test(forecast, comcat_catalog)
 # We can create a simple visualization of the number test from the evaluation result class.
 
 ax = number_test_result.plot()
+
+####################################################################################################################################
+# Plot ROC Curves
+# -----------------------
+#
+# We can also plot the Receiver operating characteristic (ROC) Curves based on forecast and testing-catalog.
+# In the figure below, False Positive Rate is the normalized cumulative forecast rate, after sorting cells in decreasing order of rate.
+# The "True Positive Rate" is the normalized cumulative area. The dashed line is the ROC curver of a uniform forecast,
+# meaning the likelihood for an earthquake to occur at any position is the same. The further the ROC curve of a
+# forecast is to the uniform forecast, the specific the forecast is. When comparing the
+# forecast ROC curve against an catalog, one can evaluate if the forecast is more or less specific
+# (or smooth) at different level or seismic rate.
+#
+# Note: This figure just shows an example of plotting an ROC curve with a catalog forecast.
+
+print("Plotting ROC curve")
+plots.plot_ROC(forecast, comcat_catalog)

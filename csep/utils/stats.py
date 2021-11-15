@@ -213,64 +213,59 @@ def get_Kagan_I1_score(forecasts, catalog):
     A program for scoring (I_1) earthquake-forecast grids by the methods of:
     Kagan, Yan Y. [2009] Testing long-term earthquake forecasts: likelihood methods
                          and error diagrams, Geophys. J. Int., v. 177, pages 532-542.
+
     Some advantages of these methods are that they:
-        -are insensitive to the grid used to cover the Earth;
-        -are insensitive to changes in the overall seismicity rate;
-        -do not modify the locations or magnitudes of test earthquakes;
-        -do not require simulation of virtual catalogs;
-        -return relative quality measures, not just "pass" or "fail;" and
-        -indicate relative specificity of forecasts as well as relative success.
+        - are insensitive to the grid used to cover the Earth;
+        - are insensitive to changes in the overall seismicity rate;
+        - do not modify the locations or magnitudes of test earthquakes;
+        - do not require simulation of virtual catalogs;
+        - return relative quality measures, not just "pass" or "fail;" and
+        - indicate relative specificity of forecasts as well as relative success.
     
     Written by Han Bao, UCLA, March 2021. Modified June 2021
     
     Note that: 
-        (1) the testing catalog and forecast should have exactly the same time-window (duration)
+        (1) The testing catalog and forecast should have exactly the same time-window (duration)
+        (2) Forecasts and catalogs have identical regions
 
     Args:
         forecasts:  csep.forecast or a list of csep.forecast (one catalog to test against different forecasts)
         catalog:    csep.catalog 
         
     Returns:
-       I_1
+       I_1 (numpy.array): containing I1 for each forecast in inputs
+
     """
     ### Determine if input 'forecasts' is a list of csep.forecasts or a single csep.forecasts
     try:
-        N_forecast = len(forecasts) # the input forecasts is a list of csep.forecast
+        n_forecast = len(forecasts) # the input forecasts is a list of csep.forecast
     except:  
-        N_forecast = 1             # the input forecasts is a single csep.forecast
+        n_forecast = 1             # the input forecasts is a single csep.forecast
         forecasts = [forecasts]
-    
-    I_1   = numpy.zeros((N_forecast,), dtype=numpy.float64)
-    
-    for j,forecast in enumerate(forecasts):
-        ### GET area for each geological bin (cell)
-        bin_lat = forecast.get_latitudes()                   # bin location in forecast
-        bin_lon = forecast.get_longitudes()                  # bin location in forecast
-        rate    = forecast.spatial_counts()                  # [eq per cell per duration] in forecast
-        lats = numpy.unique(bin_lat) 
-        lons = numpy.unique(bin_lon)
-        min_lat = numpy.min(lats); max_lat = numpy.max(lats) # get min/max of grids' lat
-        min_lon = numpy.min(lons); max_lon = numpy.max(lons) # get min/max of grids' lon
-        d_lat = lats[1] - lats[0]                      # get grid interval [d_lat]
-        d_lon = lons[1] - lons[0]                      # get grid interval [d_lon]
-        area_km2 = numpy.zeros(bin_lon.shape, dtype=numpy.float64) # Initialze
-        for i, bot_lat in enumerate(bin_lat):
-            bot_lon = bin_lon[i]
-            top_lat = bot_lat + d_lat
-            top_lon = bot_lon + d_lon
-            area_km2[i] = regions.geographical_area_from_bounds(bot_lon,bot_lat,top_lon,top_lat)
-        total_area = numpy.sum(area_km2) # Total Area
 
-        # Get Rate Density and uniform_forecast of the Forecast
-        rateDen = rate/area_km2                      # Rate Density for all bins
-        uniform_forecast = numpy.sum(rate)/total_area   # Uniform Forecast
+    # Sanity checks can go here
+    for forecast in forecasts:
+        if forecast.region != catalog.region:
+            raise RuntimeError("Catalog and forecasts must have identical regions.")
+
+    # Initialize array
+    I_1 = numpy.zeros(n_forecast, dtype=numpy.float64)
+
+    # Compute cell areas
+    area_km2 = catalog.region.get_cell_area()
+    total_area = numpy.sum(area_km2)
     
-        ### GET I_1 score
-        N_event = catalog.event_count         # total number of events of the testing catalog
-        catalog.region = forecast.region
+    for j, forecast in enumerate(forecasts):
+        # Eq per cell per duration in forecast; note, if called on a CatalogForecast this could require computed expeted rates
+        rate = forecast.spatial_counts()
+        # Get Rate Density and uniform_forecast of the Forecast
+        rate_den = rate / area_km2
+        uniform_forecast = numpy.sum(rate) / total_area
+        # Compute I_1 score
+        n_event = catalog.event_count
         counts = catalog.spatial_counts()
-        nonZero_idx = numpy.argwhere(rateDen > 0)
-        nonZero_idx = nonZero_idx[:,0]
-        I_1[j] = numpy.dot(counts[nonZero_idx], numpy.log2(rateDen[nonZero_idx]/uniform_forecast)) / N_event
+        non_zero_idx = numpy.argwhere(rate_den > 0)
+        non_zero_idx = non_zero_idx[:,0]
+        I_1[j] = numpy.dot(counts[non_zero_idx], numpy.log2(rate_den[non_zero_idx] / uniform_forecast)) / n_event
     
     return I_1
