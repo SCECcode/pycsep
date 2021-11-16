@@ -21,11 +21,10 @@ from obspy.core.event import read_events
 # PyCSEP imports
 from csep.utils.time_utils import HistoricTime
 
-# constants
 # url template for counting events
 HOST = 'earthquake.usgs.gov'
 SEARCH_TEMPLATE = 'https://[HOST]/fdsnws/event/1/query?format=geojson'
-TIMEOUT = 60  # how long do we wait for a url to return?
+TIMEOUT = 120  # how long do we wait for a url to return?
 TIMEFMT = '%Y-%m-%dT%H:%M:%S'
 WAITSECS = 3  # number of seconds to wait after failing download before trying again
 SEARCH_LIMIT = 20000  # maximum number of events ComCat will return in one search

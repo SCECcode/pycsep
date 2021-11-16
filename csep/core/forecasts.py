@@ -639,17 +639,15 @@ class CatalogForecast(LoggingMixin):
 
     def spatial_counts(self, cartesian=False):
         """ Returns the expected spatial counts from forecast """
-        if self.expected_rates is not None:
-            return self.expected_rates.spatial_counts(cartesian=cartesian)
-        else:
-            return None
+        if self.expected_rates is None:
+            self.get_expected_rates()
+        return self.expected_rates.spatial_counts(cartesian=cartesian)
 
     def magnitude_counts(self):
         """ Returns expected magnitude counts from forecast """
-        if self.expected_rates is not None:
-            return self.expected_rates.magnitude_counts()
-        else:
-            return None
+        if self.expected_rates is None:
+            self.get_expected_rates()
+        return self.expected_rates.magnitude_counts()
 
     def get_event_counts(self):
         """ Returns a numpy array containing the number of event counts for each catalog.
