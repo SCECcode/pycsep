@@ -4,6 +4,7 @@ Contributors:
 * William Savran, Southern California Earthquake Center
 * Pablo Iturrieta, GFZ Potsdam
 * Khawaja Asim, GFZ Potsdam
+* Han Bao, University of California, Los Angeles
 * Thomas Beutin, GFZ Potsdam
 * Jose Bayona, University of Bristol
 * Marcus Hermann, University of Naples 'Frederico II'
