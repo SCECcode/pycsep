@@ -1138,9 +1138,9 @@ class QuadtreeGrid2D:
         """
         Creates instance of class from 2d numpy.array of lon/lat of Catalog.
         Provides multi-resolution quadtree spatial grid based on seismic density. It starts from whole globe as 4 cells (Quadkeys:'0','1','2','3'),
-        then keeps on increasing the zoom-level of every Tile recursively, unless every cell meets the dividion criteria.
+        then keeps on increasing the zoom-level of every Tile recursively, unless every cell meets the division criteria.
 
-        The primary criterion of dividing a parent cell into 4 child cells is a threshold on seismic denisity.
+        The primary criterion of dividing a parent cell into 4 child cells is a threshold on seismic density.
         The cells are divided unless every cell has number of earthquakes less than "threshold".
         The division of a cell also stops if it reaches maximum zoom-level (zoom)
 
@@ -1151,7 +1151,7 @@ class QuadtreeGrid2D:
             magnitudes: magnitude discretization
 
         Returns:
-            instance of QuadtreeGrid2Ds
+            instance of QuadtreeGrid2D
         """
         # ensure we can access the lons and lats
         if not isinstance(catalog, CSEPCatalog):
@@ -1178,9 +1178,9 @@ class QuadtreeGrid2D:
         return region
 
     @classmethod
-    def from_regular_grid(cls, zoom, magnitudes=None, name=None):
+    def from_single_resolution(cls, zoom, magnitudes=None, name=None):
         """
-        Creates instance of class from fixed zoom level grid.
+        Creates instance of class at single-resolution using provided zoom-level.
         Provides single-resolution quadtree grid. It starts from whole globe as 4 cells (Quadkeys:'0','1','2','3'),
         then keeps on keeps on dividing every cell into 4 children unless the maximum zoom-level is achieved
 
