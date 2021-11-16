@@ -961,7 +961,7 @@ class QuadtreeGrid2D:
         """ Number of polygons in region """
         return len(self.polygons)
 
-    def compute_cell_area(self):
+    def get_cell_area(self):
         """
         Calls function geographical_area_from_bounds and computes area of each grid cell. It also modified class variable "self.cell_area"
         It iterates over all the cells of grid and passes bounding coordiates of every cell tofunction  geographical_area_from_bounds
