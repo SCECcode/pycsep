@@ -1228,7 +1228,7 @@ class QuadtreeGrid2D:
 
 def california_quadtree_region(magnitudes=None, name="california-quadtree"):
     """
-    Returns class representing Quadtree grid for California testing region.
+    Returns object of QuadtreeGrid2D representing quadtree grid for California RELM testing region.
     The grid is already generated at zoom-level = 12 and it is loaded through classmethod: QuadtreeGrid2D.from_quadkeys
     The grid cells at zoom level 12 are selected using the external boundary of RELM california region.
     This grid can be used to create gridded datasets for earthquake forecasts.
