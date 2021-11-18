@@ -373,8 +373,8 @@ def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
 
     Notes:
         (x,y) should be accessible like:
-        >>> x_coords = origin_points[:,0]
-        >>> y_coords = origin_points[:,1]
+        #>>> x_coords = origin_points[:,0]
+        #>>> y_coords = origin_points[:,1]
 
     """
     return list(map(lambda x: compute_vertex(x, dh, tol=tol), origin_points))
@@ -817,8 +817,8 @@ def compute_vertex_bounds(bound_point, tol=numpy.finfo(float).eps):
                         [lon_origin, lat_origin, lon_top_right, lat_origin]
     Notes:
         (x,y) should be accessible like:
-        >>> origin coords = origin_points[:,0:1]
-        >>> Top right coords = origin_points[:,2:3]
+        #>>> origin coords = origin_points[:,0:1]
+        #>>> Top right coords = origin_points[:,2:3]
     """
     bbox = ((bound_point[0], bound_point[1]),
             (bound_point[0], bound_point[3] - tol),
@@ -836,8 +836,8 @@ def compute_vertices_bounds(bounds, tol=numpy.finfo(float).eps):
                         [lon_origin, lat_origin, lon_top_right, lat_origin]
     Notes:
         (x,y) should be accessible like:
-        >>> origin coords = origin_points[:,0:1]
-        >>> Top right coords = origin_points[:,2:3]
+        #>>> origin coords = origin_points[:,0:1]
+        #>>> Top right coords = origin_points[:,2:3]
     """
     return list(map(lambda x: compute_vertex_bounds(x, tol=tol), bounds))
 
@@ -875,8 +875,7 @@ def _create_tile(quadk, threshold, zoom, lon, lat, qk, num):
     #    global num
 
     # Setting the Min Threshold of Area 1 sq. km. Instead of Depth
-    # It will by default lead of the Deph of 15 near Equator.
-    # And depth of 14 away from Equator
+
     if num_eqs > threshold and len(quadk) < zoom:  # #qk_area_km(quadk)>4:
         # print('inside If, Current Quad key ', quadk)
         # print('Length of Quadkey ', len(quadk))
@@ -897,8 +896,6 @@ def _create_tile(quadk, threshold, zoom, lon, lat, qk, num):
         qk.append(quadk)
         #            num = numpy.append(num, num_eqs)
         num.append(num_eqs)
-        # return quadk
-
 
 def _create_tile_fix_len(quadk, zoom, qk):
     """
@@ -964,7 +961,7 @@ class QuadtreeGrid2D:
     def get_cell_area(self):
         """
         Calls function geographical_area_from_bounds and computes area of each grid cell. It also modified class variable "self.cell_area"
-        It iterates over all the cells of grid and passes bounding coordiates of every cell tofunction  geographical_area_from_bounds
+        It iterates over all the cells of grid and passes bounding coordinates of every cell to function  geographical_area_from_bounds
         """
         cell_area = numpy.array([geographical_area_from_bounds(bb[0],bb[1],bb[2],bb[3]) for bb in self.bounds])
         self.cell_area = cell_area
@@ -978,7 +975,6 @@ class QuadtreeGrid2D:
         Returns:
             idx: ndarray-like
         """
-        #        ------Do my Own Implementation
         if isinstance(lons, (list, numpy.ndarray)):  # --If its array or many coords
             idx = []
             for i in range(len(lons)):
@@ -997,19 +993,12 @@ class QuadtreeGrid2D:
         Returns:
             index number of polyons
         """
-        # if self.get_bbox()[1] == lon:  # Check for 180 lon. The last right corner
-        #     loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
-        #                             numpy.logical_and(lon <= self.bounds[:, 2], lat < self.bounds[:, 3]))
-        # elif self.get_bbox()[3] == lat:  # Check for 85.05 lat. The last top corner
-        #     loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
-        #                             numpy.logical_and(lon < self.bounds[:, 2], lat <= self.bounds[:, 3]))
-        # else:
         loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
                                     numpy.logical_and(lon < self.bounds[:, 2], lat < self.bounds[:, 3]))
         if len(numpy.where(loc == True)[0]) > 0:
-            return numpy.where(loc == True)[0][0]
+            return numpy.where(loc == True)[0][0]  #When find a location. Just a matter for required output
         else:
-            return numpy.where(loc == True)[0]
+            return numpy.where(loc == True)[0]  #When find No location. Just a matter for required output
 
     def get_location_of(self, indices):
         """
@@ -1102,7 +1091,7 @@ class QuadtreeGrid2D:
         idx_loc = self.get_index_of(lon, lat)
         idx_mag = bin1d_vec(mag, mag_bins, tol=0.00001, right_continuous=True)
 
-        numpy.add.at(out, (idx_loc, idx_mag), 1)  # REPLACE this line with better implementation....
+        numpy.add.at(out, (idx_loc, idx_mag), 1)
 
         return out
 

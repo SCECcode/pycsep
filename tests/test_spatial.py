@@ -251,7 +251,7 @@ class TestQuadtreeGrid2D(unittest.TestCase):
     def setUp(self):
         self.zoom = 5
         self.mbins = numpy.arange(5.95, 8.95, 0.1)
-        self.grid = QuadtreeGrid2D.from_regular_grid(self.zoom, magnitudes=self.mbins)
+        self.grid = QuadtreeGrid2D.from_single_resolution(self.zoom, magnitudes=self.mbins)
 
     def test_get_index(self):
         lons = [0, 45, 60, -180]
