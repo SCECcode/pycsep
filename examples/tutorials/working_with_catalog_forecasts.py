@@ -71,7 +71,7 @@ _ = forecast.get_expected_rates(verbose=True)
 #
 # We can plot the expected event counts the same way that we plot a :class:`csep.core.forecasts.GriddedForecast`
 
-ax = forecast.expected_rates.plot(plot_args={'clim': [-3.5, 0]})
+ax = forecast.expected_rates.plot(plot_args={'clim': [-3.5, 0]}, show=True)
 
 ####################################################################################################################################
 # The images holes in the image are due to under-sampling from the forecast.

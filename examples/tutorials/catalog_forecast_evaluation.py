@@ -113,21 +113,4 @@ number_test_result = catalog_evaluations.number_test(forecast, comcat_catalog)
 #
 # We can create a simple visualization of the number test from the evaluation result class.
 
-ax = number_test_result.plot()
-
-####################################################################################################################################
-# Plot ROC Curves
-# -----------------------
-#
-# We can also plot the Receiver operating characteristic (ROC) Curves based on forecast and testing-catalog.
-# In the figure below, False Positive Rate is the normalized cumulative forecast rate, after sorting cells in decreasing order of rate.
-# The "True Positive Rate" is the normalized cumulative area. The dashed line is the ROC curver of a uniform forecast,
-# meaning the likelihood for an earthquake to occur at any position is the same. The further the ROC curve of a
-# forecast is to the uniform forecast, the specific the forecast is. When comparing the
-# forecast ROC curve against an catalog, one can evaluate if the forecast is more or less specific
-# (or smooth) at different level or seismic rate.
-#
-# Note: This figure just shows an example of plotting an ROC curve with a catalog forecast.
-
-print("Plotting ROC curve")
-plots.plot_ROC(forecast, comcat_catalog)
+ax = number_test_result.plot(show=True)
