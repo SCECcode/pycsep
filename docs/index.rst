@@ -17,8 +17,7 @@ pyCSEP: Tools for Earthquake Forecast Developers
     tutorials/catalog_filtering.rst
     tutorials/plot_gridded_forecast.rst
     tutorials/gridded_forecast_evaluation.rst
-    tutorials/qk_single_res_gridded_forecast_evaluation.rst
-    tutorials/qk_multi_res_gridded_forecast_evaluation.rst
+    tutorials/quadtree_gridded_forecast_evaluation.rst
     tutorials/working_with_catalog_forecasts.rst
     tutorials/catalog_forecast_evaluation.rst
     tutorials/plot_customizations.rst
