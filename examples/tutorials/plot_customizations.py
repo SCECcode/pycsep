@@ -26,6 +26,8 @@ import cartopy
 import numpy
 from csep.utils import datasets, plots
 
+import matplotlib.pyplot as plt
+
 ####################################################################################################################################
 # **Load a Grid Forecast from the datasets**
 #
@@ -162,7 +164,7 @@ plot_args = {'basemap': 'ESRI_terrain',
 ####################################################################################################################################
 
 # **Plot the catalog**
-ax = catalog.plot(show=True, plot_args=plot_args)
+ax = catalog.plot(show=False, plot_args=plot_args)
 
 
 ####################################################################################################################################
@@ -189,7 +191,9 @@ args = {'figsize': (6,5),
 # Description of plot arguments can be found in :func:`plot_poisson_consistency_test`.
 # We set ``one_sided_lower=True`` as usual for an L-test, where the model is rejected if the observed
 # is located within the lower tail of the simulated distribution.
-ax = plots.plot_poisson_consistency_test(L_results, one_sided_lower=True, plot_args=args, show=True)
+ax = plots.plot_poisson_consistency_test(L_results, one_sided_lower=True, plot_args=args)
 
+# Needed to show plots if running as script
+plt.show()
 
 

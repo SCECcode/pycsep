@@ -28,6 +28,9 @@ import csep
 from csep.core import poisson_evaluations as poisson
 from csep.utils import datasets, time_utils, plots
 
+# Needed to show plots from the terminal
+import matplotlib.pyplot as plt
+
 ####################################################################################################################################
 # Define forecast properties
 # --------------------------
@@ -99,5 +102,5 @@ csep.write_json(spatial_test_result, 'example_spatial_test.json')
 # consistency tests.
 
 ax = plots.plot_poisson_consistency_test(spatial_test_result,
-                                        plot_args={'xlabel': 'Spatial likelihood'}, show=True)
-
+                                        plot_args={'xlabel': 'Spatial likelihood'})
+plt.show()
