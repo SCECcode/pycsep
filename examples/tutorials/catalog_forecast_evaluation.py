@@ -24,7 +24,7 @@ Overview:
 
 import csep
 from csep.core import regions, catalog_evaluations
-from csep.utils import datasets, time_utils, plots
+from csep.utils import datasets, time_utils
 
 ####################################################################################################################################
 # Define start and end times of forecast

@@ -27,7 +27,6 @@ Overview:
 import csep
 from csep.core import poisson_evaluations as poisson
 from csep.utils import datasets, time_utils, plots
-from csep.utils.stats import get_Kagan_I1_score
 
 ####################################################################################################################################
 # Define forecast properties
