@@ -61,8 +61,6 @@ __all__ = [
     '__version__'
 ]
 
-
-
 def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
     """ General function to load stochastic event sets
 

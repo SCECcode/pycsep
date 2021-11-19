@@ -45,5 +45,5 @@ forecast = csep.load_gridded_forecast(datasets.helmstetter_mainshock_fname,
 # The forecast object provides :meth:`csep.core.forecasts.GriddedForecast.plot` to plot a gridded forecast. This function
 # returns a matplotlib axes, so more specific attributes can be set on the figure.
 
-ax = forecast.plot()
+ax = forecast.plot(show=True)
 

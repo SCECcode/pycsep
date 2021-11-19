@@ -1514,7 +1514,7 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
 
     return ax
 
-def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, axes=None, plot_args=None):
+def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, axes=None, plot_args=None, show=False):
     """ Plots results from CSEP1 tests following the CSEP1 convention.
 
     Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
@@ -1637,6 +1637,10 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
     if tight_layout:
         ax.figure.tight_layout()
         fig.tight_layout()
+
+    if show:
+        pyplot.show()
+
     return ax
 
 def _get_axis_limits(pnts, border=0.05):
