@@ -133,7 +133,11 @@ functions to accommodate different use-cases.
 Quadtree grid
 **************
 
-PyCSEP supports is quadtree-based spatial gridding approach. 
+We want to use gridded regions with less spatial cells and multi-resolutions grids for creating earthquake forecast models.
+We also want to test forecast models on different resolutions. But before we can do this, we need to have the capability to acquire such grids.  
+There can be different possible options for creating multi-resolutions grids, such as voronoi cells or coarse grids, etc.
+The gridding approach needs to have certain properties before we choose it for CSEP experiments. We want an approach for gridding that is simple to implement, easy to understand and should come with intutive indexing. Most importantly, it should come with a coordinated mechanism for changing between different resolutions. It means that one can not simply choose to combine cells of its own choice and create a larger grid cell (low-resolution) and vice versa. This can potentially make the grid comparision process difficult. There must be a specific well-defined strategy to change between different resolutions of grids. We explored different gridding approaches and found quadtree to be a better solution for this task, despite a few drawbacks, such as quadtree does not work for global region beyond 85.05 degrees North and South.   
+
 The quadtree is a hierarchical tiling strategy for storing and indexing geospatial data. In start the global testing region is divided into 4 tiles,  identified as '0', '1', '2', '3'.  
 Then each tile can be divided into four children tiles, until a final desired grid is acquired.
 Each tile is identified by a unique identifier called quadkey, which are '0', '1', '2' or '3'. When a tile is divided further, the quadkey is also modified by appending the new identifier with the previous quadkey. 
