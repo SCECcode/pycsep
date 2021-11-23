@@ -946,6 +946,16 @@ class QuadtreeGrid2D:
     """
 
     def __init__(self, polygons, quadkeys, bounds, name='QuadtreeGrid2d', mask=None):
+        """
+        Args:
+            polygons: Represents the object of class, polygons defined through a collection of vertices.
+                        This polygon is 2d and vertices are obtained as corner points of quadtree tile
+            quadkeys: Unique identifier of each quadtree tile. Quadkeys of every tile defines a grid cell.
+                        This is the first thing computed while acquiring quadtree grid. Rest can be computed from this.
+            bounds: number of cells x [lon1, lat1, lon2, lat2], corresponding to origin coordinates and top right coordinates fo each grid cell
+            name: Name of grid
+            mask: Masked cells. NotImplemented yet. Always keep it none
+        """
         self.polygons = polygons
         self.quadkeys = quadkeys
         self.bounds = bounds
