@@ -291,6 +291,12 @@ class TestQuadtreeGrid2D(unittest.TestCase):
          total_cells = 1024
          self.assertEqual(total_cells, self.grid.num_nodes)
 
+    def test_find_quadkey_of_coord(self):
+        lon = 0
+        lat = 0
+        qk_cell = '12222'
+        numpy.testing.assert_array_equal(self.grid.quadkeys[self.grid.get_index_of(lon, lat)], qk_cell)
+
 
 def test_geographical_area_from_bounds():
     area_globe = 510064471.90978825
