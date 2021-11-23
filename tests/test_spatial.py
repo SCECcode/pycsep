@@ -267,6 +267,29 @@ class TestQuadtreeGrid2D(unittest.TestCase):
         bounds = [[-180., 0., 0., 85.0511287798066], [0., 0., 180.,85.0511287798066]]
         numpy.testing.assert_array_equal(quadtree_grid_bounds(qk), bounds)
 
+    def test_wrong_coordinates(self):
+        lons = [180, -180]
+        lats = [-85.06, 85.06]  # Lats outside the quadtree grid
+        idx = []
+        numpy.testing.assert_array_equal(self.grid.get_index_of(lons, lats), idx)
+
+    def test_corner_points(self):
+        # (lon, lat) = (0,0) lies on the top right corner of quadtree cell '21111'.
+         # But it should belong to the top-right diagonal cell, i.e. '12222'.
+         lon1 = 0
+         lat1 = 0
+         qk_cell1 = '12222'
+
+         # Anything little less than (0,0) goes into the lower-left diagonal quadtree cell '21111'
+         lon2 = -0.0000000001
+         lat2 = -0.0000000001
+         qk_cell2 = '21111'
+         numpy.testing.assert_array_equal(self.grid.quadkeys[self.grid.get_index_of(lon1, lat1)], qk_cell1)
+         numpy.testing.assert_array_equal(self.grid.quadkeys[self.grid.get_index_of(lon2, lat2)], qk_cell2)
+
+    def test_num_cells(self):
+         total_cells = 1024
+         self.assertEqual(total_cells, self.grid.num_nodes)
 
 
 def test_geographical_area_from_bounds():
