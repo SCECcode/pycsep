@@ -962,6 +962,9 @@ class QuadtreeGrid2D:
         self.cell_area = []
         self.poly_mask = mask
         self.name = name
+        xs, ys = self._get_xs_ys()
+        self.xs = xs
+        self.ys = ys
 
     @property
     def num_nodes(self):
@@ -1224,6 +1227,12 @@ class QuadtreeGrid2D:
             region.magnitudes = magnitudes
         return region
 
+    #Experiments for forecast.plot() for Quadtree
+    def _get_xs_ys(self):
+        nd_origins = numpy.array([poly.origin for poly in self.polygons])
+        xs = numpy.unique(nd_origins[:, 0])
+        ys = numpy.unique(nd_origins[:, 1])
+        return xs, ys
 
 def california_quadtree_region(magnitudes=None, name="california-quadtree"):
     """
