@@ -962,9 +962,11 @@ class QuadtreeGrid2D:
         self.cell_area = []
         self.poly_mask = mask
         self.name = name
-        xs, ys = self._get_xs_ys()
-        self.xs = xs
-        self.ys = ys
+        # a, xs, ys = self._get_idx_map_xs_ys()
+        # self.xs = xs
+        # self.ys = ys
+        # self.idx_map = a
+        self.dh = 0.5 #Temporary use, until 'dh' is removed from plot_spatial_datasets() of forecast.plot.
 
     @property
     def num_nodes(self):
@@ -1228,11 +1230,71 @@ class QuadtreeGrid2D:
         return region
 
     #Experiments for forecast.plot() for Quadtree
-    def _get_xs_ys(self):
+    def _get_idx_map_xs_ys(self):
+        print('inside _get_idx_map')
         nd_origins = numpy.array([poly.origin for poly in self.polygons])
         xs = numpy.unique(nd_origins[:, 0])
         ys = numpy.unique(nd_origins[:, 1])
-        return xs, ys
+        ny = len(ys)
+        nx = len(xs)
+        #Get the index map
+        a = numpy.zeros([ny, nx])
+        for i in range(nx):
+            for j in range(ny):
+                idx = self.get_index_of(xs[i], ys[j])
+                a[j, i] = idx
+        return a, xs, ys
+
+    def get_cartesian(self, data):
+        """Returns 2d ndrray representation of the data set, corresponding to the bounding box.
+        Args:
+            data:
+        """
+        print('Inside get_cartesian')
+        a, xs, ys = self._get_idx_map_xs_ys()
+        self.xs = xs
+        self.ys = ys
+        self.idx_map = a
+        assert len(data) == len(self.polygons)
+        ny = len(self.ys)
+        nx = len(self.xs)
+        results = numpy.zeros([ny, nx])
+        for i in range(nx):
+            for j in range(ny):
+                #idx = self.get_index_of(self.xs[i], self.ys[j])
+                idx = int(self.idx_map[j,i])
+                results[j, i] = data[idx]
+        return results
+
+    def tight_bbox(self):
+        # creates tight bounding box around the region, probably a faster way to do this.
+        ny, nx = self.idx_map.shape
+        asc = []
+        desc = []
+        for j in range(ny):
+            row = self.idx_map[j, :]
+            argmin = first_nonnan(row)
+            argmax = last_nonnan(row)
+            # points are stored clockwise
+            poly_min = self.polygons[int(row[argmin])].points
+            asc.insert(0, poly_min[0])
+            asc.insert(0, poly_min[1])
+            poly_max = self.polygons[int(row[argmax])].points
+            lat_0 = poly_max[2][1]
+            lat_1 = poly_max[3][1]
+            # last two points are 'right hand side of polygon'
+            if lat_0 < lat_1:
+                desc.append(poly_max[2])
+                desc.append(poly_max[3])
+            else:
+                desc.append(poly_max[3])
+                desc.append(poly_max[2])
+        # close the loop
+        poly = np.array(asc + desc)
+        sorted_idx = np.sort(np.unique(poly, return_index=True, axis=0)[1], kind='stable')
+        unique_poly = poly[sorted_idx]
+        unique_poly = np.append(unique_poly, [unique_poly[0, :]], axis=0)
+        return unique_poly
 
 def california_quadtree_region(magnitudes=None, name="california-quadtree"):
     """
