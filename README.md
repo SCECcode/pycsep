@@ -73,7 +73,7 @@ Please see [pyCSEP Getting Started](https://docs.cseptesting.org/getting_started
 Software support for pyCSEP is provided by that Southern California Earthquake Center (SCEC) Research Computing Group. 
 This group supports several research software distributions including UCVM. Users can report issues and feature requests 
 using the pyCSEP github-based issue tracking link below. Developers will also respond to emails sent to the SCEC software contact listed below.
-1. [pyCSEP Issues](https://github.com/SCECcode/pycep/issues)
+1. [pyCSEP Issues](https://github.com/SCECcode/pycsep/issues)
 2. Email Contact: software [at] scec [dot] usc [dot] edu
 
 # Contributing:
