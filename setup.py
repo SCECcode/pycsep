@@ -33,7 +33,8 @@ setup(
         'cartopy',
         'obspy',
         'pyproj',
-        'python-dateutil'
+        'python-dateutil',
+        'mercantile'
     ],
     extras_require = {
         'test': [

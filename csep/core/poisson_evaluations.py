@@ -8,6 +8,7 @@ import scipy.spatial
 from csep.models import EvaluationResult
 from csep.utils.stats import poisson_joint_log_likelihood_ndarray
 from csep.core.exceptions import CSEPCatalogException
+from csep.core.regions import QuadtreeGrid2D
 
 
 def paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0.05, scale=False):
@@ -181,6 +182,11 @@ def conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulati
         _ = observed_catalog.region.magnitudes
     except CSEPCatalogException:
         observed_catalog.region = gridded_forecast.region
+
+    #if isinstance(gridded_forecast.region, QuadtreeGrid2D): #-----Asim's addition----
+    #    print('Quadtree grid detected.... ')
+    #    gridded_catalog_data = gridded_forecast.region.get_spatial_magnitude_counts(observed_catalog)
+    #else:
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
     # simply call likelihood test on catalog data and forecast
@@ -333,7 +339,6 @@ def spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
 
-    # grid catalog onto spatial grid
     gridded_catalog_data = observed_catalog.spatial_counts()
 
     # simply call likelihood test on catalog data and forecast
@@ -387,6 +392,7 @@ def likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, se
         _ = observed_catalog.region.magnitudes
     except CSEPCatalogException:
         observed_catalog.region = gridded_forecast.region
+
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
     # simply call likelihood test on catalog and forecast

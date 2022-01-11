@@ -6,7 +6,6 @@ import enum
 import csv
 from itertools import zip_longest
 import os
-
 # Third-party imports
 import numpy
 
@@ -14,6 +13,7 @@ import numpy
 from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
 from csep.core.exceptions import CSEPIOException
+
 
 def ndk(filename):
     """
@@ -716,3 +716,43 @@ def _parse_datetime_to_zmap(date, time):
         out['minute'] = dt.minute
         out['second'] = dt.second
         return out
+
+
+def load_quadtree_forecast(ascii_fname):
+    """
+        Note: This function is adapted form csep.forecasts.load_ascii
+
+        The ascii format from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:
+
+        'Quadkey' Lon_0, Lon_1, Lat_0, Lat_1, z_0, z_1, Mag_0, Mag_1, Rate
+
+        Quadkey is a string. Rest of the values are floats.
+
+        For the purposes of defining region objects quadkey is used.
+        For the magnitude bins use the values along with Mag_0 are used.
+        We can assume that the magnitude bins are regularly spaced to allow us to compute Deltas.
+
+
+        Args:
+            ascii_fname: file name of csep forecast in .dat format
+
+
+     """
+    from csep.core.regions import QuadtreeGrid2D
+    data = numpy.genfromtxt(ascii_fname, dtype = 'str')
+    all_qk = data[:, 0]
+    data = data[:,1:].astype(numpy.float)
+    sorted_idx = numpy.sort(numpy.unique(all_qk, return_index=True, axis=0)[1], kind='stable')
+    unique_qk = all_qk[sorted_idx]
+    # create magnitudes bins using Mag_0, ignoring Mag_1
+    #because they are regular until last bin. we dont want binary search for this
+    all_mws = data[:, -3]
+    sorted_idx = numpy.sort(numpy.unique(all_mws, return_index=True)[1], kind='stable')
+    mws = all_mws[sorted_idx]
+    region = QuadtreeGrid2D.from_quadkeys(unique_qk, magnitudes=mws)
+    n_mag_bins = len(mws)
+    n_poly = len(region.quadkeys)
+    # reshape rates into correct 2d format
+    rates = data[:, -1].reshape(n_poly, n_mag_bins)
+
+    return rates, region, mws
