@@ -15,10 +15,6 @@ from csep.utils.scaling_relationships import WellsAndCoppersmith
 
 from csep.models import Polygon
 
-from csep.core.catalogs import CSEPCatalog
-
-
-
 def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection", use_midpoint=True):
     """ Return collection region for California RELM testing region
 
@@ -499,7 +495,6 @@ def _bin_catalog_probability(lons, lats, n_poly, mask, idx_map, binx, biny):
     event_counts[hash_idx] = 1
     return event_counts
 
-
 class CartesianGrid2D:
     """Represents a 2D cartesian gridded region.
 
@@ -786,7 +781,6 @@ def geographical_area_from_bounds(lon1, lat1, lon2, lat2):
     area_km2 = strip_area_steradian * R2 / (360.0 / (lon2 - lon1))
     return area_km2
 
-#--- Quadtree relevant functions and QuadtreeGrid2D class
 def quadtree_grid_bounds(quadk):
     """
     Computes the bottom-left and top-right coordinates corresponding to every quadkey
@@ -852,7 +846,6 @@ def compute_vertices_bounds(bounds, tol=numpy.finfo(float).eps):
         #>>> Top right coords = origin_points[:,2:3]
     """
     return list(map(lambda x: compute_vertex_bounds(x, tol=tol), bounds))
-
 
 def _create_tile(quadk, threshold, zoom, lon, lat, qk, num):
     """
@@ -946,7 +939,6 @@ def _create_tile_fix_len(quadk, zoom, qk):
         #        qk = numpy.append(qk, quadk)
         qk.append(quadk)
 
-
 class QuadtreeGrid2D:
     """
     Respresents a 2D quadtree gridded region. The class provides functionality to generate multi-resolution or single-resolution quadtree grid.
@@ -996,26 +988,29 @@ class QuadtreeGrid2D:
 
     def get_index_of(self, lons, lats): 
         """ Returns the index of lons, lats in self.polygons
+
         Args:
             lons: ndarray-like
             lats: ndarray-like
+
         Returns:
             idx: ndarray-like
         """
-        if isinstance(lons, (list, numpy.ndarray)):  # --If its array or many coords
+        # If its array or many coords
+        if isinstance(lons, (list, numpy.ndarray)):
             idx = []
             for i in range(len(lons)):
                 idx = numpy.append(idx, self._find_location(lons[i], lats[i]))
             idx = idx.astype(int)
-        if isinstance(lons, (int, float)):  # --It its just one Lon/Lon
+            return idx
+        # It its just one Lon/Lon
+        if isinstance(lons, (int, float)):
             idx = self._find_location(lons, lats)
-
-        return idx
+            return idx
+        return None
 
     def _find_location(self, lon, lat):
-        """
-        Takes in single Lon and Lat and finds its Polygon Index.
-        -----Improve this function for End Case scenerios: i.e. Lat = 90 and Lon = -180---
+        """ Takes in single Lon and Lat and finds its Polygon Index.
 
         Returns:
             index number of polyons
@@ -1023,15 +1018,16 @@ class QuadtreeGrid2D:
         loc = numpy.logical_and(numpy.logical_and(lon >= self.bounds[:, 0], lat >= self.bounds[:, 1]),
                                     numpy.logical_and(lon < self.bounds[:, 2], lat < self.bounds[:, 3]))
         if len(numpy.where(loc == True)[0]) > 0:
-            return numpy.where(loc == True)[0][0]  #When find a location. Just a matter for required output
+            return numpy.where(loc == True)[0][0]
         else:
-            return numpy.where(loc == True)[0]  #When find No location. Just a matter for required output
+            return numpy.where(loc == True)[0]
 
     def get_location_of(self, indices):
-        """
-        Returns the polygon associated with the index idx.
+        """ Returns the polygon associated with the index idx.
+
         Args:
             idx: index of polygon in region
+
         Returns:
             Polygon
         """
@@ -1040,8 +1036,7 @@ class QuadtreeGrid2D:
         return polys
 
     def _get_spatial_counts(self, catalog, mag_bins=None):
-        """
-        Gets the number of earthquakes in each cell for available catalog.
+        """ Gets the number of earthquakes in each cell for available catalog.
         Uses QuadtreeGrid2D.get_index_of function to map every earthquake location to its corresponding cell
 
         Args:
@@ -1053,8 +1048,6 @@ class QuadtreeGrid2D:
             spatial counts: Number of earthquakes in each cell
 
         """
-        if not isinstance(catalog, CSEPCatalog):
-            raise TypeError("region must be CSEPCatalog")
         if mag_bins is None or mag_bins == []:
             mag_bins = catalog.magnitudes
 
@@ -1093,8 +1086,6 @@ class QuadtreeGrid2D:
             Spatial-magnitude counts
 
         """
-        if not isinstance(catalog, CSEPCatalog):
-            raise TypeError("region must be CSEPCatalog")
         if mag_bins is None or mag_bins == []:
             mag_bins = catalog.magnitudes
 
@@ -1106,7 +1097,7 @@ class QuadtreeGrid2D:
 
         if min(catalog.get_latitudes()) < self.get_bbox()[2] or max(catalog.get_latitudes()) > self.get_bbox()[3]:
             print("----Warning---")
-            print("Catalog exceeds grid bounds, so catalog filtering")
+            print("Catalog exceeds grid bounds filtering events outside of the region boundary")
             catalog.filter('latitude < ' + str(self.get_bbox()[3]))
             catalog.filter('latitude > ' + str(self.get_bbox()[2]))
 
@@ -1127,8 +1118,6 @@ class QuadtreeGrid2D:
         #        return (self.xs.min(), self.xs.max(), self.ys.min(), self.ys.max())
         return (min(self.bounds[:, 0]), max(self.bounds[:, 2]), min(self.bounds[:, 1]), max(self.bounds[:, 3]))
 
-
-
     def midpoints(self):
         """ Returns midpoints of rectangular polygons in region """
         return numpy.array([poly.centroid() for poly in self.polygons])
@@ -1143,11 +1132,14 @@ class QuadtreeGrid2D:
             'polygons': [{'lat': float(poly.origin[1]), 'lon': float(poly.origin[0])} for poly in self.polygons]
         }
         return adict
-    def save_quadtree(self, filename):
-        """Saves the quadtree grid (quadkeys) in a text file"""
-        filename = filename +'.txt'
-        numpy.savetxt(filename, self.quadkeys, delimiter=',', fmt='%s')
 
+    def save_quadtree(self, filename):
+        """ Saves the quadtree grid (quadkeys) in a text file
+
+            Args:
+                filename (str): filename to store file
+        """
+        numpy.savetxt(filename, self.quadkeys, delimiter=',', fmt='%s')
 
     @classmethod
     def from_catalog(cls, catalog, threshold, zoom=11, magnitudes=None, name=None):
@@ -1161,42 +1153,42 @@ class QuadtreeGrid2D:
         The division of a cell also stops if it reaches maximum zoom-level (zoom)
 
         Args:
-            catalog (CSEPCatalog):
-            threshold: Max earthquakes allowed per cells
-            zoom: Max zoom allowed for a cell
-            magnitudes: magnitude discretization
+            catalog (CSEPCatalog): catalog used to create quadtree
+            threshold (int): Max earthquakes allowed per cells
+            zoom (int): Max zoom allowed for a cell
+            magnitudes (array-like): left end values of magnitude discretization
 
         Returns:
             instance of QuadtreeGrid2D
         """
-        # ensure we can access the lons and lats
-        if not isinstance(catalog, CSEPCatalog):
-            raise TypeError("region must be CSEPCatalog")
+
         lon = catalog.get_longitudes()
         lat = catalog.get_latitudes()
 
-        qk = []  # numpy.array([])
-        num = []  # numpy.array([])
+        qk = []
+        num = []
 
         _create_tile('0', threshold, zoom, lon, lat, qk, num)
         _create_tile('1', threshold, zoom, lon, lat, qk, num)
         _create_tile('2', threshold, zoom, lon, lat, qk, num)
         _create_tile('3', threshold, zoom, lon, lat, qk, num)
+
         qk = numpy.array(qk)
-        num = numpy.array(num)
-
         bounds = quadtree_grid_bounds(qk)
+        region = QuadtreeGrid2D(
+            [Polygon(bbox) for bbox in compute_vertices_bounds(bounds)],
+            qk,
+            bounds,
+            name=name)
 
-        region = QuadtreeGrid2D([Polygon(bbox) for bbox in compute_vertices_bounds(bounds)], qk, bounds,
-                                name=name)
         if magnitudes is not None:
             region.magnitudes = magnitudes
+
         return region
 
     @classmethod
     def from_single_resolution(cls, zoom, magnitudes=None, name=None):
-        """
-        Creates instance of class at single-resolution using provided zoom-level.
+        """ Creates instance of class at single-resolution using provided zoom-level.
         Provides single-resolution quadtree grid. It starts from whole globe as 4 cells (Quadkeys:'0','1','2','3'),
         then keeps on keeps on dividing every cell into 4 children unless the maximum zoom-level is achieved
 
@@ -1207,29 +1199,32 @@ class QuadtreeGrid2D:
         Returns:
             instance of QuadtreeGrid2D
         """
+
         qk = []
         _create_tile_fix_len('0', zoom, qk)
         _create_tile_fix_len('1', zoom, qk)
         _create_tile_fix_len('2', zoom, qk)
         _create_tile_fix_len('3', zoom, qk)
+
         qk = numpy.array(qk)
 
         bounds = quadtree_grid_bounds(qk)
 
         region = QuadtreeGrid2D([Polygon(bbox) for bbox in compute_vertices_bounds(bounds)], qk, bounds,
                                 name=name)
+
         if magnitudes is not None:
             region.magnitudes = magnitudes
         return region
 
     @classmethod
     def from_quadkeys(cls, quadk, magnitudes=None, name=None):
-        """
-        Creates instance of class from available quadtree grid.
+        """ Creates instance of class from available quadtree grid.
 
         Args:
-            quadk: List of quad keys strings corresponding to an already available quadtree grid
-            magnitudes: magnitude discretization
+            quadk (list): List of quad keys strings corresponding to an already available quadtree grid
+            magnitudes (array-like): left end-points of magnitude discretization
+
         Returns:
             instance of QuadtreeGrid2D
         """
@@ -1237,11 +1232,12 @@ class QuadtreeGrid2D:
 
         region = QuadtreeGrid2D([Polygon(bbox) for bbox in compute_vertices_bounds(bounds)], quadk, bounds,
                                 name=name)
+
         if magnitudes is not None:
             region.magnitudes = magnitudes
+
         return region
 
-    #Experiments for forecast.plot() for Quadtree
     def _get_idx_map_xs_ys(self):
         print('inside _get_idx_map')
         nd_origins = numpy.array([poly.origin for poly in self.polygons])
@@ -1258,11 +1254,15 @@ class QuadtreeGrid2D:
         return a, xs, ys
 
     def get_cartesian(self, data):
-        """Returns 2d ndrray representation of the data set, corresponding to the bounding box.
+        """ Returns 2d ndrray representation of the data set, corresponding to the bounding box.
+
         Args:
-            data:
+            data (numpy.array): array of values corresponding to cells in the quadtree region
+
+        Returns:
+            results (numpy.array): 2d numpy array with rates on cartesian grid
+
         """
-        print('Inside get_cartesian')
         a, xs, ys = self._get_idx_map_xs_ys()
         self.xs = xs
         self.ys = ys
@@ -1273,7 +1273,6 @@ class QuadtreeGrid2D:
         results = numpy.zeros([ny, nx])
         for i in range(nx):
             for j in range(ny):
-                #idx = self.get_index_of(self.xs[i], self.ys[j])
                 idx = int(self.idx_map[j,i])
                 results[j, i] = data[idx]
         return results
@@ -1308,6 +1307,7 @@ class QuadtreeGrid2D:
         unique_poly = np.append(unique_poly, [unique_poly[0, :]], axis=0)
         return unique_poly
 
+
 def california_quadtree_region(magnitudes=None, name="california-quadtree"):
     """
     Returns object of QuadtreeGrid2D representing quadtree grid for California RELM testing region.
@@ -1326,12 +1326,8 @@ def california_quadtree_region(magnitudes=None, name="california-quadtree"):
     """
     # use default file path from python package
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    #    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'csep-forecast-template-M5.xml')
     filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'california_qk_zoom=12.txt')
-    #    filepath = 'artifacts/Regions/california_qk_zoom=12.txt'
     qk = numpy.genfromtxt(filepath, delimiter=',', dtype='str')
-
     california_region = QuadtreeGrid2D.from_quadkeys(qk, magnitudes=magnitudes, name=name)
-
     return california_region
 

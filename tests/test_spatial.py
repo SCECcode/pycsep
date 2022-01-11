@@ -12,6 +12,7 @@ from csep.core.regions import (
     _bin_catalog_spatial_counts,
     _bin_catalog_probability,
     quadtree_grid_bounds,
+    california_relm_region,
     geographical_area_from_bounds
 )
 

@@ -21,7 +21,7 @@ Practically speaking, earthquake forecasts, especially time-dependent forecasts,
 magnitude. If we consider a family of monthly forecasts for the state of California for earthquakes with **M** 3.95+,
 each of these forecasts would use the same space-magnitude region, even though the time periods are
 different. Because the time horizon is an implicit property of the forecast, we do not explicitly consider time in the region
-objects provided by PyCSEP. This module contains tools for working with gridded regions in both space and magnitude.
+objects provided by pyCSEP. This module contains tools for working with gridded regions in both space and magnitude.
 
 First, we will describe how the spatial regions are handled. Followed by magnitude regions, and how these two aspects
 interact with one another.
@@ -30,13 +30,13 @@ interact with one another.
 .. Region objects
 .. **************
 
-Currently, PyCSEP provides two different kinds of spatial gridding approaches to handle binning catalogs and defining regions 
-for earthquake forecasting evaluations, i.e. :class:`CartesianGrid2D<csep.core.regions.CartesianGrid2D>` and :class:`CartesianGrid2D<csep.core.regions.QuadtreeGrid2D>`.
+Currently, pyCSEP provides two different kinds of spatial gridding approaches to handle binning catalogs and defining regions
+for earthquake forecasting evaluations, i.e. :class:`CartesianGrid2D<csep.core.regions.CartesianGrid2D>` and :class:`QuadtreeGrid2D<csep.core.regions.QuadtreeGrid2D>`.
 The fruther details about spatial grids are given below.
 
-******************
-2D Cartesian grids
-******************
+**************
+Cartesian grid
+**************
 
 This section contains information about using 2D cartesian grids.
 

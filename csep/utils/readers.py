@@ -6,12 +6,14 @@ import enum
 import csv
 from itertools import zip_longest
 import os
+
 # Third-party imports
 import numpy
 
 # PyCSEP imports
 from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
+from csep.core.regions import QuadtreeGrid2D
 from csep.core.exceptions import CSEPIOException
 
 
@@ -717,36 +719,35 @@ def _parse_datetime_to_zmap(date, time):
         out['second'] = dt.second
         return out
 
-
 def load_quadtree_forecast(ascii_fname):
-    """
+    """ Load quadtree forecasted stored as ascii text file
+
         Note: This function is adapted form csep.forecasts.load_ascii
 
-        The ascii format from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:
-
-        'Quadkey' Lon_0, Lon_1, Lat_0, Lat_1, z_0, z_1, Mag_0, Mag_1, Rate
-
-        Quadkey is a string. Rest of the values are floats.
+        The ascii format for quadtree forecasts modified from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:
+            'Quadkey' Lon_0, Lon_1, Lat_0, Lat_1, z_0, z_1, Mag_0, Mag_1, Rate
+             Quadkey is a string. Rest of the values are floats.
 
         For the purposes of defining region objects quadkey is used.
         For the magnitude bins use the values along with Mag_0 are used.
         We can assume that the magnitude bins are regularly spaced to allow us to compute Deltas.
 
-
         Args:
-            ascii_fname: file name of csep forecast in .dat format
+            ascii_fname: file name of csep forecast in ascii format
 
-
+        Returns:
+            rates, region, mws (numpy.ndarray, QuadtreeRegion2D, numpy.ndarray): rates, region, and magnitude bins needed
+                                                                                 to define QuadTree forecasts
      """
-    from csep.core.regions import QuadtreeGrid2D
-    data = numpy.genfromtxt(ascii_fname, dtype = 'str')
-    all_qk = data[:, 0]
-    data = data[:,1:].astype(numpy.float)
+
+    data = numpy.genfromtxt(ascii_fname, dtype='str')
+    all_qk = data[:,0]
+    data = data[:,1:].astype(numpy.float64)
     sorted_idx = numpy.sort(numpy.unique(all_qk, return_index=True, axis=0)[1], kind='stable')
     unique_qk = all_qk[sorted_idx]
     # create magnitudes bins using Mag_0, ignoring Mag_1
-    #because they are regular until last bin. we dont want binary search for this
-    all_mws = data[:, -3]
+    # because they are regular until last bin. we dont want binary search for this
+    all_mws = data[:,-3]
     sorted_idx = numpy.sort(numpy.unique(all_mws, return_index=True)[1], kind='stable')
     mws = all_mws[sorted_idx]
     region = QuadtreeGrid2D.from_quadkeys(unique_qk, magnitudes=mws)

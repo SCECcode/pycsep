@@ -4,12 +4,12 @@
 Forecasts
 #########
 
-PyCSEP supports two types of earthquake forecasts that can be evaluated using the tools provided in this package.
+pyCSEP supports two types of earthquake forecasts that can be evaluated using the tools provided in this package.
 
 1. Grid-based forecasts
 2. Catalog-based forecasts
 
-These forecast types and the PyCSEP objects used to represent them will be explained in detail in this document.
+These forecast types and the pyCSEP objects used to represent them will be explained in detail in this document.
 
 .. contents:: Table of Contents
     :local:
@@ -25,19 +25,19 @@ of seismicity that can accommodate forecasts without explicit likelihood functio
 seismicity models. Gridded forecasts can also be produced using simulation-based approaches like
 epidemic-type aftershock sequence models.
 
-Currently, pycsep offers support for two types of grid-baesd forecasts, i.e. conventional gridded forecasts and quadtree-based gridded forecasts. 
+Currently, pyCSEP offers support for two types of grid-baesd forecasts, i.e. conventional gridded forecasts and quadtree-based gridded forecasts.
 Conventional grid-based forecasts define their spatial component using a 2D Cartesian (rectangular) grid, and
 their magnitude bins using a 1D Cartesian (rectangular) grid. The last bin (largest magnitude) bin is assumed to
 continue until infinity. Forecasts use latitude and longitude to define the bin edge of the spatial grid. Typical values
 for the are 0.1° x 0.1° (lat x lon) and 0.1 ΔMw units. These choices are not strictly enforced and can defined
 according the specifications of an experiment.
 
-PyCSEP aso offers support to handle forecast using quadtree approach. Single or multi-resolution sptial grid can be generated based on the choice of modelers. 
+pyCSEP aso offers support to handle forecast using quadtree approach. Single or multi-resolution spatial grid can be generated based on the choice of modelers.
 Then that grid can used for generating earthquake forecast. 
 
 
 Working with conventional gridded forecasts
-##############################
+###########################################
 
 PyCSEP provides the :class:`GriddedForecast<csep.core.forecasts.GriddedForecast>` class to handle working with
 grid-based forecasts. Please see visit :ref:`this example<grid-forecast-evaluation>` for an end-to-end tutorial on
@@ -109,8 +109,8 @@ coordinates are inclusive and the upper coordinates are exclusive. Rates are inc
 defined by [MAG_0, MAG_1). The FLAG is a legacy value from CSEP testing centers that indicates whether a spatial cell should
 be considered by the forecast. Please note that flagged functionality is not yet included for quadtree-gridded forecasts.
 
-PyCSEP offers :function:`QuadtreeForecastReader<csep.utils.readers.load_quadtree_forecast()>` function to read quadtree forecast in default format.
-Similary, custom forecast can be defined and read into PyCSEP as explained for conventional gridded forecast.
+PyCSEP offers the :func:`load_quadtree_forecast<csep.utils.readers.load_quadtree_forecast>` function to read quadtree forecast in default format.
+Similarly, custom forecast can be defined and read into pyCSEP as explained for conventional gridded forecast.
 
 
 ***********************
@@ -130,8 +130,8 @@ Working with catalog-based forecasts
 .. autosummary:: csep.core.forecasts.CatalogForecast
 
 Please see visit :ref:`this<catalog-forecast-evaluation>` example for an end-to-end tutorial on how to evaluate a catalog-based
-earthquake forecast. An example of a catalog-based forecast stored in the default PyCSEP format can be found
-`here<https://github.com/SCECcode/pycsep/blob/dev/csep/artifacts/ExampleForecasts/CatalogForecasts/ucerf3-landers_1992-06-28T11-57-34-14.csv>`_.
+earthquake forecast. An example of a catalog-based forecast stored in the default pyCSEP format can be found
+`here <https://github.com/SCECcode/pycsep/blob/dev/csep/artifacts/ExampleForecasts/CatalogForecasts/ucerf3-landers_1992-06-28T11-57-34-14.csv>`_.
 
 
 The standard format for catalog-based forecasts a comma separated value ASCII format. This format was chosen to be

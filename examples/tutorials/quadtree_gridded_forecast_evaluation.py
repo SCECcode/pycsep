@@ -7,13 +7,13 @@ Quadtree Grid-based Forecast Evaluation
 
 This example demonstrates how to create a quadtree based single resolution-grid and multi-resolution grid.
 Multi-resolution grid is created using earthquake catalog, in which seismic density determines the size of a grid cell. 
-In creating a multi-resolution grid we select a threshold (Nmax) as a maximum number of earthquake in each cell.
+In creating a multi-resolution grid we select a threshold (:math:`N_{max}`) as a maximum number of earthquake in each cell.
 In single-resolution grid, we simply select a zoom-level (L) that determines a single resolution grid.
-The number of cells in single-resolution grid are equal tou 4**L. The zoom-level L=11 leads to 4.2 million cells, nearest to 0.1x0.1 grid.
+The number of cells in single-resolution grid are equal to :math:`4^L`. The zoom-level L=11 leads to 4.2 million cells, nearest to 0.1x0.1 grid.
 
 We use these grids to create and evaluate a time-independent forecast. Grid-based
-forecasts assume the variability of the forecasts is Poissonian. Therefore, Poisson-based evaluations
-should be used to evaluate grid-based forecasts.
+forecasts assume the variability of the forecasts is Poissonian. Therefore, poisson-based evaluations
+should be used to evaluate grid-based forecasts defined using quadtree regions.
 
 Overview:
     1. Define spatial grids
@@ -47,7 +47,7 @@ from csep.core.catalogs import CSEPCatalog
 # ----------------------------------------------
 #
 # We define a multi-resolution quadtree using earthquake catalog. We load a training catalog in CSEP and use that catalog to create a multi-resolution grid.
-# Sometimes, we do not the catalog in exact format as requried by PyCSEP. So we can read a catalog using Pandas and convert it 
+# Sometimes, we do not the catalog in exact format as requried by pyCSEP. So we can read a catalog using Pandas and convert it
 # into the format accepable by PyCSEP. Then we instantiate an object of class CSEPCatalog by calling function :func:`csep.core.regions.CSEPCatalog.from_dataframe`
 
 dfcat = pandas.read_csv('cat_train_2013.csv')
@@ -60,6 +60,7 @@ column_name_mapper = {
 
 # maps the column names to the dtype expected by the catalog class
 dfcat = dfcat.reset_index().rename(columns=column_name_mapper)
+
 # create the origin_times from decimal years
 dfcat['origin_time'] = dfcat.apply(lambda row: decimal_year_to_utc_epoch(row.year), axis=1)
 
@@ -128,7 +129,7 @@ forecast_data = forecast_data.reshape(-1,1)
 forecast_single_grid = GriddedForecast(data = forecast_data, region = r_single, 
                                    magnitudes = mbins, name = 'Example Single-res Forecast')
 
-#The loaded forecast is for 1 year. The test catalog we will use is for 6 years. So we can rescale the forecast.
+# The loaded forecast is for 1 year. The test catalog we will use is for 6 years. So we can rescale the forecast.
 print(f"expected event count before scaling: {forecast_single_grid.event_count}")
 forecast_single_grid.scale(6)
 print(f"expected event count after scaling: {forecast_single_grid.event_count}")
