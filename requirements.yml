@@ -4,7 +4,7 @@ channels:
   - defaults
 dependencies:
   - python>=3.7
-  - numpy
+  - numpy<=1.25.0
   - pandas
   - scipy
   - matplotlib
@@ -18,3 +18,5 @@ dependencies:
   - sphinx_rtd_theme
   - pillow
   - vcrpy
+  - mercantile
+
