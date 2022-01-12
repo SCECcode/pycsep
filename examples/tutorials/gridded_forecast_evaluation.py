@@ -38,6 +38,7 @@ import matplotlib.pyplot as plt
 # We choose a :ref:`time-independent-forecast` to show how to evaluate a grid-based earthquake forecast using PyCSEP. Note,
 # the start and end date should be chosen based on the creation of the forecast. This is important for time-independent forecasts
 # because they can be rescale to any arbitrary time period.
+from csep.utils.stats import get_Kagan_I1_score
 
 start_date = time_utils.strptime_to_utc_datetime('2006-11-12 00:00:00.0')
 end_date = time_utils.strptime_to_utc_datetime('2011-11-12 00:00:00.0')
@@ -104,3 +105,30 @@ csep.write_json(spatial_test_result, 'example_spatial_test.json')
 ax = plots.plot_poisson_consistency_test(spatial_test_result,
                                         plot_args={'xlabel': 'Spatial likelihood'})
 plt.show()
+
+####################################################################################################################################
+# Plot ROC Curves
+# -----------------------
+#
+# We can also plot the Receiver operating characteristic (ROC) Curves based on forecast and testing-catalog.
+# In the figure below, False Positive Rate is the normalized cumulative forecast rate, after sorting cells in decreasing order of rate.
+# The "True Positive Rate" is the normalized cumulative area. The dashed line is the ROC curve for a uniform forecast,
+# meaning the likelihood for an earthquake to occur at any position is the same. The further the ROC curve of a
+# forecast is to the uniform forecast, the specific the forecast is. When comparing the
+# forecast ROC curve against an catalog, one can evaluate if the forecast is more or less specific
+# (or smooth) at different level or seismic rate.
+#
+# Note: This figure just shows an example of plotting an ROC curve with a catalog forecast.
+
+print("Plotting ROC curve")
+_ = plots.plot_ROC(forecast, catalog)
+
+####################################################################################################################################
+# Calculate Kagan's I_1 score
+# ---------------------------
+#
+# We can also get the Kagan's I_1 score for a gridded forecast
+# (see Kagan, YanY. [2009] Testing long-term earthquake forecasts: likelihood methods and error diagrams, Geophys. J. Int., v.177, pages 532-542).
+
+I_1 = get_Kagan_I1_score(forecast, catalog)
+print("I_1score is: ", I_1)
