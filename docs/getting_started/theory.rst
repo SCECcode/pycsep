@@ -262,7 +262,8 @@ plotting function, specifying that the test should be one-sided.
 
 
 
-.. image:: output_6_0.png
+.. image:: static/output_6_0.png
+
 
 
 pyCSEP plots the resulting :math:`95\%` range of likelihoods returned by
@@ -308,7 +309,7 @@ Implementation in pyCSEP
 
 
 
-.. image:: output_9_0.png
+.. image:: static/output_9_0.png
 
 
 Again, the :math:`95\%` confidence range of likelihoods is shown by the
@@ -400,7 +401,7 @@ Poisson distribution. ``number_test_result.quantile`` will return both
 
 
 
-.. image:: output_13_0.png
+.. image:: static/output_13_0.png
 
 
 In this case, the black bar shows the :math:`95\%` interval for the
@@ -472,7 +473,7 @@ pyCSEP implementation
 
 
 
-.. image:: output_16_0.png
+.. image:: static/output_16_0.png
 
 
 In this example, the forecast passes the M-test, demonstrating that the
@@ -542,8 +543,7 @@ the result.
     )
 
 
-
-.. image:: output_19_0.png
+.. image:: static/output_19_0.png
 
 
 The Helmstetter model fails the S-test as the observed spatial
@@ -641,7 +641,7 @@ The t-test and W-tests are implemented in pyCSEP as below.
 
 
 
-.. image:: output_22_0.png
+.. image:: static/output_22_0.png
 
 
 The first argument to the ``paired_t_test`` function is taken as model A
@@ -796,7 +796,7 @@ Implementation in pyCSEP
 
 
 
-.. image:: output_27_0.png
+.. image:: static/output_27_0.png
 
 
 Plotting the number test result of a simulated catalog forecast displays
@@ -870,7 +870,7 @@ that
 
 
 
-.. image:: output_30_0.png
+.. image:: static/output_30_0.png
 
 
 The histogram shows the resulting test distribution with :math:`D^*`
@@ -955,7 +955,7 @@ Implementation in pyCSEP
 
 
 
-.. image:: output_33_0.png
+.. image:: static/output_33_0.png
 
 
 The histogram shows the test distribution of pseudolikelihood as
@@ -1005,7 +1005,7 @@ Implementation in pyCSEP
 
 
 
-.. image:: output_36_0.png
+.. image:: static/output_36_0.png
 
 
 The histogram shows the test distribution of normalised
