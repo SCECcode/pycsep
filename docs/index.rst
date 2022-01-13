@@ -8,6 +8,7 @@ pyCSEP: Tools for Earthquake Forecast Developers
 
     getting_started/installing
     getting_started/core_concepts
+    getting_started/theory
 
 .. toctree::
     :maxdepth: 2
