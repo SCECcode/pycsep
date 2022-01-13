@@ -265,6 +265,7 @@ plotting function, specifying that the test should be one-sided.
 .. image:: static/output_6_0.png
 
 
+
 pyCSEP plots the resulting :math:`95\%` range of likelihoods returned by
 the simulation with the black bar by default. The observed likelihood
 score is shown by a green square where the forecast passes the test and
@@ -540,7 +541,6 @@ the result.
         one_sided_lower=True,
         plot_args = {'xlabel':'normalized spatial likelihood'}
     )
-
 
 
 .. image:: static/output_19_0.png
@@ -1005,7 +1005,7 @@ Implementation in pyCSEP
 
 
 
-.. image:: output_36_0.png
+.. image:: static/output_36_0.png
 
 
 The histogram shows the test distribution of normalised
