@@ -877,7 +877,7 @@ The histogram shows the resulting test distribution with :math:`D^*`
 calculated for each simulated catalog as described in the method above.
 The test statistic :math:`\omega = d_{obs}` is shown with the dashed
 horizontal line. The quantile score for this forecast is
-:math:`\gamma = 0.29`.
+:math:`\gamma = 0.66`.
 
 Pseudo-likelihood test
 ~~~~~~~~~~~~~~~~~~~~~~
