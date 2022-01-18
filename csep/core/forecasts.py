@@ -437,7 +437,7 @@ class GriddedForecast(MarkedGriddedDataSet):
             axes: matplotlib.Axes.axes
         """
         # no mutable function arguments
-        dh = round(self.region.dh, 5)
+        # dh = round(self.region.dh, 5)
         if self.start_time is None or self.end_time is None:
             time = 'forecast period'
         else:
@@ -451,12 +451,12 @@ class GriddedForecast(MarkedGriddedDataSet):
 
         # this call requires internet connection and basemap
         if log:
-            plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
+            plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per cell per {time}') # {str(dh)}° x {str(dh)}°
             with numpy.errstate(divide='ignore'):
                 ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, ax=ax,
                                           show=show, extent=extent, set_global=set_global, plot_args=plot_args)
         else:
-            plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
+            plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per cell per {time}') # {str(dh)}° x {str(dh)}°
             ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, ax=ax,show=show, extent=extent,
                                       set_global=set_global, plot_args=plot_args)
         return ax

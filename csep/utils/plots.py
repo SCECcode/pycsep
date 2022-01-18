@@ -862,7 +862,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     # Get spatial information for plotting
     bbox = region.get_bbox()
     if extent is None and not set_global:
-        extent = [bbox[0], bbox[1], bbox[2] + region.dh, bbox[3] + region.dh]
+        extent = [bbox[0], bbox[1], bbox[2], bbox[3]] # extent = [bbox[0], bbox[1], bbox[2] + region.dh, bbox[3] + region.dh]
 
     # Retrieve plot arguments
     plot_args = plot_args or {}
@@ -930,9 +930,9 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     cmap = matplotlib.colors.ListedColormap(cmap_tup)
 
     ## Plot spatial dataset
-    lons, lats = numpy.meshgrid(numpy.append(region.xs, region.xs[-1] + region.dh),
-                                numpy.append(region.ys, region.ys[-1] + region.dh))
-
+    # lons, lats = numpy.meshgrid(numpy.append(region.xs, region.xs[-1] + region.dh),
+    #                             numpy.append(region.ys, region.ys[-1] + region.dh))
+    lons, lats = numpy.meshgrid(numpy.append(region.xs, bbox[1]), numpy.append(region.ys, bbox[3]))
     im = ax.pcolor(lons, lats, gridded, cmap=cmap, alpha=alpha, snap=True, transform=ccrs.PlateCarree())
     im.set_clim(clim)
 
