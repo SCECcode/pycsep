@@ -272,7 +272,7 @@ score is shown by a green square where the forecast passes the test and
 a red circle where the observed likelihood is outside the likelihood
 distribution.
 
- CL-test
+CL-test
 ^^^^^^^
 
 Aim: The original likelihood test described above gives a result that
