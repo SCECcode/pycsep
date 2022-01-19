@@ -602,7 +602,7 @@ class CartesianGrid2D:
 
     def get_bbox(self):
         """ Returns rectangular bounding box around region. """
-        return (self.xs.min(), self.xs.max(), self.ys.min(), self.ys.max())
+        return (self.xs.min(), self.xs.max()+self.dh, self.ys.min(), self.ys.max()+self.dh)
 
     def midpoints(self):
         """ Returns midpoints of rectangular polygons in region """
@@ -970,7 +970,6 @@ class QuadtreeGrid2D:
         # self.xs = xs
         # self.ys = ys
         # self.idx_map = a
-        self.dh = 0.5 #Temporary use, until 'dh' is removed from plot_spatial_datasets() of forecast.plot.
 
     @property
     def num_nodes(self):
