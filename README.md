@@ -64,7 +64,7 @@ from csep.utils import time_utils
 start_time = time_utils.strptime_to_utc_datetime('2019-01-01 00:00:00.0')
 end_time = time_utils.utc_now_datetime()
 catalog = csep.query_comcat(start_time, end_time)
-catalog.plot()
+catalog.plot(show=True)
 </pre>
 
 Please see [pyCSEP Getting Started](https://docs.cseptesting.org/getting_started/core_concepts) documentation for more examples and tutorials.
