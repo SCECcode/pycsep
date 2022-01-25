@@ -33,7 +33,7 @@ bibliography: paper.bib
 For government officials and the public to act on real-time forecasts of earthquakes, the seismological community needs to
 develop confidence in the underlying scientific hypotheses of the forecast generating models by assessing their
 predictive skill. For this purpose, the Collaboratory for the Study of Earthquake Predictability (CSEP) provides
-cyberinfrastructure and computational tools to evaluate earthquake forecasts. Here, we introduce pyCSEP, a Python package to
+cyberinfrastructure and computational tools to evaluate earthquake forecasts. Here, we introduce `pyCSEP`, a Python package to
 help earthquake forecast developers embed model evaluation into the model development process. The package contains the
 following modules: (1) earthquake catalog access and processing, (2) data models for earthquake forecasts, (3) statistical
 tests for evaluating earthquake forecasts, and (4) visualization routines. `pyCSEP` can evaluate earthquake forecasts expressed as
