@@ -1,5 +1,5 @@
 ---
-title: 'pyCSEP: A Python Package For Earthquake Forecast Developers' 
+title: 'pyCSEP: A Python Toolkit For Earthquake Forecast Developers' 
 tags:
   - python
   - seismology
