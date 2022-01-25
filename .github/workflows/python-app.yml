@@ -21,6 +21,7 @@ jobs:
         python-version: 3.7
     - name: Install dependencies
       run: |
+        sudo apt-get update
         sudo apt-get install libproj-dev proj-data proj-bin  
         sudo apt-get install libgeos-dev 
         pip install --upgrade pip
