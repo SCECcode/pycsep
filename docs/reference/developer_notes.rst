@@ -1,7 +1,7 @@
 Developer Notes
 ===============
 
-Last updated: 3 November 2021
+Last updated: 25 January 2022
 
 Creating a new release of pyCSEP
 --------------------------------
@@ -35,7 +35,9 @@ If that executes with no warnings or failures build the source distribution usin
 This creates a folder called `dist` that contains a file called `pycsep-X.Y.Z.tar.gz`. This is the distribution
 that will be uploaded to `PyPI`, `conda-forge`, and Github.
 
-Upload to PyPI using `twine`. This requires permissions to push to the PyPI account.
+Upload to PyPI using `twine`. This requires permissions to push to the PyPI account::
+
+    twine upload dist/pycsep-X.Y.Z.tar.gz
 
 3. Create release on Github
 ***************************
