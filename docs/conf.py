@@ -30,7 +30,7 @@ html_show_sphinx = False
 # The short X.Y version
 version = 'v0.5'
 # The full version, including alpha/beta/rc tags
-release = 'v0.5.1'
+release = 'v0.5.2'
 
 
 # -- General configuration ---------------------------------------------------
@@ -52,7 +52,6 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx_gallery.gen_gallery',
     'sphinx.ext.githubpages'
-
 ]
 
 # Add any paths that contain templates here, relative to this directory.
