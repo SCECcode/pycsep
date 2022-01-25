@@ -1,3 +1,15 @@
+# v0.5.2 (01/25/2021)
+## Change-log
+Fixed failing build from matplotlib 3.5.0 release (#162)  
+Updates to documentation and tutorials (#165)  
+Added theory of tests to documentation (#171)  
+Added notebooks folder for community recipes (#173)  
+Pin numpy version to 1.25.1 to fix (#168) 
+
+## Credits
+William Savran (@wsavran)
+Kirsty Bayliss (@kirstybayliss)
+
 # v0.5.1 (11/15/2021)
 
 ## Change-log

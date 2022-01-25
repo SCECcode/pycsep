@@ -5,8 +5,9 @@ Contributors:
 * Pablo Iturrieta, GFZ Potsdam
 * Khawaja Asim, GFZ Potsdam
 * Han Bao, University of California, Los Angeles
-* Thomas Beutin, GFZ Potsdam
+* Kirsty Bayliss, University of Edinburgh
 * Jose Bayona, University of Bristol
+* Thomas Beutin, GFZ Potsdam
 * Marcus Hermann, University of Naples 'Frederico II'
 * Edric Pauk, Southern California Earthquake Center
 * Max Werner, University of Bristol
