@@ -23,7 +23,9 @@ jobs:
       run: |
         sudo apt-get update
         pip install --upgrade pip
+        sudo apt-get install libgeos-dev 
         pip install numpy
+        pip install pyproj
     - name: Install PyCSEP
       run: |
         pip install .[all]
