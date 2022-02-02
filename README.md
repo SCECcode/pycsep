@@ -7,6 +7,8 @@
     <a target="_blank" href="https://github.com/SCECcode/pycsep/actions"><img src="https://github.com/SCECcode/pycsep/actions/workflows/build-sphinx.yml/badge.svg">
     <a target="_blank" href="https://codecov.io/gh/SCECcode/pycsep"><img src="https://codecov.io/gh/SCECcode/pycsep/branch/master/graph/badge.svg?token=HTMKM29MAU">
     <a target="_blank" href="https://www.zenodo.org/badge/latestdoi/149362283"><img src="https://www.zenodo.org/badge/149362283.svg" alt="DOI"></a>
+        <a target="_blank" a style="border-width:0" href="https://doi.org/10.21105/joss.03658">
+  <img src="https://joss.theoj.org/papers/10.21105/joss.03658/status.svg" alt="DOI badge" ></a>
 </p>
 
 # Description:
