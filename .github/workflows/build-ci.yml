@@ -32,7 +32,7 @@ jobs:
     - name: Install pyCSEP
       run: |
         pip install --no-deps -e .
-        python -c "import csep; print('Version: ', csep.__version__)
+        python -c "import csep; print('Version: ', csep.__version__)"
         
     - name: Test with pytest
       run: |
