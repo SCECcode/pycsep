@@ -8,6 +8,10 @@ from xml.etree import ElementTree as ET
 import numpy
 import numpy as np
 import mercantile
+import multiprocessing as mp
+import shapely
+from functools import partial
+
 
 # PyCSEP imports
 from csep.utils.calc import bin1d_vec, cleaner_range, first_nonnan, last_nonnan
@@ -517,6 +521,9 @@ class CartesianGrid2D:
         # index values of polygons array into the 2d cartesian grid, based on the midpoint.
         self.xs = xs
         self.ys = ys
+        #Bounds [origin, top_right]
+        orgs = self.origins()
+        self.bounds = numpy.column_stack((orgs,orgs+0.1))
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -772,14 +779,18 @@ def geographical_area_from_bounds(lon1, lat1, lon2, lat2):
     Returns:
         Area of cell in Km2
     """
-    earth_radius_km = 6371.
-    R2 = earth_radius_km ** 2
-    rad_per_deg = numpy.pi / 180.0e0
+    if lon1 == lon2 or lat1 == lat2:
+        #        print('Its line')
+        return 0
+    else:
+        earth_radius_km = 6371.
+        R2 = earth_radius_km ** 2
+        rad_per_deg = numpy.pi / 180.0e0
 
-    strip_area_steradian = 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat1) * rad_per_deg)) \
+        strip_area_steradian = 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat1) * rad_per_deg)) \
                            - 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat2) * rad_per_deg))
-    area_km2 = strip_area_steradian * R2 / (360.0 / (lon2 - lon1))
-    return area_km2
+        area_km2 = strip_area_steradian * R2 / (360.0 / (lon2 - lon1))
+        return area_km2
 
 def quadtree_grid_bounds(quadk):
     """
@@ -1331,3 +1342,275 @@ def california_quadtree_region(magnitudes=None, name="california-quadtree"):
     california_region = QuadtreeGrid2D.from_quadkeys(qk, magnitudes=magnitudes, name=name)
     return california_region
 
+#--------------- Forecast mapping from one grid to another ----------
+def geographical_area_from_qk(quadk):
+    """
+    Wrapper around function geographical_area_from_bounds
+    """
+    bounds = tile_bounds(quadk)
+    return geographical_area_from_bounds(bounds[0], bounds[1], bounds[2], bounds[3])
+
+
+def tile_bounds(quad_cell_id):
+    """
+    It takes in a single Quadkkey and returns lat,longs of two diagonal corners using mercantile
+    Parameters
+    ----------
+    quad_cell_id : Stirng
+        Quad key of a cell.
+
+    Returns
+    -------
+    bounds : Mercantile object
+        Latitude and Longitude of bottom left AND top right corners.
+
+    """
+    # t = Tile.from_quad_tree('{}'.format(quad_cell_id)) # tile from a quad tree repr string #This will change for Mercantile
+    # bounds = t.bounds
+    bounds = mercantile.bounds(mercantile.quadkey_to_tile(quad_cell_id))
+    return [bounds.west, bounds.south, bounds.east, bounds.north]
+
+
+def create_polygon(fg):
+    """
+    Required for parallel processing
+    """
+    return shapely.geometry.Polygon([(fg[0], fg[1]), (fg[2], fg[1]), (fg[2], fg[3]), (fg[0], fg[3])])
+
+
+def calc_cell_area(cell):
+    """
+    Required for parallel processing
+    """
+    return geographical_area_from_bounds(cell[0], cell[1], cell[2], cell[3])
+
+
+def _map_overlapping_cells(fcst_grid_poly, fcst_cell_area, fcst_rate_poly, target_poly):  # ,
+    """
+    ------Computationally Expensive --- To be used only for Cells that do not directly conside with target poly -----
+    Note: ALERT !!! This function uses 3 global variables, i.e. fcst_grid_poly, fcst_cell_area, fcst_rate_poly
+
+    This function takes 1 target polygon, upon which forecasts are to be mapped. Finds all the cells of forecast grid that
+    match with this polygon and then maps the forecast rate of those cells according to area.
+
+    fcst_grid_polygon (Global variable in memory): The grid that needs to be mapped on target_poly
+    fcst_rate_poly (Global variable in memory): The forecast that needs to be mapped on target grid polygon
+    fcst_cell_area (Global variable in memory): The cell area of forecast grid
+
+    Input:
+        target_poly: One polygon upon which forecast grid is to be mapped.
+    returns:
+        The forecast rate received by target_poly
+    """
+    map_rate = numpy.array([0])  # --ithy masla ae.
+    #    map_rate = numpy.zeros(len(fcst_rate_poly))
+
+    for j in range(len(fcst_grid_poly)):
+        # Iterates over ALL the cells of Forecast grid and find the cells that overlap with target cell (poly).
+        if target_poly.intersects(fcst_grid_poly[j]):  # overlaps
+            #           print('L5 Cell:',j, '--> L6Quadtree:')
+            intersect = target_poly.intersection(fcst_grid_poly[j])
+            shared_area = geographical_area_from_bounds(intersect.bounds[0], intersect.bounds[1], intersect.bounds[2],
+                                                        intersect.bounds[3])
+            map_rate = map_rate + (fcst_rate_poly[j] * (shared_area / fcst_cell_area[j]))
+    return map_rate
+
+
+def _map_exact_inside_cells(fcst_grid, fcst_rate, boundary):
+    """
+    Note: ALTER !!! Uses 2 Global variables. fcst_grid, fcst_rate
+
+    Takes a cell_boundary and finds all those fcst_grid cells that fit exactly inside of it
+    And then sum-up the rates of all those cells fitting inside it to get forecast rate for boundary_cell
+
+    Inputs:
+        boundary: 1 cell with [lon1, lat1, lon2, lat2]
+    returns:
+        1 - sum of forecast_rates for cell that fall totally inside of boundary cell
+        2 - Array of the corresponding cells that fall inside
+    """
+    c = numpy.logical_and(numpy.logical_and(fcst_grid[:, 0] >= boundary[0], fcst_grid[:, 1] >= boundary[1]),
+                          numpy.logical_and(fcst_grid[:, 2] <= boundary[2], fcst_grid[:, 3] <= boundary[3]))
+
+    exact_cells = numpy.where(c == True)
+
+    #    return sum(fcst_rate[c]), exact_cells
+    return numpy.sum(fcst_rate[c], axis=0), exact_cells
+
+
+def forecast_mapping_parallel(target_grid, fcst_grid, fcst_rate, ncpu=7):
+    """
+    ----Both Aggregation and De-Aggregation ----
+    ***It is a wrapper function that uses 4 functions in respective order
+    i.e. _map_exact_cells, _map_overlapping_cells, calc_cell_area, create_polygon***
+
+    Maps the forecast rates of one grid to another grid using parallel processing
+    Works in two steps:
+        1 - Maps all those cells that fall entirely on target cells
+        2 - The cells that overlap with multiple cells, map them according to cell area
+    Inputs:
+        target_grid: Target grid bounds, upon which forecast is to be mapped.
+                        [n x 4] array, Bottom left and Top Right corners
+                        [lon1, lat1, lon2, lat2]
+        fcst_grid: Available grid that is available with forecast
+                            Same as bounds_targets
+        fcst_rate: Forecast rates to be mapped.
+                    [n x mbins]
+
+    Returns:
+        target_rates:
+                Forecast rates mapped on the target grid
+                [nx1]
+    """
+    print(len(fcst_grid))
+    print('--First Step: Exact Cell mapping--')
+    #    tstart = time.time()
+    #    t1 = time.time()
+    pool = mp.Pool(ncpu)  # mp.cpu_count()
+
+    func_exact = partial(_map_exact_inside_cells, fcst_grid, fcst_rate)
+    exact_rate = pool.map(func_exact, [poly for poly in target_grid])
+    pool.close()
+    #    t2 = time.time()
+    #    print('Time taken for First Step :', t2-t1)
+
+    exact_cells = []
+    exact_rate_tgt = []
+    for i in range(len(exact_rate)):
+        exact_cells.append(exact_rate[i][1][0])
+        exact_rate_tgt.append(exact_rate[i][0])
+
+    exact_cells = numpy.concatenate(exact_cells)
+    print('Number of Exact Cells: ', len(exact_cells))
+    # If Len(exact_cell) == len(fcst_grid):
+    #        map_rate =  exact_rate_tgt
+    # return map_rate
+    # else:
+
+    # Exclude all those cells from Grid that have already fallen entirely inside any cell of Target Grid
+    fcst_rate_poly = numpy.delete(fcst_rate, exact_cells, axis=0)  # GLOBAL pARAMETER -Rates
+    lft_fcst_grid = numpy.delete(fcst_grid, exact_cells, axis=0)
+
+    # ---Lets play now only with those cells are overlapping with multiple target cells
+
+    ##Get the polygon of Remaining Forecast grid Cells
+    pool = mp.Pool(ncpu)
+    fcst_grid_poly = pool.map(create_polygon, [i for i in lft_fcst_grid])  # GLOBAL pARAMETER -Grid
+    pool.close()
+
+    # Get the Cell Area of forecast grid
+    pool = mp.Pool(ncpu)
+    fcst_cell_area = pool.map(calc_cell_area, [i for i in lft_fcst_grid])  # GLOBAL pARAMETER  -Area
+    pool.close()
+
+    print('Calculate target polygons')
+    pool = mp.Pool(ncpu)
+    target_grid_poly = pool.map(create_polygon, [i for i in target_grid])
+    pool.close()
+
+    print('--2nd Step: Start Polygon mapping--')
+    #    t1 = time.time()
+    pool = mp.Pool(ncpu)  # mp.cpu_count()
+    func_overlapping = partial(_map_overlapping_cells, fcst_grid_poly, fcst_cell_area, fcst_rate_poly)
+    rate_tgt = pool.map(func_overlapping, [poly for poly in target_grid_poly])  # Uses above three Global Parameters
+    pool.close()
+    #    t2 = time.time()
+    #    print('Time for Mapping: ', t2-t1)
+    #    exact_rate_tgt = numpy.vstack(exact_rate_tgt)
+    print('Shape of Exact cell :', numpy.shape(exact_rate_tgt))
+    print('Shape of Shared Cells :', numpy.shape(rate_tgt))
+    # Zero padding in shared rates, which dont receive any rates.
+
+    zero_pad_len = numpy.shape(fcst_rate)[1]
+    for i in range(len(rate_tgt)):
+        if len(rate_tgt[i]) < zero_pad_len:
+            print('Zero Padding in shared Rates :', i)
+            rate_tgt[i] = numpy.zeros(zero_pad_len)
+
+    map_rate = numpy.add(rate_tgt, exact_rate_tgt)
+    print('Difference in Forecast Rate = ', numpy.sum(map_rate) - numpy.sum(fcst_rate))
+    #    numpy.savetxt('forecast mapping/gear_rate_zoom='+str(zoom[z])+'.csv', map_rate, delimiter=',')
+    #    tend= time.time()
+    #    print('Time for forecast mapping: ',tend-tstart)
+    return map_rate
+
+
+#    return numpy.vstack(map_rate)
+#    return exact_rate_tgt, rate_tgt
+
+# -----
+
+##---Function for Forecast De-Aggregation
+def forecast_deaggregate_qk(qk_high_zoom, qk_low_zoom, forecast_low_zoom):
+    """
+    Forecast mapping from low Zoom grid (Big Cells) to High Zoom grid: De-Aggregation
+    When each low zoom bin is divided into 04 cells, the forecast is area-wise divided in each cell
+
+    Parameters
+    ----------
+    qk_high_zoom : Array of Strings
+        Quadkeys with Low Threshold
+    qk_low_zoom : Array of Strings
+       Quadkeys with High Threshold.
+    forecast_low_zoom : @D numpy array
+        Forecast for bins with high threshold EQs
+
+    Returns
+    -------
+    qk_cast : Array of Strings
+        Quadkeys = High Zoom quadkeys
+    forecast_cast : 2D numpy array
+        High Zoom forecast obtained from dividing Low Zoom forecast
+
+    """
+    assert (len(qk_high_zoom) > len(qk_low_zoom)), "High Zoom Quadkey should be given first"
+    print("Length of Low Zoom QK", len(qk_low_zoom))
+    print("Length of Low ZOom Forecast", len(forecast_low_zoom))
+    assert (len(qk_low_zoom) == len(forecast_low_zoom)), "Make Sure Low Zoom Quadkeys and Forecasts are consistent"
+
+    #    qk_cast = numpy.array([])
+    #    qk_cast = numpy.append(qk_cast,qk_low_zoom)
+    qk_cast = list(qk_low_zoom)
+    forecast_cast = list(forecast_low_zoom)
+
+    i = 0
+
+    while (i < len(qk_high_zoom)):
+        if qk_cast[i] == qk_high_zoom[i]:
+            #            if len(qk_cast) == i:
+            #                qk_cast.append(qk_low_zoom[i])  #---NOW
+            #                forecast_cast.append(forecast_low_zoom[i]) #--NOW
+            i = i + 1
+            # print("Into IF")
+            # print('i = ', i)
+        else:
+            # Put Sanity check here for comparing previous values of strings.
+            # print('into ELSE..')
+            # print('i = ', i)
+            #            tmpold = copy.copy(qk_cast[i])
+            #            tmpf = copy.copy(forecast_cast[i])
+
+            #            ----NOW
+
+            # --Get the Area of Bigger Cell, before changing it ...
+            qk_old = qk_cast[i]
+            area = geographical_area_from_qk(qk_old)
+
+            qk_cast[i] = qk_old + '0'
+            qk_cast.insert(i + 1, qk_old + '1')
+            qk_cast.insert(i + 2, qk_old + '2')
+            qk_cast.insert(i + 3, qk_old + '3')
+
+            # Get Area0 = tmpold+'0'
+            area_0 = geographical_area_from_qk(qk_cast[i])
+            area_1 = geographical_area_from_qk(qk_cast[i + 1])
+            area_2 = geographical_area_from_qk(qk_cast[i + 2])
+            area_3 = geographical_area_from_qk(qk_cast[i + 3])
+
+            f_old = forecast_cast[i]
+            forecast_cast[i] = f_old * (area_0 / area)
+            forecast_cast.insert(i + 1, f_old * (area_1 / area))
+            forecast_cast.insert(i + 2, f_old * (area_2 / area))
+            forecast_cast.insert(i + 3, f_old * (area_3 / area))
+
+    return numpy.array(qk_cast), numpy.vstack(forecast_cast)
