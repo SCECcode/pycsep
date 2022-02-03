@@ -1,0 +1,50 @@
+name: tests
+
+on:
+  push:
+    branches-ignore:
+    - 'v*'
+  pull_request:
+    types: ['opened', 'reopened']
+
+jobs:
+  build:
+    if: github.repository == 'SCECCode/pycsep'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.7', '3.8', '3.9', '3.10']
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+        activate-environment: csep-dev
+        channels: conda-forge
+
+    - name: Install dependencies
+      run: |
+        conda env update --file requirements.yml
+        conda info -a
+        conda list
+
+    - name: Install pyCSEP
+      run: |
+        pip install --no-deps -e .
+        python -c "import csep; print('Version: ', csep.__version__)"
+
+    - name: Test with pytest
+      run: |
+        conda install pytest-cov
+        pytest --cov=./ --cov-config=.coveragerc
+
+    - name: Upload coverage
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
+      run: |
+        bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'

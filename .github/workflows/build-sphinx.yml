@@ -1,33 +1,28 @@
 name: docs
-
 on:
-  push:
+  pull_request:
     branches: [ master ]
-
 jobs:
   build_docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v2
+      - uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: 3.7
+          python-version: '3.10'
+          activate-environment: csep-dev
+          channels: conda-forge
+
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install libproj-dev proj-data proj-bin
-          sudo apt-get install libgeos-dev
-          sudo apt-get install python3-sphinx
-          python -m pip install --upgrade pip
-          pip install numpy
-          pip install wheel
-          pip install pytest pytest-cov
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pillow
-      - name: Install PyCSEP
+          conda env update --file requirements.yml
+          conda info -a
+          conda list
+
+      - name: Install pyCSEP
         run: |
-          python setup.py install
+          python install --no-deps -e .
+
       - name: Build documentation
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
