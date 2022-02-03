@@ -41,4 +41,5 @@ jobs:
     - name: Upload coverage report
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
       run: |
+        conda install pytest-cov
         bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'
