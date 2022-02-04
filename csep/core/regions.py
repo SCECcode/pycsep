@@ -9,7 +9,7 @@ import numpy
 import numpy as np
 import mercantile
 import multiprocessing as mp
-import shapely
+import shapely.geometry
 from functools import partial
 
 
