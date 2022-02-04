@@ -19,6 +19,7 @@ from csep.utils.scaling_relationships import WellsAndCoppersmith
 
 from csep.models import Polygon
 
+
 def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-california-collection", use_midpoint=True):
     """ Return collection region for California RELM testing region
 
@@ -523,7 +524,7 @@ class CartesianGrid2D:
         self.ys = ys
         #Bounds [origin, top_right]
         orgs = self.origins()
-        self.bounds = numpy.column_stack((orgs,orgs+0.1))
+        self.bounds = numpy.column_stack((orgs,orgs+dh))
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -1466,9 +1467,9 @@ def forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     print('--First Step: Exact Cell mapping--')
     #    tstart = time.time()
     #    t1 = time.time()
-    if ncpu=None
+    if ncpu==None:
         ncpu = mp.cpu_count()
-        pool = mp.pool(ncpu)
+        pool = mp.Pool(ncpu)
     else:
         pool = mp.Pool(ncpu)  # mp.cpu_count()
     print('Number of CPUs :',ncpu)
@@ -1621,7 +1622,7 @@ def forecast_deaggregate_qk(qk_high_zoom, qk_low_zoom, forecast_low_zoom):
     return  numpy.vstack(forecast_cast) #numpy.array(qk_cast),
 
 
-def forecast_mapping(target_grid, forecast_gridded, only_deaggregate=False):
+def forecast_mapping(target_grid, forecast_gridded, only_deaggregate=False,  ncpu=None):
     """
     --Wrapper function over "forecat_mapping_generic" and forecast_deaggregate_qk"--
     Forecast mapping onto Target Grid
@@ -1635,6 +1636,7 @@ def forecast_mapping(target_grid, forecast_gridded, only_deaggregate=False):
         Note: set the flag "only_deagregate = True" Only if one is sure that both grids are Quadtree and
         Target grid is high-resolution at every level than the other grid.
     """
+    from csep.core.forecasts import GriddedForecast
     if only_deaggregate:
         qk_target = target_grid.quadkeys
         qk = forecast_gridded.region.quadkeys
@@ -1646,7 +1648,8 @@ def forecast_mapping(target_grid, forecast_gridded, only_deaggregate=False):
         bounds_target = target_grid.bounds
         bounds = forecast_gridded.region.bounds
         data = forecast_gridded.data
-        data_mapped_bounds = forecast_mapping_generic(bounds_target, bounds, data)
+        data_mapped_bounds = forecast_mapping_generic(bounds_target, bounds, data, ncpu=ncpu)
+        # Using GriddedForecast, which I imported. Check for Circular imports?
         target_forecast = GriddedForecast(data=data_mapped_bounds, region=target_grid,
                                           magnitudes=forecast_gridded.magnitudes)
     return target_forecast

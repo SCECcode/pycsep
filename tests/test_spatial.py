@@ -3,7 +3,7 @@ import itertools
 import pytest
 
 import numpy
-
+from csep.core.forecasts import GriddedForecast
 from csep.core.regions import (
     CartesianGrid2D,
     QuadtreeGrid2D,
@@ -13,7 +13,8 @@ from csep.core.regions import (
     _bin_catalog_probability,
     quadtree_grid_bounds,
     california_relm_region,
-    geographical_area_from_bounds
+    geographical_area_from_bounds,
+    forecast_mapping
 )
 
 from csep.models import Polygon
@@ -321,6 +322,40 @@ def test_geographical_area_from_bounds():
     numpy.testing.assert_array_equal(geographical_area_from_bounds(-180,-90, 180, 90), area_globe)
     numpy.testing.assert_array_equal(geographical_area_from_bounds(0,0,1,1), area_equator)
 
+def test_forecast_mapping_generic():
+    print('unit tests for forecast mapping')
+    coords = numpy.array([[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]])
+    forecast = numpy.array([5, 5, 2, 5, 5, 2, 2, 2, 2])
+    forecast = forecast.reshape(-1, 1)
+
+    mbins = numpy.array([1])
+    r = CartesianGrid2D.from_origins(coords, dh=1, magnitudes=mbins)
+    grid_forecast = GriddedForecast(data=forecast, region=r, magnitudes=mbins)
+
+    target_coords = numpy.array([[0, 0], [0, 2], [2, 2], [2, 0]])  #
+    expected_mapped_rates = numpy.array([20, 4, 2, 4]).reshape(-1, 1)
+
+    r_target = CartesianGrid2D.from_origins(target_coords, dh=2, magnitudes=mbins)
+    forecast_target = forecast_mapping(r_target, grid_forecast, ncpu=1)
+
+    numpy.testing.assert_array_equal(forecast_target.data, expected_mapped_rates)
+
+def test_forecast_deagregate():
+    mbins = numpy.array([1])
+
+    qk = ['0', '1', '2', '3']
+    r = QuadtreeGrid2D.from_quadkeys(qk, magnitudes=mbins)
+    fcst = numpy.array([4, 4, 4, 4]).reshape(-1, 1)
+    grid_forecast = GriddedForecast(data=fcst, region=r, magnitudes=mbins)
+
+    qk_target = ['0', '10', '11', '12', '13', '2', '3']
+    r_target = QuadtreeGrid2D.from_quadkeys(qk_target, magnitudes=mbins)
+    forecast_target = forecast_mapping(r_target, grid_forecast, only_deaggregate=True)
+
+    expected_mapped_rates = numpy.array([4, 0.15883159318006335, 0.15883159318006335,
+                                         1.8411684068199365, 1.8411684068199365, 4, 4]).reshape(-1, 1)
+
+    numpy.testing.assert_array_equal(forecast_target.data, expected_mapped_rates)
 
 if __name__ == '__main__':
     unittest.main()
