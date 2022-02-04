@@ -1,4 +1,13 @@
-# v0.5.2 (01/25/2021)
+# v0.6.0 (02/04/2022)
+
+## Change-log
+Adds support for quadtree regions (#183)
+
+## Credits
+Khawaja Asim (@khawajasim)  
+William Savran (@wsavran)
+
+# v0.5.2 (01/25/2022)
 ## Change-log
 Fixed failing build from matplotlib 3.5.0 release (#162)  
 Updates to documentation and tutorials (#165)  

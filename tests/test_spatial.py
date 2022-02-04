@@ -4,8 +4,18 @@ import pytest
 
 import numpy
 
-from csep.core.regions import CartesianGrid2D, compute_vertex, compute_vertices, _bin_catalog_spatio_magnitude_counts, \
-    _bin_catalog_spatial_counts, _bin_catalog_probability, global_region, california_relm_region
+from csep.core.regions import (
+    CartesianGrid2D,
+    QuadtreeGrid2D,
+    compute_vertex, compute_vertices,
+    _bin_catalog_spatio_magnitude_counts,
+    _bin_catalog_spatial_counts,
+    _bin_catalog_probability,
+    quadtree_grid_bounds,
+    california_relm_region,
+    geographical_area_from_bounds
+)
+
 from csep.models import Polygon
 
 
@@ -251,6 +261,66 @@ class TestCatalogBinning(unittest.TestCase):
 
             assert lon >= found_poly.points[1][0] and lon < found_poly.points[2][0]
             assert lat >= found_poly.points[0][1] and lat < found_poly.points[2][1]
+
+
+class TestQuadtreeGrid2D(unittest.TestCase):
+
+    def setUp(self):
+        self.zoom = 5
+        self.mbins = numpy.arange(5.95, 8.95, 0.1)
+        self.grid = QuadtreeGrid2D.from_single_resolution(self.zoom, magnitudes=self.mbins)
+
+    def test_get_index(self):
+        lons = [0, 45, 60, -180]
+        lats = [0, 45, 60, -85.05]
+        idx = numpy.array([426, 410, 403, 682])
+        numpy.testing.assert_array_equal(self.grid.get_index_of(lons, lats), idx)
+
+        # point outside
+        numpy.testing.assert_array_equal(self.grid.get_index_of(0, 85.6), numpy.array([]))
+
+    def test_quadtree_bounds(self):
+        qk = ['0', '1']
+        bounds = [[-180., 0., 0., 85.0511287798066], [0., 0., 180.,85.0511287798066]]
+        numpy.testing.assert_array_equal(quadtree_grid_bounds(qk), bounds)
+
+    def test_wrong_coordinates(self):
+        lons = [180, -180]
+        lats = [-85.06, 85.06]  # Lats outside the quadtree grid
+        idx = []
+        numpy.testing.assert_array_equal(self.grid.get_index_of(lons, lats), idx)
+
+    def test_corner_points(self):
+        # (lon, lat) = (0,0) lies on the top right corner of quadtree cell '21111'.
+         # But it should belong to the top-right diagonal cell, i.e. '12222'.
+         lon1 = 0
+         lat1 = 0
+         qk_cell1 = '12222'
+
+         # Anything little less than (0,0) goes into the lower-left diagonal quadtree cell '21111'
+         lon2 = -0.0000000001
+         lat2 = -0.0000000001
+         qk_cell2 = '21111'
+         numpy.testing.assert_array_equal(self.grid.quadkeys[self.grid.get_index_of(lon1, lat1)], qk_cell1)
+         numpy.testing.assert_array_equal(self.grid.quadkeys[self.grid.get_index_of(lon2, lat2)], qk_cell2)
+
+    def test_num_cells(self):
+         total_cells = 1024
+         self.assertEqual(total_cells, self.grid.num_nodes)
+
+    def test_find_quadkey_of_coord(self):
+        lon = 0
+        lat = 0
+        qk_cell = '12222'
+        numpy.testing.assert_array_equal(self.grid.quadkeys[self.grid.get_index_of(lon, lat)], qk_cell)
+
+
+def test_geographical_area_from_bounds():
+    area_globe = 510064471.90978825
+    area_equator = 12363.6839902611
+    numpy.testing.assert_array_equal(geographical_area_from_bounds(-180,-90, 180, 90), area_globe)
+    numpy.testing.assert_array_equal(geographical_area_from_bounds(0,0,1,1), area_equator)
+
 
 if __name__ == '__main__':
     unittest.main()
