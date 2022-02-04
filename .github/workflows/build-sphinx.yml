@@ -50,5 +50,3 @@ jobs:
           git add .
           git commit -am "Updating pyCSEP docs for commit ${GITHUB_SHA} made on `date -d"@{SOURCE_DATE_EPOCH} --iso-8601=seconds` from ${GITHUB_REF} by ${GITHUB_ACTOR}"
           git push deploy gh-pages --force
-        shell: bash
-
