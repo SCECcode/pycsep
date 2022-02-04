@@ -781,7 +781,6 @@ def geographical_area_from_bounds(lon1, lat1, lon2, lat2):
         Area of cell in Km2
     """
     if lon1 == lon2 or lat1 == lat2:
-        #        print('Its line')
         return 0
     else:
         earth_radius_km = 6371.
