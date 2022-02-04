@@ -70,20 +70,28 @@ Contributing
 ------------
 We highly encourage users of this package to get involved in the development process. Any contribution is helpful, even
 suggestions on how to improve the package, or additions to the documentation (those are particularly welcome!). Check out
-the `Contribution guidelines <https://github.com/SCECCode/csep2/blob/dev/CONTRIBUTING.md>`_ for a step by step on how to contribute to the project. If there are
+the `Contribution guidelines <https://github.com/SCECCode/pycsep/blob/master/CONTRIBUTING.md>`_ for a step by step on how to contribute to the project. If there are
 any questions, please contact us!
 
 Contacting Us
 -------------
-* For general discussion and bug reports please post issues on the `PyCSEP GitHub <https://github.com/SCECCode/csep2>`_.
-* This project adheres to a `Code of Conduct <https://github.com/SCECCode/csep2/blob/dev/CODE_OF_CONDUCT.md>`_. By participating you agree to follow its terms.
+* For general discussion and bug reports please post issues on the `pyCSEP GitHub <https://github.com/SCECCode/pycsep>`_.
+* This project adheres to a `Code of Conduct <https://github.com/SCECCode/pycsep/blob/master/CODE_OF_CONDUCT.md>`_. By participating you agree to follow its terms.
 
 List of Contributors
 --------------------
 * (Lead) William Savran ``wsavran [at] usc [dot] edu``
-* Muhammad Asim Khawaja
-* Thomas Beutin
-* Pablo Iturrieta
+* Pablo Iturrieta, GFZ Potsdam
+* Khawaja Asim, GFZ Potsdam
+* Han Bao, University of California, Los Angeles
+* Kirsty Bayliss, University of Edinburgh
+* Jose Bayona, University of Bristol
+* Thomas Beutin, GFZ Potsdam
+* Marcus Hermann, University of Naples 'Frederico II'
+* Edric Pauk, Southern California Earthquake Center
+* Max Werner, University of Bristol
+* Danijel Schorlemmner, GFZ Potsdam
+* Philip Maechling, Southern California Earthquake Center
 
 
 
