@@ -982,7 +982,6 @@ class QuadtreeGrid2D:
         # self.xs = xs
         # self.ys = ys
         # self.idx_map = a
-        # self.dh = 0.5 #Temporary use, until 'dh' is removed from plot_spatial_datasets() of forecast.plot.
 
     @property
     def num_nodes(self):
