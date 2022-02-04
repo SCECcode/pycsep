@@ -603,16 +603,16 @@ def ingv_horus(fname):
         if line['hour'] >= 24.:
             dt += datetime.timedelta(days=1)
             line['hour'] -= 24.
-        Time = datetime.datetime(
-                                line['year'],
-                                line['month'],
-                                line['day'],
-                                line['hour'],
-                                line['minute'],
-                                line['second']
+        time = datetime.datetime(
+                                int(line['year']),
+                                int(line['month']),
+                                int(line['day']),
+                                int(line['hour']),
+                                int(line['minute']),
+                                int(line['second'])
                                ) + dt
-        event_tuple = (Time,
-                       datetime_to_utc_epoch(Time),
+        event_tuple = (time,
+                       datetime_to_utc_epoch(time),
                        float(line["lat"]),
                        float(line["lon"]),
                        float(line["depth"]),
