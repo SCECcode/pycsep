@@ -1,0 +1,40 @@
+name: Build and upload to PyPI
+
+# Only build on tagged releases
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Build and upload sdist
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: csep-dev
+          python-version: '3.10'
+          channels: conda-forge
+
+      - name: Install dependencies
+        run: |
+          conda env update --file requirements.yml
+          conda info -a
+          conda list
+
+      - name: Create sdist
+        run: |
+        python setup.py check
+        python setup.py sdist
+
+      - name: Publish Package
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_upload_token }}
