@@ -7,6 +7,10 @@ on:
 jobs:
   build_docs:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
     steps:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
@@ -17,8 +21,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install python3-sphinx
           conda env update --file requirements.yml
           conda info -a
           conda list
@@ -26,6 +28,7 @@ jobs:
       - name: Install pyCSEP
         run: |
           pip install --no-deps -e .
+          python -c "import csep; print('Version: ', csep.__version__)"
 
       - name: Build documentation
         env:
