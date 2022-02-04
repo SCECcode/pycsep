@@ -17,6 +17,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install python3-sphinx
           conda env update --file requirements.yml
           conda info -a
           conda list
