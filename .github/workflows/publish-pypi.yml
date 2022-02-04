@@ -30,8 +30,8 @@ jobs:
 
       - name: Create sdist
         run: |
-        python setup.py check
-        python setup.py sdist
+          python setup.py check
+          python setup.py sdist
 
       - name: Publish Package
         uses: pypa/gh-action-pypi-publish@master
