@@ -1438,7 +1438,7 @@ def _map_exact_inside_cells(fcst_grid, fcst_rate, boundary):
     return numpy.sum(fcst_rate[c], axis=0), exact_cells
 
 
-def forecast_mapping_parallel(target_grid, fcst_grid, fcst_rate, ncpu=7):
+def forecast_mapping_generic(target_grid, fcst_grid, fcst_rate, ncpu=None):
     """
     ----Both Aggregation and De-Aggregation ----
     ***It is a wrapper function that uses 4 functions in respective order
@@ -1466,7 +1466,12 @@ def forecast_mapping_parallel(target_grid, fcst_grid, fcst_rate, ncpu=7):
     print('--First Step: Exact Cell mapping--')
     #    tstart = time.time()
     #    t1 = time.time()
-    pool = mp.Pool(ncpu)  # mp.cpu_count()
+    if ncpu=None
+        ncpu = mp.cpu_count()
+        pool = mp.pool(ncpu)
+    else:
+        pool = mp.Pool(ncpu)  # mp.cpu_count()
+    print('Number of CPUs :',ncpu)
 
     func_exact = partial(_map_exact_inside_cells, fcst_grid, fcst_rate)
     exact_rate = pool.map(func_exact, [poly for poly in target_grid])
@@ -1613,4 +1618,35 @@ def forecast_deaggregate_qk(qk_high_zoom, qk_low_zoom, forecast_low_zoom):
             forecast_cast.insert(i + 2, f_old * (area_2 / area))
             forecast_cast.insert(i + 3, f_old * (area_3 / area))
 
-    return numpy.array(qk_cast), numpy.vstack(forecast_cast)
+    return  numpy.vstack(forecast_cast) #numpy.array(qk_cast),
+
+
+def forecast_mapping(target_grid, forecast_gridded, only_deaggregate=False):
+    """
+    --Wrapper function over "forecat_mapping_generic" and forecast_deaggregate_qk"--
+    Forecast mapping onto Target Grid
+    It only De-aggregates using forecast_deaggregate_qk
+    OR
+    Uses generic function named as forecast_mapping_parallel
+
+    target_grid: csep.core.region.CastesianGrid2D or QuadtreeGrid2D
+    forecast_gridded: csep.core.forecast with other grid.
+    only_de-aggregate: Flag (True or False)
+        Note: set the flag "only_deagregate = True" Only if one is sure that both grids are Quadtree and
+        Target grid is high-resolution at every level than the other grid.
+    """
+    if only_deaggregate:
+        qk_target = target_grid.quadkeys
+        qk = forecast_gridded.region.quadkeys
+        data = forecast_gridded.data
+        data_mapped_qk = forecast_deaggregate_qk(qk_target, qk, data)
+        target_forecast = GriddedForecast(data=data_mapped_qk, region=target_grid,
+                                          magnitudes=forecast_gridded.magnitudes)
+    else:
+        bounds_target = target_grid.bounds
+        bounds = forecast_gridded.region.bounds
+        data = forecast_gridded.data
+        data_mapped_bounds = forecast_mapping_generic(bounds_target, bounds, data)
+        target_forecast = GriddedForecast(data=data_mapped_bounds, region=target_grid,
+                                          magnitudes=forecast_gridded.magnitudes)
+    return target_forecast
