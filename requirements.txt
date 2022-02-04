@@ -14,4 +14,5 @@ sphinx-gallery
 sphinx-rtd-theme
 pillow
 mercantile
+shapely
 
