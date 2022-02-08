@@ -1,7 +1,7 @@
 # v0.6.0 (02/04/2022)
 
 ## Change-log
-Adds support for quadtree regions (#183)
+Adds support for quadtree regions (#184)
 
 ## Credits
 Khawaja Asim (@khawajasim)  
