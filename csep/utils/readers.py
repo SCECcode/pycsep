@@ -757,3 +757,31 @@ def load_quadtree_forecast(ascii_fname):
     rates = data[:, -1].reshape(n_poly, n_mag_bins)
 
     return rates, region, mws
+
+
+def load_quadtree_forecast_csv(csv_fname):
+    """ Load quadtree forecasted stored as csv file
+
+        The format expects forecast as a comma separated file, in which first column corresponds to quadtree grid cell (quadkey).
+        The corresponding enteries in the respective row are forecast rates corresponding to the magnitude bins.
+        The first line of forecast is a header, and its format is listed here:
+            'Quadkey' Mag_0, Mag_1, Mag_2, Mag_3 , ....
+             Quadkey is a string. Rest of the values are floats.
+        For the purposes of defining region objects quadkey is used.
+
+        We assume that the starting value of magnitude bins are provided in the header.
+        Args:
+            csv_fname: file name of csep forecast in csv format
+        Returns:
+            rates, region, mws (numpy.ndarray, QuadtreeRegion2D, numpy.ndarray): rates, region, and magnitude bins needed
+                                                                                 to define QuadTree forecasts
+     """
+
+    data = numpy.genfromtxt(csv_fname, dtype='str', delimiter=',')
+    quadkeys = data[1:, 0]
+    mws = data[0, 1:]
+    rates = data[1:, 1:]
+    rates = rates.astype(float)
+    region = QuadtreeGrid2D.from_quadkeys(quadkeys, magnitudes=mws)
+
+    return rates, region, mws
