@@ -763,9 +763,10 @@ def load_quadtree_forecast_csv(csv_fname):
     """ Load quadtree forecasted stored as csv file
 
         The format expects forecast as a comma separated file, in which first column corresponds to quadtree grid cell (quadkey).
+        The second and thrid columns indicate depth range.
         The corresponding enteries in the respective row are forecast rates corresponding to the magnitude bins.
         The first line of forecast is a header, and its format is listed here:
-            'Quadkey' Mag_0, Mag_1, Mag_2, Mag_3 , ....
+            'Quadkey', depth_min, depth_max, Mag_0, Mag_1, Mag_2, Mag_3 , ....
              Quadkey is a string. Rest of the values are floats.
         For the purposes of defining region objects quadkey is used.
 
@@ -779,8 +780,8 @@ def load_quadtree_forecast_csv(csv_fname):
 
     data = numpy.genfromtxt(csv_fname, dtype='str', delimiter=',')
     quadkeys = data[1:, 0]
-    mws = data[0, 1:]
-    rates = data[1:, 1:]
+    mws = data[0, 3:]
+    rates = data[1:, 3:]
     rates = rates.astype(float)
     region = QuadtreeGrid2D.from_quadkeys(quadkeys, magnitudes=mws)
 
