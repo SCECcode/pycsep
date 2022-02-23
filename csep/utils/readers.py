@@ -719,7 +719,7 @@ def _parse_datetime_to_zmap(date, time):
         out['second'] = dt.second
         return out
 
-def load_quadtree_forecast(ascii_fname):
+def quadtree_ascii_loader(ascii_fname):
     """ Load quadtree forecasted stored as ascii text file
 
         Note: This function is adapted form csep.forecasts.load_ascii
@@ -759,7 +759,7 @@ def load_quadtree_forecast(ascii_fname):
     return rates, region, mws
 
 
-def load_quadtree_forecast_csv(csv_fname):
+def quadtree_csv_loader(csv_fname):
     """ Load quadtree forecasted stored as csv file
 
         The format expects forecast as a comma separated file, in which first column corresponds to quadtree grid cell (quadkey).
