@@ -517,6 +517,9 @@ class CartesianGrid2D:
         # index values of polygons array into the 2d cartesian grid, based on the midpoint.
         self.xs = xs
         self.ys = ys
+        # Bounds [origin, top_right]
+        orgs = self.origins()
+        self.bounds = numpy.column_stack((orgs, orgs + dh))
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -772,13 +775,16 @@ def geographical_area_from_bounds(lon1, lat1, lon2, lat2):
     Returns:
         Area of cell in Km2
     """
-    earth_radius_km = 6371.
-    R2 = earth_radius_km ** 2
-    rad_per_deg = numpy.pi / 180.0e0
+    if lon1 == lon2 or lat1 == lat2:
+        return 0
+    else:
+        earth_radius_km = 6371.
+        R2 = earth_radius_km ** 2
+        rad_per_deg = numpy.pi / 180.0e0
 
-    strip_area_steradian = 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat1) * rad_per_deg)) \
+        strip_area_steradian = 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat1) * rad_per_deg)) \
                            - 2 * numpy.pi * (1.0e0 - numpy.cos((90.0e0 - lat2) * rad_per_deg))
-    area_km2 = strip_area_steradian * R2 / (360.0 / (lon2 - lon1))
+        area_km2 = strip_area_steradian * R2 / (360.0 / (lon2 - lon1))
     return area_km2
 
 def quadtree_grid_bounds(quadk):
