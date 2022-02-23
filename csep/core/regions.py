@@ -517,6 +517,9 @@ class CartesianGrid2D:
         # index values of polygons array into the 2d cartesian grid, based on the midpoint.
         self.xs = xs
         self.ys = ys
+        # Bounds [origin, top_right]
+        orgs = self.origins()
+        self.bounds = numpy.column_stack((orgs, orgs + dh))
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
