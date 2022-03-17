@@ -86,14 +86,13 @@ forecast.filters = [f'origin_time >= {forecast.start_epoch}', f'origin_time < {f
 # requires a region with magnitude information.
 #
 # We need to filter the ComCat catalog to be consistent with the forecast. This can be done either through the ComCat API
-# or using catalog filtering strings. Here we'll use the Comcat API to make the data access quicker for this example. We
+# or using catalog filtering strings. Here we'll use the ComCat API to make the data access quicker for this example. We
 # still need to filter the observed catalog in space though.
 
 # Obtain Comcat catalog and filter to region.
 comcat_catalog = csep.query_comcat(start_time, end_time, min_magnitude=forecast.min_magnitude)
 
 # Filter observed catalog using the same region as the forecast
-
 comcat_catalog = comcat_catalog.filter_spatial(forecast.region)
 print(comcat_catalog)
 
@@ -114,4 +113,4 @@ number_test_result = catalog_evaluations.number_test(forecast, comcat_catalog)
 #
 # We can create a simple visualization of the number test from the evaluation result class.
 
-ax = number_test_result.plot()
+ax = number_test_result.plot(show=True)

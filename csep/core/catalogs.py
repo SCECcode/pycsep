@@ -794,6 +794,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
         if self.get_number_of_events() == 0:
             return None
+
         # this might fail if magnitudes are not aligned
         if mag_bins is None:
             try:
@@ -835,8 +836,8 @@ class AbstractBaseCatalog(LoggingMixin):
         Returns:
             axes: matplotlib.Axes.axes
         """
-        # no mutable function arguments
 
+        # no mutable function arguments
         plot_args_default = {
              'basemap': 'ESRI_terrain',
              'markersize': 2,
@@ -850,6 +851,7 @@ class AbstractBaseCatalog(LoggingMixin):
              'title': self.name,
              'mag_ticks': False
         }
+
         # Plot the region border (if it exists) by default
         try:
             # This will throw error if catalog does not have region

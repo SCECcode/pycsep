@@ -43,17 +43,19 @@ class TestCaliforniaRelmRegion(unittest.TestCase):
         super().__init__(*args, **kwargs)
 
     def setUp(self):
+        self.r = california_relm_region()
         self.from_dat = numpy.loadtxt(get_california_region_fname())
         self.num_nodes = len(self.from_dat)
 
     def test_node_count(self):
         """ Ensures the node counts are consistent between the two files. """
-        r = california_relm_region()
-        self.assertEqual(self.num_nodes, r.num_nodes)
+        self.assertEqual(self.num_nodes, self.r.num_nodes)
 
     def test_origins(self):
         """ Compares XML file against the simple .dat file containing the region. """
-        r = california_relm_region()
         # they dont have to be in the same order, but they need
-        numpy.testing.assert_array_equal(r.midpoints().sort(), self.from_dat.sort())
+        numpy.testing.assert_array_equal(self.r.midpoints().sort(), self.from_dat.sort())
 
+    def test_eq_oper(self):
+        r = california_relm_region()
+        assert self.r == r

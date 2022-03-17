@@ -8,6 +8,7 @@ import scipy.spatial
 from csep.models import EvaluationResult
 from csep.utils.stats import poisson_joint_log_likelihood_ndarray
 from csep.core.exceptions import CSEPCatalogException
+from csep.core.regions import QuadtreeGrid2D
 
 
 def paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0.05, scale=False):
@@ -181,6 +182,7 @@ def conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulati
         _ = observed_catalog.region.magnitudes
     except CSEPCatalogException:
         observed_catalog.region = gridded_forecast.region
+
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
     # simply call likelihood test on catalog data and forecast
@@ -234,11 +236,10 @@ def poisson_spatial_likelihood(forecast, catalog):
     
     return poll
 
-
 def binary_spatial_likelihood(forecast, catalog):
     """
     This function computes log-likelihood scores (bills), using a binary likelihood distribution of earthquakes.
-    For this aim, we need an input variable 'forecast' and an variable'catalog'
+    For this aim, we need an input variable 'forecast' and an variable 'catalog'
     
     This function computes the observed log-likehood score obtained by a gridded forecast in each cell, given a
     seismicity catalog. In this case, we assume a binary distribution of earthquakes, so that the likelihood of
@@ -258,13 +259,13 @@ def binary_spatial_likelihood(forecast, catalog):
     X = numpy.zeros(forecast.spatial_counts().shape)
     X[target_idx[0]] = 1
     
-    #First, we estimate the log-likelihood in cells where no events are observed:
+    # First, we estimate the log-likelihood in cells where no events are observed:
     first_term = (1-X) * (-forecast.spatial_counts() * scale)
     
-    #Then, we compute the log-likelihood of observing one or more events given a Poisson distribution, i.e., 1 - Pr(0):
+    # Then, we compute the log-likelihood of observing one or more events given a Poisson distribution, i.e., 1 - Pr(0):
     second_term = X * (numpy.log(1.0 - numpy.exp(-forecast.spatial_counts() * scale)))
     
-    #Finally, we sum both terms to compute log-likelihood score in each spatial cell:
+    # Finally, we sum both terms to compute log-likelihood score in each spatial cell:
     bill = first_term + second_term
     
     return bill
@@ -334,7 +335,6 @@ def spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
 
-    # grid catalog onto spatial grid
     gridded_catalog_data = observed_catalog.spatial_counts()
 
     # simply call likelihood test on catalog data and forecast
@@ -388,6 +388,7 @@ def likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, se
         _ = observed_catalog.region.magnitudes
     except CSEPCatalogException:
         observed_catalog.region = gridded_forecast.region
+
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
     # simply call likelihood test on catalog and forecast

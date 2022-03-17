@@ -1,9 +1,15 @@
 # pyCSEP: Collaboratory for the Study of Earthquake Predictability
 ![](https://i.postimg.cc/Bb60rVQP/CSEP2-Logo-CMYK.png)
-![Python version](https://gist.githubusercontent.com/wsavran/efce311162c32460336a4f9892218532/raw/1b9c060efd1c6e52eb53f82d4249107417d6a5ec/pycsep_python_badge.svg)
-![Python application](https://github.com/SCECCode/csep2/workflows/Python%20application/badge.svg)
-[![Build sphinx documentation](https://github.com/SCECCode/csep2/workflows/Build%20sphinx%20documentation/badge.svg)](https://cseptesting.org)
-[![codecov](https://codecov.io/gh/SCECcode/pycsep/branch/master/graph/badge.svg?token=HTMKM29MAU)](https://codecov.io/gh/SCECcode/pycsep)
+<p align=center>
+    <a target="_blank" href="https://python.org" title="Python version"><img src="https://gist.githubusercontent.com/wsavran/efce311162c32460336a4f9892218532/raw/1b9c060efd1c6e52eb53f82d4249107417d6a5ec/pycsep_python_badge.svg">
+    <a target="_blank" href="https://pypi.org/project/pycsep"><img src="https://anaconda.org/conda-forge/pycsep/badges/downloads.svg">
+    <a target="_blank" href="https://github.com/SCECcode/pycsep/actions"><img src="https://github.com/SCECcode/pycsep/actions/workflows/build-test.yml/badge.svg">
+    <a target="_blank" href="https://github.com/SCECcode/pycsep/actions"><img src="https://github.com/SCECcode/pycsep/actions/workflows/build-sphinx.yml/badge.svg">
+    <a target="_blank" href="https://codecov.io/gh/SCECcode/pycsep"><img src="https://codecov.io/gh/SCECcode/pycsep/branch/master/graph/badge.svg?token=HTMKM29MAU">
+    <a target="_blank" href="https://www.zenodo.org/badge/latestdoi/149362283"><img src="https://www.zenodo.org/badge/149362283.svg" alt="DOI"></a>
+        <a target="_blank" a style="border-width:0" href="https://doi.org/10.21105/joss.03658">
+  <img src="https://joss.theoj.org/papers/10.21105/joss.03658/status.svg" alt="DOI badge" ></a>
+</p>
 
 # Description:
 The pyCSEP Toolkit helps earthquake forecast model developers evaluate their forecasts with the goal of understanding
@@ -21,7 +27,7 @@ pyCSEP should:
 2. [Installation](#installation)
 3. [Usage](#usage)
 4. [Contributing](#contributing)
-5. [Change Log](https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.txt)
+5. [Change Log](https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.md)
 6. [Credits](#credits)
 7. [License](#license)
 
@@ -60,7 +66,7 @@ from csep.utils import time_utils
 start_time = time_utils.strptime_to_utc_datetime('2019-01-01 00:00:00.0')
 end_time = time_utils.utc_now_datetime()
 catalog = csep.query_comcat(start_time, end_time)
-catalog.plot()
+catalog.plot(show=True)
 </pre>
 
 Please see [pyCSEP Getting Started](https://docs.cseptesting.org/getting_started/core_concepts) documentation for more examples and tutorials.
@@ -69,7 +75,7 @@ Please see [pyCSEP Getting Started](https://docs.cseptesting.org/getting_started
 Software support for pyCSEP is provided by that Southern California Earthquake Center (SCEC) Research Computing Group. 
 This group supports several research software distributions including UCVM. Users can report issues and feature requests 
 using the pyCSEP github-based issue tracking link below. Developers will also respond to emails sent to the SCEC software contact listed below.
-1. [pyCSEP Issues](https://github.com/SCECcode/pycep/issues)
+1. [pyCSEP Issues](https://github.com/SCECcode/pycsep/issues)
 2. Email Contact: software [at] scec [dot] usc [dot] edu
 
 # Contributing:

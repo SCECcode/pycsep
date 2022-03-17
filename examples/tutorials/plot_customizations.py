@@ -26,6 +26,8 @@ import cartopy
 import numpy
 from csep.utils import datasets, plots
 
+import matplotlib.pyplot as plt
+
 ####################################################################################################################################
 # **Load a Grid Forecast from the datasets**
 #
@@ -105,7 +107,7 @@ rate_sum = forecast.region.get_cartesian(rate_sum)
 # We define the arguments and a global projection, centered at $lon=-180$
 
 plot_args = {'figsize': (10,6), 'coastline':True, 'feature_color':'black',
-             'projection': cartopy.crs.Robinson(central_longitude=-180.0),
+             'projection': cartopy.crs.Robinson(central_longitude=-179.0),
              'title': forecast.name, 'grid_labels': False,
              'cmap': 'magma',
              'clabel': r'$\log_{10}\lambda\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
@@ -162,7 +164,7 @@ plot_args = {'basemap': 'ESRI_terrain',
 ####################################################################################################################################
 
 # **Plot the catalog**
-ax = catalog.plot(show=True, plot_args=plot_args)
+ax = catalog.plot(show=False, plot_args=plot_args)
 
 
 ####################################################################################################################################
@@ -191,5 +193,7 @@ args = {'figsize': (6,5),
 # is located within the lower tail of the simulated distribution.
 ax = plots.plot_poisson_consistency_test(L_results, one_sided_lower=True, plot_args=args)
 
+# Needed to show plots if running as script
+plt.show()
 
 

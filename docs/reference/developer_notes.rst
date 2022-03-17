@@ -1,45 +1,47 @@
 Developer Notes
 ===============
 
-Last updated: 10 August 2020
+Last updated: 25 January 2022
 
-Reproducibility Files
----------------------
+Creating a new release of pyCSEP
+--------------------------------
 
-Store information for reproducibility. This should include the following:
-    1. version information (git hash of commit)
-    2. forecast filename
-    3. evaluation catalog (including necessary information to recreate the filtering properties); maybe just md5
-    4. do we need calculation dates?
+These are the steps required to create a new release of pyCSEP. This requires a combination of updates to the repository
+and Github. You will need to build the wheels for distribution on PyPI and upload them to GitHub to issue a release.
+The final step involves uploading the tar-ball of the release to PyPI. CI tools provided by `conda-forge` will automatically
+bump the version on `conda-forge`. Note: permissions are required to push new versions to PyPI.
 
-Evaluation Results
-------------------
+1. Code changes
+***************
+1. Bump the version number in `_version.py <https://github.com/SCECcode/pycsep/tree/master/csep/_version.py>`_
+2. Update `codemeta.json <https://github.com/SCECcode/pycsep/blob/master/codemeta.json>`_
+3. Update `CHANGELOG.md <https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.md>`_. Include links to Github pull requests if possible.
+4. Update `CREDITS.md <https://github.com/SCECcode/pycsep/blob/master/CREDITS.md>`_ if required.
+5. Update the version in `conf.py <https://github.com/SCECcode/pycsep/blob/master/docs/conf.py>`_.
+6. Issue a pull request that contains these changes.
+7. Merge pull request when all changes are merged into `master` and versions are correct.
 
-* Each evaluation should return an evaluation result class that has an associated .plot() method.
-* We should be able to .plot() most everything that makes sense including forecasts and evaluation results.
+2. Creating source distribution
+*******************************
 
-    * How do we .plot() a catalog?
-    * Should we .plot() a region?
-    * For serialization, we can identify the appropriate class as a string in the class state and use that to create the correct object on load.
+Issue these commands from the top-level directory of the project::
 
-Forecast metadata information
------------------------------
+    python setup.py check
 
-1. Forecast should contain metadata information to identify properties of the forecast
+If that executes with no warnings or failures build the source distribution using the command::
 
-    * Start and end date
-    * Spatial region
-    * Magnitude bins
+    python setup.py sdist
 
-Working with GriddedForecasts
------------------------------
+This creates a folder called `dist` that contains a file called `pycsep-X.Y.Z.tar.gz`. This is the distribution
+that will be uploaded to `PyPI`, `conda-forge`, and Github.
 
-* Right now, we can only spatial counts over the entire magnitude range. What if we wanted to have some control over this?
-* Might want to plot above some magnitude threshold or within some incremental threshold.
-* Should be able to have a method that returns a new GriddedForecast with specified parameters such as min/max magnitude.
+Upload to PyPI using `twine`. This requires permissions to push to the PyPI account::
 
-Region information
-------------------
-* The region information will need to accommodate more complex spaces including 3D areas and those with non-regular grids (e.g.,
-  quadtrees or meshes)
+    twine upload dist/pycsep-X.Y.Z.tar.gz
 
+3. Create release on Github
+***************************
+1. Create a new `release <https://github.com/SCECcode/pycsep/releases>`_ on GitHub. This can be saved as a draft until it's ready.
+2. Copy new updates information from `CHANGELOG.md <https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.md>`_.
+3. Upload tar-ball created from `setup.py`.
+4. Publish release.

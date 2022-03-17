@@ -1,4 +1,4 @@
-Installing PyCSEP
+Installing pyCSEP
 =================
 
 We are working on a ``conda-forge`` recipe and PyPI distribution.

@@ -1,8 +1,11 @@
 include README.md
 include CONTRIBUTING.md
 include CODE_OF_CONDUCT.md
-include LICENSE
-include CHANGELOG.txt
+include LICENSE.txt
+include CHANGELOG.md
+include CREDITS.md
+include codemeta.json
+include CITATION.cff
 include run_tests.sh
 include requirements.txt
 include requirements.yml

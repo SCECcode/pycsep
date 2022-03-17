@@ -437,7 +437,6 @@ class GriddedForecast(MarkedGriddedDataSet):
             axes: matplotlib.Axes.axes
         """
         # no mutable function arguments
-        dh = round(self.region.dh, 5)
         if self.start_time is None or self.end_time is None:
             time = 'forecast period'
         else:
@@ -451,12 +450,12 @@ class GriddedForecast(MarkedGriddedDataSet):
 
         # this call requires internet connection and basemap
         if log:
-            plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
+            plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per cell per {time}')
             with numpy.errstate(divide='ignore'):
                 ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, ax=ax,
                                           show=show, extent=extent, set_global=set_global, plot_args=plot_args)
         else:
-            plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per {str(dh)}° x {str(dh)}° per {time}')
+            plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per cell per {time}')
             ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, ax=ax,show=show, extent=extent,
                                       set_global=set_global, plot_args=plot_args)
         return ax
@@ -639,17 +638,15 @@ class CatalogForecast(LoggingMixin):
 
     def spatial_counts(self, cartesian=False):
         """ Returns the expected spatial counts from forecast """
-        if self.expected_rates is not None:
-            return self.expected_rates.spatial_counts(cartesian=cartesian)
-        else:
-            return None
+        if self.expected_rates is None:
+            self.get_expected_rates()
+        return self.expected_rates.spatial_counts(cartesian=cartesian)
 
     def magnitude_counts(self):
         """ Returns expected magnitude counts from forecast """
-        if self.expected_rates is not None:
-            return self.expected_rates.magnitude_counts()
-        else:
-            return None
+        if self.expected_rates is None:
+            self.get_expected_rates()
+        return self.expected_rates.magnitude_counts()
 
     def get_event_counts(self):
         """ Returns a numpy array containing the number of event counts for each catalog.

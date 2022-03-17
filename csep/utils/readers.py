@@ -13,7 +13,9 @@ import numpy
 # PyCSEP imports
 from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
+from csep.core.regions import QuadtreeGrid2D
 from csep.core.exceptions import CSEPIOException
+
 
 def ndk(filename):
     """
@@ -603,16 +605,16 @@ def ingv_horus(fname):
         if line['hour'] >= 24.:
             dt += datetime.timedelta(days=1)
             line['hour'] -= 24.
-        Time = datetime.datetime(
-                                line['year'],
-                                line['month'],
-                                line['day'],
-                                line['hour'],
-                                line['minute'],
-                                line['second']
+        time = datetime.datetime(
+                                int(line['year']),
+                                int(line['month']),
+                                int(line['day']),
+                                int(line['hour']),
+                                int(line['minute']),
+                                int(line['second'])
                                ) + dt
-        event_tuple = (Time,
-                       datetime_to_utc_epoch(Time),
+        event_tuple = (time,
+                       datetime_to_utc_epoch(time),
                        float(line["lat"]),
                        float(line["lon"]),
                        float(line["depth"]),
@@ -716,3 +718,71 @@ def _parse_datetime_to_zmap(date, time):
         out['minute'] = dt.minute
         out['second'] = dt.second
         return out
+
+def quadtree_ascii_loader(ascii_fname):
+    """ Load quadtree forecasted stored as ascii text file
+
+        Note: This function is adapted form csep.forecasts.load_ascii
+
+        The ascii format for quadtree forecasts modified from CSEP1 testing centers. The ASCII format does not contain headers. The format is listed here:
+            'Quadkey' Lon_0, Lon_1, Lat_0, Lat_1, z_0, z_1, Mag_0, Mag_1, Rate
+             Quadkey is a string. Rest of the values are floats.
+
+        For the purposes of defining region objects quadkey is used.
+        For the magnitude bins use the values along with Mag_0 are used.
+        We can assume that the magnitude bins are regularly spaced to allow us to compute Deltas.
+
+        Args:
+            ascii_fname: file name of csep forecast in ascii format
+
+        Returns:
+            rates, region, mws (numpy.ndarray, QuadtreeRegion2D, numpy.ndarray): rates, region, and magnitude bins needed
+                                                                                 to define QuadTree forecasts
+     """
+
+    data = numpy.genfromtxt(ascii_fname, dtype='str')
+    all_qk = data[:,0]
+    data = data[:,1:].astype(numpy.float64)
+    sorted_idx = numpy.sort(numpy.unique(all_qk, return_index=True, axis=0)[1], kind='stable')
+    unique_qk = all_qk[sorted_idx]
+    # create magnitudes bins using Mag_0, ignoring Mag_1
+    # because they are regular until last bin. we dont want binary search for this
+    all_mws = data[:,-3]
+    sorted_idx = numpy.sort(numpy.unique(all_mws, return_index=True)[1], kind='stable')
+    mws = all_mws[sorted_idx]
+    region = QuadtreeGrid2D.from_quadkeys(unique_qk, magnitudes=mws)
+    n_mag_bins = len(mws)
+    n_poly = len(region.quadkeys)
+    # reshape rates into correct 2d format
+    rates = data[:, -1].reshape(n_poly, n_mag_bins)
+
+    return rates, region, mws
+
+
+def quadtree_csv_loader(csv_fname):
+    """ Load quadtree forecasted stored as csv file
+
+        The format expects forecast as a comma separated file, in which first column corresponds to quadtree grid cell (quadkey).
+        The second and thrid columns indicate depth range.
+        The corresponding enteries in the respective row are forecast rates corresponding to the magnitude bins.
+        The first line of forecast is a header, and its format is listed here:
+            'Quadkey', depth_min, depth_max, Mag_0, Mag_1, Mag_2, Mag_3 , ....
+             Quadkey is a string. Rest of the values are floats.
+        For the purposes of defining region objects quadkey is used.
+
+        We assume that the starting value of magnitude bins are provided in the header.
+        Args:
+            csv_fname: file name of csep forecast in csv format
+        Returns:
+            rates, region, mws (numpy.ndarray, QuadtreeRegion2D, numpy.ndarray): rates, region, and magnitude bins needed
+                                                                                 to define QuadTree forecasts
+     """
+
+    data = numpy.genfromtxt(csv_fname, dtype='str', delimiter=',')
+    quadkeys = data[1:, 0]
+    mws = data[0, 3:]
+    rates = data[1:, 3:]
+    rates = rates.astype(float)
+    region = QuadtreeGrid2D.from_quadkeys(quadkeys, magnitudes=mws)
+
+    return rates, region, mws

@@ -1,6 +1,8 @@
 import numpy
 import scipy.stats
 import scipy.special
+# PyCSEP imports
+from csep.core import regions
 
 def sup_dist(cdf1, cdf2):
     """
@@ -205,3 +207,65 @@ def poisson_inverse_cdf(random_matrix, lam):
         sample from the poisson distribution
     """
     return scipy.stats.poisson.ppf(random_matrix, lam)
+
+def get_Kagan_I1_score(forecasts, catalog):
+    """
+    A program for scoring (I_1) earthquake-forecast grids by the methods of:
+    Kagan, Yan Y. [2009] Testing long-term earthquake forecasts: likelihood methods
+                         and error diagrams, Geophys. J. Int., v. 177, pages 532-542.
+
+    Some advantages of these methods are that they:
+        - are insensitive to the grid used to cover the Earth;
+        - are insensitive to changes in the overall seismicity rate;
+        - do not modify the locations or magnitudes of test earthquakes;
+        - do not require simulation of virtual catalogs;
+        - return relative quality measures, not just "pass" or "fail;" and
+        - indicate relative specificity of forecasts as well as relative success.
+    
+    Written by Han Bao, UCLA, March 2021. Modified June 2021
+    
+    Note that: 
+        (1) The testing catalog and forecast should have exactly the same time-window (duration)
+        (2) Forecasts and catalogs have identical regions
+
+    Args:
+        forecasts:  csep.forecast or a list of csep.forecast (one catalog to test against different forecasts)
+        catalog:    csep.catalog 
+        
+    Returns:
+       I_1 (numpy.array): containing I1 for each forecast in inputs
+
+    """
+    ### Determine if input 'forecasts' is a list of csep.forecasts or a single csep.forecasts
+    try:
+        n_forecast = len(forecasts) # the input forecasts is a list of csep.forecast
+    except:  
+        n_forecast = 1             # the input forecasts is a single csep.forecast
+        forecasts = [forecasts]
+
+    # Sanity checks can go here
+    for forecast in forecasts:
+        if forecast.region != catalog.region:
+            raise RuntimeError("Catalog and forecasts must have identical regions.")
+
+    # Initialize array
+    I_1 = numpy.zeros(n_forecast, dtype=numpy.float64)
+
+    # Compute cell areas
+    area_km2 = catalog.region.get_cell_area()
+    total_area = numpy.sum(area_km2)
+    
+    for j, forecast in enumerate(forecasts):
+        # Eq per cell per duration in forecast; note, if called on a CatalogForecast this could require computed expeted rates
+        rate = forecast.spatial_counts()
+        # Get Rate Density and uniform_forecast of the Forecast
+        rate_den = rate / area_km2
+        uniform_forecast = numpy.sum(rate) / total_area
+        # Compute I_1 score
+        n_event = catalog.event_count
+        counts = catalog.spatial_counts()
+        non_zero_idx = numpy.argwhere(rate_den > 0)
+        non_zero_idx = non_zero_idx[:,0]
+        I_1[j] = numpy.dot(counts[non_zero_idx], numpy.log2(rate_den[non_zero_idx] / uniform_forecast)) / n_event
+    
+    return I_1

@@ -10,6 +10,8 @@ DAYS_PER_ASTRONOMICAL_YEAR = 365.25
 
 MW_5_EQS_PER_YEAR = 10
 
+earth_radius_km = 6371.
+
 # Magnitude Bins
 min_mw = 2.5
 max_mw = 8.95

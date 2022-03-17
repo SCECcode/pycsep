@@ -1,12 +1,23 @@
-import os
+import re
 from setuptools import setup, find_packages
+
+def get_version():
+    VERSIONFILE = "csep/_version.py"
+    verstrline = open(VERSIONFILE, "rt").read()
+    VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        verstr = mo.group(1)
+    else:
+        raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+    return verstr
 
 with open("README.md",'r') as fh:
     long_description = fh.read()
 
 setup(
     name='pycsep',
-    version='0.4.1',
+    version=get_version(),
     author='William Savran',
     author_email='wsavran@usc.edu',
     packages=find_packages(),
@@ -22,7 +33,8 @@ setup(
         'cartopy',
         'obspy',
         'pyproj',
-        'python-dateutil'
+        'python-dateutil',
+        'mercantile'
     ],
     extras_require = {
         'test': [
@@ -31,6 +43,7 @@ setup(
             'pytest-cov'
         ],
         'dev': [
+            'sphinx',
             'sphinx-gallery',
             'sphinx-rtd-theme',
             'pillow'
@@ -39,6 +52,7 @@ setup(
             'pytest',
             'vcrpy',
             'pytest-cov',
+            'sphinx',
             'sphinx-gallery',
             'sphinx-rtd-theme',
             'pillow'

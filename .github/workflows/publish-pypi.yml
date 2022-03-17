@@ -1,11 +1,14 @@
-name: build-docs
+name: Build and upload to PyPI
 
+# Only build on tagged releases
 on:
-  pull_request:
-    branches: [ master ]
+  push:
+    tags:
+      - '*'
 
 jobs:
-  build_docs:
+  build:
+    name: Build and upload sdist
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -15,8 +18,8 @@ jobs:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: '3.10'
           activate-environment: csep-dev
+          python-version: '3.10'
           channels: conda-forge
 
       - name: Install dependencies
@@ -25,12 +28,13 @@ jobs:
           conda info -a
           conda list
 
-      - name: Install pyCSEP
+      - name: Create sdist
         run: |
-          pip install --no-deps -e .
-          python -c "import csep; print('Version: ', csep.__version__)"
+          python setup.py check
+          python setup.py sdist
 
-      - name: Build documentation
-        run: |
-          make -C docs clean
-          make -C docs html
+      - name: Publish Package
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_upload_token }}

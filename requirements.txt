@@ -1,4 +1,4 @@
-numpy
+numpy<=1.21.5
 scipy
 pandas
 matplotlib
@@ -13,3 +13,5 @@ sphinx
 sphinx-gallery
 sphinx-rtd-theme
 pillow
+mercantile
+
