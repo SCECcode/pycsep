@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import numpy
 import scipy.stats
 import scipy.spatial
@@ -11,8 +8,7 @@ from csep.core.exceptions import CSEPCatalogException
 from csep.core.regions import QuadtreeGrid2D
 
 def _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=1e-6):
-    """ 
-    Computes delta1 and delta2 values from the Negative Binomial (NBD) number test.
+    """ Computes delta1 and delta2 values from the Negative Binomial (NBD) number test.
 
     Args:
         fore_cnt (float): parameter of negative binomial distribution coming from expected value of the forecast
@@ -36,8 +32,7 @@ def _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=1e-6):
 
     
 def negative_binomial_number_test(gridded_forecast, observed_catalog, variance):
-    """
-    Computes "negative binomial N-Test" on a gridded forecast.
+    """ Computes "negative binomial N-Test" on a gridded forecast.
 
     Computes Number (N) test for Observed and Forecasts. Both data sets are expected to be in terms of event counts.
     We find the Total number of events in Observed Catalog and Forecasted Catalogs. Which are then employed to compute the 
@@ -84,8 +79,7 @@ def negative_binomial_number_test(gridded_forecast, observed_catalog, variance):
   
     
 def binary_joint_log_likelihood_ndarray(forecast, catalog):
-    """
-    Computes Bernoulli log-likelihood scores, assuming that earthquakes follow a binomial distribution.
+    """ Computes Bernoulli log-likelihood scores, assuming that earthquakes follow a binomial distribution.
     
     Args:
         forecast:   Forecast of a Model (Gridded) (Numpy Array)
@@ -112,8 +106,8 @@ def binary_joint_log_likelihood_ndarray(forecast, catalog):
     
 def _binary_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None, 
                               seed=None, use_observed_counts=True, verbose=True, normalize_likelihood=False):
-    """
-    Computes binary conditional-likelihood test from CSEP using an efficient simulation based approach.
+    """  Computes binary conditional-likelihood test from CSEP using an efficient simulation based approach.
+    
     Args:
         forecast_data (numpy.ndarray): nd array where [:, -1] are the magnitude bins.
         observed_data (numpy.ndarray): same format as observation.
@@ -184,17 +178,19 @@ def _binary_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
  
     
 def binary_spatial_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None, verbose=False):
-    """
-    Performs the binary spatial test on the Forecast using the Observed Catalogs.
+    """  Performs the binary spatial test on the Forecast using the Observed Catalogs.
+    
     Note: The forecast and the observations should be scaled to the same time period before calling this function. This increases
     transparency as no assumptions are being made about the length of the forecasts. This is particularly important for
     gridded forecasts that supply their forecasts as rates.
+    
     Args:
         gridded_forecast: csep.core.forecasts.GriddedForecast
         observed_catalog: csep.core.catalogs.Catalog
         num_simulations (int): number of simulations used to compute the quantile score
         seed (int): used fore reproducibility, and testing
         random_numbers (numpy.ndarray): random numbers used to override the random number generation. injection point for testing.
+        
     Returns:
         evaluation_result: csep.core.evaluations.EvaluationResult
     """
@@ -228,8 +224,7 @@ def binary_spatial_test(gridded_forecast, observed_catalog, num_simulations=1000
     
     
 def binary_conditional_likelihood_test(gridded_forecast, observed_catalog, num_simulations=1000, seed=None, random_numbers=None, verbose=False):
-    """
-    Performs the binary conditional likelihood test on Gridded Forecast using an Observed Catalog.
+    """ Performs the binary conditional likelihood test on Gridded Forecast using an Observed Catalog.
 
     Normalizes the forecast so the forecasted rate are consistent with the observations. This modification
     eliminates the strong impact differences in the number distribution have on the forecasted rates.
@@ -277,8 +272,7 @@ def binary_conditional_likelihood_test(gridded_forecast, observed_catalog, num_s
      
     
 def matrix_binary_t_test(target_event_rates1, target_event_rates2, n_obs, n_f1, n_f2, catalog, alpha=0.05):
-    """ 
-    Computes binary T test statistic by comparing two target event rate distributions.
+    """ Computes binary T test statistic by comparing two target event rate distributions.
 
     We compare Forecast from Model 1 and with Forecast of Model 2. Information Gain per Active Bin (IGPA) is computed, which is then 
     employed to compute T statistic. Confidence interval of Information Gain can be computed using T_critical. For a complete 
@@ -336,8 +330,7 @@ def matrix_binary_t_test(target_event_rates1, target_event_rates2, n_obs, n_f1, 
     
 
 def binary_paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0.05, scale=False):
-    """ 
-    Computes the binary t-test for gridded earthquake forecasts.
+    """ Computes the binary t-test for gridded earthquake forecasts.
 
     This score is positively oriented, meaning that positive values of the information gain indicate that the
     forecast is performing better than the benchmark forecast.
