@@ -3,9 +3,7 @@ import scipy.stats
 import scipy.spatial
 
 from csep.models import EvaluationResult
-from csep.utils.stats import poisson_joint_log_likelihood_ndarray
 from csep.core.exceptions import CSEPCatalogException
-from csep.core.regions import QuadtreeGrid2D
 
 def _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=1e-6):
     """ Computes delta1 and delta2 values from the Negative Binomial (NBD) number test.
