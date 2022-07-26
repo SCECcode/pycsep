@@ -545,14 +545,14 @@ class CartesianGrid2D:
             raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
         if numpy.any(self.bbox_mask[idy, idx] == 1):
             raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
-        return self.idx_map[idy,idx].astype(numpy.int)
+        return self.idx_map[idy, idx].astype(numpy.int64)
 
     def get_location_of(self, indices):
         """
         Returns the polygon associated with the index idx.
 
         Args:
-            idx: index of polygon in region
+            indices: index of polygon in region
 
         Returns:
             Polygon
