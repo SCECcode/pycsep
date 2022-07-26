@@ -125,9 +125,9 @@ class TestGriddedForecastTests(unittest.TestCase):
                            'information_gain': 0.08052612477654024,
                            'ig_lower': -0.029435677283374914,
                            'ig_upper': 0.19048792683645538}
-
-        print('T Test: Running Unit Test')
-        self.assertEqual(_t_test_ndarray(forecast_A, forecast_B, numpy.sum(obs), forecast_A.sum(), forecast_B.sum()), t_test_expected, 'Failed T Test')
+        numpy.testing.assert_allclose(
+            _t_test_ndarray(forecast_A, forecast_B, numpy.sum(obs), forecast_A.sum(), forecast_B.sum()),
+            t_test_expected)
 
 
 if __name__ == '__main__':
