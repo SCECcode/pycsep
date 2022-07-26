@@ -6,6 +6,7 @@ import string
 
 import scipy.stats
 import matplotlib
+import matplotlib.lines
 from matplotlib import cm
 from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as pyplot
@@ -1512,6 +1513,7 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
 
     return ax
 
+
 def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, axes=None, plot_args=None, show=False):
     """ Plots results from CSEP1 tests following the CSEP1 convention.
 
@@ -1883,7 +1885,8 @@ def add_labels_for_publication(figure, style='bssa', labelsize=16):
             ax.annotate(f'({annot})', (0.025, 1.025), xycoords='axes fraction', fontsize=labelsize)
 
     return
-    
+
+
 def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, plot_args=None, variance=None):
     """ Plots results from CSEP1 tests following the CSEP1 convention.
 
@@ -1891,7 +1894,7 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
           comparable on the same figure.
 
     Args:
-        results (list): Contains the tests results :class:`csep.core.evaluations.EvaluationResult` (see note above)
+        eval_results (list): Contains the tests results :class:`csep.core.evaluations.EvaluationResult` (see note above)
         normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful
                           for plotting simulation based simulation tests.
         one_sided_lower (bool): select this if the plot should be for a one sided test
@@ -1936,7 +1939,7 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
     tight_layout = plot_args.get('tight_layout', True)
     percentile = plot_args.get('percentile', 95)
 
-    fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = pyplot.subplots(figsize=figsize)
     xlims = []
     
     for index, res in enumerate(results):
@@ -1952,8 +1955,8 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
             mean = res.test_distribution[1]
             upsilon = 1.0 - ((var - mean) / var)
             tau = (mean**2 /(var - mean))
-            phigh = nbinom.ppf((1 - percentile/100.)/2., tau, upsilon)
-            plow = nbinom.ppf(1 - (1 - percentile/100.)/2., tau, upsilon)
+            phigh = scipy.stats.nbinom.ppf((1 - percentile/100.)/2., tau, upsilon)
+            plow = scipy.stats.nbinom.ppf(1 - (1 - percentile/100.)/2., tau, upsilon)
 
         # empirical distributions
         else:
@@ -2013,118 +2016,117 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
     return ax
     
 
-def plot_pvalues_and_intervals(test_results, var=None):
+def plot_pvalues_and_intervals(test_results, ax, var=None):
+    """ Plots p-values and intervals for a list of Poisson or NBD test results
+
+    Args:
+        test_results (list): list of EvaluationResults for N-test. All tests should use the same distribution
+                             (ie Poisson or NBD).
+        ax (matplotlib.axes.Axes.axis): axes to use for plot. create using matplotlib
+        var (float): variance of the NBD distribution. Must be used for NBD plots.
+
+    Returns:
+        ax (matplotlib.axes.Axes.axis): axes handle containing this plot
+
+    Raises:
+        ValueError: throws error if NBD tests are supplied without a variance
+    """
     
-    variance= var
+    variance = var
     percentile = 97.5
     p_values = []
-    
+
+    # Differentiate between N-tests and other consistency tests
     if test_results[0].name == 'NBD N-Test' or test_results[0].name == 'Poisson N-Test':
-        legend_elements = [Line2D([0], [0], marker='o', color='red', lw=0, label=r'p < 10e-5', markersize=10, markeredgecolor='k'),
-                           Line2D([0], [0], marker='o', color='#FF7F50', lw=0, label=r'10e-5 $\leq$ p < 10e-4', markersize=10, markeredgecolor='k'),
-                           Line2D([0], [0], marker='o', color='gold', lw=0, label=r'10e-4 $\leq$ p < 10e-3', markersize=10, markeredgecolor='k'),
-                           Line2D([0], [0], marker='o', color='white', lw=0, label=r'10e-3 $\leq$ p < 0.0125', markersize=10, markeredgecolor='k'),
-                           Line2D([0], [0], marker='o', color='skyblue', lw=0, label=r'0.0125 $\leq$ p < 0.025', markersize=10, markeredgecolor='k'),
-                           Line2D([0], [0], marker='o', color='blue', lw=0, label=r'p $\geq$ 0.025', markersize=10, markeredgecolor='k')]
-        
+        legend_elements = [matplotlib.lines.Line2D([0], [0], marker='o', color='red', lw=0, label=r'p < 10e-5', markersize=10, markeredgecolor='k'),
+                           matplotlib.lines.Line2D([0], [0], marker='o', color='#FF7F50', lw=0, label=r'10e-5 $\leq$ p < 10e-4', markersize=10, markeredgecolor='k'),
+                           matplotlib.lines.Line2D([0], [0], marker='o', color='gold', lw=0, label=r'10e-4 $\leq$ p < 10e-3', markersize=10, markeredgecolor='k'),
+                           matplotlib.lines.Line2D([0], [0], marker='o', color='white', lw=0, label=r'10e-3 $\leq$ p < 0.0125', markersize=10, markeredgecolor='k'),
+                           matplotlib.lines.Line2D([0], [0], marker='o', color='skyblue', lw=0, label=r'0.0125 $\leq$ p < 0.025', markersize=10, markeredgecolor='k'),
+                           matplotlib.lines.Line2D([0], [0], marker='o', color='blue', lw=0, label=r'p $\geq$ 0.025', markersize=10, markeredgecolor='k')]
         ax.legend(handles=legend_elements, loc=4, fontsize=13, edgecolor='k')
-        
+        # Act on Negative binomial tests
         if test_results[0].name == 'NBD N-Test':
-            
+            if var is None:
+                raise ValueError("var must not be None if N-tests use the NBD distribution.")
+
             for i in range(len(test_results)):
                 mean = test_results[i].test_distribution[1]
                 upsilon = 1.0 - ((variance - mean) / variance)
                 tau = (mean**2 /(variance - mean))
-                phigh97 = nbinom.ppf((1 - percentile/100.)/2., tau, upsilon)
-                plow97= nbinom.ppf(1 - (1 - percentile/100.)/2., tau, upsilon)
+                phigh97 = scipy.stats.nbinom.ppf((1 - percentile/100.)/2., tau, upsilon)
+                plow97 = scipy.stats.nbinom.ppf(1 - (1 - percentile/100.)/2., tau, upsilon)
                 low97 = test_results[i].observed_statistic - plow97
                 high97 = phigh97 - test_results[i].observed_statistic
                 ax.errorbar(test_results[i].observed_statistic, (len(test_results)-1) - i, xerr=numpy.array([[low97, high97]]).T, capsize=4, 
                             color='slategray', alpha=1.0, zorder=0)
                 p_values.append(test_results[i].quantile[1] * 2.0) # Calculated p-values according to Meletti et al., (2021)
                 
-            if p_values[i] < 10e-5:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'red', markersize= 8, zorder=2)
-    
-            if p_values[i] >= 10e-5 and p_values[i] < 10e-4:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = '#FF7F50', markersize= 8, zorder=2)
-        
-            if p_values[i] >= 10e-4 and p_values[i] < 10e-3:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'gold', markersize= 8, zorder=2)
-        
-            if p_values[i] >= 10e-3 and p_values[i] < 0.0125:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'white', markersize= 8, zorder=2)
-        
-            if p_values[i] >= 0.0125 and p_values[i] < 0.025:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'skyblue', markersize= 8, zorder=2)    
-    
-            if p_values[i] >= 0.025:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'blue', markersize= 8, zorder=2)
-            
+                if p_values[i] < 10e-5:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='red', markersize=8, zorder=2)
+                if p_values[i] >= 10e-5 and p_values[i] < 10e-4:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='#FF7F50', markersize=8, zorder=2)
+                if p_values[i] >= 10e-4 and p_values[i] < 10e-3:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='gold', markersize=8, zorder=2)
+                if p_values[i] >= 10e-3 and p_values[i] < 0.0125:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='white', markersize=8, zorder=2)
+                if p_values[i] >= 0.0125 and p_values[i] < 0.025:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='skyblue', markersize=8, zorder=2)
+                if p_values[i] >= 0.025:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='blue', markersize=8, zorder=2)
+        # Act on Poisson N-test
         if test_results[0].name == 'Poisson N-Test':
-            
             for i in range(len(test_results)):
                 plow97 = scipy.stats.poisson.ppf((1 - percentile/100.)/2., test_results[i].test_distribution[1])
-                phigh97 = scipy.stats.poisson.ppf(1- (1 - percentile/100.)/2., test_results[i].test_distribution[1])
+                phigh97 = scipy.stats.poisson.ppf(1 - (1 - percentile/100.)/2., test_results[i].test_distribution[1])
                 low97 = test_results[i].observed_statistic - plow97
                 high97 = phigh97 - test_results[i].observed_statistic
                 ax.errorbar(test_results[i].observed_statistic, (len(test_results)-1) - i, xerr=numpy.array([[low97, high97]]).T, capsize=4, 
                             color='slategray', alpha=1.0, zorder=0)
                 p_values.append(test_results[i].quantile[1] * 2.0)
-                        
-            if p_values[i] < 10e-5:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'red', markersize= 8, zorder=2)
-    
-            if p_values[i] >= 10e-5 and p_values[i] < 10e-4:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = '#FF7F50', markersize= 8, zorder=2)
-        
-            if p_values[i] >= 10e-4 and p_values[i] < 10e-3:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'gold', markersize= 8, zorder=2)
-        
-            if p_values[i] >= 10e-3 and p_values[i] < 0.0125:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'white', markersize= 8, zorder=2)
-        
-            if p_values[i] >= 0.0125 and p_values[i] < 0.025:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'skyblue', markersize= 8, zorder=2)    
-    
-            if p_values[i] >= 0.025:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'blue', markersize= 8, zorder=2)
-    
-    
+                if p_values[i] < 10e-5:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='red', markersize=8, zorder=2)
+                elif p_values[i] >= 10e-5 and p_values[i] < 10e-4:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='#FF7F50', markersize=8, zorder=2)
+                elif p_values[i] >= 10e-4 and p_values[i] < 10e-3:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='gold', markersize=8, zorder=2)
+                elif p_values[i] >= 10e-3 and p_values[i] < 0.0125:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='white', markersize=8, zorder=2)
+                elif p_values[i] >= 0.0125 and p_values[i] < 0.025:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='skyblue', markersize=8, zorder=2)
+                elif p_values[i] >= 0.025:
+                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='blue', markersize=8, zorder=2)
+    # Operate on all other consistency tests
     else:
         for i in range(len(test_results)):
             plow97 = numpy.percentile(test_results[i].test_distribution, 2.5)
-            phigh97 = numpy.percentile(test_results[i].test_distribution, 100)
+            phigh97 = numpy.percentile(test_results[i].test_distribution, 97.5)
             low97 = test_results[i].observed_statistic - plow97
             high97 = phigh97 - test_results[i].observed_statistic  
             ax.errorbar(test_results[i].observed_statistic, (len(test_results)-1) -i, xerr=numpy.array([[low97, high97]]).T, capsize=4, 
                         color='slategray', alpha=1.0, zorder=0)
             p_values.append(test_results[i].quantile)
 
-        if p_values[i] < 10e-5:
-            ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'red', markersize= 8, zorder=2)
+            if p_values[i] < 10e-5:
+                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='red', markersize=8, zorder=2)
+            elif p_values[i] >= 10e-5 and p_values[i] < 10e-4:
+                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='#FF7F50', markersize=8, zorder=2)
+            elif p_values[i] >= 10e-4 and p_values[i] < 10e-3:
+                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='gold', markersize=8, zorder=2)
+            elif p_values[i] >= 10e-3  and p_values[i] < 0.025:
+                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='white', markersize=8, zorder=2)
+            elif p_values[i] >= 0.025 and p_values[i] < 0.05:
+                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='skyblue', markersize=8, zorder=2)
+            elif p_values[i] >= 0.05:
+                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='blue', markersize=8, zorder=2)
     
-        if p_values[i] >= 10e-5 and p_values[i] < 10e-4:
-            ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = '#FF7F50', markersize= 8, zorder=2)
-        
-        if p_values[i] >= 10e-4 and p_values[i] < 10e-3:
-            ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'gold', markersize= 8, zorder=2)
-        
-        if p_values[i] >= 10e-3  and p_values[i] < 0.025:
-            ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'white', markersize= 8, zorder=2)
-        
-        if p_values[i] >= 0.025 and p_values[i] < 0.05:
-            ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'skyblue', markersize= 8, zorder=2)    
-    
-        if p_values[i] >= 0.05:
-            ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color = 'blue', markersize= 8, zorder=2)  
-    
-        legend_elements = [Line2D([0], [0], marker='o', color='red', lw=0, label=r'p < 10e-5', markersize=10, markeredgecolor='k'),
-                   Line2D([0], [0], marker='o', color='#FF7F50', lw=0, label=r'10e-5 $\leq$ p < 10e-4', markersize=10, markeredgecolor='k'),
-                   Line2D([0], [0], marker='o', color='gold', lw=0, label=r'10e-4 $\leq$ p < 10e-3', markersize=10, markeredgecolor='k'),
-                   Line2D([0], [0], marker='o', color='white', lw=0, label=r'10e-3 $\leq$ p < 0.025', markersize=10, markeredgecolor='k'),
-                   Line2D([0], [0], marker='o', color='skyblue', lw=0, label=r'0.025 $\leq$ p < 0.05', markersize=10, markeredgecolor='k'),
-                   Line2D([0], [0], marker='o', color='blue', lw=0, label=r'p $\geq$ 0.05', markersize=10, markeredgecolor='k')]
+        legend_elements = [
+            matplotlib.lines.Line2D([0], [0], marker='o', color='red', lw=0, label=r'p < 10e-5', markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='#FF7F50', lw=0, label=r'10e-5 $\leq$ p < 10e-4', markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='gold', lw=0, label=r'10e-4 $\leq$ p < 10e-3', markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='white', lw=0, label=r'10e-3 $\leq$ p < 0.025', markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='skyblue', lw=0, label=r'0.025 $\leq$ p < 0.05', markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='blue', lw=0, label=r'p $\geq$ 0.05', markersize=10, markeredgecolor='k')]
 
         ax.legend(handles=legend_elements, loc=4, fontsize=13, edgecolor='k') 
     
