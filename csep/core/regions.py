@@ -8,6 +8,8 @@ from xml.etree import ElementTree as ET
 import numpy
 import numpy as np
 import mercantile
+from shapely import geometry
+from shapely.ops import unary_union
 
 # PyCSEP imports
 from csep.utils.calc import bin1d_vec, cleaner_range, first_nonnan, last_nonnan
@@ -723,34 +725,13 @@ class CartesianGrid2D:
         return a, xs, ys
 
     def tight_bbox(self):
-        # creates tight bounding box around the region, probably a faster way to do this.
-        ny, nx = self.idx_map.shape
-        asc = []
-        desc = []
-        for j in range(ny):
-            row = self.idx_map[j, :]
-            argmin = first_nonnan(row)
-            argmax = last_nonnan(row)
-            # points are stored clockwise
-            poly_min = self.polygons[int(row[argmin])].points
-            asc.insert(0, poly_min[0])
-            asc.insert(0, poly_min[1])
-            poly_max = self.polygons[int(row[argmax])].points
-            lat_0 = poly_max[2][1]
-            lat_1 = poly_max[3][1]
-            # last two points are 'right hand side of polygon'
-            if lat_0 < lat_1:
-                desc.append(poly_max[2])
-                desc.append(poly_max[3])
-            else:
-                desc.append(poly_max[3])
-                desc.append(poly_max[2])
-        # close the loop
-        poly = np.array(asc + desc)
-        sorted_idx = np.sort(np.unique(poly, return_index=True, axis=0)[1], kind='stable')
-        unique_poly = poly[sorted_idx]
-        unique_poly = np.append(unique_poly, [unique_poly[0, :]], axis=0)
-        return unique_poly
+        # creates tight bounding box around the region
+
+        polys = [geometry.Polygon([(np.round(j[0], 2), np.round(j[1], 2)) for j in i.points]) for i in self.polygons]
+        joined_poly = unary_union(polys)
+        bounds = np.array([i for i in joined_poly.boundary.xy]).T
+
+        return bounds
 
     def get_cell_area(self):
         """ Compute the area of each polygon in sq. kilometers.
