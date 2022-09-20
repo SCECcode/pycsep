@@ -5,11 +5,11 @@ matplotlib
 cartopy
 obspy
 pyproj
-shapely
 python-dateutil
 pytest
 vcrpy
 pytest-cov
+shapely
 sphinx
 sphinx-gallery
 sphinx-rtd-theme
