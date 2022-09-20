@@ -724,11 +724,16 @@ class CartesianGrid2D:
 
         return a, xs, ys
 
-    def tight_bbox(self):
+    def tight_bbox(self, precision=4):
         # creates tight bounding box around the region
+        poly = np.array([i.points for i in self.polygons])
 
-        polys = [geometry.Polygon([(np.round(j[0], 2), np.round(j[1], 2)) for j in i.points]) for i in self.polygons]
-        joined_poly = unary_union(polys)
+        sorted_idx = np.sort(np.unique(poly, return_index=True, axis=0)[1], kind='stable')
+        unique_poly = poly[sorted_idx]
+
+        # merges all the cell polygons into one
+        polygons = [geometry.Polygon(np.round(i, precision)) for i in unique_poly]
+        joined_poly = unary_union(polygons)
         bounds = np.array([i for i in joined_poly.boundary.xy]).T
 
         return bounds

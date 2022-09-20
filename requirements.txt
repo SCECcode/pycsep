@@ -5,6 +5,7 @@ matplotlib
 cartopy
 obspy
 pyproj
+shapely
 python-dateutil
 pytest
 vcrpy
