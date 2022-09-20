@@ -192,6 +192,90 @@ def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-c
 
     return relm_region
 
+def nz_csep_region(dh_scale=1, magnitudes=None, name="csep-nz", use_midpoint=True):
+    """ Return collection region for the New Zealand CSEP testing region
+
+    Args:
+        dh_scale (int): factor of two multiple to change the grid size
+        mangitudes (array-like): array representing the lower bin edges of the magnitude bins
+        name (str): human readable identifer
+        use_midpoints (bool): if true, treat values in file as midpoints. default = true.
+
+    Returns:
+        :class:`csep.core.spatial.CartesianGrid2D`
+
+    Raises:
+        ValueError: dh_scale must be a factor of two
+
+    """
+    if dh_scale % 2 != 0 and dh_scale != 1:
+        raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
+
+    # we can hard-code the dh because we hard-code the filename
+    dh = 0.1
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'nz.testing.nodes.dat')
+    points = numpy.loadtxt(filepath)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
+
+    if dh_scale > 1:
+        origins = increase_grid_resolution(origins, dh, dh_scale)
+        dh = dh / dh_scale
+
+    # turn points into polygons and make region object
+    bboxes = compute_vertices(origins, dh)
+    nz_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
+
+    if magnitudes is not None:
+        nz_region.magnitudes = magnitudes
+
+    return nz_region
+
+def nz_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-nz-collection", use_midpoint=True):
+    """ Return collection region for the New Zealand CSEP collection region
+
+    Args:
+        dh_scale (int): factor of two multiple to change the grid size
+        mangitudes (array-like): array representing the lower bin edges of the magnitude bins
+        name (str): human readable identifer
+        use_midpoints (bool): if true, treat values in file as midpoints. default = true.
+
+    Returns:
+        :class:`csep.core.spatial.CartesianGrid2D`
+
+    Raises:
+        ValueError: dh_scale must be a factor of two
+
+    """
+    if dh_scale % 2 != 0 and dh_scale != 1:
+        raise ValueError("dh_scale must be a factor of two or dh_scale must equal unity.")
+
+    # we can hard-code the dh because we hard-code the filename
+    dh = 0.1
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filepath = os.path.join(root_dir, 'artifacts', 'Regions', 'nz.collection.nodes.dat')
+    points = numpy.loadtxt(filepath)
+    if use_midpoint:
+        origins = numpy.array(points) - dh / 2
+    else:
+        origins = numpy.array(points)
+
+    if dh_scale > 1:
+        origins = increase_grid_resolution(origins, dh, dh_scale)
+        dh = dh / dh_scale
+
+    # turn points into polygons and make region object
+    bboxes = compute_vertices(origins, dh)
+    nz_collection_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
+
+    if magnitudes is not None:
+        nz_collection_region.magnitudes = magnitudes
+
+    return nz_collection_region
+
 def global_region(dh=0.1, name="global", magnitudes=None):
     """ Creates a global region used for evaluating gridded forecasts on the global scale.
 
