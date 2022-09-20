@@ -34,7 +34,8 @@ setup(
         'obspy',
         'pyproj',
         'python-dateutil',
-        'mercantile'
+        'mercantile',
+        'shapely'
     ],
     extras_require = {
         'test': [
