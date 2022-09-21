@@ -205,7 +205,7 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
         verbose (bool): print catalog summary statistics
 
     Returns:
-        :class:`csep.core.catalogs.ComcatCatalog
+        :class:`csep.core.catalogs.CSEPCatalog
     """
 
     # Timezone should be in UTC
@@ -254,7 +254,7 @@ def query_bsi(start_time, end_time, min_magnitude=2.50,
         verbose (bool): print catalog summary statistics
 
     Returns:
-        :class:`csep.core.catalogs.ComcatCatalog
+        :class:`csep.core.catalogs.CSEPCatalog
     """
 
     # Timezone should be in UTC
