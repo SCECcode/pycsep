@@ -683,6 +683,23 @@ def _query_comcat(start_time, end_time, min_magnitude=2.50,
 
     return eventlist
 
+def _query_bsi(start_time, end_time, min_magnitude=2.50,
+               min_latitude=32.0, max_latitude=50.0,
+               min_longitude=2.0, max_longitude=21.0,extra_bsi_params=None):
+    """
+    Queries INGV Bulletino Sismico Italiano, revised version.
+    :return: csep.core.Catalog object
+    """
+    extra_bsi_params = extra_bsi_params or {}
+    bsi_host = 'webservices.rm.ingv.it'
+    extra_bsi_params.update({'host': bsi_host, 'limit': 15000, 'offset': 0})
+    # get eventlist from Comcat
+    eventlist = search(minmagnitude=min_magnitude,
+                       minlatitude=min_latitude, maxlatitude=max_latitude,
+                       minlongitude=min_longitude, maxlongitude=max_longitude,
+                       starttime=start_time, endtime=end_time, **extra_bsi_params)
+
+    return eventlist
 def _parse_datetime_to_zmap(date, time):
         """ Helping function to return datetime in zmap format.
 

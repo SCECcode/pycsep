@@ -234,6 +234,56 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
 
     return comcat
 
+
+def query_bsi(start_time, end_time, min_magnitude=2.50,
+              min_latitude=32.0, max_latitude=50.0,
+              min_longitude=2.0, max_longitude=21.0, verbose=True,
+              apply_filters=False, **kwargs):
+    """
+    Access BSI catalog through web service
+
+    Args:
+        start_time: datetime object of start of catalog
+        end_time: datetime object for end of catalog
+        min_magnitude: minimum magnitude to query
+        min_latitude:  maximum magnitude to query
+        max_latitude: max latitude of bounding box
+        min_longitude: min latitude of bounding box
+        max_longitude: max longitude of bounding box
+        region: :class:`csep.core.regions.CartesianGrid2D
+        verbose (bool): print catalog summary statistics
+
+    Returns:
+        :class:`csep.core.catalogs.ComcatCatalog
+    """
+
+    # Timezone should be in UTC
+    t0 = time.time()
+    eventlist = readers._query_bsi(start_time=start_time, end_time=end_time,
+                                   min_magnitude=min_magnitude,
+                                   min_latitude=min_latitude, max_latitude=max_latitude,
+                                   min_longitude=min_longitude, max_longitude=max_longitude)
+    t1 = time.time()
+    bsi = catalogs.CSEPCatalog(data=eventlist, date_accessed=utc_now_datetime(), **kwargs)
+    print("Fetched BSI catalog in {} seconds.\n".format(t1 - t0))
+
+    if apply_filters:
+        try:
+            bsi = bsi.filter().filter_spatial()
+        except CSEPCatalogException:
+            bsi = bsi.filter()
+
+    if verbose:
+        print("Downloaded catalog from Bollettino Sismico Italiano (BSI) with following parameters")
+        print("Start Date: {}\nEnd Date: {}".format(str(bsi.start_time), str(bsi.end_time)))
+        print("Min Latitude: {} and Max Latitude: {}".format(bsi.min_latitude, bsi.max_latitude))
+        print("Min Longitude: {} and Max Longitude: {}".format(bsi.min_longitude, bsi.max_longitude))
+        print("Min Magnitude: {}".format(bsi.min_magnitude))
+        print(f"Found {bsi.event_count} events in the BSI catalog.")
+
+    return bsi
+
+
 def load_evaluation_result(fname):
     """ Load evaluation result stored as json file
 
