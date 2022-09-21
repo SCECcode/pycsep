@@ -655,8 +655,9 @@ def jma_csv(fname):
     return events
 
 def _query_comcat(start_time, end_time, min_magnitude=2.50,
-                 min_latitude=31.50, max_latitude=43.00,
-                 min_longitude=-125.40, max_longitude=-113.10, extra_comcat_params=None):
+                  min_latitude=31.50, max_latitude=43.00,
+                  min_longitude=-125.40, max_longitude=-113.10,
+                  max_depth=1000, extra_comcat_params=None):
     """
     Return eventlist from ComCat web service.
 
@@ -668,6 +669,7 @@ def _query_comcat(start_time, end_time, min_magnitude=2.50,
         max_latitude (float): maximum latitude of query
         min_longitude (float): minimum longitude of query
         max_longitude (float): maximum longitude of query
+        max_depth (float): maximum depth of query
         extra_comcat_params (dict): additional parameters to pass to comcat search function
 
     Returns:
@@ -679,13 +681,15 @@ def _query_comcat(start_time, end_time, min_magnitude=2.50,
     eventlist = search(minmagnitude=min_magnitude,
         minlatitude=min_latitude, maxlatitude=max_latitude,
         minlongitude=min_longitude, maxlongitude=max_longitude,
-        starttime=start_time, endtime=end_time, **extra_comcat_params)
+        starttime=start_time, endtime=end_time,
+        maxdepth=max_depth, **extra_comcat_params)
 
     return eventlist
 
 def _query_bsi(start_time, end_time, min_magnitude=2.50,
                min_latitude=32.0, max_latitude=50.0,
-               min_longitude=2.0, max_longitude=21.0,extra_bsi_params=None):
+               min_longitude=2.0, max_longitude=21.0,
+               max_depth=1000, extra_bsi_params=None):
     """
     Queries INGV Bulletino Sismico Italiano, revised version.
     :return: csep.core.Catalog object
@@ -697,6 +701,7 @@ def _query_bsi(start_time, end_time, min_magnitude=2.50,
     eventlist = search(minmagnitude=min_magnitude,
                        minlatitude=min_latitude, maxlatitude=max_latitude,
                        minlongitude=min_longitude, maxlongitude=max_longitude,
+                       maxdepth=max_depth,
                        starttime=start_time, endtime=end_time, **extra_bsi_params)
 
     return eventlist
