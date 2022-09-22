@@ -1,7 +1,7 @@
 numpy
 scipy
 pandas
-matplotlib
+matplotlib<=3.5.3
 cartopy
 obspy
 pyproj

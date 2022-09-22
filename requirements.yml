@@ -7,7 +7,7 @@ dependencies:
   - numpy
   - pandas
   - scipy
-  - matplotlib
+  - matplotlib<=3.5.3
   - pyproj
   - obspy
   - python-dateutil
