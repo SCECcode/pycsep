@@ -1936,7 +1936,7 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
     tight_layout = plot_args.get('tight_layout', True)
     percentile = plot_args.get('percentile', 95)
 
-    fig, ax = plt.subplots(figsize=figsize)
+    fig, ax = pyplot.subplots(figsize=figsize)
     xlims = []
     
     for index, res in enumerate(results):
@@ -1952,8 +1952,8 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
             mean = res.test_distribution[1]
             upsilon = 1.0 - ((var - mean) / var)
             tau = (mean**2 /(var - mean))
-            phigh = nbinom.ppf((1 - percentile/100.)/2., tau, upsilon)
-            plow = nbinom.ppf(1 - (1 - percentile/100.)/2., tau, upsilon)
+            phigh = scipy.stats.nbinom.ppf((1 - percentile/100.)/2., tau, upsilon)
+            plow = scipy.stats.nbinom.ppf(1 - (1 - percentile/100.)/2., tau, upsilon)
 
         # empirical distributions
         else:
