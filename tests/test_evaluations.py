@@ -83,3 +83,5 @@ class TestBinomialLikelihood(unittest.TestCase):
 
         numpy.testing.assert_allclose(bill, -6.7197988064)
 
+if __name__ == '__main__':
+    unittest.main()
