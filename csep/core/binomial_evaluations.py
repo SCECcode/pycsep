@@ -102,6 +102,29 @@ def binary_joint_log_likelihood_ndarray(forecast, catalog):
     return sum(first_term.data + second_term.data)
     
     
+def _simulate_catalog(num_events, sampling_weights, sim_fore, random_numbers=None):
+
+    # generate uniformly distributed random numbers in [0,1), this
+    if random_numbers is None:
+        random_numbers = numpy.random.rand(num_events)
+    else:
+        # TODO: ensure that random numbers are all between 0 and 1.
+        pass
+
+    # reset simulation array to zero, but don't reallocate
+    sim_fore.fill(0)
+
+    eqs = 0
+    while eqs < num_events:
+            random_num = numpy.random.uniform(0,1)
+            loc = numpy.searchsorted(sampling_weights, random_num)
+            if sim_fore[loc] == 0:
+                numpy.add.at(sim_fore, loc, 1)
+                eqs = eqs+1
+    
+    return sim_fore    
+    
+
 def _binary_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None, 
                               seed=None, use_observed_counts=True, verbose=True, normalize_likelihood=False):
     """  Computes binary conditional-likelihood test from CSEP using an efficient simulation based approach.
