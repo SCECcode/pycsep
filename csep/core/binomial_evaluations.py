@@ -88,13 +88,13 @@ def binary_joint_log_likelihood_ndarray(forecast, catalog):
                     It has to be a either zero or positive integer only (No Floating Point)
     """
     #First, we mask the forecast in cells where we could find log=0.0 singularities:
-    forecast_masked = np.ma.masked_where(forecast.ravel() <= 0.0, forecast.ravel()) 
+    forecast_masked = numpy.ma.masked_where(forecast.ravel() <= 0.0, forecast.ravel())
     
     #Then, we compute the log-likelihood of observing one or more events given a Poisson distribution, i.e., 1 - Pr(0) 
     target_idx = numpy.nonzero(catalog.ravel())
     y = numpy.zeros(forecast_masked.ravel().shape)
     y[target_idx[0]] = 1
-    first_term = y * (np.log(1.0 - np.exp(-forecast_masked.ravel())))
+    first_term = y * (numpy.log(1.0 - numpy.exp(-forecast_masked.ravel())))
     
     #Also, we estimate the log-likelihood in cells no events are observed:
     second_term = (1-y) * (-forecast_masked.ravel().data)
@@ -124,7 +124,7 @@ def _simulate_catalog(num_events, sampling_weights, sim_fore, random_numbers=Non
     
     return sim_fore    
     
-    
+
 def _binary_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None, 
                               seed=None, use_observed_counts=True, verbose=True, normalize_likelihood=False):
     """  Computes binary conditional-likelihood test from CSEP using an efficient simulation based approach.

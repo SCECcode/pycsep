@@ -51,7 +51,7 @@ class AdaptiveHistogram:
 
         # need to know the range of the data to be inserted on discretized grid (min, max)
         # this is to determine the discretization of the data
-        eps=np.finfo(np.float).eps
+        eps = np.finfo(np.float64).eps
         disc_min = np.floor((data_min+eps-self.anchor)*self.rec_dh)/self.rec_dh+self.anchor
         disc_max = np.ceil((data_max+eps-self.anchor)*self.rec_dh)/self.rec_dh+self.anchor
 

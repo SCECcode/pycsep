@@ -4,15 +4,16 @@ channels:
   - defaults
 dependencies:
   - python>=3.7
-  - numpy<=1.21.5
+  - numpy
   - pandas
   - scipy
-  - matplotlib
+  - matplotlib<=3.5.3
   - pyproj
   - obspy
   - python-dateutil
   - pytest
   - cartopy
+  - shapely
   - sphinx
   - sphinx-gallery
   - sphinx_rtd_theme

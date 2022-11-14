@@ -12,6 +12,7 @@ def get_version():
         raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
     return verstr
 
+
 with open("README.md",'r') as fh:
     long_description = fh.read()
 
@@ -25,16 +26,17 @@ setup(
     description='Python tools from the Collaboratory for the Study of Earthquake Predictability',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    install_requires = [
+    install_requires=[
         'numpy',
         'scipy',
         'pandas',
-        'matplotlib',
+        'matplotlib<=3.5.3',
         'cartopy',
         'obspy',
         'pyproj',
         'python-dateutil',
-        'mercantile'
+        'mercantile',
+        'shapely'
     ],
     extras_require = {
         'test': [

@@ -1,7 +1,7 @@
-numpy<=1.21.5
+numpy
 scipy
 pandas
-matplotlib
+matplotlib<=3.5.3
 cartopy
 obspy
 pyproj
@@ -9,6 +9,7 @@ python-dateutil
 pytest
 vcrpy
 pytest-cov
+shapely
 sphinx
 sphinx-gallery
 sphinx-rtd-theme
