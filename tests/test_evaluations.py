@@ -71,3 +71,15 @@ class TestPoissonLikelihood(unittest.TestCase):
         # calculated by hand given the expected data, see explanation in zechar et al., 2010.
         numpy.testing.assert_allclose(simulated_ll[0], -7.178053830347945)
 
+
+class TestBinomialLikelihood(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.forecast_data = numpy.array([[0.1, 0.3, 0.4], [0.2, 0.1, 0.1]])
+        self.observed_data = numpy.array([[0, 1, 2], [1, 1, 0]])
+
+    def test_likelihood(self):
+        bill = binary_joint_log_likelihood_ndarray(self.forecast_data, self.observed_data)
+
+        numpy.testing.assert_allclose(bill, -6.7197988064)
+
