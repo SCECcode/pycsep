@@ -3,6 +3,8 @@ import numpy
 import unittest
 
 from csep.core.poisson_evaluations import _simulate_catalog, _poisson_likelihood_test
+from csep.core.binomial_evaluations import binary_joint_log_likelihood_ndarray
+
 
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
