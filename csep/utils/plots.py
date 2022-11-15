@@ -1557,7 +1557,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
     figsize= plot_args.get('figsize', None)
     title = plot_args.get('title', results[0].name)
     title_fontsize = plot_args.get('title_fontsize', None)
-    xlabel = plot_args.get('xlabel', 'X')
+    xlabel = plot_args.get('xlabel', '')
     xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
     xticks_fontsize = plot_args.get('xticks_fontsize', None)
     ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
@@ -1567,6 +1567,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
     hbars = plot_args.get('hbars', True)
     tight_layout = plot_args.get('tight_layout', True)
     percentile = plot_args.get('percentile', 95)
+    plot_mean = plot_args.get('mean', False)
 
     if axes is None:
         fig, ax = pyplot.subplots(figsize=figsize)
@@ -1580,6 +1581,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
         if res.test_distribution[0] == 'poisson':
             plow = scipy.stats.poisson.ppf((1 - percentile/100.)/2., res.test_distribution[1])
             phigh = scipy.stats.poisson.ppf(1 - (1 - percentile/100.)/2., res.test_distribution[1])
+            mean = res.test_distribution[1]
             observed_statistic = res.observed_statistic
         # empirical distributions
         else:
@@ -1596,12 +1598,14 @@ def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower
             else:
                 plow = numpy.percentile(test_distribution, (100 - percentile)/2.)
                 phigh = numpy.percentile(test_distribution, 100 - (100 - percentile)/2.)
+            mean = numpy.mean(res.test_distribution)
 
         if not numpy.isinf(observed_statistic): # Check if test result does not diverges
-            low = observed_statistic - plow
-            high = phigh - observed_statistic
-            ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T,
-                        fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower),
+            percentile_lims = numpy.array([[mean - plow,  phigh - mean]]).T
+            ax.plot(observed_statistic, index,
+                    _get_marker_style(observed_statistic, (plow, phigh), one_sided_lower))
+            ax.errorbar(mean, index, xerr=percentile_lims,
+                        fmt='ko'*plot_mean,
                         capsize=capsize, linewidth=linewidth, ecolor=color)
             # determine the limits to use
             xlims.append((plow, phigh, observed_statistic))
@@ -1887,7 +1891,7 @@ def add_labels_for_publication(figure, style='bssa', labelsize=16):
     return
 
 
-def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, plot_args=None, variance=None):
+def plot_consistency_test(eval_results, normalize=False, axes=None, one_sided_lower=False, variance=None, plot_args=None, show=False):
     """ Plots results from CSEP1 tests following the CSEP1 convention.
 
     Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
@@ -1927,8 +1931,10 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
     # Parse plot arguments. More can be added here
     if plot_args is None:
         plot_args = {}
-    figsize= plot_args.get('figsize', (7,8))
-    xlabel = plot_args.get('xlabel', 'X')
+    figsize= plot_args.get('figsize', None)
+    title = plot_args.get('title', results[0].name)
+    title_fontsize = plot_args.get('title_fontsize', None)
+    xlabel = plot_args.get('xlabel', '')
     xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
     xticks_fontsize = plot_args.get('xticks_fontsize', None)
     ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
@@ -1938,8 +1944,14 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
     hbars = plot_args.get('hbars', True)
     tight_layout = plot_args.get('tight_layout', True)
     percentile = plot_args.get('percentile', 95)
+    plot_mean = plot_args.get('mean', False)
 
-    fig, ax = pyplot.subplots(figsize=figsize)
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
     xlims = []
     
     for index, res in enumerate(results):
@@ -1947,6 +1959,7 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
         if res.test_distribution[0] == 'poisson':
             plow = scipy.stats.poisson.ppf((1 - percentile/100.)/2., res.test_distribution[1])
             phigh = scipy.stats.poisson.ppf(1 - (1 - percentile/100.)/2., res.test_distribution[1])
+            mean = res.test_distribution[1]
             observed_statistic = res.observed_statistic
         
         elif res.test_distribution[0] == 'negative_binomial':
@@ -1973,13 +1986,15 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
             else:
                 plow = numpy.percentile(test_distribution, 2.5)
                 phigh = numpy.percentile(test_distribution, 97.5)
+            mean = numpy.mean(res.test_distribution)
 
         if not numpy.isinf(observed_statistic): # Check if test result does not diverges
-            low = observed_statistic - plow
-            high = phigh - observed_statistic
-            ax.errorbar(observed_statistic, index, xerr=numpy.array([[low, high]]).T,
-                        fmt=_get_marker_style(observed_statistic, (plow, phigh), one_sided_lower),
-                        capsize=4, linewidth=linewidth, ecolor=color, markersize = 10, zorder=1)
+            percentile_lims = numpy.array([[mean - plow,  phigh - mean]]).T
+            ax.plot(observed_statistic, index,
+                    _get_marker_style(observed_statistic, (plow, phigh), one_sided_lower))
+            ax.errorbar(mean, index, xerr=percentile_lims,
+                        fmt='ko'*plot_mean,
+                        capsize=capsize, linewidth=linewidth, ecolor=color)
             # determine the limits to use
             xlims.append((plow, phigh, observed_statistic))
             # we want to only extent the distribution where it falls outside of it in the acceptable tail
@@ -2001,18 +2016,23 @@ def plot_consistency_test(eval_results, normalize=False, one_sided_lower=True, p
     except ValueError:
         raise ValueError('All EvaluationResults have infinite observed_statistics')
     ax.set_yticks(numpy.arange(len(results)))
-    ax.set_yticklabels([res.sim_name for res in results], fontsize=14)
+    ax.set_yticklabels([res.sim_name for res in results], fontsize=ylabel_fontsize)
     ax.set_ylim([-0.5, len(results)-0.5])
     if hbars:
         yTickPos = ax.get_yticks()
         if len(yTickPos) >= 2:
             ax.barh(yTickPos, numpy.array([99999] * len(yTickPos)), left=-10000,
                     height=(yTickPos[1] - yTickPos[0]), color=['w', 'gray'], alpha=0.2, zorder=0)
-    ax.set_xlabel(xlabel, fontsize=14)
-    ax.tick_params(axis='x', labelsize=13)
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.tick_params(axis='x', labelsize=xticks_fontsize)
     if tight_layout:
         ax.figure.tight_layout()
         fig.tight_layout()
+
+    if show:
+        pyplot.show()
+
     return ax
     
 
