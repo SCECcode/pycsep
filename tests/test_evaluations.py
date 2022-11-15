@@ -24,7 +24,7 @@ class TestPoissonLikelihood(unittest.TestCase):
 
     def test_simulate_catalog(self):
         # expecting the sampling weights to be [0.25, 0.5, 0.75, 1.0]
-        # assuming the random numbers are equal to thhe following:
+        # assuming the random numbers are equal to the following:
         random_numbers = numpy.array([[0.5488135, 0.71518937, 0.60276338, 0.54488318]])
 
         num_events = 4
@@ -80,7 +80,7 @@ class TestBinomialLikelihood(unittest.TestCase):
         self.forecast_data = numpy.array([[0.1, 0.3, 0.4], [0.2, 0.1, 0.1]])
         self.observed_data = numpy.array([[0, 1, 2], [1, 1, 0]])
 
-    def test_likelihood(self):
+    def test_joint_likelihood_calculation(self):
         bill = binary_joint_log_likelihood_ndarray(self.forecast_data, self.observed_data)
 
         numpy.testing.assert_allclose(bill, -6.7197988064)
