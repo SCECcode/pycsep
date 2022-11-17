@@ -103,14 +103,14 @@ class TestBinomialLikelihood(unittest.TestCase):
 
         sampling_weights = numpy.cumsum(self.forecast_data.ravel()) / numpy.sum(self.forecast_data)
         sim_fore = numpy.zeros(sampling_weights.shape)
-        obs_active_cells =  len(np.unique(np.nonzero(observed_data.ravel())))
+        obs_active_cells =  len(np.unique(np.nonzero(self.observed_data.ravel())))
         #resetting seed again to 0, to make sure _simulate_catalog uses this.
         seed = 0
         numpy.random.seed(seed)
         sim_fore =  _simulate_catalog(obs_active_cells, sampling_weights, sim_fore)
         numpy.testing.assert_allclose(expected_catalog, sim_fore)
     def test_binomial_likelihood(self):
-        qs, bill, simulated_ll =  _binary_likelihood_test(forecast_data, observed_data, num_simulations=1,seed=0, verbose=True)
+        qs, bill, simulated_ll =  _binary_likelihood_test(self.forecast_data,self.observed_data, num_simulations=1,seed=0, verbose=True)
         numpy.testing.assert_allclose(bill, -6.7197988064)
         numpy.testing.assert_allclose(qs, 1)
         numpy.testing.assert_allclose(simulated_ll[0], -7.921741654647629)
