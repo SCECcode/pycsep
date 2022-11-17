@@ -5,6 +5,7 @@ import scipy.spatial
 from csep.models import EvaluationResult
 from csep.core.exceptions import CSEPCatalogException
 
+
 def _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=1e-6):
     """ Computes delta1 and delta2 values from the Negative Binomial (NBD) number test.
 
@@ -99,7 +100,8 @@ def binary_joint_log_likelihood_ndarray(forecast, catalog):
     # Finally, we sum both terms to compute the joint log-likelihood score:
     return sum(first_term.data + second_term.data)
     
-    
+
+
 def _simulate_catalog(sim_cells, sampling_weights, sim_fore, random_numbers=None):
     # Modified this code to generate simulations in a way that every cell gets one earthquake
     # Generate uniformly distributed random numbers in [0,1), this
@@ -164,7 +166,7 @@ def _binary_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
         else:
             sim_fore = _simulate_catalog(num_cells_to_simulate, sampling_weights, sim_fore,
                                          random_numbers=random_numbers[idx,:])
-    
+
         # compute joint log-likelihood
         current_ll = binary_joint_log_likelihood_ndarray(forecast_data.data, sim_fore)
         
@@ -208,12 +210,16 @@ def binary_spatial_test(gridded_forecast, observed_catalog, num_simulations=1000
     gridded_catalog_data = observed_catalog.spatial_counts()
 
     # simply call likelihood test on catalog data and forecast
-    qs, obs_ll, simulated_ll = _binary_likelihood_test(gridded_forecast.spatial_counts(), gridded_catalog_data,
-                                                        num_simulations=num_simulations,
-                                                        seed=seed,
-                                                        random_numbers=random_numbers,
-                                                        use_observed_counts=True,
-                                                        verbose=verbose, normalize_likelihood=True)
+    qs, obs_ll, simulated_ll = _binary_likelihood_test(
+        gridded_forecast.spatial_counts(),
+        gridded_catalog_data,
+        num_simulations=num_simulations,
+        seed=seed,
+        random_numbers=random_numbers,
+        use_observed_counts=True,
+        verbose=verbose,
+        normalize_likelihood=True
+    )
 
     
 # populate result data structure
@@ -261,10 +267,16 @@ def binary_conditional_likelihood_test(gridded_forecast, observed_catalog, num_s
     gridded_catalog_data = observed_catalog.spatial_magnitude_counts()
 
     # simply call likelihood test on catalog data and forecast
-    qs, obs_ll, simulated_ll = _binary_likelihood_test(gridded_forecast.data, gridded_catalog_data,
-                                                        num_simulations=num_simulations, seed=seed, random_numbers=random_numbers,
-                                                        use_observed_counts=True,
-                                                        verbose=verbose, normalize_likelihood=False)
+    qs, obs_ll, simulated_ll = _binary_likelihood_test(
+        gridded_forecast.data,
+        gridded_catalog_data,
+        num_simulations=num_simulations,
+        seed=seed,
+        random_numbers=random_numbers,
+        use_observed_counts=True,
+        verbose=verbose,
+        normalize_likelihood=False
+    )
 
     # populate result data structure
     result = EvaluationResult()

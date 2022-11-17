@@ -30,7 +30,7 @@ setup(
         'numpy',
         'scipy',
         'pandas',
-        'matplotlib<=3.5.3',
+        'matplotlib',
         'cartopy',
         'obspy',
         'pyproj',

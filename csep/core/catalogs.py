@@ -737,16 +737,16 @@ class AbstractBaseCatalog(LoggingMixin):
         """ Return counts of events in space-magnitude region.
 
         We figure out the index of the polygons and create a map that relates the spatial coordinate in the
-        Cartesian grid with with the polygon in region.
+        Cartesian grid with the polygon in region.
 
         Args:
-            mag_bins: magnitude bins (optional). tries to use magnitue bins associated with region
+            mag_bins (list, numpy.array): magnitude bins (optional), if empty tries to use magnitude bins associated with region
+            tol (float): tolerance for comparisons within magnitude bins
 
         Returns:
             output: unnormalized event count in each bin, 1d ndarray where index corresponds to midpoints
 
         """
-
         # make sure region is specified with catalog
         if self.region is None:
             raise CSEPCatalogException("Cannot create binned rates without region information.")
@@ -784,8 +784,8 @@ class AbstractBaseCatalog(LoggingMixin):
         If that fails, uses the default magnitude bins provided in constants.
 
         Args:
-            reterr (bool): returns errors
             mag_bins (list or array_like): monotonically increasing set of magnitude bin edges
+            return_error (bool): returns errors
 
         Returns:
             bval (float): b-value
@@ -823,6 +823,10 @@ class AbstractBaseCatalog(LoggingMixin):
             return (bval, err)
         else:
             return bval
+
+    def b_positive(self):
+        """ Implements the b-positive indicator from Nicholas van der Elst """
+        pass
 
     def plot(self, ax=None, show=False, extent=None, set_global=False, plot_args=None):
         """ Plot catalog according to plate-carree projection
@@ -1028,9 +1032,10 @@ class CSEPCatalog(AbstractBaseCatalog):
                         raise ValueError(
                             "catalog_id should be monotonically increasing and events should be ordered by catalog_id")
                 # yield final catalog, note: since this is just loading catalogs, it has no idea how many should be there
-                yield cls(data=events, catalog_id=prev_id, **kwargs)
+                cat = cls(data=events, catalog_id=prev_id, **kwargs)
+                yield cat
 
-        if os.path.isdir(filename):
+        elif os.path.isdir(filename):
             raise NotImplementedError("reading from directory or batched files not implemented yet!")
 
     @classmethod

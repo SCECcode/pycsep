@@ -11,6 +11,7 @@ def get_datadir():
     data_dir = os.path.join(root_dir, 'artifacts', 'Comcat')
     return data_dir
 
+
 class TestPoissonLikelihood(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -84,6 +85,7 @@ class TestBinomialLikelihood(unittest.TestCase):
         bill = binary_joint_log_likelihood_ndarray(self.forecast_data, self.observed_data)
 
         numpy.testing.assert_allclose(bill, -6.7197988064)
+
 
 if __name__ == '__main__':
     unittest.main()
