@@ -4,9 +4,6 @@ import unittest
 
 import csep.core.poisson_evaluations as poisson
 import csep.core.binomial_evaluations as binary
-#from csep.core.poisson_evaluations import _simulate_catalog, _poisson_likelihood_test
-#from csep.core.binomial_evaluations import binary_joint_log_likelihood_ndarray, _simulate_catalog, _binary_likelihood_test
-
 
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,7 +24,7 @@ class TestPoissonLikelihood(unittest.TestCase):
 
     def test_simulate_catalog(self):
         # expecting the sampling weights to be [0.25, 0.5, 0.75, 1.0]
-        # assuming the random numbers are equal to thhe following:
+        # assuming the random numbers are equal to the following:
         random_numbers = numpy.array([[0.5488135, 0.71518937, 0.60276338, 0.54488318]])
 
         num_events = 4
@@ -86,9 +83,8 @@ class TestBinomialLikelihood(unittest.TestCase):
         self.observed_data = numpy.array([[0, 1, 2], [1, 1, 0]])
         self.random_matrix = numpy.random.rand(1, 9)
 
-    def test_likelihood(self):
+    def test_joint_likelihood_calculation(self):
         bill = binary.binary_joint_log_likelihood_ndarray(self.forecast_data, self.observed_data)
-
         numpy.testing.assert_allclose(bill, -6.7197988064)
 
     def test_simulate_active_cells(self):
@@ -111,6 +107,7 @@ class TestBinomialLikelihood(unittest.TestCase):
         numpy.random.seed(seed)
         sim_fore = binary._simulate_catalog(obs_active_cells, sampling_weights, sim_fore)
         numpy.testing.assert_allclose(expected_catalog, sim_fore)
+
     def test_binomial_likelihood(self):
         qs, bill, simulated_ll = binary._binary_likelihood_test(self.forecast_data,self.observed_data, num_simulations=1,seed=0, verbose=True)
         numpy.testing.assert_allclose(bill, -6.7197988064)

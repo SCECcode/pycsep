@@ -90,40 +90,39 @@ def binary_joint_log_likelihood_ndarray(forecast, catalog):
     """
     # First, we mask the forecast in cells where we could find log=0.0 singularities:
     forecast_masked = numpy.ma.masked_where(forecast.ravel() <= 0.0, forecast.ravel())
-    
     # Then, we compute the log-likelihood of observing one or more events given a Poisson distribution, i.e., 1 - Pr(0)
     target_idx = numpy.nonzero(catalog.ravel())
     y = numpy.zeros(forecast_masked.ravel().shape)
     y[target_idx[0]] = 1
     first_term = y * (numpy.log(1.0 - numpy.exp(-forecast_masked.ravel())))
-    
     # Also, we estimate the log-likelihood in cells no events are observed:
     second_term = (1-y) * (-forecast_masked.ravel().data)
     # Finally, we sum both terms to compute the joint log-likelihood score:
     return sum(first_term.data + second_term.data)
     
-    
-def _simulate_catalog(num_events, sampling_weights, sim_fore, random_numbers=None):
 
-    # Generate uniformly distributed random numbers in [0,1)
+
+def _simulate_catalog(sim_cells, sampling_weights, sim_fore, random_numbers=None):
+    # Modified this code to generate simulations in a way that every cell gets one earthquake
+    # Generate uniformly distributed random numbers in [0,1), this
     if random_numbers is None:
-        random_numbers = numpy.random.rand(num_events)
-    else:
-        # TODO: ensure that random numbers are all between 0 and 1.
-        pass
-
-    # reset simulation array to zero, but don't reallocate
-    sim_fore.fill(0)
-
-    eqs = 0
-    while eqs < num_events:
-            random_num = numpy.random.uniform(0, 1)
-            loc = numpy.searchsorted(sampling_weights, random_num)
+        # Reset simulation array to zero, but don't reallocate
+        sim_fore.fill(0)
+        num_active_cells = 0
+        while num_active_cells < sim_cells:
+            random_num = numpy.random.uniform(0,1)
+            loc = numpy.searchsorted(sampling_weights, random_num, side='right')
             if sim_fore[loc] == 0:
-                numpy.add.at(sim_fore, loc, 1)
-                eqs = eqs+1
-    
-    return sim_fore    
+               sim_fore[loc] = 1
+               num_active_cells = num_active_cells + 1
+    else:
+        # Find insertion points using binary search inserting to satisfy a[i-1] <= v < a[i]
+        pnts = numpy.searchsorted(sampling_weights, random_numbers, side='right')
+        # Create simulated catalog by adding to the original locations
+        numpy.add.at(sim_fore, pnts, 1)
+
+    assert sim_fore.sum() == sim_cells, "simulated the wrong number of events!"
+    return sim_fore
     
 
 def _binary_likelihood_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None, 
@@ -153,27 +152,20 @@ def _binary_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
     # data structures to store results
     sim_fore = numpy.zeros(sampling_weights.shape)
     simulated_ll = []
-    n_obs = len(numpy.unique(numpy.nonzero(observed_data.ravel())))
+    n_active_cells = len(numpy.unique(numpy.nonzero(observed_data.ravel())))
     n_fore = numpy.sum(forecast_data)
-    expected_forecast_count = int(n_obs) 
-    
-    if use_observed_counts and normalize_likelihood:
-        scale = n_obs / n_fore
-        expected_forecast_count = int(n_obs)
-        forecast_data = scale * forecast_data
+    expected_forecast_count = int(n_active_cells)
 
     # main simulation step in this loop
     for idx in range(num_simulations):
         if use_observed_counts:
-            num_events_to_simulate = int(n_obs)
-        else:
-            num_events_to_simulate = int(numpy.random.poisson(expected_forecast_count))
+            num_cells_to_simulate = int(n_active_cells)
     
         if random_numbers is None:
-            sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore)
+            sim_fore = _simulate_catalog(num_cells_to_simulate, sampling_weights, sim_fore)
         else:
-            sim_fore = _simulate_catalog(num_events_to_simulate, sampling_weights, sim_fore,
-                                         random_numbers=random_numbers[idx, :])
+            sim_fore = _simulate_catalog(num_cells_to_simulate, sampling_weights, sim_fore,
+                                         random_numbers=random_numbers[idx,:])
 
         # compute joint log-likelihood
         current_ll = binary_joint_log_likelihood_ndarray(forecast_data.data, sim_fore)
@@ -362,7 +354,7 @@ def binary_paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0
     """ Computes the binary t-test for gridded earthquake forecasts.
 
     This score is positively oriented, meaning that positive values of the information gain indicate that the
-    forecast is performing better than the benchmark forecast.
+    forecast is performing better than the benchmark forecast
 
     Args:
         forecast (csep.core.forecasts.GriddedForecast): nd-array storing gridded rates, axis=-1 should be the magnitude column
