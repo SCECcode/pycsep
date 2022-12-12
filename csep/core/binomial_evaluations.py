@@ -152,7 +152,7 @@ def _binary_likelihood_test(forecast_data, observed_data, num_simulations=1000, 
     # data structures to store results
     sim_fore = numpy.zeros(sampling_weights.shape)
     simulated_ll = []
-    n_active_cells = len(np.unique(np.nonzero(observed_data.ravel())))
+    n_active_cells = len(numpy.unique(numpy.nonzero(observed_data.ravel())))
     n_fore = numpy.sum(forecast_data)
     expected_forecast_count = int(n_active_cells)
 
