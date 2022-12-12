@@ -649,7 +649,7 @@ class CatalogForecast(LoggingMixin):
             self.get_expected_rates()
         return self.expected_rates.magnitude_counts()
 
-    def get_event_counts(self):
+    def get_event_counts(self, verbose=True):
         """ Returns a numpy array containing the number of event counts for each catalog.
 
             Note: This function can take a while to compute if called without already iterating through a forecast that
@@ -661,7 +661,13 @@ class CatalogForecast(LoggingMixin):
         """
         if len(self._event_counts) == 0:
             # event counts is filled while iterating over the catalog
-            for _ in self:
+            t0 = time.time()
+            for i, _ in enumerate(self):
+                if verbose:
+                    tens_exp = numpy.floor(numpy.log10(i + 1))
+                    if (i + 1) % 10 ** tens_exp == 0:
+                        t1 = time.time()
+                        print(f'Processed {i + 1} catalogs in {t1 - t0:.2f} seconds', flush=True)
                 pass
         return numpy.array(self._event_counts)
 
@@ -697,7 +703,7 @@ class CatalogForecast(LoggingMixin):
                     tens_exp = numpy.floor(numpy.log10(i + 1))
                     if (i + 1) % 10 ** tens_exp == 0:
                         t1 = time.time()
-                        print(f'Processed {i + 1} catalogs in {t1 - t0} seconds', flush=True)
+                        print(f'Processed {i + 1} catalogs in {t1 - t0:.3f} seconds', flush=True)
             # after we iterate through the catalogs, we know self.n_cat
             data = data / self.n_cat
             self.expected_rates = GriddedForecast(self.start_time, self.end_time, data=data, region=self.region,

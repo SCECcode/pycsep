@@ -79,9 +79,9 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
     else:
         h = bins[1] - bins[0]
 
-    a0_tol = numpy.abs(a0) * numpy.finfo(numpy.float).eps
-    h_tol = numpy.abs(h) * numpy.finfo(numpy.float).eps
-    p_tol = numpy.abs(p) * numpy.finfo(numpy.float).eps
+    a0_tol = numpy.abs(a0) * numpy.finfo(numpy.float64).eps
+    h_tol = numpy.abs(h) * numpy.finfo(numpy.float64).eps
+    p_tol = numpy.abs(p) * numpy.finfo(numpy.float64).eps
 
     # absolute tolerance
     if tol is None:
@@ -97,7 +97,7 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
         try:
             idx[(idx < 0)] = -1
             idx[(idx >= len(bins) - 1)] = len(bins) - 1
-        except (TypeError):
+        except TypeError:
             if idx >= len(bins) - 1:
                 idx = len(bins) - 1
             if idx < 0:
@@ -105,12 +105,12 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
     else:
         try:
             idx[((idx < 0) | (idx >= len(bins)))] = -1
-        except (TypeError):
+        except TypeError:
             if idx < 0 or idx >= len(bins):
                 idx = -1
     try:
-        idx = idx.astype(numpy.int)
-    except (AttributeError):
+        idx = idx.astype(numpy.int64)
+    except AttributeError:
         idx = int(idx)
     return idx
 
