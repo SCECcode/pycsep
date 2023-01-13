@@ -331,8 +331,101 @@ def _search(**newargs):
         raise Exception(
             'Error downloading data from url %s.  "%s".' % (url, msg))
 
-    return events
+    return events 
+    
+    
 
+def gns_search(
+    minlatitude=-47, 
+    maxlatitude=-34,
+    minlongitude=164, 
+    maxlongitude=181,
+    minmagnitude=2.95,
+    maxmagnitude=None,
+    maxdepth=45.5,
+    mindepth=None,
+    starttime=None, 
+    endtime=None):
+
+    """Search the Geonet database for events matching input criteria.
+    This search function is a wrapper around the Geonet Web API described here:
+    https://quakesearch.geonet.org.nz/
+
+    Note:   
+        Geonet has limited search parameters compered to ComCat search parameters, 
+        hence the need for a new function 
+    Args:
+        starttime (datetime):
+            Python datetime - Limit to events on or after the specified start time.
+        endtime (datetime):
+            Python datetime - Limit to events on or before the specified end time.
+        minlatitude (float):
+            Limit to events with a latitude larger than the specified minimum.
+        maxlatitude (float):
+            Limit to events with a latitude smaller than the specified maximum.
+        minlongitude (float):
+            Limit to events with a longitude larger than the specified minimum.
+        maxlongitude (float):
+            Limit to events with a longitude smaller than the specified maximum.
+        maxdepth (float):
+            Limit to events with depth less than the specified maximum.
+        maxmagnitude (float):
+            Limit to events with a magnitude smaller than the specified maximum.
+        mindepth (float):
+            Limit to events with depth more than the specified minimum.
+        minmagnitude (float):
+            Limit to events with a magnitude larger than the specified minimum.
+        host (str):
+            Replace default ComCat host (earthquake.usgs.gov) with a custom host.
+    Returns:
+        list: List of dictionary with event info.
+    """
+    from datetime import date
+    # getting the inputargs must be the first line of the method!
+    try:
+        newargs = {}
+        newargs["bbox"] = f'{minlongitude},{minlatitude},{maxlongitude},{maxlatitude}'
+        newargs["minmag"] = f'{minmagnitude}'
+        newargs["maxdepth"] = f'{maxdepth}'
+        newargs["startdate"] = f'{date.fromisoformat(starttime).strftime(TIMEFMT)}'
+        newargs["enddate"] = f'{date.fromisoformat(endtime).strftime(TIMEFMT)}'
+        if maxmagnitude is not None:
+            newargs["maxmag"] = f'{maxmagnitude}'
+        if mindepth is not None:
+            newargs["mindepth"] = f'{mindepth}'
+
+     
+        paramstr = urlencode(newargs)
+        template = "https://quakesearch.geonet.org.nz/geojson?"
+        url_template= "https://www.geonet.org.nz/earthquake/"
+        url = template + '&' + paramstr
+        try:
+            fh = request.urlopen(url, timeout=TIMEOUT)
+            data = fh.read().decode('utf8')
+            fh.close()
+            jdict = json.loads(data)
+            events = []
+            for feature in jdict['features']:
+                edict = OrderedDict()
+                edict['id'] = feature['properties']['publicid']
+                edict['time'] = feature['properties']['origintime']
+                edict['location'] = "New Zealand"
+                edict['latitude'] = feature['geometry']['coordinates'][0]
+                edict['longitude'] = feature['geometry']['coordinates'][0]
+                edict['depth'] = feature['properties']['depth'] 
+                edict['magnitude'] = feature['properties']['magnitude'] 
+                edict['url'] = url_template + feature['properties']['publicid']
+                events.append(edict)
+            # events.append(SummaryEvent(feature))
+        except Exception as msg:
+            raise Exception(
+                'Error downloading data from url %s.  "%s".' % (url, msg))
+    
+        return events
+    except ValueError as e:
+        if len(e.args) > 0 and  'Invalid isoformat string' in e.args[0]:
+            print("Check the input date format. It should follow YYYY-MM-DD \
+                    and is should not be empty")
 class SummaryEvent(object):
     """Wrapper around summary feature as returned by ComCat GeoJSON search results.
     """
