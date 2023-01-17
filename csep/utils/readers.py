@@ -726,7 +726,7 @@ def _query_gns(start_time, end_time, min_magnitude=2.950,
                        maxlongitude=max_longitude,
                        maxdepth=max_depth,
                        starttime=start_time, 
-                       endtime=end_time, **extra_gns_params)
+                       endtime=end_time)
     return eventlist   
 
 
