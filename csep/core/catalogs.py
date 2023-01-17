@@ -82,16 +82,16 @@ class AbstractBaseCatalog(LoggingMixin):
 
         s = f'''
         Name: {self.name}
-        
+
         Start Date: {self.start_time}
         End Date: {self.end_time}
-        
+
         Latitude: ({self.min_latitude}, {self.max_latitude})
         Longitude: ({self.min_longitude}, {self.max_longitude})
-        
+
         Min Mw: {self.min_magnitude}
         Max Mw: {self.max_magnitude}
-        
+
         Event Count: {self.event_count}
         '''
         return s
@@ -623,7 +623,7 @@ class AbstractBaseCatalog(LoggingMixin):
             return self
 
         # this is used to index the array, starting with accepting all events
-        filter = numpy.ones(self.event_count, dtype=numpy.bool)
+        filter = numpy.ones(self.event_count, dtype=bool)
         for i, (mw, time) in enumerate(zip(mws, times)):
             # we can break bc events are sorted in time
             if time > t_crit_epoch:
