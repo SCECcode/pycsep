@@ -23,7 +23,7 @@ William Savran (@wsavran)
 # v0.6.0 (02/04/2022)
 
 ## Change-log
-Adds support for quadtree regions ([#184])(https://github.com/SCECcode/pycsep/pull/184)
+Adds support for quadtree regions ([#184](https://github.com/SCECcode/pycsep/pull/184))
 
 ## Credits
 Khawaja Asim (@khawajasim)  
