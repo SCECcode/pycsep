@@ -705,7 +705,7 @@ def _query_bsi(start_time, end_time, min_magnitude=2.50,
                        starttime=start_time, endtime=end_time, **extra_bsi_params)
 
     return eventlist
-    
+
 # Adding GNS catalog reader
 def _query_gns(start_time, end_time, min_magnitude=2.950,
                min_latitude=-47, max_latitude=-34,
@@ -728,8 +728,6 @@ def _query_gns(start_time, end_time, min_magnitude=2.950,
                        starttime=start_time, 
                        endtime=end_time)
     return eventlist   
-
-
 
 def _parse_datetime_to_zmap(date, time):
         """ Helping function to return datetime in zmap format.
