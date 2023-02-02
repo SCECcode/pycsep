@@ -333,8 +333,6 @@ def _search(**newargs):
 
     return events 
     
-    
-
 def gns_search(
     minlatitude=-47, 
     maxlatitude=-34,

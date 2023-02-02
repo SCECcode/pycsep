@@ -2,10 +2,8 @@ import os
 import numpy
 import unittest
 
-
 from csep.core.poisson_evaluations import _simulate_catalog, _poisson_likelihood_test
 from csep.core.binomial_evaluations import binary_joint_log_likelihood_ndarray
-
 import csep.core.poisson_evaluations as poisson
 import csep.core.binomial_evaluations as binary
 
@@ -81,7 +79,6 @@ class TestPoissonLikelihood(unittest.TestCase):
 class TestBinomialLikelihood(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.forecast_data = numpy.array([[0.1, 0.3, 0.4], [0.2, 0.1, 0.1]])
         self.observed_data = numpy.array([[0, 1, 2], [1, 1, 0]])
 
@@ -125,8 +122,6 @@ class TestBinomialLikelihood(unittest.TestCase):
         numpy.testing.assert_allclose(bill, -6.7197988064)
         numpy.testing.assert_allclose(qs, 1)
         numpy.testing.assert_allclose(simulated_ll[0], -7.921741654647629)
->>>>>>> e50167fe4e0333275b3330ae87b017f3174ae588
-
 
 if __name__ == '__main__':
     unittest.main()
