@@ -289,10 +289,10 @@ def query_bsi(start_time, end_time, min_magnitude=2.50,
 
     return bsi
 
-def query_gns(start_time, end_time, min_magnitude=2.50,
-              min_latitude=32.0, max_latitude=50.0,
-              min_longitude=2.0, max_longitude=21.0,
-              max_depth=1000,
+def query_gns(start_time, end_time,  min_magnitude=2.950,
+               min_latitude=-47, max_latitude=-34,
+               min_longitude=164, max_longitude=181,
+               max_depth=45.5,
               verbose=True,
               apply_filters=False, **kwargs):
     """
@@ -321,7 +321,7 @@ def query_gns(start_time, end_time, min_magnitude=2.50,
                                    min_longitude=min_longitude, max_longitude=max_longitude,
                                    max_depth=max_depth)
     t1 = time.time()
-    gns = catalogs.CSEPCatalog(data=eventlist, date_accessed=utc_now_datetime(), **kwargs)
+    gns = catalogs.CSEPCatalog(data=eventlist, date_accessed=utc_now_datetime())
     print("Fetched gns catalog in {} seconds.\n".format(t1 - t0))
 
     if apply_filters:
