@@ -289,6 +289,56 @@ def query_bsi(start_time, end_time, min_magnitude=2.50,
 
     return bsi
 
+def query_gns(start_time, end_time,  min_magnitude=2.950,
+               min_latitude=-47, max_latitude=-34,
+               min_longitude=164, max_longitude=181,
+               max_depth=45.5,
+              verbose=True,
+              apply_filters=False, **kwargs):
+    """
+    Access GNS Science catalog through web service
+
+    Args:
+        start_time: datetime object of start of catalog
+        end_time: datetime object for end of catalog
+        min_magnitude: minimum magnitude to query
+        min_latitude:  maximum magnitude to query
+        max_latitude: max latitude of bounding box
+        min_longitude: min latitude of bounding box
+        max_longitude: max longitude of bounding box
+        max_depth: maximum depth of the bounding box
+        verbose (bool): print catalog summary statistics
+
+    Returns:
+        :class:`csep.core.catalogs.CSEPCatalog
+    """
+
+    # Timezone should be in UTC
+    t0 = time.time()
+    eventlist = readers._query_gns(start_time=start_time, end_time=end_time,
+                                   min_magnitude=min_magnitude,
+                                   min_latitude=min_latitude, max_latitude=max_latitude,
+                                   min_longitude=min_longitude, max_longitude=max_longitude,
+                                   max_depth=max_depth)
+    t1 = time.time()
+    gns = catalogs.CSEPCatalog(data=eventlist, date_accessed=utc_now_datetime())
+    print("Fetched gns catalog in {} seconds.\n".format(t1 - t0))
+
+    if apply_filters:
+        try:
+            gns = gns.filter().filter_spatial()
+        except CSEPCatalogException:
+            gns = gns.filter()
+
+    if verbose:
+        print("Downloaded catalog from GNS Science NZ (GNS) with following parameters")
+        print("Start Date: {}\nEnd Date: {}".format(str(gns.start_time), str(gns.end_time)))
+        print("Min Latitude: {} and Max Latitude: {}".format(gns.min_latitude, gns.max_latitude))
+        print("Min Longitude: {} and Max Longitude: {}".format(gns.min_longitude, gns.max_longitude))
+        print("Min Magnitude: {}".format(gns.min_magnitude))
+        print(f"Found {gns.event_count} events in the gns catalog.")
+
+    return gns
 
 def load_evaluation_result(fname):
     """ Load evaluation result stored as json file
