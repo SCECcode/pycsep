@@ -15,7 +15,8 @@ from csep.utils.time_utils import epoch_time_to_utc_datetime, datetime_to_utc_ep
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
 from csep.core.regions import CartesianGrid2D
-from csep.utils.comcat import SummaryEvent, SummaryEvent_gns
+from csep.utils.comcat import SummaryEvent
+from csep.utils.geonet import SummaryEvent_gns
 from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException, CSEPIOException
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS

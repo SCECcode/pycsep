@@ -12,7 +12,8 @@ import numpy
 
 # PyCSEP imports
 from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
-from csep.utils.comcat import search, gns_search
+from csep.utils.comcat import search
+from csep.utils.geonet import gns_search
 from csep.core.regions import QuadtreeGrid2D
 from csep.core.exceptions import CSEPIOException
 
