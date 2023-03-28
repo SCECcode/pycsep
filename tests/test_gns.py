@@ -16,8 +16,7 @@ def test_search():
                         endtime=datetime(2023, 2, 10, 0, 0, 0),
                         minmagnitude=4)
         event = eventlist[0]
-        assert event.id == '2023p087955'\
-                        "The operation failed because of a mismatch between the event ID"
+        assert event.id == '2023p087955'
 
 
 def test_summary():

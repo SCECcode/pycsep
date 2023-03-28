@@ -21,7 +21,7 @@ interactions:
       Access-Control-Allow-Origin:
       - '*'
       Age:
-      - '12'
+      - '0'
       Connection:
       - close
       Content-Length:
@@ -37,7 +37,7 @@ interactions:
       Content-Type:
       - application/vnd.geo+json
       Date:
-      - Tue, 28 Mar 2023 16:20:12 GMT
+      - Tue, 28 Mar 2023 16:20:00 GMT
       Referrer-Policy:
       - no-referrer
       Strict-Transport-Security:
