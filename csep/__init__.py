@@ -291,7 +291,7 @@ def query_bsi(start_time, end_time, min_magnitude=2.50,
 
 def query_gns(start_time, end_time,  min_magnitude=2.950,
                min_latitude=-47, max_latitude=-34,
-               min_longitude=164, max_longitude=181,
+               min_longitude=164, max_longitude=180,
                max_depth=45.5,
               verbose=True,
               apply_filters=False, **kwargs):
@@ -322,8 +322,6 @@ def query_gns(start_time, end_time,  min_magnitude=2.950,
                                    max_depth=max_depth)
     t1 = time.time()
     gns = catalogs.CSEPCatalog(data=eventlist, date_accessed=utc_now_datetime())
-    print("Fetched gns catalog in {} seconds.\n".format(t1 - t0))
-
     if apply_filters:
         try:
             gns = gns.filter().filter_spatial()

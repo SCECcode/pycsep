@@ -7,23 +7,23 @@ import json
 
 
 
-class SummaryEvent_gns(object):
-    """Wrapper around summary feature as returned by ComCat GeoJSON search results.
+class SummaryEvent(object):
+    """Wrapper around summary feature as returned by GeoNet GeoJSON search results.
     """
 
     def __init__(self, feature):
         """Instantiate a SummaryEvent object with a feature.
         See summary documentation here:
-        https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php
+        https://api.geonet.org.nz/#quakes
         Args:
             feature (dict): GeoJSON feature as described at above URL.
         """
         self._jdict = feature.copy()
     @property
     def url(self):
-        """ComCat URL.
+        """GeoNet URL.
         Returns:
-            str: ComCat URL
+            str: GeoNet URL
         """
         url_template= "https://www.geonet.org.nz/earthquake/"
         return url_template + self._jdict['properties']['publicid']
@@ -58,7 +58,7 @@ class SummaryEvent_gns(object):
         Returns:
             str: Authoritative origin ID.
         """
-        ## comcat has an id key in each feature, whereas bsi has eventId within the properties dict
+        ## Geonet has eventId or publicid within the properties dict
         try:
             return self._jdict['properties']['publicid']
         except:
@@ -72,7 +72,7 @@ class SummaryEvent_gns(object):
         """
         from obspy import UTCDateTime
         time_in_msec = self._jdict['properties']['origintime']
-        # Comcat gives the event time in a ms timestamp, whereas bsi in datetime isoformat
+        # Convert the times
         if isinstance(time_in_msec, str):
             event_dtime = UTCDateTime(time_in_msec)
             time_in_msec = event_dtime.timestamp * 1000
@@ -103,7 +103,7 @@ def gns_search(
     minlatitude=-47, 
     maxlatitude=-34,
     minlongitude=164, 
-    maxlongitude=181,
+    maxlongitude=180,
     minmagnitude=2.95,
     maxmagnitude=None,
     maxdepth=45.5,
@@ -137,8 +137,6 @@ def gns_search(
             Limit to events with depth more than the specified minimum.
         minmagnitude (float):
             Limit to events with a magnitude larger than the specified minimum.
-        host (str):
-            Replace default ComCat host (earthquake.usgs.gov) with a custom host.
     Returns:
         list: List of dictionary with event info.
     """
@@ -170,27 +168,7 @@ def gns_search(
             jdict = json.loads(data)
             events = []
             for feature in jdict['features']:
-                events.append(SummaryEvent_gns(feature))
-                # tpl = (feature['properties']['publicid'], 
-                #         str(time_gns(feature['properties']['origintime'])), 
-                #         feature['geometry']['coordinates'][1],
-                #         feature['geometry']['coordinates'][0], 
-                #         feature['properties']['depth'],
-                #         feature['properties']['magnitude']
-                #         # url_template + feature['properties']['publicid']
-                #         )
-                # events.append('%s %s (%.3f,%.3f) %.1f km M%.1f' % tpl)
-                # edict = OrderedDict()
-                # edict['id'] = feature['properties']['publicid']
-                # edict['time'] = feature['properties']['origintime']
-                # edict['location'] = "New Zealand"
-                # edict['latitude'] = feature['geometry']['coordinates'][0]
-                # edict['longitude'] = feature['geometry']['coordinates'][0]
-                # edict['depth'] = feature['properties']['depth'] 
-                # edict['magnitude'] = feature['properties']['magnitude'] 
-                # edict['url'] = url_template + feature['properties']['publicid']
-                # events.append(edict)
-            # events.append(SummaryEvent_gns(feature))
+                events.append(SummaryEvent(feature))
         except Exception as msg:
             raise Exception(
                 'Error downloading data from url %s.  "%s".' % (url, msg))

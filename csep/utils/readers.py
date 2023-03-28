@@ -710,7 +710,7 @@ def _query_bsi(start_time, end_time, min_magnitude=2.50,
 # Adding GNS catalog reader
 def _query_gns(start_time, end_time, min_magnitude=2.950,
                min_latitude=-47, max_latitude=-34,
-               min_longitude=164, max_longitude=181,
+               min_longitude=164, max_longitude=180,
                max_depth=45.5, extra_gns_params=None):
     """
     Queries GNS catalog.

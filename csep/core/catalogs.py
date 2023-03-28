@@ -15,8 +15,8 @@ from csep.utils.time_utils import epoch_time_to_utc_datetime, datetime_to_utc_ep
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
 from csep.core.regions import CartesianGrid2D
-from csep.utils.comcat import SummaryEvent
-from csep.utils.geonet import SummaryEvent_gns
+import csep.utils.comcat as comcat
+import csep.utils.geonet as geonet
 from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException, CSEPIOException
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
@@ -287,7 +287,7 @@ class AbstractBaseCatalog(LoggingMixin):
         if isinstance(self.catalog[0], (list, tuple)):
             for i, event in enumerate(self.catalog):
                 catalog[i] = tuple(event)
-        elif isinstance(self.catalog[0], (SummaryEvent, SummaryEvent_gns)):
+        elif isinstance(self.catalog[0], (comcat.SummaryEvent, geonet.SummaryEvent)):
             for i, event in enumerate(self.catalog):
                 catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
                               event.latitude, event.longitude, event.depth, event.magnitude)
