@@ -6,12 +6,17 @@ import enum
 import csv
 from itertools import zip_longest
 import os
+import time
+from urllib.parse import urlencode
+from urllib import request as request_
+import xml.etree.ElementTree as ElementTree
 
 # Third-party imports
 import numpy
 
 # PyCSEP imports
-from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
+from csep.utils.time_utils import strptime_to_utc_datetime, \
+    strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
 from csep.utils.geonet import gns_search
 from csep.core.regions import QuadtreeGrid2D
@@ -28,6 +33,7 @@ def ndk(filename):
     Args:
         filename: file or file-like object
     """
+
     # this function first parses the data into a human readable dict with appropriate values and then finally returns a
     # CSEP catalog object.
 
@@ -287,14 +293,15 @@ def ndk(filename):
         except (ValueError, IOError):
             # exc = traceback.format_exc()
             msg = (
-                "Could not parse event %i (faulty file?). Will be "
-                "skipped." % (_i + 1))
+                    "Could not parse event %i (faulty file?). Will be "
+                    "skipped." % (_i + 1))
             warnings.warn(msg, RuntimeWarning)
             continue
 
         # Assemble the time for the reference origin.
         try:
-            date_time_dict = _parse_datetime_to_zmap(record["date"], record["time"])
+            date_time_dict = _parse_datetime_to_zmap(record["date"],
+                                                     record["time"])
         except ValueError:
             msg = ("Invalid time in event %i. '%s' and '%s' cannot be "
                    "assembled to a valid time. Event will be skipped.") % \
@@ -421,16 +428,19 @@ def csep_ascii(fname, return_catalog_id=False):
 
     def parse_datetime(dt_string):
         try:
-            origin_time = strptime_to_utc_epoch(dt_string, format='%Y-%m-%dT%H:%M:%S.%f')
+            origin_time = strptime_to_utc_epoch(dt_string,
+                                                format='%Y-%m-%dT%H:%M:%S.%f')
             return origin_time
         except:
             pass
         try:
-            origin_time = strptime_to_utc_epoch(dt_string, format='%Y-%m-%dT%H:%M:%S')
+            origin_time = strptime_to_utc_epoch(dt_string,
+                                                format='%Y-%m-%dT%H:%M:%S')
             return origin_time
         except:
             pass
-        raise CSEPIOException("Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
+        raise CSEPIOException(
+            "Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
 
     with open(fname, 'r', newline='') as input_file:
         catalog_reader = csv.reader(input_file, delimiter=',')
@@ -467,6 +477,7 @@ def csep_ascii(fname, return_catalog_id=False):
             return events
         else:
             return events, catalog_id
+
 
 def ingv_emrcmt(fname):
     """
@@ -522,8 +533,9 @@ def ingv_emrcmt(fname):
                 date_time_dict = _parse_datetime_to_zmap(date,
                                                          time + '.' + sec_frac)
             except ValueError:
-                msg = ("Could not parse date/time string '%s' and '%s' to a valid "
-                       "time" % (line[ind['date']], line[ind['time']]))
+                msg = (
+                        "Could not parse date/time string '%s' and '%s' to a valid "
+                        "time" % (line[ind['date']], line[ind['time']]))
                 warnings.warn(msg, RuntimeWarning)
                 continue
 
@@ -549,15 +561,15 @@ def ingv_emrcmt(fname):
                 out.append(event_tuple)
             else:
                 pass
-            
-        rep_events = [i for i in range(len(evcat_id)) if i not in 
-                          numpy.unique(numpy.array(evcat_id), 
-                                       return_index=True)[1]]
+
+        rep_events = [i for i in range(len(evcat_id)) if i not in
+                      numpy.unique(numpy.array(evcat_id),
+                                   return_index=True)[1]]
         for rep_id in rep_events:
             out.pop(rep_id)
         print('Removed %i badly formatted events' % (n + 1 - n_event))
         print('Removed %i repeated events' % len(rep_events))
-        
+
     return out
 
 def ingv_horus(fname):
@@ -579,24 +591,24 @@ def ingv_horus(fname):
 
     """
 
-    ind = {'year': (0,"<i4"),
-           'month': (1,"<i4"),
-           'day': (2,"<i4"),
-           'hour': (3,"<i4"),
-           'minute': (4,"<i4"),
-           'second': (5,"<f4"),
+    ind = {'year': (0, "<i4"),
+           'month': (1, "<i4"),
+           'day': (2, "<i4"),
+           'hour': (3, "<i4"),
+           'minute': (4, "<i4"),
+           'second': (5, "<f4"),
            'lat': (6, "<f4"),
-           'lon': (7,"<f4"),
-           'depth': (8,"<f4"),
-           'Mw': (9,"<f4")}
+           'lon': (7, "<f4"),
+           'depth': (8, "<f4"),
+           'Mw': (9, "<f4")}
     out = []
-    
+
     data = numpy.genfromtxt(fname, skip_header=1,
-                            names=ind.keys(), 
+                            names=ind.keys(),
                             usecols=[i[0] for i in ind.values()],
                             dtype=[i[1] for i in ind.values()])
     for n, line in enumerate(data):
-        dt = datetime.timedelta(0,0,0)
+        dt = datetime.timedelta(0, 0, 0)
         if line['second'] >= 60.:
             line['second'] -= 60.
             dt += datetime.timedelta(minutes=1)
@@ -607,23 +619,24 @@ def ingv_horus(fname):
             dt += datetime.timedelta(days=1)
             line['hour'] -= 24.
         time = datetime.datetime(
-                                int(line['year']),
-                                int(line['month']),
-                                int(line['day']),
-                                int(line['hour']),
-                                int(line['minute']),
-                                int(line['second'])
-                               ) + dt
+            int(line['year']),
+            int(line['month']),
+            int(line['day']),
+            int(line['hour']),
+            int(line['minute']),
+            int(line['second'])
+        ) + dt
         event_tuple = (time,
                        datetime_to_utc_epoch(time),
                        float(line["lat"]),
                        float(line["lon"]),
                        float(line["depth"]),
                        float(line["Mw"])
-                       )   
+                       )
         out.append(event_tuple)
 
     return out
+
 
 def jma_csv(fname):
     """ Read catalog stored in pre-processed JMA comma separated values format.
@@ -633,7 +646,8 @@ def jma_csv(fname):
     # template for timestamp format in JMA csv file:
     _timestamp_template = '%Y-%m-%dT%H:%M:%S.%f%z'
     # helper function to parse the timestamps:
-    parse_date_string = lambda x: round(1000. * datetime.datetime.strptime(x, _timestamp_template).timestamp())
+    parse_date_string = lambda x: round(
+        1000. * datetime.datetime.strptime(x, _timestamp_template).timestamp())
     # helper function to determine if line is a header
     is_header_line = lambda x: True if x[0] == 'timestamp' else False
     # parse csv into formatted eventlist
@@ -654,6 +668,7 @@ def jma_csv(fname):
             events.append((id, origin_time, lat, lon, depth, magnitude))
             is_first_event = False
     return events
+
 
 def _query_comcat(start_time, end_time, min_magnitude=2.50,
                   min_latitude=31.50, max_latitude=43.00,
@@ -680,10 +695,10 @@ def _query_comcat(start_time, end_time, min_magnitude=2.50,
 
     # get eventlist from Comcat
     eventlist = search(minmagnitude=min_magnitude,
-        minlatitude=min_latitude, maxlatitude=max_latitude,
-        minlongitude=min_longitude, maxlongitude=max_longitude,
-        starttime=start_time, endtime=end_time,
-        maxdepth=max_depth, **extra_comcat_params)
+                       minlatitude=min_latitude, maxlatitude=max_latitude,
+                       minlongitude=min_longitude, maxlongitude=max_longitude,
+                       starttime=start_time, endtime=end_time,
+                       maxdepth=max_depth, **extra_comcat_params)
 
     return eventlist
 
@@ -721,14 +736,150 @@ def _query_gns(start_time, end_time, min_magnitude=2.950,
     extra_gns_params.update({'host': geonet_host, 'limit': 15000, 'offset': 0})
     # get eventlist from Comcat
     eventlist = gns_search(minmagnitude=min_magnitude,
-                       minlatitude=min_latitude, 
+                       minlatitude=min_latitude,
                        maxlatitude=max_latitude,
-                       minlongitude=min_longitude, 
+                       minlongitude=min_longitude,
                        maxlongitude=max_longitude,
                        maxdepth=max_depth,
-                       starttime=start_time, 
+                       starttime=start_time,
                        endtime=end_time)
-    return eventlist   
+    return eventlist
+
+
+
+def _query_gcmt(out_format='QuakeML',
+                request='COMPREHENSIVE',
+                searchshape='GLOBAL',
+                start_year=2020,
+                start_month=1,
+                start_day=1,
+                start_time='00:00:00',
+                end_year=2022,
+                end_month=1,
+                end_day=1,
+                end_time='23:59:59',
+                host=None,
+                include_magnitudes='on',
+                min_mag=5.95,
+                max_mag=None,
+                min_dep=None,
+                max_dep=None,
+                left_lon=None,
+                right_lon=None,
+                bot_lat=None,
+                top_lat=None,
+                req_mag_type='MW',
+                req_mag_agcy='GCMT',
+                verbose=False):
+    """ Return gCMT catalog from ISC online web-portal
+
+        Args:
+            (follow csep.query_comcat for guidance)
+
+        Returns:
+            out (csep.core.catalogs.AbstractBaseCatalog): gCMT catalog
+    """
+
+    inputargs = locals().copy()
+    query_args = {}
+
+    HOST_CATALOG = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
+    TIMEOUT = 180
+
+    def _search_gcmt(**newargs):
+        """
+        Performs de query at ISC API and returns event list and access date
+
+        """
+        paramstr = urlencode(newargs)
+        url = HOST_CATALOG + paramstr
+
+        try:
+            fh = request_.urlopen(url, timeout=TIMEOUT)
+            data = fh.read().decode('utf8')
+            fh.close()
+
+            try:
+                root = ElementTree.fromstring(data)
+            except Exception as msg:
+                raise Exception('Parse failed for string: %s' % data)
+            ns = root[0].tag.split('}')[0] + '}'
+            creation_time = root[0].find(ns + 'creationInfo').find(
+                ns + 'creationTime').text
+            creation_time = creation_time.replace('T', ' ')
+            events_quakeml = root[0].findall(ns + 'event')
+            events = []
+            for feature in events_quakeml:
+                events.append(_parse_isc_event(feature, ns))
+
+        except ElementTree.ParseError as msg:
+            print('Requested URL:', url)
+            raise Exception('Badly-formed URL. Try downloading again in case '
+                            'the hosting server has a request rate limit'
+                            ' "%s"' % msg)
+
+        except Exception as msg:
+            raise Exception(
+                'Error downloading data from url %s.  "%s".' % (url, msg))
+
+        return events, creation_time, url
+
+    for key, value in inputargs.items():
+        if value is True:
+            query_args[key] = 'true'
+            continue
+        if value is False:
+            query_args[key] = 'false'
+            continue
+        if value is None:
+            continue
+        query_args[key] = value
+
+    del query_args['verbose']
+
+    start_time = time.time()
+    if verbose:
+        print('Accessing ISC API')
+
+    events, creation_time, url = _search_gcmt(**query_args)
+
+    if verbose:
+        print(f'\tAccess URL: {url}')
+        print(
+            f'\tCatalog with {len(events)} events downloaded in '
+            f'{(time.time() - start_time):.2f} seconds')
+
+    return events, creation_time
+
+
+def _parse_isc_event(node, ns, mag_author='GCMT'):
+    """
+    Parse event list from quakeML returned from ISC
+    """
+    id_ = node.get('publicID').split('=')[-1]
+    magnitudes = node.findall(ns + 'magnitude')
+    mag_gcmt = [i for i in magnitudes if
+                i.find(ns + 'creationInfo')[0].text == mag_author][0]
+
+    origin_id = mag_gcmt.find(ns + 'originID').text
+    origins = node.findall(ns + 'origin')
+
+    origin_gcmt = [i for i in origins if i.attrib['publicID'] == origin_id][0]
+
+    lat = origin_gcmt.find(ns + 'latitude').find(ns + 'value').text
+    lon = origin_gcmt.find(ns + 'longitude').find(ns + 'value').text
+    mag = mag_gcmt.find(ns + 'mag').find(ns + 'value').text
+    depth = origin_gcmt.find(ns + 'depth').find(ns + 'value').text
+
+    dtstr = origin_gcmt.find(ns + 'time').find(ns + 'value').text
+    date = dtstr.split('T')[0]
+    time_ = dtstr.split('T')[1][:-1]
+    dtime = datetime_to_utc_epoch(
+        datetime.datetime.fromisoformat(date + ' ' + time_ + '0'))
+
+    return id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag)
+
+
 
 def _parse_datetime_to_zmap(date, time):
         """ Helping function to return datetime in zmap format.
