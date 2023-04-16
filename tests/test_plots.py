@@ -80,33 +80,36 @@ class TestPoissonPlots(unittest.TestCase):
 
     def test_MultiTTestPlot(self, show=False):
 
-        t_plots = numpy.random.randint(1, 20)
-        t_tests = []
+        for i in range(10):
+            t_plots = numpy.random.randint(2, 20)
+            t_tests = []
 
-        def rand(limit=10, offset=0):
-            return limit * (numpy.random.random() - offset)
+            def rand(limit=10, offset=0):
+                return limit * (numpy.random.random() - offset)
 
-        for n in range(t_plots):
-            t_result = mock.Mock()  # Mock class with random attributes
-            t_result.name = 'CSEP1 Comparison Test'
-            t_result.sim_name = (''.join(random.choice(string.ascii_letters)
-                                         for _ in range(8)), 'ref')
-            t_result.observed_statistic = rand(offset=0.5)
-            t_result.test_distribution = [
-                t_result.observed_statistic - rand(5),
-                t_result.observed_statistic + rand(5)]
+            for n in range(t_plots):
+                t_result = mock.Mock()  # Mock class with random attributes
+                t_result.name = 'CSEP1 Comparison Test'
+                t_result.sim_name = (
+                    ''.join(random.choice(string.ascii_letters)
+                            for _ in range(8)), 'ref')
+                t_result.observed_statistic = rand(offset=0.5)
+                t_result.test_distribution = [
+                    t_result.observed_statistic - rand(5),
+                    t_result.observed_statistic + rand(5)]
 
-            if numpy.random.random() < 0.05:  # sim possible infinite values
-                t_result.observed_statistic = -numpy.inf
-            t_tests.append(t_result)
-        matplotlib.pyplot.close()
-        plots.plot_comparison_test(t_tests)
-        t_tests.reverse()
-        self.assertEqual(
-            [i.get_text() for i in matplotlib.pyplot.gca().get_xticklabels()],
-            [i.sim_name[0] for i in t_tests[::-1]])
-        self.assertEqual(matplotlib.pyplot.gca().get_title(),
-                         t_tests[0].name)
+                if numpy.random.random() < 0.05:  # sim possible infinite values
+                    t_result.observed_statistic = -numpy.inf
+                t_tests.append(t_result)
+            matplotlib.pyplot.close()
+            plots.plot_comparison_test(t_tests)
+            t_tests.reverse()
+            self.assertEqual(
+                [i.get_text() for i in
+                 matplotlib.pyplot.gca().get_xticklabels()],
+                [i.sim_name[0] for i in t_tests[::-1]])
+            self.assertEqual(matplotlib.pyplot.gca().get_title(),
+                             t_tests[0].name)
 
 
 if __name__ == '__main__':
