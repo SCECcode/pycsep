@@ -18,25 +18,28 @@ from cartopy.io import img_tiles
 from csep.utils.constants import SECONDS_PER_DAY, CSEP_MW_BINS
 from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import datetime_to_utc_epoch
-from csep.core import regions
-
 
 """
-This module contains plotting routines that generate figures for the stochastic event sets produced from
-CSEP2 experiments.
+This module contains plotting routines that generate figures for the stochastic
+event sets produced from CSEP2 experiments and Poisson based CSEP1 experiments.
 
-Right now functions dont have consistent signatures. That means that some functions might have more functionality than others
-while the routines are being developed.
+Right now functions dont have consistent signatures, which will be addressed in
+future releases. That means that some functions might have more functionality 
+than others while the routines are being developed.
 
 TODO: Add annotations for other two plots.
-TODO: Add ability to plot annotations from multiple catalogs. Esp, for plot_histogram()
-IDEA: Same concept mentioned in evaluations might apply here. The plots could be a common class that might provide
-      more control to the end user.
-IDEA: Since plotting functions are usable by these classes only that don't implement iter routines, maybe make them a class
-      method. like data.plot_thing()
+TODO: Add ability to plot annotations from multiple catalogs. 
+        Esp, for plot_histogram()
+IDEA: Same concept mentioned in evaluations might apply here. The plots could 
+      be a common class that might provide more control to the end user.
+IDEA: Since plotting functions are usable by these classes only that don't 
+      implement iter routines, maybe make them a class method. like 
+      data.plot_thing()
 """
 
-def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, show=False):
+
+def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args,
+                                           show=False):
     """
 
 
@@ -59,19 +62,21 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
 
     fig, ax = pyplot.subplots(figsize=figsize)
     try:
-        fifth_per = ydata[0,:]
-        first_quar = ydata[1,:]
-        med_counts = ydata[2,:]
-        second_quar = ydata[3,:]
-        nine_fifth = ydata[4,:]
+        fifth_per = ydata[0, :]
+        first_quar = ydata[1, :]
+        med_counts = ydata[2, :]
+        second_quar = ydata[3, :]
+        nine_fifth = ydata[4, :]
     except:
         raise TypeError("ydata must be a [N,5] ndarray.")
     # plotting
 
     ax.plot(xdata, obs_data, color='black', label=obs_label)
     ax.plot(xdata, med_counts, color='red', label=sim_label)
-    ax.fill_between(xdata, fifth_per, nine_fifth, color='red', alpha=0.2, label='5%-95%')
-    ax.fill_between(xdata, first_quar, second_quar, color='red', alpha=0.5, label='25%-75%')
+    ax.fill_between(xdata, fifth_per, nine_fifth, color='red', alpha=0.2,
+                    label='5%-95%')
+    ax.fill_between(xdata, first_quar, second_quar, color='red', alpha=0.5,
+                    label='25%-75%')
     ax.legend(loc=legend_loc)
     ax.set_xlabel(xlabel)
     ax.set_ylabel('Cumulative event count')
@@ -90,7 +95,9 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args, sh
 
     return ax
 
-def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=False, plot_args=None):
+
+def plot_cumulative_events_versus_time(stochastic_event_sets, observation,
+                                       show=False, plot_args=None):
     """
     Same as below but performs the statistics on numpy arrays without using pandas data frames.
 
@@ -121,7 +128,9 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
         extreme_times.append((start_epoch, end_epoch))
 
     # offsets to start at 0 time and converts from millis to hours
-    time_bins, dt = numpy.linspace(numpy.min(extreme_times), numpy.max(extreme_times), 100, endpoint=True, retstep=True)
+    time_bins, dt = numpy.linspace(numpy.min(extreme_times),
+                                   numpy.max(extreme_times), 100,
+                                   endpoint=True, retstep=True)
     n_bins = time_bins.shape[0]
     binned_counts = numpy.zeros((n_cat, n_bins))
     for i, ses in enumerate(stochastic_event_sets):
@@ -130,11 +139,11 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
         inds = bin1d_vec(ses_origin_time, time_bins)
         for j in range(n_events):
             binned_counts[i, inds[j]] += 1
-        if (i+1) % 1500 == 0:
+        if (i + 1) % 1500 == 0:
             t1 = time.time()
-            print(f"Processed {i+1} catalogs in {t1-t0} seconds.")
+            print(f"Processed {i + 1} catalogs in {t1 - t0} seconds.")
     t1 = time.time()
-    print(f'Collected binned counts in {t1-t0} seconds.')
+    print(f'Collected binned counts in {t1 - t0} seconds.')
     summed_counts = numpy.cumsum(binned_counts, axis=1)
 
     # compute summary statistics for plotting
@@ -151,9 +160,9 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
     obs_summed_counts = numpy.cumsum(obs_binned_counts)
 
     # update time_bins for plotting
-    millis_to_hours = 60*60*1000*24
-    time_bins = (time_bins - time_bins[0])/millis_to_hours
-    time_bins = time_bins + (dt/millis_to_hours)
+    millis_to_hours = 60 * 60 * 1000 * 24
+    time_bins = (time_bins - time_bins[0]) / millis_to_hours
+    time_bins = time_bins + (dt / millis_to_hours)
     # make all arrays start at zero
     time_bins = numpy.insert(time_bins, 0, 0)
     fifth_per = numpy.insert(fifth_per, 0, 0)
@@ -172,8 +181,10 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
     # plotting
     ax.plot(time_bins, obs_summed_counts, color='black', label=obs_label)
     ax.plot(time_bins, med_counts, color='red', label=sim_label)
-    ax.fill_between(time_bins, fifth_per, nine_fifth, color='red', alpha=0.2, label='5%-95%')
-    ax.fill_between(time_bins, first_quar, second_quar, color='red', alpha=0.5, label='25%-75%')
+    ax.fill_between(time_bins, fifth_per, nine_fifth, color='red', alpha=0.2,
+                    label='5%-95%')
+    ax.fill_between(time_bins, first_quar, second_quar, color='red', alpha=0.5,
+                    label='25%-75%')
     ax.legend(loc=legend_loc)
     ax.set_xlabel('Days since Mainshock')
     ax.set_ylabel('Cumulative Event Count')
@@ -192,7 +203,9 @@ def plot_cumulative_events_versus_time(stochastic_event_sets, observation, show=
 
     return ax
 
-def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=False, plot_args=None, **kwargs):
+
+def plot_magnitude_versus_time(catalog, filename=None, show=False,
+                               reset_times=False, plot_args=None, **kwargs):
     """
     Plots magnitude versus linear time for an earthquake data.
 
@@ -213,7 +226,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=F
     clabel = plot_args.get('clabel', None)
 
     print('Plotting magnitude versus time.')
-    fig = pyplot.figure(figsize=(8,3))
+    fig = pyplot.figure(figsize=(8, 3))
     ax = fig.add_subplot(111)
 
     # get time in days
@@ -230,12 +243,13 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=F
 
     # make plot
     if c is not None:
-        h = ax.scatter(days_elapsed, magnitudes, marker='.', s=marker_size, c=c, cmap=cm.get_cmap('jet'), **kwargs)
+        h = ax.scatter(days_elapsed, magnitudes, marker='.', s=marker_size,
+                       c=c, cmap=cm.get_cmap('jet'), **kwargs)
         cbar = fig.colorbar(h)
         cbar.set_label(clabel)
     else:
-        ax.scatter(days_elapsed, magnitudes, marker='.', s=marker_size, color=color, **kwargs)
-
+        ax.scatter(days_elapsed, magnitudes, marker='.', s=marker_size,
+                   color=color, **kwargs)
 
     # do some labeling of the figure
     ax.set_title(title, fontsize=16, color='black')
@@ -259,6 +273,7 @@ def plot_magnitude_versus_time(catalog, filename=None, show=False, reset_times=F
         pyplot.show()
 
     return ax
+
 
 def plot_histogram(simulated, observation, bins='fd', percentile=None,
                    show=False, axes=None, catalog=None, plot_args=None):
@@ -321,21 +336,26 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     try:
         n = len(observation)
     except TypeError:
-        ax.axvline(x=observation, color='black', linestyle='--', label=obs_label)
+        ax.axvline(x=observation, color='black', linestyle='--',
+                   label=obs_label)
 
     else:
         # remove any nan values
         observation = observation[~numpy.isnan(observation)]
-        ax.hist(observation, bins=bins, label=obs_label, edgecolor=None, linewidth=0)
+        ax.hist(observation, bins=bins, label=obs_label, edgecolor=None,
+                linewidth=0)
 
     # remove any potential nans from arrays
     simulated = numpy.array(simulated)
     simulated = simulated[~numpy.isnan(simulated)]
 
     if color:
-        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label, color=color, edgecolor=None, linewidth=0)
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label,
+                                        color=color, edgecolor=None,
+                                        linewidth=0)
     else:
-        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label, edgecolor=None, linewidth=0)
+        n, bin_edges, patches = ax.hist(simulated, bins=bins, label=sim_label,
+                                        edgecolor=None, linewidth=0)
 
     # color bars for rejection area
     if percentile is not None:
@@ -352,21 +372,21 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
         upper_xlim = numpy.percentile(simulated, 99.75)
         upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
         d_bin = bin_edges[1] - bin_edges[0]
-        upper_xlim = upper_xlim + 2*d_bin
+        upper_xlim = upper_xlim + 2 * d_bin
 
         lower_xlim = numpy.percentile(simulated, 0.25)
         lower_xlim = numpy.min([lower_xlim, numpy.min(observation)])
-        lower_xlim = lower_xlim - 2*d_bin
+        lower_xlim = lower_xlim - 2 * d_bin
 
         try:
             ax.set_xlim([lower_xlim, upper_xlim])
         except ValueError:
             print('Ignoring observation in axis scaling because inf or -inf')
             upper_xlim = numpy.percentile(simulated, 99.75)
-            upper_xlim = upper_xlim + 2*d_bin
+            upper_xlim = upper_xlim + 2 * d_bin
 
             lower_xlim = numpy.percentile(simulated, 0.25)
-            lower_xlim = lower_xlim - 2*d_bin
+            lower_xlim = lower_xlim - 2 * d_bin
 
             ax.set_xlim([lower_xlim, upper_xlim])
     else:
@@ -390,6 +410,7 @@ def plot_histogram(simulated, observation, bins='fd', percentile=None,
     if show:
         pyplot.show()
     return ax
+
 
 def plot_ecdf(x, ecdf, axes=None, xv=None, show=False, plot_args=None):
     """ Plots empirical cumulative distribution function.  """
@@ -428,6 +449,7 @@ def plot_ecdf(x, ecdf, axes=None, xv=None, show=False, plot_args=None):
 
     return ax
 
+
 def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
     bin_edges, obs_hist = obs.magnitude_counts(retbins=True)
     n_obs = numpy.sum(obs_hist)
@@ -435,7 +457,7 @@ def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
     # normalize all histograms by counts in each
     scale = n_obs / event_counts
     # use broadcasting
-    ses_data = ses_data * scale.reshape(-1,1)
+    ses_data = ses_data * scale.reshape(-1, 1)
     figsize = plot_args.get('figsize', None)
     fig = pyplot.figure(figsize=figsize)
     ax = fig.gca()
@@ -459,7 +481,8 @@ def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
         yi = u3etas_low[i]
         rect = matplotlib.patches.Rectangle((xi, yi), width, height)
         rectangles.append(rect)
-    pc = matplotlib.collections.PatchCollection(rectangles, facecolor='blue', alpha=0.3, edgecolor='blue')
+    pc = matplotlib.collections.PatchCollection(rectangles, facecolor='blue',
+                                                alpha=0.3, edgecolor='blue')
     ax.add_collection(pc)
     # plot whiskers
     sim_label = plot_args.get('sim_label', 'Simulated Catalogs')
@@ -468,8 +491,9 @@ def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
     title = plot_args.get('title', "UCERF3-ETAS Histogram")
     filename = plot_args.get('filename', None)
 
-    ax.errorbar(bin_edges_plot, u3etas_median, yerr=[u3etas_emin, u3etas_emax], xerr=0.8 * dmw / 2, fmt=' ',
-                    label=sim_label, color='blue', alpha=0.7)
+    ax.errorbar(bin_edges_plot, u3etas_median, yerr=[u3etas_emin, u3etas_emax],
+                xerr=0.8 * dmw / 2, fmt=' ',
+                label=sim_label, color='blue', alpha=0.7)
     ax.plot(bin_edges_plot, obs_hist, '.k', markersize=10, label=obs_label)
     ax.legend(loc='upper right')
     ax.set_xlim(xlim)
@@ -484,6 +508,7 @@ def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
     if show:
         pyplot.show()
     return ax
+
 
 def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
     """ Generates a magnitude histogram from a catalog-based forecast """
@@ -507,7 +532,8 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
         return hist
 
     # get hist values
-    u3etas_hist = numpy.array(list(map(lambda x: get_hist(x, mws), catalogs_mws)))
+    u3etas_hist = numpy.array(
+        list(map(lambda x: get_hist(x, mws), catalogs_mws)))
     obs_hist, bin_edges = numpy.histogram(obs_mw, bins=mws)
     bin_edges_plot = (bin_edges[1:] + bin_edges[:-1]) / 2
 
@@ -532,16 +558,19 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
         yi = u3etas_low[i]
         rect = matplotlib.patches.Rectangle((xi, yi), width, height)
         rectangles.append(rect)
-    pc = matplotlib.collections.PatchCollection(rectangles, facecolor='blue', alpha=0.3, edgecolor='blue')
+    pc = matplotlib.collections.PatchCollection(rectangles, facecolor='blue',
+                                                alpha=0.3, edgecolor='blue')
     ax.add_collection(pc)
     # plot whiskers
     sim_label = plot_args.get('sim_label', 'Simulated Catalogs')
     xlim = plot_args.get('xlim', None)
-    title=plot_args.get('title', "UCERF3-ETAS Histogram")
+    title = plot_args.get('title', "UCERF3-ETAS Histogram")
     xycoords = plot_args.get('xycoords', (1.00, 0.40))
     filename = plot_args.get('filename', None)
 
-    pyplot.errorbar(bin_edges_plot, u3etas_median, yerr=[u3etas_emin, u3etas_emax], xerr=0.8 * dmw / 2, fmt=' ',
+    pyplot.errorbar(bin_edges_plot, u3etas_median,
+                    yerr=[u3etas_emin, u3etas_emax], xerr=0.8 * dmw / 2,
+                    fmt=' ',
                     label=sim_label, color='blue', alpha=0.7)
     pyplot.plot(bin_edges_plot, obs_hist, '.k', markersize=10, label='Comcat')
     pyplot.legend(loc='upper right')
@@ -557,8 +586,11 @@ def plot_magnitude_histogram(catalogs, comcat, show=True, plot_args=None):
     if show:
         pyplot.show()
 
-def plot_basemap(basemap, extent, ax=None, figsize=None, coastline=True, borders=False, tile_scaling='auto',
-                 set_global=False, projection=ccrs.PlateCarree(), apprx=False, central_latitude=0.0,
+
+def plot_basemap(basemap, extent, ax=None, figsize=None, coastline=True,
+                 borders=False, tile_scaling='auto',
+                 set_global=False, projection=ccrs.PlateCarree(), apprx=False,
+                 central_latitude=0.0,
                  linecolor='black', linewidth=True,
                  grid=False, grid_labels=False, grid_fontsize=None,
                  show=False):
@@ -595,7 +627,8 @@ def plot_basemap(basemap, extent, ax=None, figsize=None, coastline=True, borders
             # Set plot aspect according to local longitude-latitude ratio in metric units
             # (only compatible with plain PlateCarree "projection")
             LATKM = 110.574  # length of a ° of latitude [km]; constant --> ignores Earth's flattening
-            ax.set_aspect(LATKM / (111.320 * numpy.cos(numpy.deg2rad(central_latitude))))
+            ax.set_aspect(
+                LATKM / (111.320 * numpy.cos(numpy.deg2rad(central_latitude))))
         else:
             fig = pyplot.figure(figsize=figsize)
             ax = fig.add_subplot(111, projection=projection)
@@ -607,19 +640,24 @@ def plot_basemap(basemap, extent, ax=None, figsize=None, coastline=True, borders
 
     try:
         # Set adaptive scaling
-        line_autoscaler = cartopy.feature.AdaptiveScaler('110m', (('50m', 50), ('10m', 5)))
+        line_autoscaler = cartopy.feature.AdaptiveScaler('110m', (
+            ('50m', 50), ('10m', 5)))
         tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
         tiles = None
         # Set tile depth
         if tile_scaling == 'auto':
-            tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(extent)
+            tile_depth = 4 if set_global else tile_autoscaler.scale_from_extent(
+                extent)
         else:
             tile_depth = tile_scaling
         if coastline:
             ax.coastlines(color=linecolor, linewidth=linewidth)
         if borders:
-            borders =  cartopy.feature.NaturalEarthFeature('cultural', 'admin_0_boundary_lines_land',
-                                                           line_autoscaler, edgecolor=linecolor, facecolor='never')
+            borders = cartopy.feature.NaturalEarthFeature('cultural',
+                                                          'admin_0_boundary_lines_land',
+                                                          line_autoscaler,
+                                                          edgecolor=linecolor,
+                                                          facecolor='never')
             ax.add_feature(borders, linewidth=linewidth)
         if basemap == 'stock_img':
             ax.stock_img()
@@ -628,7 +666,8 @@ def plot_basemap(basemap, extent, ax=None, figsize=None, coastline=True, borders
         if tiles:
             ax.add_image(tiles, tile_depth)
     except:
-        print("Unable to plot basemap. This might be due to no internet access, try pre-downloading the files.")
+        print(
+            "Unable to plot basemap. This might be due to no internet access, try pre-downloading the files.")
 
     # Gridline options
     if grid:
@@ -645,7 +684,9 @@ def plot_basemap(basemap, extent, ax=None, figsize=None, coastline=True, borders
 
     return ax
 
-def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, plot_args=None):
+
+def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False,
+                 plot_args=None):
     """ Plot catalog in a region
 
     Args:
@@ -712,7 +753,8 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     region_border = plot_args.get('region_border', True)
     legend_borderpad = plot_args.get('legend_borderpad', 0.4)
     # cartopy properties
-    projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
+    projection = plot_args.get('projection',
+                               ccrs.PlateCarree(central_longitude=0.0))
     basemap = plot_args.get('basemap', None)
     coastline = plot_args.get('coastline', True)
     grid = plot_args.get('grid', True)
@@ -722,7 +764,6 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     tile_scaling = plot_args.get('tile_scaling', 'auto')
     linewidth = plot_args.get('linewidth', True)
     linecolor = plot_args.get('linecolor', 'black')
-
 
     bbox = catalog.get_bbox()
     if region_border:
@@ -734,7 +775,7 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
     if extent is None and not set_global:
         dh = (bbox[1] - bbox[0]) / 20.
         dv = (bbox[3] - bbox[2]) / 20.
-        extent = [bbox[0] - dh, bbox[1]+dh, bbox[2] -dv, bbox[3] + dv]
+        extent = [bbox[0] - dh, bbox[1] + dh, bbox[2] - dv, bbox[3] + dv]
 
     apprx = False
     central_latitude = 0.0
@@ -753,18 +794,23 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
         ax.set_global()
         region_border = False
     else:
-        ax.set_extent(extents=extent, crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
+        ax.set_extent(extents=extent,
+                      crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
 
     # Basemap plotting
-    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders, tile_scaling=tile_scaling,
-                      linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
+    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline,
+                      borders=borders, tile_scaling=tile_scaling,
+                      linecolor=linecolor, linewidth=linewidth,
+                      projection=projection, apprx=apprx,
                       central_latitude=central_latitude, set_global=set_global)
 
     # Scaling function
     mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
+
     def size_map(markersize, values, scale):
         if isinstance(mag_scale, (int, float)):
-            return (markersize/(scale**mw_range[0]) * numpy.power(values, scale))
+            return (markersize / (scale ** mw_range[0]) * numpy.power(values,
+                                                                      scale))
         elif isinstance(scale, (numpy.ndarray, list)):
             return scale
         else:
@@ -772,25 +818,32 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
 
     ## Plot catalog
     scatter = ax.scatter(catalog.get_longitudes(), catalog.get_latitudes(),
-                           s=size_map(markersize, catalog.get_magnitudes(), mag_scale),
-                           transform=cartopy.crs.PlateCarree(),
-                           color=markercolor,
-                           edgecolors=markeredgecolor,
-                           alpha=alpha)
+                         s=size_map(markersize, catalog.get_magnitudes(),
+                                    mag_scale),
+                         transform=cartopy.crs.PlateCarree(),
+                         color=markercolor,
+                         edgecolors=markeredgecolor,
+                         alpha=alpha)
 
     # Legend
     if legend:
         if isinstance(mag_ticks, (tuple, list, numpy.ndarray)):
-            if not numpy.all([ i >= mw_range[0] and i <= mw_range[1] for i in mag_ticks]):
-                print("Magnitude ticks do not lie within the catalog magnitude range")
+            if not numpy.all([i >= mw_range[0] and i <= mw_range[1] for i in
+                              mag_ticks]):
+                print(
+                    "Magnitude ticks do not lie within the catalog magnitude range")
         elif mag_ticks is False:
             mag_ticks = numpy.linspace(mw_range[0], mw_range[1], 4)
         handles, labels = scatter.legend_elements(prop="sizes",
-                                                  num=list(size_map(markersize, mag_ticks, mag_scale)),
+                                                  num=list(size_map(markersize,
+                                                                    mag_ticks,
+                                                                    mag_scale)),
                                                   alpha=0.3)
         ax.legend(handles, numpy.round(mag_ticks, 1),
-                  loc=legend_loc, title=legend_title, fontsize=legend_fontsize, title_fontsize=legend_titlesize,
-                  labelspacing=labelspacing, handletextpad=5, borderpad=legend_borderpad, framealpha=legend_framealpha)
+                  loc=legend_loc, title=legend_title, fontsize=legend_fontsize,
+                  title_fontsize=legend_titlesize,
+                  labelspacing=labelspacing, handletextpad=5,
+                  borderpad=legend_borderpad, framealpha=legend_framealpha)
 
     if region_border:
         try:
@@ -820,7 +873,9 @@ def plot_catalog(catalog, ax=None, show=False, extent=None, set_global=False, pl
 
     return ax
 
-def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_global=False, plot_args=None):
+
+def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None,
+                         set_global=False, plot_args=None):
     """ Plot spatial dataset such as data from a gridded forecast
 
     Args:
@@ -863,9 +918,9 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     # Get spatial information for plotting
     bbox = region.get_bbox()
     if extent is None and not set_global:
-        extent = [bbox[0], bbox[1], bbox[2], bbox[3]] 
+        extent = [bbox[0], bbox[1], bbox[2], bbox[3]]
 
-    # Retrieve plot arguments
+        # Retrieve plot arguments
     plot_args = plot_args or {}
     # figure and axes properties
     figsize = plot_args.get('figsize', None)
@@ -873,7 +928,8 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
     title_size = plot_args.get('title_size', None)
     filename = plot_args.get('filename', None)
     # cartopy properties
-    projection = plot_args.get('projection', ccrs.PlateCarree(central_longitude=0.0))
+    projection = plot_args.get('projection',
+                               ccrs.PlateCarree(central_longitude=0.0))
     grid = plot_args.get('grid', True)
     grid_labels = plot_args.get('grid_labels', False)
     grid_fontsize = plot_args.get('grid_fontsize', False)
@@ -913,34 +969,42 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
         ax.set_global()
         region_border = False
     else:
-        ax.set_extent(extents=extent, crs=ccrs.PlateCarree()) # Defined extent always in lat/lon
+        ax.set_extent(extents=extent,
+                      crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
 
     # Basemap plotting
-    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline, borders=borders,
-                      linecolor=linecolor, linewidth=linewidth, projection=projection, apprx=apprx,
-                      central_latitude=central_latitude, tile_scaling=tile_scaling, set_global=set_global)
+    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline,
+                      borders=borders,
+                      linecolor=linecolor, linewidth=linewidth,
+                      projection=projection, apprx=apprx,
+                      central_latitude=central_latitude,
+                      tile_scaling=tile_scaling, set_global=set_global)
 
     ## Define colormap and transparency function
     if isinstance(cmap, str) or not cmap:
         cmap = pyplot.get_cmap(cmap)
     cmap_tup = cmap(numpy.arange(cmap.N))
-    if isinstance(alpha_exp, (float,int)):
+    if isinstance(alpha_exp, (float, int)):
         if alpha_exp != 0:
             cmap_tup[:, -1] = numpy.linspace(0, 1, cmap.N) ** alpha_exp
             alpha = None
     cmap = matplotlib.colors.ListedColormap(cmap_tup)
 
     ## Plot spatial dataset
-    lons, lats = numpy.meshgrid(numpy.append(region.xs, bbox[1]), numpy.append(region.ys, bbox[3]))
-    im = ax.pcolor(lons, lats, gridded, cmap=cmap, alpha=alpha, snap=True, transform=ccrs.PlateCarree())
+    lons, lats = numpy.meshgrid(numpy.append(region.xs, bbox[1]),
+                                numpy.append(region.ys, bbox[3]))
+    im = ax.pcolor(lons, lats, gridded, cmap=cmap, alpha=alpha, snap=True,
+                   transform=ccrs.PlateCarree())
     im.set_clim(clim)
 
     # Colorbar options
     # create an axes on the right side of ax. The width of cax will be 5%
     # of ax and the padding between cax and ax will be fixed at 0.05 inch.
     if include_cbar:
-        cax = fig.add_axes([ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height],
-                           label='Colorbar')
+        cax = fig.add_axes(
+            [ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025,
+             ax.get_position().height],
+            label='Colorbar')
         cbar = fig.colorbar(im, ax=ax, cax=cax)
         cbar.set_label(clabel, fontsize=clabel_fontsize)
         cbar.ax.tick_params(labelsize=cticks_fontsize)
@@ -957,7 +1021,8 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
 
     if region_border:
         pts = region.tight_bbox()
-        ax.plot(pts[:, 0], pts[:, 1], lw=1, color='black', transform=ccrs.PlateCarree())
+        ax.plot(pts[:, 0], pts[:, 1], lw=1, color='black',
+                transform=ccrs.PlateCarree())
 
     # matplotlib figure options
     ax.set_title(title, y=1.06, fontsize=title_size)
@@ -968,6 +1033,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None, set_
         pyplot.show()
 
     return ax
+
 
 def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
     """
@@ -1024,7 +1090,8 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
-    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+    ax = plot_histogram(evaluation_result.test_distribution,
+                        evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
                         bins=bins,
@@ -1034,14 +1101,17 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
     # annotate plot with p-values
     if not chained:
         try:
-            ax.annotate('$\delta_1 = P(X \geq x) = {:.2f}$\n$\delta_2 = P(X \leq x) = {:.2f}$\n$\omega = {:d}$'
-                    .format(*evaluation_result.quantile, evaluation_result.observed_statistic),
-                    xycoords='axes fraction',
-                    xy=xy,
-                    fontsize=text_fontsize)
+            ax.annotate(
+                '$\delta_1 = P(X \geq x) = {:.2f}$\n$\delta_2 = P(X \leq x) = {:.2f}$\n$\omega = {:d}$'
+                .format(*evaluation_result.quantile,
+                        evaluation_result.observed_statistic),
+                xycoords='axes fraction',
+                xy=xy,
+                fontsize=text_fontsize)
         except:
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
-                        .format(evaluation_result.quantile, evaluation_result.observed_statistic),
+                        .format(evaluation_result.quantile,
+                                evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
                         fontsize=text_fontsize)
@@ -1065,7 +1135,9 @@ def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
 
     return ax
 
-def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args=None):
+
+def plot_magnitude_test(evaluation_result, axes=None, show=True,
+                        plot_args=None):
     """
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the M-test.
@@ -1118,7 +1190,8 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args=None)
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
-    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+    ax = plot_histogram(evaluation_result.test_distribution,
+                        evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
                         bins=bins,
@@ -1129,14 +1202,16 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args=None)
     if not chained:
         try:
             ax.annotate('$\gamma = P(X \geq x) = {:.2f}$\n$\omega = {:.2f}$'
-                        .format(evaluation_result.quantile, evaluation_result.observed_statistic),
+                        .format(evaluation_result.quantile,
+                                evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
                         fontsize=text_fontsize)
         except TypeError:
             # if both quantiles are provided, we want to plot the greater-equal quantile
             ax.annotate('$\gamma = P(X \geq x) = {:.2f}$\n$\omega = {:.2f}$'
-                        .format(evaluation_result.quantile[0], evaluation_result.observed_statistic),
+                        .format(evaluation_result.quantile[0],
+                                evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
                         fontsize=text_fontsize)
@@ -1161,7 +1236,9 @@ def plot_magnitude_test(evaluation_result, axes=None, show=True, plot_args=None)
 
     return ax
 
-def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args=None):
+
+def plot_distribution_test(evaluation_result, axes=None, show=True,
+                           plot_args=None):
     """
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the M-test.
@@ -1190,7 +1267,8 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args=No
     plot_args.update(fixed_plot_args)
     bins = plot_args.get('bins', 'auto')
     percentile = plot_args.get('percentile', 95)
-    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+    ax = plot_histogram(evaluation_result.test_distribution,
+                        evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
                         bins=bins,
@@ -1200,7 +1278,8 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args=No
     # annotate plot with p-values
     if not chained:
         ax.annotate('$\gamma = P(X \leq x) = {:.3f}$\n$\omega$ = {:.3f}'
-                    .format(evaluation_result.quantile, evaluation_result.observed_statistic),
+                    .format(evaluation_result.quantile,
+                            evaluation_result.observed_statistic),
                     xycoords='axes fraction',
                     xy=(0.5, 0.3),
                     fontsize=14)
@@ -1222,7 +1301,9 @@ def plot_distribution_test(evaluation_result, axes=None, show=True, plot_args=No
 
     return ax
 
-def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None):
+
+def plot_likelihood_test(evaluation_result, axes=None, show=True,
+                         plot_args=None):
     """
     Takes result from evaluation and generates a specific histogram plot to show the results of the statistical evaluation
     for the L-test.
@@ -1274,7 +1355,8 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None
     fixed_plot_args = {'obs_label': evaluation_result.obs_name,
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
-    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+    ax = plot_histogram(evaluation_result.test_distribution,
+                        evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
                         bins=bins,
@@ -1285,14 +1367,16 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None
     if not chained:
         try:
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
-                        .format(evaluation_result.quantile, evaluation_result.observed_statistic),
+                        .format(evaluation_result.quantile,
+                                evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
                         fontsize=text_fontsize)
         except TypeError:
             # if both quantiles are provided, we want to plot the greater-equal quantile
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
-                        .format(evaluation_result.quantile[1], evaluation_result.observed_statistic),
+                        .format(evaluation_result.quantile[1],
+                                evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
                         fontsize=text_fontsize)
@@ -1314,6 +1398,7 @@ def plot_likelihood_test(evaluation_result, axes=None, show=True, plot_args=None
     if show:
         pyplot.show()
     return ax
+
 
 def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
     """
@@ -1369,7 +1454,8 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
                        'sim_label': evaluation_result.sim_name}
     plot_args.update(fixed_plot_args)
 
-    ax = plot_histogram(evaluation_result.test_distribution, evaluation_result.observed_statistic,
+    ax = plot_histogram(evaluation_result.test_distribution,
+                        evaluation_result.observed_statistic,
                         catalog=evaluation_result.obs_catalog_repr,
                         plot_args=plot_args,
                         bins=bins,
@@ -1380,14 +1466,16 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
     if not chained:
         try:
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
-                        .format(evaluation_result.quantile, evaluation_result.observed_statistic),
+                        .format(evaluation_result.quantile,
+                                evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
                         fontsize=text_fontsize)
         except TypeError:
             # if both quantiles are provided, we want to plot the greater-equal quantile
             ax.annotate('$\gamma = P(X \leq x) = {:.2f}$\n$\omega = {:.2f}$'
-                        .format(evaluation_result.quantile[1], evaluation_result.observed_statistic),
+                        .format(evaluation_result.quantile[1],
+                                evaluation_result.observed_statistic),
                         xycoords='axes fraction',
                         xy=xy,
                         fontsize=text_fontsize)
@@ -1411,283 +1499,9 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
 
     return ax
 
-def _get_marker_style(obs_stat, p, one_sided_lower):
-    """Returns matplotlib marker style as fmt string"""
-    if obs_stat < p[0] or obs_stat > p[1]:
-        # red circle
-        fmt = 'ro'
-    else:
-        # green square
-        fmt = 'gs'
-    if one_sided_lower:
-        if obs_stat < p[0]:
-            fmt = 'ro'
-        else:
-            fmt = 'gs'
-    return fmt
 
-def _get_marker_t_color(distribution):
-    """Returns matplotlib marker style as fmt string"""
-    if distribution[0] > 0. and distribution[1] > 0.:
-        fmt = 'green'
-    elif distribution[0] < 0. and distribution[1] < 0.:
-        fmt = 'red'
-    else:
-        fmt = 'grey'
-
-    return fmt
-
-def _get_marker_w_color(distribution, percentile):
-    """Returns matplotlib marker style as fmt string"""
-
-    if distribution < (1 - percentile/100):
-        fmt = True
-    else:
-        fmt = False
-
-    return fmt
-
-def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
-    """Plots list of T-Test (and W-Test) Results"""
-
-    if plot_args is None:
-        plot_args = {}
-
-    figsize = plot_args.get('figsize', None)
-    title = plot_args.get('title', 'CSEP1 Comparison Test')
-    xlabel = plot_args.get('xlabel', 'X')
-    ylabel = plot_args.get('ylabel', 'Y')
-    ylim = plot_args.get('ylim', (None, None))
-    capsize = plot_args.get('capsize', 2)
-    linewidth = plot_args.get('linewidth', 1)
-    markersize = plot_args.get('markersize', 2)
-    percentile = plot_args.get('percentile', 95)
-    xticklabels_rotation = plot_args.get('xticklabels_rotation', 90)
-    xlabel_fontsize = plot_args.get('xlabel_fontsize', 12)
-    ylabel_fontsize = plot_args.get('ylabel_fontsize', 12)
-
-    if axes is None:
-        fig, ax = pyplot.subplots(figsize=figsize)
-    else:
-        ax = axes
-        fig = ax.get_figure()
-
-    ax.axhline(y=0, linestyle='--', color='black')
-
-    Results = zip(results_t, results_w) if results_w else zip(results_t)
-
-    for index, result in enumerate(Results):
-        result_t = result[0]
-        result_w = result[1] if results_w else None
-
-        ylow = result_t.observed_statistic - result_t.test_distribution[0]
-        yhigh = result_t.test_distribution[1] - result_t.observed_statistic
-        color = _get_marker_t_color( result_t.test_distribution)
-        ax.errorbar(index, result_t.observed_statistic,
-                    yerr=numpy.array([[ylow, yhigh]]).T ,
-                    color = color,
-                    linewidth=linewidth, capsize=capsize)
-
-        if result_w is not None:
-            if  _get_marker_w_color(result_w.quantile, percentile):
-                facecolor = _get_marker_t_color(result_t.test_distribution)
-            else:
-                facecolor = 'white'
-        else:
-            facecolor = 'white'
-        ax.plot(index, result_t.observed_statistic, marker='o', markerfacecolor=facecolor, markeredgecolor=color, markersize=markersize)
-
-    ax.set_xticklabels([res.sim_name[0] for res in results_t], rotation=xticklabels_rotation, fontsize=xlabel_fontsize)
-    ax.set_xticks(numpy.arange(len(results_t)))
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
-    ax.set_title(title)
-    ax.yaxis.grid()
-    xTickPos = ax.get_xticks()
-    ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
-    ax.set_ylim([ylim[0], ylim[1]])
-    ax.set_xlim([-0.5, len(results_t) - 0.5])
-    ax.bar(xTickPos, numpy.array([9999] * len(xTickPos)), bottom=-2000,
-            width=(xTickPos[1] - xTickPos[0]), color=['gray', 'w'], alpha=0.2)
-    fig.tight_layout()
-
-    return ax
-
-
-def plot_poisson_consistency_test(eval_results, normalize=False, one_sided_lower=False, axes=None, plot_args=None, show=False):
-    """ Plots results from CSEP1 tests following the CSEP1 convention.
-
-    Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
-          comparable on the same figure.
-
-    Args:
-        results (list): Contains the tests results :class:`csep.core.evaluations.EvaluationResult` (see note above)
-        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful
-                          for plotting simulation based simulation tests.
-        one_sided_lower (bool): select this if the plot should be for a one sided test
-        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
-
-    Optional plotting arguments:
-        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
-        * title: (:class:`str`) - default: name of the first evaluation result type
-        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
-        * xlabel: (:class:`str`) - default: 'X'
-        * xlabel_fontsize: (:class:`float`) - default: 10
-        * xticks_fontsize: (:class:`float`) - default: 10
-        * ylabel_fontsize: (:class:`float`) - default: 10
-        * color: (:class:`float`/:class:`None`) If None, sets it to red/green according to :func:`_get_marker_style` - default: 'black'
-        * linewidth: (:class:`float`) - default: 1.5
-        * capsize: (:class:`float`) - default: 4
-        * hbars:  (:class:`bool`)  Flag to draw horizontal bars for each model - default: True
-        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
-
-    Returns:
-        ax (:class:`matplotlib.pyplot.axes` object)
-    """
-
-
-    try:
-        results = list(eval_results)
-    except TypeError:
-        results = [eval_results]
-    results.reverse()
-    # Parse plot arguments. More can be added here
-    if plot_args is None:
-        plot_args = {}
-    figsize= plot_args.get('figsize', None)
-    title = plot_args.get('title', results[0].name)
-    title_fontsize = plot_args.get('title_fontsize', None)
-    xlabel = plot_args.get('xlabel', '')
-    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
-    xticks_fontsize = plot_args.get('xticks_fontsize', None)
-    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
-    color = plot_args.get('color', 'black')
-    linewidth = plot_args.get('linewidth', None)
-    capsize = plot_args.get('capsize', 4)
-    hbars = plot_args.get('hbars', True)
-    tight_layout = plot_args.get('tight_layout', True)
-    percentile = plot_args.get('percentile', 95)
-    plot_mean = plot_args.get('mean', False)
-
-    if axes is None:
-        fig, ax = pyplot.subplots(figsize=figsize)
-    else:
-        ax = axes
-        fig = ax.get_figure()
-
-    xlims = []
-    for index, res in enumerate(results):
-        # handle analytical distributions first, they are all in the form ['name', parameters].
-        if res.test_distribution[0] == 'poisson':
-            plow = scipy.stats.poisson.ppf((1 - percentile/100.)/2., res.test_distribution[1])
-            phigh = scipy.stats.poisson.ppf(1 - (1 - percentile/100.)/2., res.test_distribution[1])
-            mean = res.test_distribution[1]
-            observed_statistic = res.observed_statistic
-        # empirical distributions
-        else:
-            if normalize:
-                test_distribution = numpy.array(res.test_distribution) - res.observed_statistic
-                observed_statistic = 0
-            else:
-                test_distribution = numpy.array(res.test_distribution)
-                observed_statistic = res.observed_statistic
-            # compute distribution depending on type of test
-            if one_sided_lower:
-                plow = numpy.percentile(test_distribution, 100 - percentile)
-                phigh = numpy.percentile(test_distribution, 100)
-            else:
-                plow = numpy.percentile(test_distribution, (100 - percentile)/2.)
-                phigh = numpy.percentile(test_distribution, 100 - (100 - percentile)/2.)
-            mean = numpy.mean(res.test_distribution)
-
-        if not numpy.isinf(observed_statistic): # Check if test result does not diverges
-            percentile_lims = numpy.array([[mean - plow,  phigh - mean]]).T
-            ax.plot(observed_statistic, index,
-                    _get_marker_style(observed_statistic, (plow, phigh), one_sided_lower))
-            ax.errorbar(mean, index, xerr=percentile_lims,
-                        fmt='ko'*plot_mean,
-                        capsize=capsize, linewidth=linewidth, ecolor=color)
-            # determine the limits to use
-            xlims.append((plow, phigh, observed_statistic))
-            # we want to only extent the distribution where it falls outside of it in the acceptable tail
-            if one_sided_lower:
-                if observed_statistic >= plow and phigh < observed_statistic:
-                    # draw dashed line to infinity
-                    xt = numpy.linspace(phigh, 99999, 100)
-                    yt = numpy.ones(100) * index
-                    ax.plot(xt, yt, linestyle='--', linewidth=linewidth, color=color)
-
-        else:
-            print('Observed statistic diverges for forecast %s, index %i.'
-                  ' Check for zero-valued bins within the forecast'% (res.sim_name, index))
-            ax.barh(index, 99999, left=-10000, height=1, color=['red'], alpha=0.5)
-
-
-    try:
-        ax.set_xlim(*_get_axis_limits(xlims))
-    except ValueError:
-        raise ValueError('All EvaluationResults have infinite observed_statistics')
-    ax.set_yticks(numpy.arange(len(results)))
-    ax.set_yticklabels([res.sim_name for res in results], fontsize=ylabel_fontsize)
-    ax.set_ylim([-0.5, len(results)-0.5])
-    if hbars:
-        yTickPos = ax.get_yticks()
-        if len(yTickPos) >= 2:
-            ax.barh(yTickPos, numpy.array([99999] * len(yTickPos)), left=-10000,
-                    height=(yTickPos[1] - yTickPos[0]), color=['w', 'gray'], alpha=0.2, zorder=0)
-    ax.set_title(title, fontsize=title_fontsize)
-    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
-    ax.tick_params(axis='x', labelsize=xticks_fontsize)
-    if tight_layout:
-        ax.figure.tight_layout()
-        fig.tight_layout()
-
-    if show:
-        pyplot.show()
-
-    return ax
-
-def _get_axis_limits(pnts, border=0.05):
-    """Returns a tuple of x_min and x_max given points on plot."""
-    x_min = numpy.min(pnts)
-    x_max = numpy.max(pnts)
-    xd = (x_max - x_min)*border
-    return (x_min-xd, x_max+xd)
-
-def _get_basemap(basemap):
-
-    if basemap == 'stamen_terrain':
-        tiles = img_tiles.Stamen('terrain')
-    elif basemap == 'stamen_terrain-background':
-        tiles = img_tiles.Stamen('terrain-background')
-    elif basemap == 'google-satellite':
-        tiles = img_tiles.GoogleTiles(style='satellite')
-    elif basemap == 'ESRI_terrain':
-        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/' \
-                 'MapServer/tile/{z}/{y}/{x}.jpg'
-        tiles = img_tiles.GoogleTiles(url=webservice)
-    elif basemap == 'ESRI_imagery':
-        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/' \
-                 'MapServer/tile/{z}/{y}/{x}.jpg'
-        tiles = img_tiles.GoogleTiles(url=webservice)
-    elif basemap == 'ESRI_relief':
-        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/' \
-                 'MapServer/tile/{z}/{y}/{x}.jpg'
-        tiles = img_tiles.GoogleTiles(url=webservice)
-    elif basemap == 'ESRI_topo':
-        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/' \
-                 'MapServer/tile/{z}/{y}/{x}.jpg'
-        tiles = img_tiles.GoogleTiles(url=webservice)
-    else:
-        try:
-            webservice = basemap
-            tiles = img_tiles.GoogleTiles(url=webservice)
-        except:
-            raise ValueError('Basemap type not valid or not implemented')
-
-    return tiles
-
-def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=False):
+def plot_calibration_test(evaluation_result, axes=None, plot_args=None,
+                          show=False):
     # set up QQ plots and KS test
     plot_args = plot_args or {}
     n = len(evaluation_result.test_distribution)
@@ -1736,8 +1550,587 @@ def plot_calibration_test(evaluation_result, axes=None, plot_args=None, show=Fal
 
     return ax
 
-def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True, savepng=True, show=True,
-                    plot_args=None):
+
+def plot_poisson_consistency_test(eval_results, normalize=False,
+                                  one_sided_lower=False, axes=None,
+                                  plot_args=None, show=False):
+    """ Plots results from CSEP1 tests following the CSEP1 convention.
+
+    Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
+          comparable on the same figure.
+
+    Args:
+        results (list): Contains the tests results :class:`csep.core.evaluations.EvaluationResult` (see note above)
+        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful
+                          for plotting simulation based simulation tests.
+        one_sided_lower (bool): select this if the plot should be for a one sided test
+        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
+
+    Optional plotting arguments:
+        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
+        * title: (:class:`str`) - default: name of the first evaluation result type
+        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
+        * xlabel: (:class:`str`) - default: 'X'
+        * xlabel_fontsize: (:class:`float`) - default: 10
+        * xticks_fontsize: (:class:`float`) - default: 10
+        * ylabel_fontsize: (:class:`float`) - default: 10
+        * color: (:class:`float`/:class:`None`) If None, sets it to red/green according to :func:`_get_marker_style` - default: 'black'
+        * linewidth: (:class:`float`) - default: 1.5
+        * capsize: (:class:`float`) - default: 4
+        * hbars:  (:class:`bool`)  Flag to draw horizontal bars for each model - default: True
+        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
+
+    Returns:
+        ax (:class:`matplotlib.pyplot.axes` object)
+    """
+
+    try:
+        results = list(eval_results)
+    except TypeError:
+        results = [eval_results]
+    results.reverse()
+    # Parse plot arguments. More can be added here
+    if plot_args is None:
+        plot_args = {}
+    figsize = plot_args.get('figsize', None)
+    title = plot_args.get('title', results[0].name)
+    title_fontsize = plot_args.get('title_fontsize', None)
+    xlabel = plot_args.get('xlabel', '')
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
+    xticks_fontsize = plot_args.get('xticks_fontsize', None)
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
+    color = plot_args.get('color', 'black')
+    linewidth = plot_args.get('linewidth', None)
+    capsize = plot_args.get('capsize', 4)
+    hbars = plot_args.get('hbars', True)
+    tight_layout = plot_args.get('tight_layout', True)
+    percentile = plot_args.get('percentile', 95)
+    plot_mean = plot_args.get('mean', False)
+
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
+    xlims = []
+    for index, res in enumerate(results):
+        # handle analytical distributions first, they are all in the form ['name', parameters].
+        if res.test_distribution[0] == 'poisson':
+            plow = scipy.stats.poisson.ppf((1 - percentile / 100.) / 2.,
+                                           res.test_distribution[1])
+            phigh = scipy.stats.poisson.ppf(1 - (1 - percentile / 100.) / 2.,
+                                            res.test_distribution[1])
+            mean = res.test_distribution[1]
+            observed_statistic = res.observed_statistic
+        # empirical distributions
+        else:
+            if normalize:
+                test_distribution = numpy.array(
+                    res.test_distribution) - res.observed_statistic
+                observed_statistic = 0
+            else:
+                test_distribution = numpy.array(res.test_distribution)
+                observed_statistic = res.observed_statistic
+            # compute distribution depending on type of test
+            if one_sided_lower:
+                plow = numpy.percentile(test_distribution, 100 - percentile)
+                phigh = numpy.percentile(test_distribution, 100)
+            else:
+                plow = numpy.percentile(test_distribution,
+                                        (100 - percentile) / 2.)
+                phigh = numpy.percentile(test_distribution,
+                                         100 - (100 - percentile) / 2.)
+            mean = numpy.mean(test_distribution)
+
+        if not numpy.isinf(
+                observed_statistic):  # Check if test result does not diverges
+            percentile_lims = numpy.array([[mean - plow, phigh - mean]]).T
+            ax.plot(observed_statistic, index,
+                    _get_marker_style(observed_statistic, (plow, phigh),
+                                      one_sided_lower))
+            ax.errorbar(mean, index, xerr=percentile_lims,
+                        fmt='ko' * plot_mean,
+                        capsize=capsize, linewidth=linewidth, ecolor=color)
+            # determine the limits to use
+            xlims.append((plow, phigh, observed_statistic))
+            # we want to only extent the distribution where it falls outside of it in the acceptable tail
+            if one_sided_lower:
+                if observed_statistic >= plow and phigh < observed_statistic:
+                    # draw dashed line to infinity
+                    xt = numpy.linspace(phigh, 99999, 100)
+                    yt = numpy.ones(100) * index
+                    ax.plot(xt, yt, linestyle='--', linewidth=linewidth,
+                            color=color)
+
+        else:
+            print('Observed statistic diverges for forecast %s, index %i.'
+                  ' Check for zero-valued bins within the forecast' % (
+                      res.sim_name, index))
+            ax.barh(index, 99999, left=-10000, height=1, color=['red'],
+                    alpha=0.5)
+
+    try:
+        ax.set_xlim(*_get_axis_limits(xlims))
+    except ValueError:
+        raise ValueError('All EvaluationResults have infinite '
+                         'observed_statistics')
+    ax.set_yticks(numpy.arange(len(results)))
+    ax.set_yticklabels([res.sim_name for res in results],
+                       fontsize=ylabel_fontsize)
+    ax.set_ylim([-0.5, len(results) - 0.5])
+    if hbars:
+        yTickPos = ax.get_yticks()
+        if len(yTickPos) >= 2:
+            ax.barh(yTickPos, numpy.array([99999] * len(yTickPos)),
+                    left=-10000,
+                    height=(yTickPos[1] - yTickPos[0]), color=['w', 'gray'],
+                    alpha=0.2, zorder=0)
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.tick_params(axis='x', labelsize=xticks_fontsize)
+    if tight_layout:
+        ax.figure.tight_layout()
+        fig.tight_layout()
+
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
+    """Plots list of T-Test (and W-Test) Results"""
+
+    if plot_args is None:
+        plot_args = {}
+
+    figsize = plot_args.get('figsize', None)
+    title = plot_args.get('title', 'CSEP1 Comparison Test')
+    xlabel = plot_args.get('xlabel', 'X')
+    ylabel = plot_args.get('ylabel', 'Y')
+    ylim = plot_args.get('ylim', (None, None))
+    capsize = plot_args.get('capsize', 2)
+    linewidth = plot_args.get('linewidth', 1)
+    markersize = plot_args.get('markersize', 2)
+    percentile = plot_args.get('percentile', 95)
+    xticklabels_rotation = plot_args.get('xticklabels_rotation', 90)
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', 12)
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', 12)
+
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
+    ax.axhline(y=0, linestyle='--', color='black')
+
+    Results = zip(results_t, results_w) if results_w else zip(results_t)
+
+    for index, result in enumerate(Results):
+        result_t = result[0]
+        result_w = result[1] if results_w else None
+
+        ylow = result_t.observed_statistic - result_t.test_distribution[0]
+        yhigh = result_t.test_distribution[1] - result_t.observed_statistic
+        color = _get_marker_t_color(result_t.test_distribution)
+
+        if numpy.isinf(result_t.observed_statistic):
+            print('Diverging information gain for forecast %s, index %i.'
+                  ' Check for zero-valued bins within the forecast' %
+                  (result_t.sim_name, index))
+            ax.axvspan(index - 0.5, index + 0.5, alpha=0.5, facecolor='red')
+        else:
+            ax.errorbar(index, result_t.observed_statistic,
+                        yerr=numpy.array([[ylow, yhigh]]).T,
+                        color=color,
+                        linewidth=linewidth, capsize=capsize)
+
+            if result_w is not None:
+                if _get_marker_w_color(result_w.quantile, percentile):
+                    facecolor = _get_marker_t_color(result_t.test_distribution)
+                else:
+                    facecolor = 'white'
+            else:
+                facecolor = 'white'
+            ax.plot(index, result_t.observed_statistic, marker='o',
+                    markerfacecolor=facecolor, markeredgecolor=color,
+                    markersize=markersize)
+
+    ax.set_xticklabels([res.sim_name[0] for res in results_t],
+                       rotation=xticklabels_rotation, fontsize=xlabel_fontsize)
+    ax.set_xticks(numpy.arange(len(results_t)))
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel, fontsize=ylabel_fontsize)
+    ax.set_title(title)
+    ax.yaxis.grid()
+    xTickPos = ax.get_xticks()
+    ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+    ax.set_ylim([ylim[0], ylim[1]])
+    ax.set_xlim([-0.5, len(results_t) - 0.5])
+    ax.bar(xTickPos, numpy.array([9999] * len(xTickPos)), bottom=-2000,
+           width=(xTickPos[1] - xTickPos[0]), color=['gray', 'w'], alpha=0.2)
+    fig.tight_layout()
+
+    return ax
+
+
+def plot_consistency_test(eval_results, normalize=False, axes=None,
+                          one_sided_lower=False, variance=None, plot_args=None,
+                          show=False):
+    """ Plots results from CSEP1 tests following the CSEP1 convention.
+
+    Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
+          comparable on the same figure.
+
+    Args:
+        eval_results (list): Contains the tests results :class:`csep.core.evaluations.EvaluationResult` (see note above)
+        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful
+                          for plotting simulation based simulation tests.
+        one_sided_lower (bool): select this if the plot should be for a one sided test
+        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
+
+    Optional plotting arguments:
+        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
+        * title: (:class:`str`) - default: name of the first evaluation result type
+        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
+        * xlabel: (:class:`str`) - default: 'X'
+        * xlabel_fontsize: (:class:`float`) - default: 10
+        * xticks_fontsize: (:class:`float`) - default: 10
+        * ylabel_fontsize: (:class:`float`) - default: 10
+        * color: (:class:`float`/:class:`None`) If None, sets it to red/green according to :func:`_get_marker_style` - default: 'black'
+        * linewidth: (:class:`float`) - default: 1.5
+        * capsize: (:class:`float`) - default: 4
+        * hbars:  (:class:`bool`)  Flag to draw horizontal bars for each model - default: True
+        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
+
+    Returns:
+        ax (:class:`matplotlib.pyplot.axes` object)
+    """
+
+    try:
+        results = list(eval_results)
+    except TypeError:
+        results = [eval_results]
+    results.reverse()
+    # Parse plot arguments. More can be added here
+    if plot_args is None:
+        plot_args = {}
+    figsize = plot_args.get('figsize', None)
+    title = plot_args.get('title', results[0].name)
+    title_fontsize = plot_args.get('title_fontsize', None)
+    xlabel = plot_args.get('xlabel', '')
+    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
+    xticks_fontsize = plot_args.get('xticks_fontsize', None)
+    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
+    color = plot_args.get('color', 'black')
+    linewidth = plot_args.get('linewidth', None)
+    capsize = plot_args.get('capsize', 4)
+    hbars = plot_args.get('hbars', True)
+    tight_layout = plot_args.get('tight_layout', True)
+    percentile = plot_args.get('percentile', 95)
+    plot_mean = plot_args.get('mean', False)
+
+    if axes is None:
+        fig, ax = pyplot.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
+    xlims = []
+
+    for index, res in enumerate(results):
+        # handle analytical distributions first, they are all in the form ['name', parameters].
+        if res.test_distribution[0] == 'poisson':
+            plow = scipy.stats.poisson.ppf((1 - percentile / 100.) / 2.,
+                                           res.test_distribution[1])
+            phigh = scipy.stats.poisson.ppf(1 - (1 - percentile / 100.) / 2.,
+                                            res.test_distribution[1])
+            mean = res.test_distribution[1]
+            observed_statistic = res.observed_statistic
+
+        elif res.test_distribution[0] == 'negative_binomial':
+            var = variance
+            observed_statistic = res.observed_statistic
+            mean = res.test_distribution[1]
+            upsilon = 1.0 - ((var - mean) / var)
+            tau = (mean ** 2 / (var - mean))
+            phigh = scipy.stats.nbinom.ppf((1 - percentile / 100.) / 2., tau,
+                                           upsilon)
+            plow = scipy.stats.nbinom.ppf(1 - (1 - percentile / 100.) / 2.,
+                                          tau, upsilon)
+
+        # empirical distributions
+        else:
+            if normalize:
+                test_distribution = numpy.array(
+                    res.test_distribution) - res.observed_statistic
+                observed_statistic = 0
+            else:
+                test_distribution = numpy.array(res.test_distribution)
+                observed_statistic = res.observed_statistic
+            # compute distribution depending on type of test
+            if one_sided_lower:
+                plow = numpy.percentile(test_distribution, 5)
+                phigh = numpy.percentile(test_distribution, 100)
+            else:
+                plow = numpy.percentile(test_distribution, 2.5)
+                phigh = numpy.percentile(test_distribution, 97.5)
+            mean = numpy.mean(res.test_distribution)
+
+        if not numpy.isinf(
+                observed_statistic):  # Check if test result does not diverges
+            percentile_lims = numpy.array([[mean - plow, phigh - mean]]).T
+            ax.plot(observed_statistic, index,
+                    _get_marker_style(observed_statistic, (plow, phigh),
+                                      one_sided_lower))
+            ax.errorbar(mean, index, xerr=percentile_lims,
+                        fmt='ko' * plot_mean,
+                        capsize=capsize, linewidth=linewidth, ecolor=color)
+            # determine the limits to use
+            xlims.append((plow, phigh, observed_statistic))
+            # we want to only extent the distribution where it falls outside of it in the acceptable tail
+            if one_sided_lower:
+                if observed_statistic >= plow and phigh < observed_statistic:
+                    # draw dashed line to infinity
+                    xt = numpy.linspace(phigh, 99999, 100)
+                    yt = numpy.ones(100) * index
+                    ax.plot(xt, yt, linestyle='--', linewidth=linewidth,
+                            color=color)
+
+        else:
+            print('Observed statistic diverges for forecast %s, index %i.'
+                  ' Check for zero-valued bins within the forecast' % (
+                      res.sim_name, index))
+            ax.barh(index, 99999, left=-10000, height=1, color=['red'],
+                    alpha=0.5)
+
+    try:
+        ax.set_xlim(*_get_axis_limits(xlims))
+    except ValueError:
+        raise ValueError(
+            'All EvaluationResults have infinite observed_statistics')
+    ax.set_yticks(numpy.arange(len(results)))
+    ax.set_yticklabels([res.sim_name for res in results],
+                       fontsize=ylabel_fontsize)
+    ax.set_ylim([-0.5, len(results) - 0.5])
+    if hbars:
+        yTickPos = ax.get_yticks()
+        if len(yTickPos) >= 2:
+            ax.barh(yTickPos, numpy.array([99999] * len(yTickPos)),
+                    left=-10000,
+                    height=(yTickPos[1] - yTickPos[0]), color=['w', 'gray'],
+                    alpha=0.2, zorder=0)
+    ax.set_title(title, fontsize=title_fontsize)
+    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
+    ax.tick_params(axis='x', labelsize=xticks_fontsize)
+    if tight_layout:
+        ax.figure.tight_layout()
+        fig.tight_layout()
+
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def plot_pvalues_and_intervals(test_results, ax, var=None):
+    """ Plots p-values and intervals for a list of Poisson or NBD test results
+
+    Args:
+        test_results (list): list of EvaluationResults for N-test. All tests should use the same distribution
+                             (ie Poisson or NBD).
+        ax (matplotlib.axes.Axes.axis): axes to use for plot. create using matplotlib
+        var (float): variance of the NBD distribution. Must be used for NBD plots.
+
+    Returns:
+        ax (matplotlib.axes.Axes.axis): axes handle containing this plot
+
+    Raises:
+        ValueError: throws error if NBD tests are supplied without a variance
+    """
+
+    variance = var
+    percentile = 97.5
+    p_values = []
+
+    # Differentiate between N-tests and other consistency tests
+    if test_results[0].name == 'NBD N-Test' or test_results[
+        0].name == 'Poisson N-Test':
+        legend_elements = [
+            matplotlib.lines.Line2D([0], [0], marker='o', color='red', lw=0,
+                                    label=r'p < 10e-5', markersize=10,
+                                    markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='#FF7F50',
+                                    lw=0, label=r'10e-5 $\leq$ p < 10e-4',
+                                    markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='gold', lw=0,
+                                    label=r'10e-4 $\leq$ p < 10e-3',
+                                    markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='white', lw=0,
+                                    label=r'10e-3 $\leq$ p < 0.0125',
+                                    markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='skyblue',
+                                    lw=0, label=r'0.0125 $\leq$ p < 0.025',
+                                    markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='blue', lw=0,
+                                    label=r'p $\geq$ 0.025', markersize=10,
+                                    markeredgecolor='k')]
+        ax.legend(handles=legend_elements, loc=4, fontsize=13, edgecolor='k')
+        # Act on Negative binomial tests
+        if test_results[0].name == 'NBD N-Test':
+            if var is None:
+                raise ValueError(
+                    "var must not be None if N-tests use the NBD distribution.")
+
+            for i in range(len(test_results)):
+                mean = test_results[i].test_distribution[1]
+                upsilon = 1.0 - ((variance - mean) / variance)
+                tau = (mean ** 2 / (variance - mean))
+                phigh97 = scipy.stats.nbinom.ppf((1 - percentile / 100.) / 2.,
+                                                 tau, upsilon)
+                plow97 = scipy.stats.nbinom.ppf(
+                    1 - (1 - percentile / 100.) / 2., tau, upsilon)
+                low97 = test_results[i].observed_statistic - plow97
+                high97 = phigh97 - test_results[i].observed_statistic
+                ax.errorbar(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i,
+                            xerr=numpy.array([[low97, high97]]).T, capsize=4,
+                            color='slategray', alpha=1.0, zorder=0)
+                p_values.append(test_results[i].quantile[
+                                    1] * 2.0)  # Calculated p-values according to Meletti et al., (2021)
+
+                if p_values[i] < 10e-5:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='red', markersize=8, zorder=2)
+                if p_values[i] >= 10e-5 and p_values[i] < 10e-4:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='#FF7F50', markersize=8, zorder=2)
+                if p_values[i] >= 10e-4 and p_values[i] < 10e-3:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='gold', markersize=8, zorder=2)
+                if p_values[i] >= 10e-3 and p_values[i] < 0.0125:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='white', markersize=8, zorder=2)
+                if p_values[i] >= 0.0125 and p_values[i] < 0.025:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='skyblue', markersize=8, zorder=2)
+                if p_values[i] >= 0.025:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='blue', markersize=8, zorder=2)
+        # Act on Poisson N-test
+        if test_results[0].name == 'Poisson N-Test':
+            for i in range(len(test_results)):
+                plow97 = scipy.stats.poisson.ppf((1 - percentile / 100.) / 2.,
+                                                 test_results[
+                                                     i].test_distribution[1])
+                phigh97 = scipy.stats.poisson.ppf(
+                    1 - (1 - percentile / 100.) / 2.,
+                    test_results[i].test_distribution[1])
+                low97 = test_results[i].observed_statistic - plow97
+                high97 = phigh97 - test_results[i].observed_statistic
+                ax.errorbar(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i,
+                            xerr=numpy.array([[low97, high97]]).T, capsize=4,
+                            color='slategray', alpha=1.0, zorder=0)
+                p_values.append(test_results[i].quantile[1] * 2.0)
+                if p_values[i] < 10e-5:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='red', markersize=8, zorder=2)
+                elif p_values[i] >= 10e-5 and p_values[i] < 10e-4:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='#FF7F50', markersize=8, zorder=2)
+                elif p_values[i] >= 10e-4 and p_values[i] < 10e-3:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='gold', markersize=8, zorder=2)
+                elif p_values[i] >= 10e-3 and p_values[i] < 0.0125:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='white', markersize=8, zorder=2)
+                elif p_values[i] >= 0.0125 and p_values[i] < 0.025:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='skyblue', markersize=8, zorder=2)
+                elif p_values[i] >= 0.025:
+                    ax.plot(test_results[i].observed_statistic,
+                            (len(test_results) - 1) - i, marker='o',
+                            color='blue', markersize=8, zorder=2)
+    # Operate on all other consistency tests
+    else:
+        for i in range(len(test_results)):
+            plow97 = numpy.percentile(test_results[i].test_distribution, 2.5)
+            phigh97 = numpy.percentile(test_results[i].test_distribution, 97.5)
+            low97 = test_results[i].observed_statistic - plow97
+            high97 = phigh97 - test_results[i].observed_statistic
+            ax.errorbar(test_results[i].observed_statistic,
+                        (len(test_results) - 1) - i,
+                        xerr=numpy.array([[low97, high97]]).T, capsize=4,
+                        color='slategray', alpha=1.0, zorder=0)
+            p_values.append(test_results[i].quantile)
+
+            if p_values[i] < 10e-5:
+                ax.plot(test_results[i].observed_statistic,
+                        (len(test_results) - 1) - i, marker='o', color='red',
+                        markersize=8, zorder=2)
+            elif p_values[i] >= 10e-5 and p_values[i] < 10e-4:
+                ax.plot(test_results[i].observed_statistic,
+                        (len(test_results) - 1) - i, marker='o',
+                        color='#FF7F50', markersize=8, zorder=2)
+            elif p_values[i] >= 10e-4 and p_values[i] < 10e-3:
+                ax.plot(test_results[i].observed_statistic,
+                        (len(test_results) - 1) - i, marker='o', color='gold',
+                        markersize=8, zorder=2)
+            elif p_values[i] >= 10e-3 and p_values[i] < 0.025:
+                ax.plot(test_results[i].observed_statistic,
+                        (len(test_results) - 1) - i, marker='o', color='white',
+                        markersize=8, zorder=2)
+            elif p_values[i] >= 0.025 and p_values[i] < 0.05:
+                ax.plot(test_results[i].observed_statistic,
+                        (len(test_results) - 1) - i, marker='o',
+                        color='skyblue', markersize=8, zorder=2)
+            elif p_values[i] >= 0.05:
+                ax.plot(test_results[i].observed_statistic,
+                        (len(test_results) - 1) - i, marker='o', color='blue',
+                        markersize=8, zorder=2)
+
+        legend_elements = [
+            matplotlib.lines.Line2D([0], [0], marker='o', color='red', lw=0,
+                                    label=r'p < 10e-5', markersize=10,
+                                    markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='#FF7F50',
+                                    lw=0, label=r'10e-5 $\leq$ p < 10e-4',
+                                    markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='gold', lw=0,
+                                    label=r'10e-4 $\leq$ p < 10e-3',
+                                    markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='white', lw=0,
+                                    label=r'10e-3 $\leq$ p < 0.025',
+                                    markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='skyblue',
+                                    lw=0, label=r'0.025 $\leq$ p < 0.05',
+                                    markersize=10, markeredgecolor='k'),
+            matplotlib.lines.Line2D([0], [0], marker='o', color='blue', lw=0,
+                                    label=r'p $\geq$ 0.05', markersize=10,
+                                    markeredgecolor='k')]
+
+        ax.legend(handles=legend_elements, loc=4, fontsize=13, edgecolor='k')
+
+    return ax
+
+
+def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
+             savepng=True, show=True,
+             plot_args=None):
     """
     Plot Receiver operating characteristic (ROC) Curves based on forecast and test catalog.
 
@@ -1750,7 +2143,7 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True, save
         (6) Compute spatial bin areas, sort by ordering found in (2), and normalize so the cumulative sum equals unity.
         (7) Plot ordered and cumulated rates (forecast and catalog) against ordered and cumulated bin areas.
 
-    Note that: 
+    Note that:
         (1) The testing catalog and forecast should have exactly the same time-window (duration)
         (2) Forecasts should be defined over the same region
         (3) If calling this function multiple times, update the color in plot_args
@@ -1789,7 +2182,8 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True, save
         Written by Han Bao, UCLA, March 2021. Modified June 2021.
     """
     if not catalog.region == forecast.region:
-        raise RuntimeError("catalog region and forecast region must be identical.")
+        raise RuntimeError(
+            "catalog region and forecast region must be identical.")
 
     # Parse plotting arguments
     plot_args = plot_args or {}
@@ -1849,17 +2243,18 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True, save
     ax.plot(area_norm_sorted, fore_norm_sorted,
             label=forecast_label,
             color=forecast_linecolor,
-            linestyle = forecast_linestyle)
+            linestyle=forecast_linestyle)
 
     # Plot cell-wise rates of observed catalog ordered by forecast rates (descending order)
     ax.step(area_norm_sorted, obs_norm_sorted,
             label=observed_label,
             color=observed_linecolor,
-            linestyle = observed_linestyle)
+            linestyle=observed_linestyle)
 
     # Plotting arguments
     ax.set_ylabel("True Positive Rate", fontsize=label_fontsize)
-    ax.set_xlabel('False Positive Rate (Normalized Area)', fontsize=label_fontsize)
+    ax.set_xlabel('False Positive Rate (Normalized Area)',
+                  fontsize=label_fontsize)
     ax.set_xscale('log')
     ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
     ax.set_title(title, fontsize=title_fontsize)
@@ -1870,12 +2265,93 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True, save
             pyplot.savefig(outFile, format='pdf')
         if savepng:
             outFile = "{}.png".format(filename)
-            pyplot.savefig(outFile,format='png')
+            pyplot.savefig(outFile, format='png')
 
     if show:
         pyplot.show()
     return ax
-    
+
+
+def _get_marker_style(obs_stat, p, one_sided_lower):
+    """Returns matplotlib marker style as fmt string"""
+    if obs_stat < p[0] or obs_stat > p[1]:
+        # red circle
+        fmt = 'ro'
+    else:
+        # green square
+        fmt = 'gs'
+    if one_sided_lower:
+        if obs_stat < p[0]:
+            fmt = 'ro'
+        else:
+            fmt = 'gs'
+    return fmt
+
+
+def _get_marker_t_color(distribution):
+    """Returns matplotlib marker style as fmt string"""
+    if distribution[0] > 0. and distribution[1] > 0.:
+        fmt = 'green'
+    elif distribution[0] < 0. and distribution[1] < 0.:
+        fmt = 'red'
+    else:
+        fmt = 'grey'
+
+    return fmt
+
+
+def _get_marker_w_color(distribution, percentile):
+    """Returns matplotlib marker style as fmt string"""
+
+    if distribution < (1 - percentile / 100):
+        fmt = True
+    else:
+        fmt = False
+
+    return fmt
+
+
+def _get_axis_limits(pnts, border=0.05):
+    """Returns a tuple of x_min and x_max given points on plot."""
+    x_min = numpy.min(pnts)
+    x_max = numpy.max(pnts)
+    xd = (x_max - x_min) * border
+    return (x_min - xd, x_max + xd)
+
+
+def _get_basemap(basemap):
+    if basemap == 'stamen_terrain':
+        tiles = img_tiles.Stamen('terrain')
+    elif basemap == 'stamen_terrain-background':
+        tiles = img_tiles.Stamen('terrain-background')
+    elif basemap == 'google-satellite':
+        tiles = img_tiles.GoogleTiles(style='satellite')
+    elif basemap == 'ESRI_terrain':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/' \
+                     'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    elif basemap == 'ESRI_imagery':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/' \
+                     'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    elif basemap == 'ESRI_relief':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/' \
+                     'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    elif basemap == 'ESRI_topo':
+        webservice = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/' \
+                     'MapServer/tile/{z}/{y}/{x}.jpg'
+        tiles = img_tiles.GoogleTiles(url=webservice)
+    else:
+        try:
+            webservice = basemap
+            tiles = img_tiles.GoogleTiles(url=webservice)
+        except:
+            raise ValueError('Basemap type not valid or not implemented')
+
+    return tiles
+
+
 def add_labels_for_publication(figure, style='bssa', labelsize=16):
     """ Adds publication labels too the outside of a figure. """
     all_axes = figure.get_axes()
@@ -1886,268 +2362,7 @@ def add_labels_for_publication(figure, style='bssa', labelsize=16):
             continue
         annot = next(ascii_iter)
         if style == 'bssa':
-            ax.annotate(f'({annot})', (0.025, 1.025), xycoords='axes fraction', fontsize=labelsize)
+            ax.annotate(f'({annot})', (0.025, 1.025), xycoords='axes fraction',
+                        fontsize=labelsize)
 
     return
-
-
-def plot_consistency_test(eval_results, normalize=False, axes=None, one_sided_lower=False, variance=None, plot_args=None, show=False):
-    """ Plots results from CSEP1 tests following the CSEP1 convention.
-
-    Note: All of the evaluations should be from the same type of evaluation, otherwise the results will not be
-          comparable on the same figure.
-
-    Args:
-        eval_results (list): Contains the tests results :class:`csep.core.evaluations.EvaluationResult` (see note above)
-        normalize (bool): select this if the forecast likelihood should be normalized by the observed likelihood. useful
-                          for plotting simulation based simulation tests.
-        one_sided_lower (bool): select this if the plot should be for a one sided test
-        plot_args(dict): optional argument containing a dictionary of plotting arguments, with keys as strings and items as described below
-
-    Optional plotting arguments:
-        * figsize: (:class:`list`/:class:`tuple`) - default: [6.4, 4.8]
-        * title: (:class:`str`) - default: name of the first evaluation result type
-        * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 10
-        * xlabel: (:class:`str`) - default: 'X'
-        * xlabel_fontsize: (:class:`float`) - default: 10
-        * xticks_fontsize: (:class:`float`) - default: 10
-        * ylabel_fontsize: (:class:`float`) - default: 10
-        * color: (:class:`float`/:class:`None`) If None, sets it to red/green according to :func:`_get_marker_style` - default: 'black'
-        * linewidth: (:class:`float`) - default: 1.5
-        * capsize: (:class:`float`) - default: 4
-        * hbars:  (:class:`bool`)  Flag to draw horizontal bars for each model - default: True
-        * tight_layout: (:class:`bool`) Set matplotlib.figure.tight_layout to remove excess blank space in the plot - default: True
-
-    Returns:
-        ax (:class:`matplotlib.pyplot.axes` object)
-    """
-
-
-    try:
-        results = list(eval_results)
-    except TypeError:
-        results = [eval_results]
-    results.reverse()
-    # Parse plot arguments. More can be added here
-    if plot_args is None:
-        plot_args = {}
-    figsize= plot_args.get('figsize', None)
-    title = plot_args.get('title', results[0].name)
-    title_fontsize = plot_args.get('title_fontsize', None)
-    xlabel = plot_args.get('xlabel', '')
-    xlabel_fontsize = plot_args.get('xlabel_fontsize', None)
-    xticks_fontsize = plot_args.get('xticks_fontsize', None)
-    ylabel_fontsize = plot_args.get('ylabel_fontsize', None)
-    color = plot_args.get('color', 'black')
-    linewidth = plot_args.get('linewidth', None)
-    capsize = plot_args.get('capsize', 4)
-    hbars = plot_args.get('hbars', True)
-    tight_layout = plot_args.get('tight_layout', True)
-    percentile = plot_args.get('percentile', 95)
-    plot_mean = plot_args.get('mean', False)
-
-    if axes is None:
-        fig, ax = pyplot.subplots(figsize=figsize)
-    else:
-        ax = axes
-        fig = ax.get_figure()
-
-    xlims = []
-    
-    for index, res in enumerate(results):
-        # handle analytical distributions first, they are all in the form ['name', parameters].
-        if res.test_distribution[0] == 'poisson':
-            plow = scipy.stats.poisson.ppf((1 - percentile/100.)/2., res.test_distribution[1])
-            phigh = scipy.stats.poisson.ppf(1 - (1 - percentile/100.)/2., res.test_distribution[1])
-            mean = res.test_distribution[1]
-            observed_statistic = res.observed_statistic
-        
-        elif res.test_distribution[0] == 'negative_binomial':
-            var = variance
-            observed_statistic = res.observed_statistic
-            mean = res.test_distribution[1]
-            upsilon = 1.0 - ((var - mean) / var)
-            tau = (mean**2 /(var - mean))
-            phigh = scipy.stats.nbinom.ppf((1 - percentile/100.)/2., tau, upsilon)
-            plow = scipy.stats.nbinom.ppf(1 - (1 - percentile/100.)/2., tau, upsilon)
-
-        # empirical distributions
-        else:
-            if normalize:
-                test_distribution = numpy.array(res.test_distribution) - res.observed_statistic
-                observed_statistic = 0
-            else:
-                test_distribution = numpy.array(res.test_distribution)
-                observed_statistic = res.observed_statistic
-            # compute distribution depending on type of test
-            if one_sided_lower:
-                plow = numpy.percentile(test_distribution, 5)
-                phigh = numpy.percentile(test_distribution, 100)
-            else:
-                plow = numpy.percentile(test_distribution, 2.5)
-                phigh = numpy.percentile(test_distribution, 97.5)
-            mean = numpy.mean(res.test_distribution)
-
-        if not numpy.isinf(observed_statistic): # Check if test result does not diverges
-            percentile_lims = numpy.array([[mean - plow,  phigh - mean]]).T
-            ax.plot(observed_statistic, index,
-                    _get_marker_style(observed_statistic, (plow, phigh), one_sided_lower))
-            ax.errorbar(mean, index, xerr=percentile_lims,
-                        fmt='ko'*plot_mean,
-                        capsize=capsize, linewidth=linewidth, ecolor=color)
-            # determine the limits to use
-            xlims.append((plow, phigh, observed_statistic))
-            # we want to only extent the distribution where it falls outside of it in the acceptable tail
-            if one_sided_lower:
-                if observed_statistic >= plow and phigh < observed_statistic:
-                    # draw dashed line to infinity
-                    xt = numpy.linspace(phigh, 99999, 100)
-                    yt = numpy.ones(100) * index
-                    ax.plot(xt, yt, linestyle='--', linewidth=linewidth, color=color)
-
-        else:
-            print('Observed statistic diverges for forecast %s, index %i.'
-                  ' Check for zero-valued bins within the forecast'% (res.sim_name, index))
-            ax.barh(index, 99999, left=-10000, height=1, color=['red'], alpha=0.5)
-
-
-    try:
-        ax.set_xlim(*_get_axis_limits(xlims))
-    except ValueError:
-        raise ValueError('All EvaluationResults have infinite observed_statistics')
-    ax.set_yticks(numpy.arange(len(results)))
-    ax.set_yticklabels([res.sim_name for res in results], fontsize=ylabel_fontsize)
-    ax.set_ylim([-0.5, len(results)-0.5])
-    if hbars:
-        yTickPos = ax.get_yticks()
-        if len(yTickPos) >= 2:
-            ax.barh(yTickPos, numpy.array([99999] * len(yTickPos)), left=-10000,
-                    height=(yTickPos[1] - yTickPos[0]), color=['w', 'gray'], alpha=0.2, zorder=0)
-    ax.set_title(title, fontsize=title_fontsize)
-    ax.set_xlabel(xlabel, fontsize=xlabel_fontsize)
-    ax.tick_params(axis='x', labelsize=xticks_fontsize)
-    if tight_layout:
-        ax.figure.tight_layout()
-        fig.tight_layout()
-
-    if show:
-        pyplot.show()
-
-    return ax
-    
-
-def plot_pvalues_and_intervals(test_results, ax, var=None):
-    """ Plots p-values and intervals for a list of Poisson or NBD test results
-
-    Args:
-        test_results (list): list of EvaluationResults for N-test. All tests should use the same distribution
-                             (ie Poisson or NBD).
-        ax (matplotlib.axes.Axes.axis): axes to use for plot. create using matplotlib
-        var (float): variance of the NBD distribution. Must be used for NBD plots.
-
-    Returns:
-        ax (matplotlib.axes.Axes.axis): axes handle containing this plot
-
-    Raises:
-        ValueError: throws error if NBD tests are supplied without a variance
-    """
-    
-    variance = var
-    percentile = 97.5
-    p_values = []
-
-    # Differentiate between N-tests and other consistency tests
-    if test_results[0].name == 'NBD N-Test' or test_results[0].name == 'Poisson N-Test':
-        legend_elements = [matplotlib.lines.Line2D([0], [0], marker='o', color='red', lw=0, label=r'p < 10e-5', markersize=10, markeredgecolor='k'),
-                           matplotlib.lines.Line2D([0], [0], marker='o', color='#FF7F50', lw=0, label=r'10e-5 $\leq$ p < 10e-4', markersize=10, markeredgecolor='k'),
-                           matplotlib.lines.Line2D([0], [0], marker='o', color='gold', lw=0, label=r'10e-4 $\leq$ p < 10e-3', markersize=10, markeredgecolor='k'),
-                           matplotlib.lines.Line2D([0], [0], marker='o', color='white', lw=0, label=r'10e-3 $\leq$ p < 0.0125', markersize=10, markeredgecolor='k'),
-                           matplotlib.lines.Line2D([0], [0], marker='o', color='skyblue', lw=0, label=r'0.0125 $\leq$ p < 0.025', markersize=10, markeredgecolor='k'),
-                           matplotlib.lines.Line2D([0], [0], marker='o', color='blue', lw=0, label=r'p $\geq$ 0.025', markersize=10, markeredgecolor='k')]
-        ax.legend(handles=legend_elements, loc=4, fontsize=13, edgecolor='k')
-        # Act on Negative binomial tests
-        if test_results[0].name == 'NBD N-Test':
-            if var is None:
-                raise ValueError("var must not be None if N-tests use the NBD distribution.")
-
-            for i in range(len(test_results)):
-                mean = test_results[i].test_distribution[1]
-                upsilon = 1.0 - ((variance - mean) / variance)
-                tau = (mean**2 /(variance - mean))
-                phigh97 = scipy.stats.nbinom.ppf((1 - percentile/100.)/2., tau, upsilon)
-                plow97 = scipy.stats.nbinom.ppf(1 - (1 - percentile/100.)/2., tau, upsilon)
-                low97 = test_results[i].observed_statistic - plow97
-                high97 = phigh97 - test_results[i].observed_statistic
-                ax.errorbar(test_results[i].observed_statistic, (len(test_results)-1) - i, xerr=numpy.array([[low97, high97]]).T, capsize=4, 
-                            color='slategray', alpha=1.0, zorder=0)
-                p_values.append(test_results[i].quantile[1] * 2.0) # Calculated p-values according to Meletti et al., (2021)
-                
-                if p_values[i] < 10e-5:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='red', markersize=8, zorder=2)
-                if p_values[i] >= 10e-5 and p_values[i] < 10e-4:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='#FF7F50', markersize=8, zorder=2)
-                if p_values[i] >= 10e-4 and p_values[i] < 10e-3:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='gold', markersize=8, zorder=2)
-                if p_values[i] >= 10e-3 and p_values[i] < 0.0125:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='white', markersize=8, zorder=2)
-                if p_values[i] >= 0.0125 and p_values[i] < 0.025:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='skyblue', markersize=8, zorder=2)
-                if p_values[i] >= 0.025:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='blue', markersize=8, zorder=2)
-        # Act on Poisson N-test
-        if test_results[0].name == 'Poisson N-Test':
-            for i in range(len(test_results)):
-                plow97 = scipy.stats.poisson.ppf((1 - percentile/100.)/2., test_results[i].test_distribution[1])
-                phigh97 = scipy.stats.poisson.ppf(1 - (1 - percentile/100.)/2., test_results[i].test_distribution[1])
-                low97 = test_results[i].observed_statistic - plow97
-                high97 = phigh97 - test_results[i].observed_statistic
-                ax.errorbar(test_results[i].observed_statistic, (len(test_results)-1) - i, xerr=numpy.array([[low97, high97]]).T, capsize=4, 
-                            color='slategray', alpha=1.0, zorder=0)
-                p_values.append(test_results[i].quantile[1] * 2.0)
-                if p_values[i] < 10e-5:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='red', markersize=8, zorder=2)
-                elif p_values[i] >= 10e-5 and p_values[i] < 10e-4:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='#FF7F50', markersize=8, zorder=2)
-                elif p_values[i] >= 10e-4 and p_values[i] < 10e-3:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='gold', markersize=8, zorder=2)
-                elif p_values[i] >= 10e-3 and p_values[i] < 0.0125:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='white', markersize=8, zorder=2)
-                elif p_values[i] >= 0.0125 and p_values[i] < 0.025:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='skyblue', markersize=8, zorder=2)
-                elif p_values[i] >= 0.025:
-                    ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='blue', markersize=8, zorder=2)
-    # Operate on all other consistency tests
-    else:
-        for i in range(len(test_results)):
-            plow97 = numpy.percentile(test_results[i].test_distribution, 2.5)
-            phigh97 = numpy.percentile(test_results[i].test_distribution, 97.5)
-            low97 = test_results[i].observed_statistic - plow97
-            high97 = phigh97 - test_results[i].observed_statistic  
-            ax.errorbar(test_results[i].observed_statistic, (len(test_results)-1) -i, xerr=numpy.array([[low97, high97]]).T, capsize=4, 
-                        color='slategray', alpha=1.0, zorder=0)
-            p_values.append(test_results[i].quantile)
-
-            if p_values[i] < 10e-5:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='red', markersize=8, zorder=2)
-            elif p_values[i] >= 10e-5 and p_values[i] < 10e-4:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='#FF7F50', markersize=8, zorder=2)
-            elif p_values[i] >= 10e-4 and p_values[i] < 10e-3:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='gold', markersize=8, zorder=2)
-            elif p_values[i] >= 10e-3  and p_values[i] < 0.025:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='white', markersize=8, zorder=2)
-            elif p_values[i] >= 0.025 and p_values[i] < 0.05:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='skyblue', markersize=8, zorder=2)
-            elif p_values[i] >= 0.05:
-                ax.plot(test_results[i].observed_statistic, (len(test_results)-1) - i, marker='o', color='blue', markersize=8, zorder=2)
-    
-        legend_elements = [
-            matplotlib.lines.Line2D([0], [0], marker='o', color='red', lw=0, label=r'p < 10e-5', markersize=10, markeredgecolor='k'),
-            matplotlib.lines.Line2D([0], [0], marker='o', color='#FF7F50', lw=0, label=r'10e-5 $\leq$ p < 10e-4', markersize=10, markeredgecolor='k'),
-            matplotlib.lines.Line2D([0], [0], marker='o', color='gold', lw=0, label=r'10e-4 $\leq$ p < 10e-3', markersize=10, markeredgecolor='k'),
-            matplotlib.lines.Line2D([0], [0], marker='o', color='white', lw=0, label=r'10e-3 $\leq$ p < 0.025', markersize=10, markeredgecolor='k'),
-            matplotlib.lines.Line2D([0], [0], marker='o', color='skyblue', lw=0, label=r'0.025 $\leq$ p < 0.05', markersize=10, markeredgecolor='k'),
-            matplotlib.lines.Line2D([0], [0], marker='o', color='blue', lw=0, label=r'p $\geq$ 0.05', markersize=10, markeredgecolor='k')]
-
-        ax.legend(handles=legend_elements, loc=4, fontsize=13, edgecolor='k') 
-    
-    return ax        
