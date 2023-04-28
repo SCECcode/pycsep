@@ -1645,7 +1645,8 @@ def plot_poisson_consistency_test(eval_results, normalize=False,
 
         if not numpy.isinf(
                 observed_statistic):  # Check if test result does not diverges
-            percentile_lims = numpy.array([[mean - plow, phigh - mean]]).T
+            percentile_lims = numpy.abs(numpy.array([[mean - plow,
+                                                      phigh - mean]]).T)
             ax.plot(observed_statistic, index,
                     _get_marker_style(observed_statistic, (plow, phigh),
                                       one_sided_lower))
