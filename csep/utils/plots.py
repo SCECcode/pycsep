@@ -1708,8 +1708,8 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
 
     figsize = plot_args.get('figsize', None)
     title = plot_args.get('title', 'CSEP1 Comparison Test')
-    xlabel = plot_args.get('xlabel', 'X')
-    ylabel = plot_args.get('ylabel', 'Y')
+    xlabel = plot_args.get('xlabel', None)
+    ylabel = plot_args.get('ylabel', 'Information gain per earthquake')
     ylim = plot_args.get('ylim', (None, None))
     capsize = plot_args.get('capsize', 2)
     linewidth = plot_args.get('linewidth', 1)
