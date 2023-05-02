@@ -1,0 +1,29 @@
+include README.md
+include CONTRIBUTING.md
+include CODE_OF_CONDUCT.md
+include LICENSE.txt
+include CHANGELOG.md
+include CREDITS.md
+include codemeta.json
+include CITATION.cff
+include run_tests.sh
+include requirements.txt
+include requirements.yml
+
+graft csep
+graft docs
+graft tests
+prune csep/artifacts/Configurations
+prune docs/_build
+prune docs/referenced/generated
+prune docs/tutorials/
+
+global-exclude .git*
+global-exclude *.pyc
+global-exclude *.html
+global-exclude *.so
+global-exclude *.xls
+global-exclude *.xlsm
+global-exclude *.xlsx
+global-exclude *~
+global-exclude .DS_Store
