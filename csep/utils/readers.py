@@ -13,6 +13,7 @@ import numpy
 # PyCSEP imports
 from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
+from csep.utils.geonet import gns_search
 from csep.core.regions import QuadtreeGrid2D
 from csep.core.exceptions import CSEPIOException
 
@@ -705,6 +706,30 @@ def _query_bsi(start_time, end_time, min_magnitude=2.50,
                        starttime=start_time, endtime=end_time, **extra_bsi_params)
 
     return eventlist
+
+# Adding GNS catalog reader
+def _query_gns(start_time, end_time, min_magnitude=2.950,
+               min_latitude=-47, max_latitude=-34,
+               min_longitude=164, max_longitude=180,
+               max_depth=45.5, extra_gns_params=None):
+    """
+    Queries GNS catalog.
+    :return: csep.core.Catalog object
+    """
+    extra_gns_params = extra_gns_params or {}
+    geonet_host = 'service.geonet.org.nz'
+    extra_gns_params.update({'host': geonet_host, 'limit': 15000, 'offset': 0})
+    # get eventlist from Comcat
+    eventlist = gns_search(minmagnitude=min_magnitude,
+                       minlatitude=min_latitude, 
+                       maxlatitude=max_latitude,
+                       minlongitude=min_longitude, 
+                       maxlongitude=max_longitude,
+                       maxdepth=max_depth,
+                       starttime=start_time, 
+                       endtime=end_time)
+    return eventlist   
+
 def _parse_datetime_to_zmap(date, time):
         """ Helping function to return datetime in zmap format.
 
