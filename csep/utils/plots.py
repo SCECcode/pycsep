@@ -38,8 +38,8 @@ IDEA: Since plotting functions are usable by these classes only that don't
 """
 
 
-def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data, plot_args,
-                                           show=False):
+def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data,
+                                           plot_args, show=False):
     """
 
 
@@ -492,8 +492,8 @@ def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
     filename = plot_args.get('filename', None)
 
     ax.errorbar(bin_edges_plot, u3etas_median, yerr=[u3etas_emin, u3etas_emax],
-                xerr=0.8 * dmw / 2, fmt=' ',
-                label=sim_label, color='blue', alpha=0.7)
+                xerr=0.8 * dmw / 2, fmt=' ', label=sim_label,
+                color='blue', alpha=0.7)
     ax.plot(bin_edges_plot, obs_hist, '.k', markersize=10, label=obs_label)
     ax.legend(loc='upper right')
     ax.set_xlim(xlim)
@@ -920,7 +920,7 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None,
     if extent is None and not set_global:
         extent = [bbox[0], bbox[1], bbox[2], bbox[3]]
 
-        # Retrieve plot arguments
+    # Retrieve plot arguments
     plot_args = plot_args or {}
     # figure and axes properties
     figsize = plot_args.get('figsize', None)
@@ -1651,8 +1651,8 @@ def plot_poisson_consistency_test(eval_results, normalize=False,
                     _get_marker_style(observed_statistic, (plow, phigh),
                                       one_sided_lower))
             ax.errorbar(mean, index, xerr=percentile_lims,
-                        fmt='ko' * plot_mean,
-                        capsize=capsize, linewidth=linewidth, ecolor=color)
+                        fmt='ko' * plot_mean, capsize=capsize,
+                        linewidth=linewidth, ecolor=color)
             # determine the limits to use
             xlims.append((plow, phigh, observed_statistic))
             # we want to only extent the distribution where it falls outside of it in the acceptable tail
@@ -1744,8 +1744,7 @@ def plot_comparison_test(results_t, results_w=None, axes=None, plot_args=None):
             ax.axvspan(index - 0.5, index + 0.5, alpha=0.5, facecolor='red')
         else:
             ax.errorbar(index, result_t.observed_statistic,
-                        yerr=numpy.array([[ylow, yhigh]]).T,
-                        color=color,
+                        yerr=numpy.array([[ylow, yhigh]]).T, color=color,
                         linewidth=linewidth, capsize=capsize)
 
             if result_w is not None:
@@ -1887,8 +1886,8 @@ def plot_consistency_test(eval_results, normalize=False, axes=None,
                     _get_marker_style(observed_statistic, (plow, phigh),
                                       one_sided_lower))
             ax.errorbar(mean, index, xerr=percentile_lims,
-                        fmt='ko' * plot_mean,
-                        capsize=capsize, linewidth=linewidth, ecolor=color)
+                        fmt='ko' * plot_mean, capsize=capsize,
+                        linewidth=linewidth, ecolor=color)
             # determine the limits to use
             xlims.append((plow, phigh, observed_statistic))
             # we want to only extent the distribution where it falls outside of it in the acceptable tail
@@ -1989,10 +1988,12 @@ def plot_pvalues_and_intervals(test_results, ax, var=None):
                 mean = test_results[i].test_distribution[1]
                 upsilon = 1.0 - ((variance - mean) / variance)
                 tau = (mean ** 2 / (variance - mean))
-                phigh97 = scipy.stats.nbinom.ppf((1 - percentile / 100.) / 2.,
-                                                 tau, upsilon)
+                phigh97 = scipy.stats.nbinom.ppf(
+                    (1 - percentile / 100.) / 2., tau, upsilon
+                )
                 plow97 = scipy.stats.nbinom.ppf(
-                    1 - (1 - percentile / 100.) / 2., tau, upsilon)
+                    1 - (1 - percentile / 100.) / 2., tau, upsilon
+                )
                 low97 = test_results[i].observed_statistic - plow97
                 high97 = phigh97 - test_results[i].observed_statistic
                 ax.errorbar(test_results[i].observed_statistic,

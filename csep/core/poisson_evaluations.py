@@ -11,8 +11,8 @@ from csep.utils.stats import poisson_joint_log_likelihood_ndarray
 from csep.core.exceptions import CSEPCatalogException
 
 
-def paired_t_test(forecast, benchmark_forecast, observed_catalog, alpha=0.05,
-                  scale=False):
+def paired_t_test(forecast, benchmark_forecast, observed_catalog,
+                  alpha=0.05, scale=False):
     """ Computes the t-test for gridded earthquake forecasts.
 
     This score is positively oriented, meaning that positive values of the information gain indicate that the
