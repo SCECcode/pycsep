@@ -1,0 +1,43 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - service.iris.edu
+      User-Agent:
+      - Python-urllib/3.11
+    method: GET
+    uri: https://service.iris.edu/fdsnws/event/1/query?format=text&starttime=2010-02-26T00%3A00%3A00&endtime=2010-03-02T00%3A00%3A00&catalog=GCMT&maxdepth=1000&maxmagnitude=10.0&mindepth=-100&minmagnitude=7&offset=1&orderby=time-asc
+  response:
+    body:
+      string: '#EventID | Time | Latitude | Longitude | Depth/km | Author | Catalog
+        | Contributor | ContributorID | MagType | Magnitude | MagAuthor | EventLocationName
+
+        2844986|2010-02-27T06:35:14|-35.98|-73.15|23.2|GCMT|GCMT||C201002270634A|MW|8.8||OFF
+        COAST OF CENTRAL CHILE
+
+        2845026|2010-02-27T08:01:29|-38.09|-75.41|19.9|GCMT|GCMT||S201002270801A|MW|7.4||OFF
+        COAST OF CENTRAL CHILE
+
+        '
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Access-Control-Expose-Headers:
+      - Access-Control-Allow-Origin,Access-Control-Allow-Credentials
+      Connection:
+      - close
+      Content-Length:
+      - '369'
+      Content-Type:
+      - text/plain
+      Date:
+      - Tue, 16 May 2023 20:08:37 GMT
+      content-disposition:
+      - inline; filename="fdsnws-event_2023-05-16T20:08:38Z.txt"
+    status:
+      code: 200
+      message: ''
+version: 1

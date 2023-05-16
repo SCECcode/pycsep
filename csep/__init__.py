@@ -311,10 +311,11 @@ def query_bsi(start_time, end_time, min_magnitude=2.50,
 
     return bsi
 
+
 def query_gns(start_time, end_time,  min_magnitude=2.950,
-               min_latitude=-47, max_latitude=-34,
-               min_longitude=164, max_longitude=180,
-               max_depth=45.5,
+              min_latitude=-47, max_latitude=-34,
+              min_longitude=164, max_longitude=180,
+              max_depth=45.5,
               verbose=True,
               apply_filters=False, **kwargs):
     """
@@ -360,38 +361,26 @@ def query_gns(start_time, end_time,  min_magnitude=2.950,
 
     return gns
 
-def query_gcmt(start_time, end_time, min_magnitude=5.0, min_depth=None,
+
+def query_gcmt(start_time, end_time, min_magnitude=5.0,
                max_depth=None,
-               catalog_id=None, verbose=True,
+               catalog_id=None,
                min_latitude=None, max_latitude=None,
                min_longitude=None, max_longitude=None):
-    if min_latitude:
-        searchshape = 'RECT'
-    else:
-        searchshape = 'GLOBAL'
-    events, creation_time = readers._query_gcmt(
-        start_year=start_time.year,
-        start_month=start_time.month,
-        start_day=start_time.day,
-        searchshape=searchshape,
-        start_time=start_time.time().isoformat(),
-        end_year=end_time.year,
-        end_month=end_time.month,
-        end_day=end_time.day,
-        end_time=end_time.time().isoformat(),
-        min_mag=min_magnitude,
-        min_dep=min_depth,
-        max_dep=max_depth,
-        left_lon=min_longitude,
-        right_lon=max_longitude,
-        bot_lat=min_latitude,
-        top_lat=max_latitude,
-        verbose=verbose
-    )
-    catalog = catalogs.CSEPCatalog(data=events, name='ISC Bulletin - gCMT',
+
+    eventlist = readers._query_gcmt(start_time=start_time,
+                                     end_time=end_time,
+                                     min_magnitude=min_magnitude,
+                                     min_latitude=min_latitude,
+                                     max_latitude=max_latitude,
+                                     min_longitude=min_longitude,
+                                     max_longitude=max_longitude,
+                                     max_depth=max_depth)
+
+    catalog = catalogs.CSEPCatalog(data=eventlist,
+                                   name='gCMT',
                                    catalog_id=catalog_id,
-                                   date_accessed=creation_time)
-    catalog.filter([f'magnitude >= {min_magnitude}'], in_place=True)
+                                   date_accessed=utc_now_datetime())
     return catalog
 
 

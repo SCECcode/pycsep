@@ -6,10 +6,6 @@ import enum
 import csv
 from itertools import zip_longest
 import os
-import time
-from urllib.parse import urlencode
-from urllib import request as request_
-import xml.etree.ElementTree as ElementTree
 
 # Third-party imports
 import numpy
@@ -19,6 +15,7 @@ from csep.utils.time_utils import strptime_to_utc_datetime, \
     strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
 from csep.utils.geonet import gns_search
+from csep.utils.iris import gcmt_search
 from csep.core.regions import QuadtreeGrid2D
 from csep.core.exceptions import CSEPIOException
 
@@ -572,6 +569,7 @@ def ingv_emrcmt(fname):
 
     return out
 
+
 def ingv_horus(fname):
     """
     Reader for the INGV (Istituto Nazionale di Geofisica e Vulcanologia - Italy)
@@ -702,6 +700,7 @@ def _query_comcat(start_time, end_time, min_magnitude=2.50,
 
     return eventlist
 
+
 def _query_bsi(start_time, end_time, min_magnitude=2.50,
                min_latitude=32.0, max_latitude=50.0,
                min_longitude=2.0, max_longitude=21.0,
@@ -722,7 +721,7 @@ def _query_bsi(start_time, end_time, min_magnitude=2.50,
 
     return eventlist
 
-# Adding GNS catalog reader
+
 def _query_gns(start_time, end_time, min_magnitude=2.950,
                min_latitude=-47, max_latitude=-34,
                min_longitude=164, max_longitude=180,
@@ -746,139 +745,40 @@ def _query_gns(start_time, end_time, min_magnitude=2.950,
     return eventlist
 
 
-
-def _query_gcmt(out_format='QuakeML',
-                request='COMPREHENSIVE',
-                searchshape='GLOBAL',
-                start_year=2020,
-                start_month=1,
-                start_day=1,
-                start_time='00:00:00',
-                end_year=2022,
-                end_month=1,
-                end_day=1,
-                end_time='23:59:59',
-                host=None,
-                include_magnitudes='on',
-                min_mag=5.95,
-                max_mag=None,
-                min_dep=None,
-                max_dep=None,
-                left_lon=None,
-                right_lon=None,
-                bot_lat=None,
-                top_lat=None,
-                req_mag_type='MW',
-                req_mag_agcy='GCMT',
-                verbose=False):
-    """ Return gCMT catalog from ISC online web-portal
-
-        Args:
-            (follow csep.query_comcat for guidance)
-
-        Returns:
-            out (csep.core.catalogs.AbstractBaseCatalog): gCMT catalog
+def _query_gcmt(start_time, end_time, min_magnitude=3.50,
+                min_latitude=None, max_latitude=None,
+                min_longitude=None, max_longitude=None,
+                max_depth=1000, extra_gcmt_params=None):
     """
+    Return GCMT eventlist from IRIS web service.
+    For details see "https://service.iris.edu/fdsnws/event/1/"
+    Args:
+        start_time (datetime.datetime): start time of catalog query
+        end_time (datetime.datetime): end time of catalog query
+        min_magnitude (float): minimum magnitude of query
+        min_latitude (float): minimum latitude of query
+        max_latitude (float): maximum latitude of query
+        min_longitude (float): minimum longitude of query
+        max_longitude (float): maximum longitude of query
+        max_depth (float): maximum depth of query
+        extra_gcmt_params (dict): additional parameters to pass to IRIS search
+         function
 
-    inputargs = locals().copy()
-    query_args = {}
-
-    HOST_CATALOG = "http://www.isc.ac.uk/cgi-bin/web-db-run?"
-    TIMEOUT = 180
-
-    def _search_gcmt(**newargs):
-        """
-        Performs de query at ISC API and returns event list and access date
-
-        """
-        paramstr = urlencode(newargs)
-        url = HOST_CATALOG + paramstr
-
-        try:
-            fh = request_.urlopen(url, timeout=TIMEOUT)
-            data = fh.read().decode('utf8')
-            fh.close()
-
-            try:
-                root = ElementTree.fromstring(data)
-            except Exception as msg:
-                raise Exception('Parse failed for string: %s' % data)
-            ns = root[0].tag.split('}')[0] + '}'
-            creation_time = root[0].find(ns + 'creationInfo').find(
-                ns + 'creationTime').text
-            creation_time = creation_time.replace('T', ' ')
-            events_quakeml = root[0].findall(ns + 'event')
-            events = []
-            for feature in events_quakeml:
-                events.append(_parse_isc_event(feature, ns))
-
-        except ElementTree.ParseError as msg:
-            print('Requested URL:', url)
-            raise Exception('Badly-formed URL. Try downloading again in case '
-                            'the hosting server has a request rate limit'
-                            ' "%s"' % msg)
-
-        except Exception as msg:
-            raise Exception(
-                'Error downloading data from url %s.  "%s".' % (url, msg))
-
-        return events, creation_time, url
-
-    for key, value in inputargs.items():
-        if value is True:
-            query_args[key] = 'true'
-            continue
-        if value is False:
-            query_args[key] = 'false'
-            continue
-        if value is None:
-            continue
-        query_args[key] = value
-
-    del query_args['verbose']
-
-    start_time = time.time()
-    if verbose:
-        print('Accessing ISC API')
-
-    events, creation_time, url = _search_gcmt(**query_args)
-
-    if verbose:
-        print(f'\tAccess URL: {url}')
-        print(
-            f'\tCatalog with {len(events)} events downloaded in '
-            f'{(time.time() - start_time):.2f} seconds')
-
-    return events, creation_time
-
-
-def _parse_isc_event(node, ns, mag_author='GCMT'):
+    Returns:
+        eventlist
     """
-    Parse event list from quakeML returned from ISC
-    """
-    id_ = node.get('publicID').split('=')[-1]
-    magnitudes = node.findall(ns + 'magnitude')
-    mag_gcmt = [i for i in magnitudes if
-                i.find(ns + 'creationInfo')[0].text == mag_author][0]
+    extra_gcmt_params = extra_gcmt_params or {}
 
-    origin_id = mag_gcmt.find(ns + 'originID').text
-    origins = node.findall(ns + 'origin')
+    eventlist = gcmt_search(minmagnitude=min_magnitude,
+                            minlatitude=min_latitude,
+                            maxlatitude=max_latitude,
+                            minlongitude=min_longitude,
+                            maxlongitude=max_longitude,
+                            starttime=start_time.isoformat(),
+                            endtime=end_time.isoformat(),
+                            maxdepth=max_depth, **extra_gcmt_params)
 
-    origin_gcmt = [i for i in origins if i.attrib['publicID'] == origin_id][0]
-
-    lat = origin_gcmt.find(ns + 'latitude').find(ns + 'value').text
-    lon = origin_gcmt.find(ns + 'longitude').find(ns + 'value').text
-    mag = mag_gcmt.find(ns + 'mag').find(ns + 'value').text
-    depth = origin_gcmt.find(ns + 'depth').find(ns + 'value').text
-
-    dtstr = origin_gcmt.find(ns + 'time').find(ns + 'value').text
-    date = dtstr.split('T')[0]
-    time_ = dtstr.split('T')[1][:-1]
-    dtime = datetime_to_utc_epoch(
-        datetime.datetime.fromisoformat(date + ' ' + time_ + '0'))
-
-    return id_, dtime, float(lat), float(lon), float(depth) / 1000., float(mag)
-
+    return eventlist
 
 
 def _parse_datetime_to_zmap(date, time):
@@ -916,6 +816,7 @@ def _parse_datetime_to_zmap(date, time):
         out['minute'] = dt.minute
         out['second'] = dt.second
         return out
+
 
 def quadtree_ascii_loader(ascii_fname):
     """ Load quadtree forecasted stored as ascii text file
