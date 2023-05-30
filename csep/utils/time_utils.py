@@ -1,6 +1,7 @@
 import calendar
 import datetime
 import re
+import os
 import warnings
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR, SECONDS_PER_DAY
 
@@ -17,9 +18,27 @@ def epoch_time_to_utc_datetime(epoch_time_milli):
     """
     if epoch_time_milli is None:
         return epoch_time_milli
+
     epoch_time = epoch_time_milli / 1000
-    dt = datetime.datetime.fromtimestamp(epoch_time, datetime.timezone.utc)
+
+    if os.name == "nt" and epoch_time < 0:
+
+        if isinstance(epoch_time, int):
+            sec = epoch_time
+            milli_sec = 0
+        else:
+            whole, frac = str(epoch_time).split(".")
+            sec = int(whole)
+            milli_sec = int(frac) * -1
+        dt = datetime.datetime(1970, 1, 1) + datetime.timedelta(
+                                    seconds=sec,
+                                    milliseconds=milli_sec
+                                    )
+    else:
+        dt = datetime.datetime.fromtimestamp(epoch_time, datetime.timezone.utc)
+
     return dt
+
 
 def datetime_to_utc_epoch(dt):
     """
@@ -33,7 +52,7 @@ def datetime_to_utc_epoch(dt):
         return dt
 
     if dt.tzinfo is None:
-        dt=dt.replace(tzinfo=datetime.timezone.utc)
+        dt = dt.replace(tzinfo=datetime.timezone.utc)
 
     if str(dt.tzinfo) != 'UTC':
         raise ValueError(f"Timezone info must be UTC. tzinfo={dt.tzinfo}")
@@ -42,13 +61,16 @@ def datetime_to_utc_epoch(dt):
     epoch_time_seconds = (dt - epoch).total_seconds()
     return int(1000.0 * epoch_time_seconds)
 
+
 def millis_to_days(millis):
     """ Converts time in millis to days """
     return millis / SECONDS_PER_DAY / 1000
 
+
 def days_to_millis(days):
     """ Converts days to millis """
     return days * SECONDS_PER_DAY * 1000
+
 
 def strptime_to_utc_epoch(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     """ Returns epoch time from formatted time string """
@@ -56,6 +78,7 @@ def strptime_to_utc_epoch(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
         format = parse_string_format(time_string)
     dt = strptime_to_utc_datetime(time_string, format)
     return datetime_to_utc_epoch(dt)
+
 
 def timedelta_from_years(time_in_years):
     """
@@ -70,6 +93,7 @@ def timedelta_from_years(time_in_years):
     seconds = SECONDS_PER_ASTRONOMICAL_YEAR * time_in_years
     time_delta = datetime.timedelta(seconds=seconds)
     return time_delta
+
 
 def strptime_to_utc_datetime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     """
@@ -91,9 +115,11 @@ def strptime_to_utc_datetime(time_string, format="%Y-%m-%d %H:%M:%S.%f"):
     dt = datetime.datetime.strptime(time_string, format).replace(tzinfo=datetime.timezone.utc)
     return dt
 
+
 def utc_now_datetime():
     """ Returns current datetime """
     return datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+
 
 def utc_now_epoch():
     """ Returns current epoch time """
@@ -104,6 +130,7 @@ def create_utc_datetime(datetime):
     assert datetime.tzinfo is None
     return datetime.replace(tzinfo=datetime.timezone.utc)
 
+
 def parse_string_format(time_string):
     """ Fixes some difficulties with different time formats """
     format = "%Y-%m-%d %H:%M:%S"
@@ -113,8 +140,10 @@ def parse_string_format(time_string):
         format = format + "%z"
     return format
 
+
 class Specifier(str):
     """Model %Y and such in `strftime`'s format string."""
+
     def __new__(cls, *args):
         self = super(Specifier, cls).__new__(cls, *args)
         assert self.startswith('%')
@@ -134,7 +163,9 @@ class Specifier(str):
                 return prefix + str(by)  # replace format
             else:
                 return m.group(0)  # leave unchanged
+
         return self._regex.sub(repl, format)
+
 
 class HistoricTime(datetime.datetime):
 
@@ -156,6 +187,7 @@ class HistoricTime(datetime.datetime):
         assert (future_year % 100) == (year %
                                        100)  # last two digits are the same
         return result
+
 
 def decimal_year(test_date):
     """ Convert given test date to the decimal year representation.
@@ -189,6 +221,7 @@ def decimal_year(test_date):
                                  test_date.minute / mins_per_day +
                                  (test_date.second + test_date.microsecond * 1e-6) / secs_per_day) / num_days_per_year
     return dec_year
+
 
 def decimal_year_to_utc_datetime(decimal_date):
     """ Takes a year specified as a decimal year and returns a datetime object.
@@ -225,7 +258,6 @@ def decimal_year_to_utc_datetime(decimal_date):
     # # finally build date time
     # return datetime.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second), int(microsecond))
 
-
     # Get number of days in the year of specified test date
     year = decimal_date // 1
     year_frac = decimal_date % 1
@@ -249,6 +281,7 @@ def decimal_year_to_utc_datetime(decimal_date):
     # combine to get datetime representation of date
     final_dt = (dt + td).replace(tzinfo=datetime.timezone.utc)
     return final_dt
+
 
 def decimal_year_to_utc_epoch(decimal_date):
     """ Converts decimal year to epoch year format used by catalogs.
