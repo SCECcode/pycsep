@@ -11,13 +11,7 @@ dependencies:
   - pyproj
   - obspy
   - python-dateutil
-  - pytest
   - cartopy
   - shapely
-  - sphinx
-  - sphinx-gallery
-  - sphinx_rtd_theme
-  - pillow
-  - vcrpy
   - mercantile
 
