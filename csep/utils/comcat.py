@@ -313,7 +313,8 @@ def _search(**newargs):
 
     except URLError as URLe:
         # Fails to verify SSL certificate, when there is a hostname mismatch
-        if isinstance(URLe.reason, ssl.SSLCertVerificationError) and URLe.reason.verify_code == 62:
+        if (isinstance(URLe.reason, ssl.SSLCertVerificationError) and URLe.reason.verify_code == 62) \
+                or (isinstance(URLe.reason, ssl.SSLError) and URLe.reason.errno == 5):
             try:
                 context = ssl._create_unverified_context()
                 fh = request.urlopen(url, timeout=TIMEOUT, context=context)
