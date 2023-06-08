@@ -15,7 +15,8 @@ from csep.utils.time_utils import epoch_time_to_utc_datetime, datetime_to_utc_ep
 from csep.utils.stats import min_or_none, max_or_none
 from csep.utils.calc import discretize
 from csep.core.regions import CartesianGrid2D
-from csep.utils.comcat import SummaryEvent
+import csep.utils.comcat as comcat
+import csep.utils.geonet as geonet
 from csep.core.exceptions import CSEPSchedulerException, CSEPCatalogException, CSEPIOException
 from csep.utils.calc import bin1d_vec
 from csep.utils.constants import CSEP_MW_BINS
@@ -82,16 +83,16 @@ class AbstractBaseCatalog(LoggingMixin):
 
         s = f'''
         Name: {self.name}
-        
+
         Start Date: {self.start_time}
         End Date: {self.end_time}
-        
+
         Latitude: ({self.min_latitude}, {self.max_latitude})
         Longitude: ({self.min_longitude}, {self.max_longitude})
-        
+
         Min Mw: {self.min_magnitude}
         Max Mw: {self.max_magnitude}
-        
+
         Event Count: {self.event_count}
         '''
         return s
@@ -286,7 +287,7 @@ class AbstractBaseCatalog(LoggingMixin):
         if isinstance(self.catalog[0], (list, tuple)):
             for i, event in enumerate(self.catalog):
                 catalog[i] = tuple(event)
-        elif isinstance(self.catalog[0], SummaryEvent):
+        elif isinstance(self.catalog[0], (comcat.SummaryEvent, geonet.SummaryEvent)):
             for i, event in enumerate(self.catalog):
                 catalog[i] = (event.id, datetime_to_utc_epoch(event.time),
                               event.latitude, event.longitude, event.depth, event.magnitude)
@@ -623,7 +624,7 @@ class AbstractBaseCatalog(LoggingMixin):
             return self
 
         # this is used to index the array, starting with accepting all events
-        filter = numpy.ones(self.event_count, dtype=numpy.bool)
+        filter = numpy.ones(self.event_count, dtype=bool)
         for i, (mw, time) in enumerate(zip(mws, times)):
             # we can break bc events are sorted in time
             if time > t_crit_epoch:
@@ -737,16 +738,16 @@ class AbstractBaseCatalog(LoggingMixin):
         """ Return counts of events in space-magnitude region.
 
         We figure out the index of the polygons and create a map that relates the spatial coordinate in the
-        Cartesian grid with with the polygon in region.
+        Cartesian grid with the polygon in region.
 
         Args:
-            mag_bins: magnitude bins (optional). tries to use magnitue bins associated with region
+            mag_bins (list, numpy.array): magnitude bins (optional), if empty tries to use magnitude bins associated with region
+            tol (float): tolerance for comparisons within magnitude bins
 
         Returns:
             output: unnormalized event count in each bin, 1d ndarray where index corresponds to midpoints
 
         """
-
         # make sure region is specified with catalog
         if self.region is None:
             raise CSEPCatalogException("Cannot create binned rates without region information.")
@@ -784,8 +785,8 @@ class AbstractBaseCatalog(LoggingMixin):
         If that fails, uses the default magnitude bins provided in constants.
 
         Args:
-            reterr (bool): returns errors
             mag_bins (list or array_like): monotonically increasing set of magnitude bin edges
+            return_error (bool): returns errors
 
         Returns:
             bval (float): b-value
@@ -823,6 +824,10 @@ class AbstractBaseCatalog(LoggingMixin):
             return (bval, err)
         else:
             return bval
+
+    def b_positive(self):
+        """ Implements the b-positive indicator from Nicholas van der Elst """
+        pass
 
     def plot(self, ax=None, show=False, extent=None, set_global=False, plot_args=None):
         """ Plot catalog according to plate-carree projection
@@ -1028,9 +1033,10 @@ class CSEPCatalog(AbstractBaseCatalog):
                         raise ValueError(
                             "catalog_id should be monotonically increasing and events should be ordered by catalog_id")
                 # yield final catalog, note: since this is just loading catalogs, it has no idea how many should be there
-                yield cls(data=events, catalog_id=prev_id, **kwargs)
+                cat = cls(data=events, catalog_id=prev_id, **kwargs)
+                yield cat
 
-        if os.path.isdir(filename):
+        elif os.path.isdir(filename):
             raise NotImplementedError("reading from directory or batched files not implemented yet!")
 
     @classmethod

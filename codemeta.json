@@ -9,7 +9,7 @@
     "downloadUrl": "https://github.com/SCECcode/pycsep",
     "issueTracker": "https://github.com/SCECcode/pycsep/issues",
     "name": "pyCSEP",
-    "version": "v0.6.0",
+    "version": "v0.6.1",
     "description": "The pyCSEP Toolkit helps earthquake forecast model developers evaluate their forecasts with the goal of understanding earthquake predictability.",
     "applicationCategory": "Seismology",
     "developmentStatus": "active",
@@ -30,7 +30,7 @@
         "NumPy 1.21.3 or later (https://numpy.org)",
         "SciPy 1.7.1 or later (https://scipy.org)",
         "pandas 1.3.4 or later (https://pandas.pydata.org)",
-        "cartopy 0.20.0 or later (https://scitools.org.uk/cartopy/docs/latest)",
+        "cartopy 0.21.5 or later (https://scitools.org.uk/cartopy/docs/latest)",
         "GEOS 3.7.2 or later (https://trac.osgeo.org/geos/)",
         "PROJ 8.0.0 or later (https://proj.org/)"
     ],

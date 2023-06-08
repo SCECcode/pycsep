@@ -1,0 +1,46 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - webservices.rm.ingv.it
+      User-Agent:
+      - Python-urllib/3.10
+    method: GET
+    uri: https://webservices.rm.ingv.it/fdsnws/event/1/query?format=geojson&starttime=2009-04-06T00%3A00%3A00&endtime=2009-04-07T00%3A00%3A00&limit=15000&maxdepth=1000&maxmagnitude=10.0&mindepth=-100&minmagnitude=5.5&offset=0&orderby=time-asc&eventtype=earthquake
+  response:
+    body:
+      string: '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"eventId":1895389,"originId":755599,"time":"2009-04-06T01:32:40.400000","author":"BULLETIN-SISPICK","magType":"Mw","mag":6.1,"magAuthor":"--","type":"earthquake","place":"2
+        km SW L''Aquila (AQ)","version":1000,"geojson_creationTime":"2022-09-21T12:14:55"},"geometry":{"type":"Point","coordinates":[13.38,42.342,8.3]}}]}'
+    headers:
+      Access-Control-Allow-Origin:
+      - '*'
+      Cache-Control:
+      - public, max-age=60
+      Connection:
+      - close
+      Content-Type:
+      - application/json
+      Date:
+      - Wed, 21 Sep 2022 12:14:55 GMT
+      Server:
+      - nginx
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Accept-Encoding
+      - Accept-Encoding
+      X-Cache-Status:
+      - MISS
+      X-RateLimit-Limit:
+      - '10'
+      X-RateLimit-Reset:
+      - '1'
+      X-UA-Compatible:
+      - IE=Edge
+    status:
+      code: 200
+      message: OK
+version: 1

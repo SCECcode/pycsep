@@ -21,6 +21,7 @@ def get_datadir():
     data_dir = os.path.join(root_dir, 'artifacts', 'example_csep1_forecasts')
     return data_dir
 
+
 class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -61,8 +62,8 @@ class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
         test_evaluation_dict['event_count_forecast'] = fore.event_count
         test_evaluation_dict['event_count'] = cata.event_count
         # comparing floats, so we will just map to ndarray and use allclose
-        expected = numpy.array([v for k,v in result_dict.items()])
-        computed = numpy.array([v for k,v in test_evaluation_dict.items()])
+        expected = numpy.array([v for k, v in result_dict.items()])
+        computed = numpy.array([v for k, v in test_evaluation_dict.items()])
         numpy.testing.assert_allclose(expected, computed, rtol=1e-5)
 
 
@@ -82,13 +83,13 @@ class TestCSEP1NTestThreeMonthsEEPAS(unittest.TestCase):
             xml_result['event_count'] = float(child.find('ns0:eventCount', ns).text)
         return xml_result
 
+
 class TestGriddedForecastTests(unittest.TestCase):
 
-
     def test_n_test(self):
-        forecast = numpy.zeros((10,10))+0.0015
+        forecast = numpy.zeros((10, 10))+0.0015
         forecast = forecast / forecast.size
-        observation = numpy.zeros((10,10))
+        observation = numpy.zeros((10, 10))
         expected_output = (1.0, 0.9985011244377109)
         print('N Test: Running Unit Test')
         numpy.testing.assert_allclose(_number_test_ndarray(forecast.sum(), observation.sum()), expected_output)
@@ -116,18 +117,18 @@ class TestGriddedForecastTests(unittest.TestCase):
         the equations from
 
         """
-        forecast_A = numpy.array([[8, 2], [3, 5]])
-        forecast_B = numpy.array([[6, 4], [2, 8]])
+        forecast_a = numpy.array([[8, 2], [3, 5]])
+        forecast_b = numpy.array([[6, 4], [2, 8]])
         obs = numpy.array([[5, 8], [4, 2]])
 
-        t_test_expected = {'t_critical': 2.10092204024096,
-                           't_statistic': 1.5385261717159382,
+        t_test_expected = {'t_statistic': 1.5385261717159382,
+                           't_critical': 2.10092204024096,
                            'information_gain': 0.08052612477654024,
                            'ig_lower': -0.029435677283374914,
                            'ig_upper': 0.19048792683645538}
-
-        print('T Test: Running Unit Test')
-        self.assertEqual(_t_test_ndarray(forecast_A, forecast_B, numpy.sum(obs), forecast_A.sum(), forecast_B.sum()), t_test_expected, 'Failed T Test')
+        numpy.testing.assert_allclose(
+            [v for k, v in _t_test_ndarray(forecast_a, forecast_b, numpy.sum(obs), forecast_a.sum(), forecast_b.sum()).items()],
+            [v for k, v in t_test_expected.items()])
 
 
 if __name__ == '__main__':

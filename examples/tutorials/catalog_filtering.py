@@ -30,8 +30,9 @@ from csep.utils import time_utils, comcat
 # Load catalog
 # ------------
 #
-# PyCSEP provides access to the ComCat web API using :func:`csep.query_comcat`. This function requires a
-# :class:`datetime.datetime` to specify the start and end dates.
+# PyCSEP provides access to the ComCat web API using :func:`csep.query_comcat` and to the Bollettino Sismico Italiano
+# API using :func:`csep.query_bsi`. These functions require a :class:`datetime.datetime` to specify the start and end
+# dates.
 
 start_time = csep.utils.time_utils.strptime_to_utc_datetime('2019-01-01 00:00:00.0')
 end_time = csep.utils.time_utils.utc_now_datetime()

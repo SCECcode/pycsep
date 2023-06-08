@@ -40,7 +40,7 @@ def test_JmaCsvCatalog_loading():
     # assert (d[0].timestamp() * 1000.) == c.observed_catalog['timestamp'][0]
 
     _datetimes = numpy.ndarray(test_catalog.event_count, dtype='<i8')
-    _datetimes.fill(numpy.nan)
+    # _datetimes.fill(numpy.nan)
 
     for _idx, _val in enumerate(_dummy):
         _datetimes[_idx] = round(1000. * _val.timestamp())

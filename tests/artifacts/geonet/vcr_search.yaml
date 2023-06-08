@@ -1,0 +1,56 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - quakesearch.geonet.org.nz
+      User-Agent:
+      - Python-urllib/3.7
+    method: GET
+    uri: https://quakesearch.geonet.org.nz/geojson?&bbox=164%2C-47%2C180%2C-34&minmag=4&maxdepth=45.5&startdate=2023-02-01T00%3A00%3A00&enddate=2023-02-10T00%3A00%3A00
+  response:
+    body:
+      string: '{"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[175.7054138,-37.58729935]},"properties":{"publicid":"2023p087955","eventtype":"earthquake","origintime":"2023-02-02T13:02:43.493Z","modificationtime":"2023-02-17T00:21:34.988Z","depth":5.955107212,"magnitude":4.795154627,"magnitudetype":"MLv","evaluationmethod":"LOCSAT","evaluationstatus":"confirmed","evaluationmode":"manual","earthmodel":"iasp91","usedphasecount":35,"usedstationcount":25,"minimumdistance":0.04634241387,"azimuthalgap":62.78924561,"magnitudeuncertainty":0.2653529139,"originerror":0.3295216371,"magnitudestationcount":110}}]}'
+    headers:
+      Accept-Ranges:
+      - bytes
+      Access-Control-Allow-Methods:
+      - GET
+      Access-Control-Allow-Origin:
+      - '*'
+      Age:
+      - '0'
+      Connection:
+      - close
+      Content-Length:
+      - '645'
+      Content-Security-Policy:
+      - 'base-uri ''none''; frame-ancestors ''self''; object-src ''none''; default-src
+        ''none''; script-src ''self''; connect-src ''self'' https://*.geonet.org.nz
+        https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com;
+        frame-src ''self'' https://www.youtube.com https://www.google.com; form-action
+        ''self'' https://*.geonet.org.nz; img-src ''self'' *.geonet.org.nz data: https://*.google-analytics.com
+        https://*.googletagmanager.com; font-src ''self'' https://fonts.gstatic.com;
+        style-src ''self'';'
+      Content-Type:
+      - application/vnd.geo+json
+      Date:
+      - Tue, 28 Mar 2023 16:20:00 GMT
+      Referrer-Policy:
+      - no-referrer
+      Strict-Transport-Security:
+      - max-age=63072000
+      Vary:
+      - Accept-Encoding
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - DENY
+      X-Xss-Protection:
+      - 1; mode=block
+    status:
+      code: 200
+      message: OK
+version: 1
