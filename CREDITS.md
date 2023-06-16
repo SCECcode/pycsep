@@ -13,5 +13,7 @@ Contributors:
 * Max Werner, University of Bristol
 * Danijel Schorlemmner, GFZ Potsdam
 * Philip Maechling, Southern California Earthquake Center
+* Fabio Silva, Southern Caifornia Earthquake Center
+* Kenny Graham, GNS Science
 
 Thanks to everyone for all your contributions! 
