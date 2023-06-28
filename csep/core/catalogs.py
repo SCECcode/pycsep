@@ -325,7 +325,7 @@ class AbstractBaseCatalog(LoggingMixin):
             write_string = 'a'
         else:
             write_string = 'w'
-        with open(filename, write_string) as outfile:
+        with open(filename, write_string, newline='') as outfile:
             writer = csv.DictWriter(outfile, fieldnames=header, delimiter=',')
             if write_header:
                 writer.writeheader()
