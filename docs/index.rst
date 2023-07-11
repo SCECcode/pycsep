@@ -80,7 +80,9 @@ Contacting Us
 
 List of Contributors
 --------------------
-* (Lead) William Savran ``wsavran [at] usc [dot] edu``
+* Fabio Silva, Southern California Earthquake Center
+* Philip Maechling, Southern California Earthquake Center
+* William Savran, University of Nevada, Reno
 * Pablo Iturrieta, GFZ Potsdam
 * Khawaja Asim, GFZ Potsdam
 * Han Bao, University of California, Los Angeles
@@ -91,7 +93,6 @@ List of Contributors
 * Edric Pauk, Southern California Earthquake Center
 * Max Werner, University of Bristol
 * Danijel Schorlemmner, GFZ Potsdam
-* Philip Maechling, Southern California Earthquake Center
 
 
 
