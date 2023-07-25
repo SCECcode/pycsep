@@ -1,3 +1,16 @@
+# v0.6.2 (6/16/2023)
+
+# Change-log
+Fixed an error-bar bug for normalized consistency plots ([#222](https://github.com/SCECcode/pycsep/pull/222))
+Fixed handles URL exception or SSL verifications errors for both python 3.8 and 3.11 inclusive ([#231](https://github.com/SCECcode/pycsep/pull/231))
+Included CMT Catalog accessor ([#217](https://github.com/SCECcode/pycsep/pull/217))
+Added NZ catalog reader ([#213](https://github.com/SCECcode/pycsep/pull/213))
+
+## Credits
+Pablo Iturrieta (@pabloitu)
+Kenny Graham (@KennyGraham1)
+Fabio Silva (@fabiolsilva)
+
 # v0.6.1 (12/12/2022)
 
 # Change-log
