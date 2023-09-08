@@ -1,0 +1,51 @@
+name: docs
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build_docs:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: mamba-org/setup-micromamba@v1
+        with:
+          generate-run-shell: true
+          environment-file: requirements.yml
+          create-args: >-
+            python=3.10
+            pillow
+            sphinx
+            sphinx-gallery
+            sphinx-rtd-theme
+
+      - name: Install pyCSEP
+        run: |
+          pip install --no-deps -e .
+          python -c "import csep; print('Version: ', csep.__version__)"
+
+      - name: Build documentation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          export SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+          make -C docs clean
+          make -C docs html
+          doc_root=`mktemp -d`
+          rsync -av "docs/_build/html/" "${doc_root}/"
+          pushd "${doc_root}"
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git init
+          git remote add deploy "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git checkout -b gh-pages
+          echo "Empty README.md for documenation cache." > README.md
+          echo "docs.cseptesting.org" > CNAME
+          git add .
+          git commit -am "Updating pyCSEP docs for commit ${GITHUB_SHA} made on `date -d"@{SOURCE_DATE_EPOCH} --iso-8601=seconds` from ${GITHUB_REF} by ${GITHUB_ACTOR}"
+          git push deploy gh-pages --force
