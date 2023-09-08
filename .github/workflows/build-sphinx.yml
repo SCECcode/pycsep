@@ -18,7 +18,7 @@ jobs:
           generate-run-shell: true
           environment-file: requirements.yml
           create-args: >-
-            python=3.10
+            python=3.9
             pillow
             sphinx
             sphinx-gallery
