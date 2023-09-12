@@ -1,6 +1,7 @@
 import calendar
 import datetime
 import re
+import os
 import warnings
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR, SECONDS_PER_DAY
 
@@ -17,8 +18,25 @@ def epoch_time_to_utc_datetime(epoch_time_milli):
     """
     if epoch_time_milli is None:
         return epoch_time_milli
+
     epoch_time = epoch_time_milli / 1000
-    dt = datetime.datetime.fromtimestamp(epoch_time, datetime.timezone.utc)
+
+    if os.name == "nt" and epoch_time < 0:
+
+        if isinstance(epoch_time, int):
+            sec = epoch_time
+            milli_sec = 0
+        else:
+            whole, frac = str(epoch_time).split(".")
+            sec = int(whole)
+            milli_sec = int(frac) * -1
+        dt = datetime.datetime(1970, 1, 1) + datetime.timedelta(
+                                    seconds=sec,
+                                    milliseconds=milli_sec
+                                    )
+    else:
+        dt = datetime.datetime.fromtimestamp(epoch_time, datetime.timezone.utc)
+
     return dt
 
 def datetime_to_utc_epoch(dt):

@@ -50,5 +50,8 @@ class TestTimeUtilities(TestCase):
         test_year = decimal_year(epoch_time_to_utc_datetime(epoch))
         self.assertAlmostEqual(year, test_year)
 
-
-
+    def test_negative_epoch(self):
+        year = 1969.12315213421321321
+        epoch = decimal_year_to_utc_epoch(year)
+        test_year = decimal_year(epoch_time_to_utc_datetime(epoch))
+        self.assertAlmostEqual(year, test_year)
