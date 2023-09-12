@@ -11,8 +11,11 @@ import os
 import numpy
 
 # PyCSEP imports
-from csep.utils.time_utils import strptime_to_utc_datetime, strptime_to_utc_epoch, datetime_to_utc_epoch
+from csep.utils.time_utils import strptime_to_utc_datetime, \
+    strptime_to_utc_epoch, datetime_to_utc_epoch
 from csep.utils.comcat import search
+from csep.utils.geonet import gns_search
+from csep.utils.iris import gcmt_search
 from csep.core.regions import QuadtreeGrid2D
 from csep.core.exceptions import CSEPIOException
 
@@ -27,6 +30,7 @@ def ndk(filename):
     Args:
         filename: file or file-like object
     """
+
     # this function first parses the data into a human readable dict with appropriate values and then finally returns a
     # CSEP catalog object.
 
@@ -286,14 +290,15 @@ def ndk(filename):
         except (ValueError, IOError):
             # exc = traceback.format_exc()
             msg = (
-                "Could not parse event %i (faulty file?). Will be "
-                "skipped." % (_i + 1))
+                    "Could not parse event %i (faulty file?). Will be "
+                    "skipped." % (_i + 1))
             warnings.warn(msg, RuntimeWarning)
             continue
 
         # Assemble the time for the reference origin.
         try:
-            date_time_dict = _parse_datetime_to_zmap(record["date"], record["time"])
+            date_time_dict = _parse_datetime_to_zmap(record["date"],
+                                                     record["time"])
         except ValueError:
             msg = ("Invalid time in event %i. '%s' and '%s' cannot be "
                    "assembled to a valid time. Event will be skipped.") % \
@@ -420,16 +425,19 @@ def csep_ascii(fname, return_catalog_id=False):
 
     def parse_datetime(dt_string):
         try:
-            origin_time = strptime_to_utc_epoch(dt_string, format='%Y-%m-%dT%H:%M:%S.%f')
+            origin_time = strptime_to_utc_epoch(dt_string,
+                                                format='%Y-%m-%dT%H:%M:%S.%f')
             return origin_time
         except:
             pass
         try:
-            origin_time = strptime_to_utc_epoch(dt_string, format='%Y-%m-%dT%H:%M:%S')
+            origin_time = strptime_to_utc_epoch(dt_string,
+                                                format='%Y-%m-%dT%H:%M:%S')
             return origin_time
         except:
             pass
-        raise CSEPIOException("Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
+        raise CSEPIOException(
+            "Supported time-string formats are '%Y-%m-%dT%H:%M:%S.%f' and '%Y-%m-%dT%H:%M:%S'")
 
     with open(fname, 'r', newline='') as input_file:
         catalog_reader = csv.reader(input_file, delimiter=',')
@@ -466,6 +474,7 @@ def csep_ascii(fname, return_catalog_id=False):
             return events
         else:
             return events, catalog_id
+
 
 def ingv_emrcmt(fname):
     """
@@ -521,8 +530,9 @@ def ingv_emrcmt(fname):
                 date_time_dict = _parse_datetime_to_zmap(date,
                                                          time + '.' + sec_frac)
             except ValueError:
-                msg = ("Could not parse date/time string '%s' and '%s' to a valid "
-                       "time" % (line[ind['date']], line[ind['time']]))
+                msg = (
+                        "Could not parse date/time string '%s' and '%s' to a valid "
+                        "time" % (line[ind['date']], line[ind['time']]))
                 warnings.warn(msg, RuntimeWarning)
                 continue
 
@@ -548,16 +558,17 @@ def ingv_emrcmt(fname):
                 out.append(event_tuple)
             else:
                 pass
-            
-        rep_events = [i for i in range(len(evcat_id)) if i not in 
-                          numpy.unique(numpy.array(evcat_id), 
-                                       return_index=True)[1]]
+
+        rep_events = [i for i in range(len(evcat_id)) if i not in
+                      numpy.unique(numpy.array(evcat_id),
+                                   return_index=True)[1]]
         for rep_id in rep_events:
             out.pop(rep_id)
         print('Removed %i badly formatted events' % (n + 1 - n_event))
         print('Removed %i repeated events' % len(rep_events))
-        
+
     return out
+
 
 def ingv_horus(fname):
     """
@@ -578,24 +589,24 @@ def ingv_horus(fname):
 
     """
 
-    ind = {'year': (0,"<i4"),
-           'month': (1,"<i4"),
-           'day': (2,"<i4"),
-           'hour': (3,"<i4"),
-           'minute': (4,"<i4"),
-           'second': (5,"<f4"),
+    ind = {'year': (0, "<i4"),
+           'month': (1, "<i4"),
+           'day': (2, "<i4"),
+           'hour': (3, "<i4"),
+           'minute': (4, "<i4"),
+           'second': (5, "<f4"),
            'lat': (6, "<f4"),
-           'lon': (7,"<f4"),
-           'depth': (8,"<f4"),
-           'Mw': (9,"<f4")}
+           'lon': (7, "<f4"),
+           'depth': (8, "<f4"),
+           'Mw': (9, "<f4")}
     out = []
-    
+
     data = numpy.genfromtxt(fname, skip_header=1,
-                            names=ind.keys(), 
+                            names=ind.keys(),
                             usecols=[i[0] for i in ind.values()],
                             dtype=[i[1] for i in ind.values()])
     for n, line in enumerate(data):
-        dt = datetime.timedelta(0,0,0)
+        dt = datetime.timedelta(0, 0, 0)
         if line['second'] >= 60.:
             line['second'] -= 60.
             dt += datetime.timedelta(minutes=1)
@@ -606,23 +617,24 @@ def ingv_horus(fname):
             dt += datetime.timedelta(days=1)
             line['hour'] -= 24.
         time = datetime.datetime(
-                                int(line['year']),
-                                int(line['month']),
-                                int(line['day']),
-                                int(line['hour']),
-                                int(line['minute']),
-                                int(line['second'])
-                               ) + dt
+            int(line['year']),
+            int(line['month']),
+            int(line['day']),
+            int(line['hour']),
+            int(line['minute']),
+            int(line['second'])
+        ) + dt
         event_tuple = (time,
                        datetime_to_utc_epoch(time),
                        float(line["lat"]),
                        float(line["lon"]),
                        float(line["depth"]),
                        float(line["Mw"])
-                       )   
+                       )
         out.append(event_tuple)
 
     return out
+
 
 def jma_csv(fname):
     """ Read catalog stored in pre-processed JMA comma separated values format.
@@ -632,7 +644,8 @@ def jma_csv(fname):
     # template for timestamp format in JMA csv file:
     _timestamp_template = '%Y-%m-%dT%H:%M:%S.%f%z'
     # helper function to parse the timestamps:
-    parse_date_string = lambda x: round(1000. * datetime.datetime.strptime(x, _timestamp_template).timestamp())
+    parse_date_string = lambda x: round(
+        1000. * datetime.datetime.strptime(x, _timestamp_template).timestamp())
     # helper function to determine if line is a header
     is_header_line = lambda x: True if x[0] == 'timestamp' else False
     # parse csv into formatted eventlist
@@ -654,9 +667,11 @@ def jma_csv(fname):
             is_first_event = False
     return events
 
+
 def _query_comcat(start_time, end_time, min_magnitude=2.50,
-                 min_latitude=31.50, max_latitude=43.00,
-                 min_longitude=-125.40, max_longitude=-113.10, extra_comcat_params=None):
+                  min_latitude=31.50, max_latitude=43.00,
+                  min_longitude=-125.40, max_longitude=-113.10,
+                  max_depth=1000, extra_comcat_params=None):
     """
     Return eventlist from ComCat web service.
 
@@ -668,6 +683,7 @@ def _query_comcat(start_time, end_time, min_magnitude=2.50,
         max_latitude (float): maximum latitude of query
         min_longitude (float): minimum longitude of query
         max_longitude (float): maximum longitude of query
+        max_depth (float): maximum depth of query
         extra_comcat_params (dict): additional parameters to pass to comcat search function
 
     Returns:
@@ -677,11 +693,93 @@ def _query_comcat(start_time, end_time, min_magnitude=2.50,
 
     # get eventlist from Comcat
     eventlist = search(minmagnitude=min_magnitude,
-        minlatitude=min_latitude, maxlatitude=max_latitude,
-        minlongitude=min_longitude, maxlongitude=max_longitude,
-        starttime=start_time, endtime=end_time, **extra_comcat_params)
+                       minlatitude=min_latitude, maxlatitude=max_latitude,
+                       minlongitude=min_longitude, maxlongitude=max_longitude,
+                       starttime=start_time, endtime=end_time,
+                       maxdepth=max_depth, **extra_comcat_params)
 
     return eventlist
+
+
+def _query_bsi(start_time, end_time, min_magnitude=2.50,
+               min_latitude=32.0, max_latitude=50.0,
+               min_longitude=2.0, max_longitude=21.0,
+               max_depth=1000, extra_bsi_params=None):
+    """
+    Queries INGV Bulletino Sismico Italiano, revised version.
+    :return: csep.core.Catalog object
+    """
+    extra_bsi_params = extra_bsi_params or {}
+    bsi_host = 'webservices.rm.ingv.it'
+    extra_bsi_params.update({'host': bsi_host, 'limit': 15000, 'offset': 0})
+    # get eventlist from Comcat
+    eventlist = search(minmagnitude=min_magnitude,
+                       minlatitude=min_latitude, maxlatitude=max_latitude,
+                       minlongitude=min_longitude, maxlongitude=max_longitude,
+                       maxdepth=max_depth,
+                       starttime=start_time, endtime=end_time, **extra_bsi_params)
+
+    return eventlist
+
+
+def _query_gns(start_time, end_time, min_magnitude=2.950,
+               min_latitude=-47, max_latitude=-34,
+               min_longitude=164, max_longitude=180,
+               max_depth=45.5, extra_gns_params=None):
+    """
+    Queries GNS catalog.
+    :return: csep.core.Catalog object
+    """
+    extra_gns_params = extra_gns_params or {}
+    geonet_host = 'service.geonet.org.nz'
+    extra_gns_params.update({'host': geonet_host, 'limit': 15000, 'offset': 0})
+    # get eventlist from Comcat
+    eventlist = gns_search(minmagnitude=min_magnitude,
+                       minlatitude=min_latitude,
+                       maxlatitude=max_latitude,
+                       minlongitude=min_longitude,
+                       maxlongitude=max_longitude,
+                       maxdepth=max_depth,
+                       starttime=start_time,
+                       endtime=end_time)
+    return eventlist
+
+
+def _query_gcmt(start_time, end_time, min_magnitude=3.50,
+                min_latitude=None, max_latitude=None,
+                min_longitude=None, max_longitude=None,
+                max_depth=1000, extra_gcmt_params=None):
+    """
+    Return GCMT eventlist from IRIS web service.
+    For details see "https://service.iris.edu/fdsnws/event/1/"
+    Args:
+        start_time (datetime.datetime): start time of catalog query
+        end_time (datetime.datetime): end time of catalog query
+        min_magnitude (float): minimum magnitude of query
+        min_latitude (float): minimum latitude of query
+        max_latitude (float): maximum latitude of query
+        min_longitude (float): minimum longitude of query
+        max_longitude (float): maximum longitude of query
+        max_depth (float): maximum depth of query
+        extra_gcmt_params (dict): additional parameters to pass to IRIS search
+         function
+
+    Returns:
+        eventlist
+    """
+    extra_gcmt_params = extra_gcmt_params or {}
+
+    eventlist = gcmt_search(minmagnitude=min_magnitude,
+                            minlatitude=min_latitude,
+                            maxlatitude=max_latitude,
+                            minlongitude=min_longitude,
+                            maxlongitude=max_longitude,
+                            starttime=start_time.isoformat(),
+                            endtime=end_time.isoformat(),
+                            maxdepth=max_depth, **extra_gcmt_params)
+
+    return eventlist
+
 
 def _parse_datetime_to_zmap(date, time):
         """ Helping function to return datetime in zmap format.
@@ -718,6 +816,7 @@ def _parse_datetime_to_zmap(date, time):
         out['minute'] = dt.minute
         out['second'] = dt.second
         return out
+
 
 def quadtree_ascii_loader(ascii_fname):
     """ Load quadtree forecasted stored as ascii text file

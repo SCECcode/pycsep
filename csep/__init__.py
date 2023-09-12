@@ -61,7 +61,9 @@ __all__ = [
     '__version__'
 ]
 
-def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
+
+def load_stochastic_event_sets(filename, type='csv', format='native',
+                               **kwargs):
     """ General function to load stochastic event sets
 
     This function returns a generator to iterate through a collection of catalogs.
@@ -106,7 +108,8 @@ def load_stochastic_event_sets(filename, type='csv', format='native', **kwargs):
             raise ValueError('format must be either "native" or "csep!')
 
 
-def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_filters=False, **kwargs):
+def load_catalog(filename, type='csep-csv', format='native', loader=None,
+                 apply_filters=False, **kwargs):
     """ General function to load single catalog
 
     See corresponding class documentation for additional parameters.
@@ -122,9 +125,12 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_
     Returns (:class:`~csep.core.catalogs.AbstractBaseCatalog`)
     """
 
-
-    if type not in ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ingv_horus', 'ingv_emrcmt', 'ndk') and loader is None:
-        raise ValueError("type must be one of the following: ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk', 'ingv_horus', 'ingv_emrcmt').")
+    if type not in (
+            'ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ingv_horus',
+            'ingv_emrcmt',
+            'ndk') and loader is None:
+        raise ValueError(
+            "type must be one of the following: ('ucerf3', 'csep-csv', 'zmap', 'jma-csv', 'ndk', 'ingv_horus', 'ingv_emrcmt').")
 
     # map to correct catalog class, at some point these could be abstracted into configuration file
     # this maps a human readable string to the correct catalog class and the correct loader function
@@ -167,7 +173,8 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_
         if loader is None:
             loader = class_loader_mapping[type]['loader']
 
-        catalog = catalog_class.load_catalog(filename=filename, loader=loader, **kwargs)
+        catalog = catalog_class.load_catalog(filename=filename, loader=loader,
+                                             **kwargs)
 
     # convert to csep format if needed
     if format == 'native':
@@ -188,7 +195,9 @@ def load_catalog(filename, type='csep-csv', format='native', loader=None, apply_
 
 def query_comcat(start_time, end_time, min_magnitude=2.50,
                  min_latitude=31.50, max_latitude=43.00,
-                 min_longitude=-125.40, max_longitude=-113.10, verbose=True,
+                 min_longitude=-125.40, max_longitude=-113.10,
+                 max_depth=1000,
+                 verbose=True,
                  apply_filters=False, **kwargs):
     """
     Access Comcat catalog through web service
@@ -201,21 +210,25 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
         max_latitude: max latitude of bounding box
         min_longitude: min latitude of bounding box
         max_longitude: max longitude of bounding box
-        region: :class:`csep.core.regions.CartesianGrid2D
+        max_depth: maximum depth of the bounding box
         verbose (bool): print catalog summary statistics
 
     Returns:
-        :class:`csep.core.catalogs.ComcatCatalog
+        :class:`csep.core.catalogs.CSEPCatalog
     """
 
     # Timezone should be in UTC
     t0 = time.time()
     eventlist = readers._query_comcat(start_time=start_time, end_time=end_time,
-                           min_magnitude=min_magnitude,
-                           min_latitude=min_latitude, max_latitude=max_latitude,
-                           min_longitude=min_longitude, max_longitude=max_longitude)
+                                      min_magnitude=min_magnitude,
+                                      min_latitude=min_latitude,
+                                      max_latitude=max_latitude,
+                                      min_longitude=min_longitude,
+                                      max_longitude=max_longitude,
+                                      max_depth=max_depth)
     t1 = time.time()
-    comcat = catalogs.CSEPCatalog(data=eventlist, date_accessed=utc_now_datetime(), **kwargs)
+    comcat = catalogs.CSEPCatalog(data=eventlist,
+                                  date_accessed=utc_now_datetime(), **kwargs)
     print("Fetched ComCat catalog in {} seconds.\n".format(t1 - t0))
 
     if apply_filters:
@@ -226,13 +239,150 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
 
     if verbose:
         print("Downloaded catalog from ComCat with following parameters")
-        print("Start Date: {}\nEnd Date: {}".format(str(comcat.start_time), str(comcat.end_time)))
-        print("Min Latitude: {} and Max Latitude: {}".format(comcat.min_latitude, comcat.max_latitude))
-        print("Min Longitude: {} and Max Longitude: {}".format(comcat.min_longitude, comcat.max_longitude))
+        print("Start Date: {}\nEnd Date: {}".format(str(comcat.start_time),
+                                                    str(comcat.end_time)))
+        print(
+            "Min Latitude: {} and Max Latitude: {}".format(comcat.min_latitude,
+                                                           comcat.max_latitude))
+        print("Min Longitude: {} and Max Longitude: {}".format(
+            comcat.min_longitude, comcat.max_longitude))
         print("Min Magnitude: {}".format(comcat.min_magnitude))
         print(f"Found {comcat.event_count} events in the ComCat catalog.")
 
     return comcat
+
+
+def query_bsi(start_time, end_time, min_magnitude=2.50,
+              min_latitude=32.0, max_latitude=50.0,
+              min_longitude=2.0, max_longitude=21.0,
+              max_depth=1000,
+              verbose=True,
+              apply_filters=False, **kwargs):
+    """
+    Access BSI catalog through web service
+
+    Args:
+        start_time: datetime object of start of catalog
+        end_time: datetime object for end of catalog
+        min_magnitude: minimum magnitude to query
+        min_latitude:  maximum magnitude to query
+        max_latitude: max latitude of bounding box
+        min_longitude: min latitude of bounding box
+        max_longitude: max longitude of bounding box
+        max_depth: maximum depth of the bounding box
+        verbose (bool): print catalog summary statistics
+
+    Returns:
+        :class:`csep.core.catalogs.CSEPCatalog
+    """
+
+    # Timezone should be in UTC
+    t0 = time.time()
+    eventlist = readers._query_bsi(start_time=start_time, end_time=end_time,
+                                   min_magnitude=min_magnitude,
+                                   min_latitude=min_latitude,
+                                   max_latitude=max_latitude,
+                                   min_longitude=min_longitude,
+                                   max_longitude=max_longitude,
+                                   max_depth=max_depth)
+    t1 = time.time()
+    bsi = catalogs.CSEPCatalog(data=eventlist,
+                               date_accessed=utc_now_datetime(), **kwargs)
+    print("Fetched BSI catalog in {} seconds.\n".format(t1 - t0))
+
+    if apply_filters:
+        try:
+            bsi = bsi.filter().filter_spatial()
+        except CSEPCatalogException:
+            bsi = bsi.filter()
+
+    if verbose:
+        print(
+            "Downloaded catalog from Bollettino Sismico Italiano (BSI) with following parameters")
+        print("Start Date: {}\nEnd Date: {}".format(str(bsi.start_time),
+                                                    str(bsi.end_time)))
+        print("Min Latitude: {} and Max Latitude: {}".format(bsi.min_latitude,
+                                                             bsi.max_latitude))
+        print(
+            "Min Longitude: {} and Max Longitude: {}".format(bsi.min_longitude,
+                                                             bsi.max_longitude))
+        print("Min Magnitude: {}".format(bsi.min_magnitude))
+        print(f"Found {bsi.event_count} events in the BSI catalog.")
+
+    return bsi
+
+
+def query_gns(start_time, end_time,  min_magnitude=2.950,
+              min_latitude=-47, max_latitude=-34,
+              min_longitude=164, max_longitude=180,
+              max_depth=45.5,
+              verbose=True,
+              apply_filters=False, **kwargs):
+    """
+    Access GNS Science catalog through web service
+
+    Args:
+        start_time: datetime object of start of catalog
+        end_time: datetime object for end of catalog
+        min_magnitude: minimum magnitude to query
+        min_latitude:  maximum magnitude to query
+        max_latitude: max latitude of bounding box
+        min_longitude: min latitude of bounding box
+        max_longitude: max longitude of bounding box
+        max_depth: maximum depth of the bounding box
+        verbose (bool): print catalog summary statistics
+
+    Returns:
+        :class:`csep.core.catalogs.CSEPCatalog
+    """
+
+    # Timezone should be in UTC
+    t0 = time.time()
+    eventlist = readers._query_gns(start_time=start_time, end_time=end_time,
+                                   min_magnitude=min_magnitude,
+                                   min_latitude=min_latitude, max_latitude=max_latitude,
+                                   min_longitude=min_longitude, max_longitude=max_longitude,
+                                   max_depth=max_depth)
+    t1 = time.time()
+    gns = catalogs.CSEPCatalog(data=eventlist, date_accessed=utc_now_datetime())
+    if apply_filters:
+        try:
+            gns = gns.filter().filter_spatial()
+        except CSEPCatalogException:
+            gns = gns.filter()
+
+    if verbose:
+        print("Downloaded catalog from GNS Science NZ (GNS) with following parameters")
+        print("Start Date: {}\nEnd Date: {}".format(str(gns.start_time), str(gns.end_time)))
+        print("Min Latitude: {} and Max Latitude: {}".format(gns.min_latitude, gns.max_latitude))
+        print("Min Longitude: {} and Max Longitude: {}".format(gns.min_longitude, gns.max_longitude))
+        print("Min Magnitude: {}".format(gns.min_magnitude))
+        print(f"Found {gns.event_count} events in the gns catalog.")
+
+    return gns
+
+
+def query_gcmt(start_time, end_time, min_magnitude=5.0,
+               max_depth=None,
+               catalog_id=None,
+               min_latitude=None, max_latitude=None,
+               min_longitude=None, max_longitude=None):
+
+    eventlist = readers._query_gcmt(start_time=start_time,
+                                     end_time=end_time,
+                                     min_magnitude=min_magnitude,
+                                     min_latitude=min_latitude,
+                                     max_latitude=max_latitude,
+                                     min_longitude=min_longitude,
+                                     max_longitude=max_longitude,
+                                     max_depth=max_depth)
+
+    catalog = catalogs.CSEPCatalog(data=eventlist,
+                                   name='gCMT',
+                                   catalog_id=catalog_id,
+                                   date_accessed=utc_now_datetime())
+    return catalog
+
 
 def load_evaluation_result(fname):
     """ Load evaluation result stored as json file
@@ -257,7 +407,8 @@ def load_evaluation_result(fname):
             evaluation_type = json_dict['type']
         except:
             evaluation_type = 'default'
-    eval_result = evaluation_result_factory[evaluation_type].from_dict(json_dict)
+    eval_result = evaluation_result_factory[evaluation_type].from_dict(
+        json_dict)
     return eval_result
 
 
@@ -300,15 +451,18 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
 
     # sanity checks
     if not os.path.exists(fname):
-        raise FileNotFoundError(f"Could not locate file {fname}. Unable to load forecast.")
+        raise FileNotFoundError(
+            f"Could not locate file {fname}. Unable to load forecast.")
     # sanity checks
     if loader is not None and not callable(loader):
-        raise AttributeError("Loader must be callable. Unable to load forecast.")
+        raise AttributeError(
+            "Loader must be callable. Unable to load forecast.")
     extension = os.path.splitext(fname)[-1][1:]
     if extension not in forecast_loader_mapping.keys() and loader is None:
-        raise AttributeError("File extension should be in ('dat','xml','h5','bin') if loader not provided.")
+        raise AttributeError(
+            "File extension should be in ('dat','xml','h5','bin') if loader not provided.")
 
-    if extension in ('xml','h5','bin'):
+    if extension in ('xml', 'h5', 'bin'):
         raise NotImplementedError
 
     # assign default loader
@@ -321,7 +475,8 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
     return forecast
 
 
-def load_catalog_forecast(fname, catalog_loader=None, format='native', type='ascii', **kwargs):
+def load_catalog_forecast(fname, catalog_loader=None, format='native',
+                          type='ascii', **kwargs):
     """ General function to handle loading catalog forecasts.
 
         Currently, just a simple wrapper, but can contain more complex logic in the future.
@@ -340,10 +495,12 @@ def load_catalog_forecast(fname, catalog_loader=None, format='native', type='asc
     """
     # sanity checks
     if not os.path.exists(fname):
-        raise FileNotFoundError(f"Could not locate file {fname}. Unable to load forecast.")
+        raise FileNotFoundError(
+            f"Could not locate file {fname}. Unable to load forecast.")
     # sanity checks
     if catalog_loader is not None and not callable(catalog_loader):
-        raise AttributeError("Loader must be callable. Unable to load forecast.")
+        raise AttributeError(
+            "Loader must be callable. Unable to load forecast.")
     # factory methods for loading different types of catalogs
     catalog_loader_mapping = {
         'ascii': catalogs.CSEPCatalog.load_ascii_catalogs,
@@ -352,17 +509,18 @@ def load_catalog_forecast(fname, catalog_loader=None, format='native', type='asc
     if catalog_loader is None:
         catalog_loader = catalog_loader_mapping[type]
     # try and parse information from filename and send to forecast constructor
-    if format == 'native' and type=='ascii':
+    if format == 'native' and type == 'ascii':
         try:
             basename = str(os.path.basename(fname.rstrip('/')).split('.')[0])
             split_fname = basename.split('_')
             name = split_fname[0]
-            start_time = strptime_to_utc_datetime(split_fname[1], format="%Y-%m-%dT%H-%M-%S-%f")
+            start_time = strptime_to_utc_datetime(split_fname[1],
+                                                  format="%Y-%m-%dT%H-%M-%S-%f")
             # update kwargs
             _ = kwargs.setdefault('name', name)
             _ = kwargs.setdefault('start_time', start_time)
         except:
             pass
     # create observed_catalog forecast
-    return CatalogForecast(filename=fname, loader=catalog_loader, catalog_format=format, catalog_type=type, **kwargs)
-
+    return CatalogForecast(filename=fname, loader=catalog_loader,
+                           catalog_format=format, catalog_type=type, **kwargs)

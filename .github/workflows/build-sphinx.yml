@@ -13,17 +13,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: mamba-org/setup-micromamba@v1
         with:
-          python-version: '3.10'
-          activate-environment: csep-dev
-          channels: conda-forge
-
-      - name: Install dependencies
-        run: |
-          conda env update --file requirements.yml
-          conda info -a
-          conda list
+          generate-run-shell: true
+          environment-file: requirements.yml
+          create-args: >-
+            python=3.9
+            pillow
+            sphinx
+            sphinx-gallery
+            sphinx-rtd-theme
 
       - name: Install pyCSEP
         run: |

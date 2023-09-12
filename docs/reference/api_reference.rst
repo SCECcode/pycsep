@@ -16,6 +16,7 @@ Loading catalogs and forecasts
    load_stochastic_event_sets
    load_catalog
    query_comcat
+   query_bsi
    load_gridded_forecast
    load_catalog_forecast
 

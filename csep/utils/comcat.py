@@ -1,8 +1,9 @@
 # python imports
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib import request
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse, urlencode
+import ssl
 import json
 import time
 from collections import OrderedDict
@@ -293,6 +294,40 @@ def _search(**newargs):
             except Exception as msg:
                 raise Exception(
                     'Error downloading data from url %s.  "%s".' % (url, msg))
+
+    except ssl.SSLCertVerificationError as SSLe:
+        # Fails to verify SSL certificate, when there is a hostname mismatch
+        if SSLe.verify_code == 62:
+            try:
+                context = ssl._create_unverified_context()
+                fh = request.urlopen(url, timeout=TIMEOUT, context=context)
+                data = fh.read().decode('utf8')
+                fh.close()
+                jdict = json.loads(data)
+                events = []
+                for feature in jdict['features']:
+                    events.append(SummaryEvent(feature))
+            except Exception as msg:
+                raise Exception(
+                    'Error downloading data from url %s.  "%s".' % (url, msg))
+
+    except URLError as URLe:
+        # Fails to verify SSL certificate, when there is a hostname mismatch
+        if (isinstance(URLe.reason, ssl.SSLCertVerificationError) and URLe.reason.verify_code == 62) \
+                or (isinstance(URLe.reason, ssl.SSLError) and URLe.reason.errno == 5):
+            try:
+                context = ssl._create_unverified_context()
+                fh = request.urlopen(url, timeout=TIMEOUT, context=context)
+                data = fh.read().decode('utf8')
+                fh.close()
+                jdict = json.loads(data)
+                events = []
+                for feature in jdict['features']:
+                    events.append(SummaryEvent(feature))
+            except Exception as msg:
+                raise Exception(
+                    'Error downloading data from url %s.  "%s".' % (url, msg))
+
     except Exception as msg:
         raise Exception(
             'Error downloading data from url %s.  "%s".' % (url, msg))
@@ -358,7 +393,11 @@ class SummaryEvent(object):
         Returns:
             str: Authoritative origin ID.
         """
-        return self._jdict['id']
+        ## comcat has an id key in each feature, whereas bsi has eventId within the properties dict
+        try:
+            return self._jdict['id']
+        except:
+            return self._jdict['properties']['eventId']
 
     @property
     def time(self):
@@ -367,6 +406,10 @@ class SummaryEvent(object):
             datetime: Authoritative origin time.
         """
         time_in_msec = self._jdict['properties']['time']
+        # Comcat gives the event time in a ms timestamp, whereas bsi in datetime isoformat
+        if isinstance(time_in_msec, str):
+            event_dtime = datetime.fromisoformat(time_in_msec).replace(tzinfo=timezone.utc)
+            time_in_msec = event_dtime.timestamp() * 1000
         time_in_sec = time_in_msec // 1000
         msec = time_in_msec - (time_in_sec * 1000)
         dtime = datetime.utcfromtimestamp(time_in_sec)

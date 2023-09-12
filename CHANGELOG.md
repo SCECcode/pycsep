@@ -1,7 +1,42 @@
+# v0.6.2 (6/16/2023)
+
+# Change-log
+Fixed an error-bar bug for normalized consistency plots ([#222](https://github.com/SCECcode/pycsep/pull/222))
+Fixed handles URL exception or SSL verifications errors for both python 3.8 and 3.11 inclusive ([#231](https://github.com/SCECcode/pycsep/pull/231))
+Included CMT Catalog accessor ([#217](https://github.com/SCECcode/pycsep/pull/217))
+Added NZ catalog reader ([#213](https://github.com/SCECcode/pycsep/pull/213))
+
+## Credits
+Pablo Iturrieta (@pabloitu)
+Kenny Graham (@KennyGraham1)
+Fabio Silva (@fabiolsilva)
+
+# v0.6.1 (12/12/2022)
+
+# Change-log
+Added quadtree csv reader ([#186](https://github.com/SCECcode/pycsep/pull/186))  
+Non-Poissonian tests
+([#189](https://github.com/SCECcode/pycsep/pull/189),
+[#205](https://github.com/SCECcode/pycsep/pull/205),
+[#208](https://github.com/SCECcode/pycsep/pull/208),
+[#209](https://github.com/SCECcode/pycsep/pull/209))  
+Added plots for p-values, and confidence ranges for consistency tests ([#190](https://github.com/SCECcode/pycsep/pull/190))    
+Added NZ testing and collection regions ([#198](https://github.com/SCECcode/pycsep/pull/198))  
+Fixed region border plotting issue ([#199](https://github.com/SCECcode/pycsep/pull/199))  
+Added documentation for non-Poissonian tests ([#202](https://github.com/SCECcode/pycsep/pull/202))  
+Support for BSI catalog ([#201](https://github.com/SCECcode/pycsep/pull/201))  
+Fixed compatibility with new version of matplotlib ([#206](https://github.com/SCECcode/pycsep/pull/206))
+
+## Credits
+Pablo Iturrieta (@pabloitu)  
+Jose Bayona (@bayonato89)  
+Khawaja Asim (@khawajasim)  
+William Savran (@wsavran)
+
 # v0.6.0 (02/04/2022)
 
 ## Change-log
-Adds support for quadtree regions [#184](https://github.com/SCECcode/pycsep/pull/184)
+Adds support for quadtree regions ([#184](https://github.com/SCECcode/pycsep/pull/184))
 
 ## Credits
 Khawaja Asim (@khawajasim)  
