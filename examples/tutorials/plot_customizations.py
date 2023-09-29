@@ -119,9 +119,9 @@ plot_args = {'figsize': (10,6), 'coastline':True, 'feature_color':'black',
 # To plot a global forecast, we must assign the option ``set_global=True``, which is required by :ref:cartopy to handle
 # internally the extent of the plot
 
-ax = plots.plot_spatial_dataset(numpy.log10(rate_sum), forecast.region,
-                                show=True, set_global=True,
-                                plot_args=plot_args)
+# ax = plots.plot_spatial_dataset(numpy.log10(rate_sum), forecast.region,
+#                                show=True, set_global=True,
+#                                plot_args=plot_args)
 
 ####################################################################################################################################
 
