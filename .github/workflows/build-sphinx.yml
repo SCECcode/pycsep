@@ -39,6 +39,9 @@ jobs:
           doc_root=`mktemp -d`
           rsync -av "docs/_build/html/" "${doc_root}/"
           pushd "${doc_root}"
+          echo "${doc_root}"
+          echo "${GITHUB_ACTOR}"
+          echo "${GITHUB_REPOSITORY}"
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           git init
