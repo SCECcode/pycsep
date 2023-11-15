@@ -98,9 +98,10 @@ We recommend using ``conda`` to install the development environment. ::
     cd pycsep
     conda env create -f requirements.yml
     conda activate csep-dev
-    pip install -e .
+    pip install -e .[all]
     # Allow sync with default repository
     git remote add upstream https://github.com/SCECCode/pycsep.git
 
+This ensures to have a clean installation of ``pyCSEP`` and the required developer dependencies (e.g., ``pytest``, ``sphinx``).
 Now you can pull from upstream using ``git pull upstream master`` to keep your copy of the repository in sync with the
 latest commits.
