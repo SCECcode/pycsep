@@ -1856,9 +1856,9 @@ def plot_consistency_test(eval_results, normalize=False, axes=None,
             mean = res.test_distribution[1]
             upsilon = 1.0 - ((var - mean) / var)
             tau = (mean ** 2 / (var - mean))
-            phigh = scipy.stats.nbinom.ppf((1 - percentile / 100.) / 2., tau,
+            plow = scipy.stats.nbinom.ppf((1 - percentile / 100.) / 2., tau,
                                            upsilon)
-            plow = scipy.stats.nbinom.ppf(1 - (1 - percentile / 100.) / 2.,
+            phigh = scipy.stats.nbinom.ppf(1 - (1 - percentile / 100.) / 2.,
                                           tau, upsilon)
 
         # empirical distributions
