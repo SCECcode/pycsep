@@ -107,7 +107,7 @@ rate_sum = forecast.region.get_cartesian(rate_sum)
 # We define the arguments and a global projection, centered at $lon=-180$
 
 plot_args = {'figsize': (10,6), 'coastline':True, 'feature_color':'black',
-             'projection': cartopy.crs.Robinson(central_longitude=-179.0),
+             'projection': cartopy.crs.Robinson(central_longitude=180.0),
              'title': forecast.name, 'grid_labels': False,
              'cmap': 'magma',
              'clabel': r'$\log_{10}\lambda\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
@@ -119,9 +119,9 @@ plot_args = {'figsize': (10,6), 'coastline':True, 'feature_color':'black',
 # To plot a global forecast, we must assign the option ``set_global=True``, which is required by :ref:cartopy to handle
 # internally the extent of the plot
 
-# ax = plots.plot_spatial_dataset(numpy.log10(rate_sum), forecast.region,
-#                                show=True, set_global=True,
-#                                plot_args=plot_args)
+ax = plots.plot_spatial_dataset(numpy.log10(rate_sum), forecast.region,
+                               show=True, set_global=True,
+                               plot_args=plot_args)
 
 ####################################################################################################################################
 
