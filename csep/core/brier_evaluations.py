@@ -1,49 +1,42 @@
 import numpy
-import scipy.stats
-import scipy.spatial
+import numpy as np
+from scipy.stats import poisson
 
 from csep.models import EvaluationResult
 from csep.core.exceptions import CSEPCatalogException
 
 
-def bier_score_ndarray(forecast, observations):
+def _brier_score_ndarray(forecast, observations):
     """ Computes the brier score
     """
-
-    observations = (observations >= 1).astype(int)
-    prob_success = 1 - scipy.stats.poisson.cdf(0, forecast)
-    brier = []
-
-    for p, o in zip(prob_success.ravel(), observations.ravel()):
-
-        if o == 0:
-            brier.append(-2 * p ** 2)
-        else:
-            brier.append(-2 * (p - 1) ** 2)
-    brier = numpy.sum(brier)
+    prob_success = 1 - poisson.cdf(0, forecast)
+    brier_cell = np.square(prob_success.ravel() - (observations.ravel() > 0))
+    brier = -2 * brier_cell.sum()
 
     for n_dim in observations.shape:
         brier /= n_dim
-
     return brier
 
 
-def _simulate_catalog(sim_cells, sampling_weights, sim_fore, random_numbers=None):
-    # Modified this code to generate simulations in a way that every cell gets one earthquake
-    # Generate uniformly distributed random numbers in [0,1), this
+def _simulate_catalog(sim_cells, sampling_weights, random_numbers=None):
+    sim_fore = numpy.zeros(sampling_weights.shape)
+
     if random_numbers is None:
         # Reset simulation array to zero, but don't reallocate
         sim_fore.fill(0)
         num_active_cells = 0
         while num_active_cells < sim_cells:
             random_num = numpy.random.uniform(0,1)
-            loc = numpy.searchsorted(sampling_weights, random_num, side='right')
+            loc = numpy.searchsorted(sampling_weights, random_num,
+                                     side='right')
             if sim_fore[loc] == 0:
                 sim_fore[loc] = 1
-                num_active_cells = num_active_cells + 1
+                num_active_cells += 1
     else:
-        # Find insertion points using binary search inserting to satisfy a[i-1] <= v < a[i]
-        pnts = numpy.searchsorted(sampling_weights, random_numbers, side='right')
+        # Find insertion points using binary search inserting
+        # to satisfy a[i-1] <= v < a[i]
+        pnts = numpy.searchsorted(sampling_weights, random_numbers,
+                                  side='right')
         # Create simulated catalog by adding to the original locations
         numpy.add.at(sim_fore, pnts, 1)
 
@@ -51,46 +44,45 @@ def _simulate_catalog(sim_cells, sampling_weights, sim_fore, random_numbers=None
     return sim_fore
 
 
-def _brier_score_test(forecast_data, observed_data, num_simulations=1000, random_numbers=None,
-                            seed=None, use_observed_counts=True, verbose=True):
-    """  Computes binary conditional-likelihood test from CSEP using an efficient simulation based approach.
+def _brier_score_test(forecast_data, observed_data, num_simulations=1000,
+                      random_numbers=None, seed=None, verbose=True):
+    """  Computes binary conditional-likelihood test from CSEP using an
+    efficient simulation based approach.
 
     Args:
 
     """
-
     # Array-masking that avoids log singularities:
     forecast_data = numpy.ma.masked_where(forecast_data <= 0.0, forecast_data)
 
     # set seed for the likelihood test
     if seed is not None:
         numpy.random.seed(seed)
+    import time
+    start = time.process_time()
 
-    # used to determine where simulated earthquake should be placed, by definition of cumsum these are sorted
-    sampling_weights = numpy.cumsum(forecast_data.ravel()) / numpy.sum(forecast_data)
+    # used to determine where simulated earthquake should
+    # be placed, by definition of cumsum these are sorted
+    sampling_weights = (numpy.cumsum(forecast_data.ravel()) /
+                        numpy.sum(forecast_data))
 
     # data structures to store results
-    sim_fore = numpy.zeros(sampling_weights.shape)
     simulated_brier = []
     n_active_cells = len(numpy.unique(numpy.nonzero(observed_data.ravel())))
+    num_cells_to_simulate = int(n_active_cells)
 
     # main simulation step in this loop
     for idx in range(num_simulations):
-        if use_observed_counts:
-            num_cells_to_simulate = int(n_active_cells)
-
         if random_numbers is None:
             sim_fore = _simulate_catalog(num_cells_to_simulate,
-                                         sampling_weights,
-                                         sim_fore)
+                                         sampling_weights)
         else:
             sim_fore = _simulate_catalog(num_cells_to_simulate,
                                          sampling_weights,
-                                         sim_fore,
                                          random_numbers=random_numbers[idx, :])
 
         # compute Brier score
-        current_brier = bier_score_ndarray(forecast_data.data, sim_fore)
+        current_brier = _brier_score_ndarray(forecast_data.data, sim_fore)
 
         # append to list of simulated Brier score
         simulated_brier.append(current_brier)
@@ -100,8 +92,7 @@ def _brier_score_test(forecast_data, observed_data, num_simulations=1000, random
             if (idx + 1) % 100 == 0:
                 print(f'... {idx + 1} catalogs simulated.')
 
-    # observed Brier score
-    obs_brier = bier_score_ndarray(forecast_data.data, observed_data)
+    obs_brier = _brier_score_ndarray(forecast_data.data, observed_data)
 
     # quantile score
     qs = numpy.sum(simulated_brier <= obs_brier) / num_simulations
@@ -116,10 +107,12 @@ def brier_score_test(gridded_forecast,
                      seed=None,
                      random_numbers=None,
                      verbose=False):
-    """ Performs the Brier conditional test on Gridded Forecast using an Observed Catalog.
-
-    Normalizes the forecast so the forecasted rate are consistent with the observations. This modification
-    eliminates the strong impact differences in the number distribution have on the forecasted rates.
+    """ Performs the Brier conditional test on Gridded Forecast using an
+    Observed Catalog.
+    Normalizes the forecast so the forecasted rate are consistent with the
+     observations. This modification
+    eliminates the strong impact differences in the number distribution
+     have on the forecasted rates.
 
     """
 
@@ -137,7 +130,6 @@ def brier_score_test(gridded_forecast,
         num_simulations=num_simulations,
         seed=seed,
         random_numbers=random_numbers,
-        use_observed_counts=True,
         verbose=verbose
     )
 
