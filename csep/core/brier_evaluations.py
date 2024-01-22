@@ -7,8 +7,22 @@ from csep.core.exceptions import CSEPCatalogException
 
 
 def _brier_score_ndarray(forecast, observations):
-    """ Computes the brier score
+    """ Computes the brier (binary) score for spatial-magnitude cells
+    using the formula:
+
+    Q(Lambda, Sigma) = 1/N sum_{i=1}^N (Lambda_i - Ind(Sigma_i > 0 ))^2
+
+    where Lambda is the forecast array, Sigma is the observed catalog, N the
+    number of spatial-magnitude cells and Ind is the indicator function, which
+    is 1 if Sigma_i > 0 and 0 otherwise.
+
+    Args:
+        forecast: 2d array of forecasted rates
+        observations: 2d array of observed counts
+    Returns
+        brier: float, brier score
     """
+
     prob_success = 1 - poisson.cdf(0, forecast)
     brier_cell = np.square(prob_success.ravel() - (observations.ravel() > 0))
     brier = -2 * brier_cell.sum()
@@ -19,6 +33,18 @@ def _brier_score_ndarray(forecast, observations):
 
 
 def _simulate_catalog(sim_cells, sampling_weights, random_numbers=None):
+    """
+    Simulates a catalog by sampling from the sampling_weights array.
+    Identical to binomial_evaluations._simulate_catalog
+
+    Args:
+        sim_cells:
+        sampling_weights:
+        random_numbers:
+
+    Returns:
+
+    """
     sim_fore = numpy.zeros(sampling_weights.shape)
 
     if random_numbers is None:
@@ -46,10 +72,19 @@ def _simulate_catalog(sim_cells, sampling_weights, random_numbers=None):
 
 def _brier_score_test(forecast_data, observed_data, num_simulations=1000,
                       random_numbers=None, seed=None, verbose=True):
-    """  Computes binary conditional-likelihood test from CSEP using an
-    efficient simulation based approach.
+    """  Computes the Brier consistency test conditional on the total observed
+    number of events
 
     Args:
+        forecast_data: 2d array of forecasted rates for spatial_magnitude cells
+        observed_data: 2d array of a catalog resampled to spatial_magnitude
+            cells
+        num_simulations: number of synthetic catalog simulations
+        random_numbers: numpy array of random numbers to use for simulation
+        seed: seed for random number generator
+        verbose: print status updates
+
+
 
     """
     # Array-masking that avoids log singularities:
@@ -58,8 +93,6 @@ def _brier_score_test(forecast_data, observed_data, num_simulations=1000,
     # set seed for the likelihood test
     if seed is not None:
         numpy.random.seed(seed)
-    import time
-    start = time.process_time()
 
     # used to determine where simulated earthquake should
     # be placed, by definition of cumsum these are sorted
@@ -93,7 +126,6 @@ def _brier_score_test(forecast_data, observed_data, num_simulations=1000,
                 print(f'... {idx + 1} catalogs simulated.')
 
     obs_brier = _brier_score_ndarray(forecast_data.data, observed_data)
-
     # quantile score
     qs = numpy.sum(simulated_brier <= obs_brier) / num_simulations
 
@@ -107,13 +139,11 @@ def brier_score_test(gridded_forecast,
                      seed=None,
                      random_numbers=None,
                      verbose=False):
-    """ Performs the Brier conditional test on Gridded Forecast using an
-    Observed Catalog.
-    Normalizes the forecast so the forecasted rate are consistent with the
-     observations. This modification
-    eliminates the strong impact differences in the number distribution
-     have on the forecasted rates.
-
+    """
+    Performs the Brier conditional test on a Gridded Forecast using an
+    Observed Catalog. Normalizes the forecast so the forecasted rate are
+    consistent with the observations. This modification eliminates the strong
+    impact differences in the number distribution have on the forecasted rates.
     """
 
     # grid catalog onto spatial grid
