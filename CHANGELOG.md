@@ -1,14 +1,32 @@
+# v0.6.3 (2/1/2024)
+
+# Change-log
+
+Added test for Winodws 10 on GitHub actions ([#244](https://github.com/SCECcode/pycsep/pull/244))  
+Removed shading in plotting fewer than 3 forecasts ([#247](https://github.com/SCECcode/pycsep/pull/247))  
+Fixed tutorial for plot_customizations ([#242](https://github.com/SCECcode/pycsep/pull/242))  
+Fixed negative binomial consistency plots now have the correct boundaries ([#245](https://github.com/SCECcode/pycsep/pull/245))  
+Changed environment build of pypi-publish from miniconda to micromamba ([#238](https://github.com/SCECcode/pycsep/pull/238))  
+Fixed negative timestamps parsing for Windows ([#230](https://github.com/SCECcode/pycsep/pull/230))  
+Fixed writing catalog csv files on Windows ([#235](https://github.com/SCECcode/pycsep/pull/235))
+
+## Credits
+Pablo Iturrieta (@pabloitu)  
+William Savran (@wsavran)  
+Philip Maechling (@pjmaechling)  
+Fabio Silva (@fabiolsilva)
+
 # v0.6.2 (6/16/2023)
 
 # Change-log
-Fixed an error-bar bug for normalized consistency plots ([#222](https://github.com/SCECcode/pycsep/pull/222))
-Fixed handles URL exception or SSL verifications errors for both python 3.8 and 3.11 inclusive ([#231](https://github.com/SCECcode/pycsep/pull/231))
-Included CMT Catalog accessor ([#217](https://github.com/SCECcode/pycsep/pull/217))
+Fixed an error-bar bug for normalized consistency plots ([#222](https://github.com/SCECcode/pycsep/pull/222))  
+Fixed handles URL exception or SSL verifications errors for both python 3.8 and 3.11 inclusive ([#231](https://github.com/SCECcode/pycsep/pull/231))  
+Included CMT Catalog accessor ([#217](https://github.com/SCECcode/pycsep/pull/217))  
 Added NZ catalog reader ([#213](https://github.com/SCECcode/pycsep/pull/213))
 
 ## Credits
-Pablo Iturrieta (@pabloitu)
-Kenny Graham (@KennyGraham1)
+Pablo Iturrieta (@pabloitu)  
+Kenny Graham (@KennyGraham1)  
 Fabio Silva (@fabiolsilva)
 
 # v0.6.1 (12/12/2022)

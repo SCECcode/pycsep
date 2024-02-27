@@ -1,9 +1,7 @@
 import unittest
 import csep
-
-
+from csep.utils.time_utils import datetime_to_utc_epoch
 import os.path
-
 import numpy
 
 def get_datadir():
@@ -43,8 +41,9 @@ def test_JmaCsvCatalog_loading():
     # _datetimes.fill(numpy.nan)
 
     for _idx, _val in enumerate(_dummy):
-        _datetimes[_idx] = round(1000. * _val.timestamp())
+        _datetimes[_idx] = datetime_to_utc_epoch(_val)
 
     numpy.testing.assert_allclose(_datetimes, test_catalog.catalog['origin_time'],
                                   err_msg='timestamp mismatch',
-                                  verbose=True, rtol=0, atol=0)
+                                  verbose=True,
+                                  rtol=1e-3, atol=0)
