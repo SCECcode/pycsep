@@ -1,4 +1,4 @@
-import datetime
+import datetime, time
 import math
 import re
 import warnings
@@ -885,3 +885,226 @@ def quadtree_csv_loader(csv_fname):
     region = QuadtreeGrid2D.from_quadkeys(quadkeys, magnitudes=mws)
 
     return rates, region, mws
+    
+def mapping_GEAR1(GEAR1_file, area_file, grid_file, b_value=False):
+    """ Projects and extrapolates annual estimates of M 5.95+, depth <= 70 km global seismicity, 
+        provided by the Global Earthquake Activity Rate (GEAR1) model, onto any geographical region 
+        provided its longitude and latitude coordinates and a regional mean b-value.
+        
+        
+    Args:
+        GEAR1_file (str): Original text file containing GEAR1 annual M 5.95+ earthquake rates.
+        
+        area_file (str):  Text file containing calculated areas (in m2) of every 0.1 x 0.1 cell 
+                           on Earth. These estimates are useful to report expected number of earth-
+                           quakes per unit time per unit area.
+        
+        grid_file (str): Two-column, n-row array containing the centered longitude and latitude
+                           coordinates of all the cells (with spatial resolution of 0.1 x 0.1) that 
+                           make up the new testing region. E.g. 25.15,  33.25
+                                                                25.25,  33.25
+                                                                25.35,  33.25
+                           Each lon lat coordinate must be a two-decimal floating number ending in 5, 
+                           i.e., the cell midpoint, as seen above.
+                    
+        b_value (float):   If modellers wish to extroplate GEAR1 M 5.95+ earthquake rates to a lower 
+                           magnitude threshold, they must provide a generic b value of the region.
+                           The default magnitude threshold for extrapolating global rates is 4.95.
+                           Conversely, if modelers do not wish to extrapolate earthquake rates to 
+                           lower magnitudes but only project GEAR1 over a geographic region, the 
+                           b_value variable should remain False.
+
+    Returns
+        GEAR1_region.dat:  Input text file containing GEAR 1 earthquake rates in cells defined within 
+                           the desired geographic region. This file feeds a so-called read_GEAR1_format
+                           function, which translates the format in which the GEAR1 forecasts were 
+                           originally provided into a pyCSEP-friendly format.
+        
+        area_region.dat:   Input text file containing the areas of all the cells defined within the
+                           geographical region. This file also feeds the read_GEAR1_format function 
+                           and is aimed to express earthquake rates densities as expected number of 
+                           earthquakes per year per m2.
+                           
+    
+    """
+    print ('Reading data...')
+    bulk_dataW = np.loadtxt(GEAR1_file, skiprows=1, delimiter=',')
+    bulk_areaW = np.loadtxt(area_file, skiprows=1, delimiter=',')
+    
+    # This part of the code is aimed to ensure that all lon and lat coordinates are two-digits floating 
+    # numbers. This is important, because the projection of GEAR1 onto a geographical region is basically 
+    # the intersection between two Pandas data frames.
+    
+    latitudesW = []
+    longitudesW = []
+
+    for i in range(len(bulk_dataW)):
+        longitudesW.append(np.float('%.2f' % round(bulk_dataW[:,0][i],2))) 
+        latitudesW.append(np.float('%.2f' % round(bulk_dataW[:,1][i],2)))
+    
+    # This is the first Pandas data frame when no extrapolations are needed:
+    if not b_value:    
+        GEAR1 = pd.DataFrame()
+        GEAR1['longitude'] = longitudesW
+        GEAR1['latitude'] = latitudesW
+        GEAR1['m595'] = bulk_dataW[:,2]
+        GEAR1['m605'] = bulk_dataW[:,3]
+        GEAR1['m615'] = bulk_dataW[:,4]
+        GEAR1['m625'] = bulk_dataW[:,5]
+        GEAR1['m635'] = bulk_dataW[:,6]
+        GEAR1['m645'] = bulk_dataW[:,7]
+        GEAR1['m655'] = bulk_dataW[:,8]
+        GEAR1['m665'] = bulk_dataW[:,9]
+        GEAR1['m675'] = bulk_dataW[:,10]
+        GEAR1['m685'] = bulk_dataW[:,11]
+        GEAR1['m695'] = bulk_dataW[:,12]
+        GEAR1['m705'] = bulk_dataW[:,13]
+        GEAR1['m715'] = bulk_dataW[:,14] 
+        GEAR1['m725'] = bulk_dataW[:,15] 
+        GEAR1['m735'] = bulk_dataW[:,16]
+        GEAR1['m745'] = bulk_dataW[:,17] 
+        GEAR1['m755'] = bulk_dataW[:,18] 
+        GEAR1['m765'] = bulk_dataW[:,19] 
+        GEAR1['m775'] = bulk_dataW[:,20] 
+        GEAR1['m785'] = bulk_dataW[:,21] 
+        GEAR1['m795'] = bulk_dataW[:,22]
+        GEAR1['m805'] = bulk_dataW[:,23]
+        GEAR1['m815'] = bulk_dataW[:,24]
+        GEAR1['m825'] = bulk_dataW[:,25]
+        GEAR1['m835'] = bulk_dataW[:,26]
+        GEAR1['m845'] = bulk_dataW[:,27] 
+        GEAR1['m855'] = bulk_dataW[:,28] 
+        GEAR1['m865'] = bulk_dataW[:,29] 
+        GEAR1['m875'] = bulk_dataW[:,30] 
+        GEAR1['m885'] = bulk_dataW[:,31] 
+        GEAR1['m895'] = bulk_dataW[:,32]
+    
+    # But if extrapolations are indeed desired, this is then the first Pandas data frame:
+    else:
+        bv = b_value
+        GEAR1 = pd.DataFrame()
+        GEAR1['longitude'] = longitudesW
+        GEAR1['latitude'] = latitudesW
+        GEAR1['m495'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 4.95)))
+        GEAR1['m505'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 5.05)))
+        GEAR1['m515'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 5.15)))
+        GEAR1['m525'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 5.25)))
+        GEAR1['m535'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 5.35)))
+        GEAR1['m545'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 5.45)))
+        GEAR1['m555'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 5.55)))
+        GEAR1['m565'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 5.65)))
+        GEAR1['m575'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 5.75)))
+        GEAR1['m585'] = bulk_dataW[:,2] / (10**(-bv * (5.95 - 5.85)))
+        GEAR1['m595'] = bulk_dataW[:,2]
+        GEAR1['m605'] = bulk_dataW[:,3]
+        GEAR1['m615'] = bulk_dataW[:,4]
+        GEAR1['m625'] = bulk_dataW[:,5]
+        GEAR1['m635'] = bulk_dataW[:,6]
+        GEAR1['m645'] = bulk_dataW[:,7]
+        GEAR1['m655'] = bulk_dataW[:,8]
+        GEAR1['m665'] = bulk_dataW[:,9]
+        GEAR1['m675'] = bulk_dataW[:,10]
+        GEAR1['m685'] = bulk_dataW[:,11]
+        GEAR1['m695'] = bulk_dataW[:,12]
+        GEAR1['m705'] = bulk_dataW[:,13]
+        GEAR1['m715'] = bulk_dataW[:,14]
+        GEAR1['m725'] = bulk_dataW[:,15]
+        GEAR1['m735'] = bulk_dataW[:,16]
+        GEAR1['m745'] = bulk_dataW[:,17]
+        GEAR1['m755'] = bulk_dataW[:,18]
+        GEAR1['m765'] = bulk_dataW[:,19]
+        GEAR1['m775'] = bulk_dataW[:,20]
+        GEAR1['m785'] = bulk_dataW[:,21]
+        GEAR1['m795'] = bulk_dataW[:,22]
+        GEAR1['m805'] = bulk_dataW[:,23]
+        GEAR1['m815'] = bulk_dataW[:,24]
+        GEAR1['m825'] = bulk_dataW[:,25]
+        GEAR1['m835'] = bulk_dataW[:,26]
+        GEAR1['m845'] = bulk_dataW[:,27]
+        GEAR1['m855'] = bulk_dataW[:,28]
+        GEAR1['m865'] = bulk_dataW[:,29]
+        GEAR1['m875'] = bulk_dataW[:,30]
+        GEAR1['m885'] = bulk_dataW[:,31]
+        GEAR1['m895'] = bulk_dataW[:,32]
+    
+    area = pd.DataFrame()
+    area['longitude'] = longitudesW
+    area['latitude'] = latitudesW
+    area['area'] = bulk_areaW[:,2]
+    
+    # This is simply an artefact to release RAM memory for further computations:
+    bulk_dataW = []
+    latitudesW = []
+    longitudesW = []
+    
+    # This is the second Pandas data frame:
+    bulk_dataR = np.loadtxt(grid_file, skiprows=0, delimiter=' ')
+    
+    grid_longitudes = []
+    grid_latitudes = []
+
+    for i in range(len(bulk_dataR)):
+        grid_longitudes.append(np.float('%.2f' % round(bulk_dataR[:,0][i],2))) 
+        grid_latitudes.append(np.float('%.2f' % round(bulk_dataR[:,1][i],2))) 
+        
+    polygon = pd.DataFrame()
+    polygon['longitude'] = grid_longitudes
+    polygon['latitude'] = grid_latitudes    
+     
+    # And this is how the intersection between both data frames is carried out:    
+    GEAR1_region = pd.merge(polygon, GEAR1, how="inner", on=['longitude', 'latitude'])
+    area_region = pd.merge(polygon, area, how="inner", on=['longitude', 'latitude'])
+    
+    GEAR1_region.to_csv('GEAR1_region.dat')
+    area_region.to_csv('areas_region.dat')
+    
+    print ('The output files have been stored successfully.')
+    
+    
+def read_GEAR1_format(filename, area_filename, magnitudes):
+    """ Reads the format in which GEAR1 forecasts were originally created to translate them into
+        a format that is readable by pyCSEP. This function is designed to be used as a loader for 
+        the GriddedForecast.from_custom function.
+                
+        
+    Args:
+        filename (str):      Text file containing GEAR1 seismicity rates in original format. This 
+                             file is the one of the output products of the mapping_GEAR1 function.
+                         
+        area_filename (str): Text file containing calculated areas (in m2) of 0.1 lon x 0.1 lat cells.
+                             This file is also an output of the mapping_GEAR1 function.
+        
+        magnitudes (array):  Array of magnitude bins in which the seismicity forecast is defined.
+                             E.g., [3.95, 4.05, 4.15, ..., 8.95]
+    
+    Returns:
+        :class:`csep.core.forecasts.GriddedForecast`   
+    """
+    t0 = time.time()
+    bulk_data = np.loadtxt(filename, skiprows=1, delimiter=',')
+    
+    # Construction of the testing region:
+    lons = bulk_data[:,1]
+    lats = bulk_data[:,2]
+    coords = np.column_stack([lons, lats])
+    
+    # Coordinates are given as midpoints origin should be in the 'lower left' corner:
+    r = CartesianGrid2D.from_origins(coords, magnitudes=magnitudes)
+    
+    # Shape: (num_space_bins, num_mag_bins)
+    bulk_data_no_coords = bulk_data[:, 3:]
+    
+    # Original GEAR1 format provides cumulative rates per meter**2
+    incremental_yrly_density = np.diff(np.fliplr(bulk_data_no_coords))
+    
+    # Computing the differences, but returning array with the same shape:
+    incremental_yrly_density = np.column_stack([np.fliplr(incremental_yrly_density), bulk_data_no_coords[:,-1]])
+    
+    # Read in area to denormalize back onto csep grid
+    area = np.loadtxt(area_filename, skiprows=1, delimiter=',')
+
+    # Allows to use broadcasting
+    m2_per_cell = np.reshape(area[:,-1], (len(area[:,1]), 1))
+    incremental_yrly_rates = incremental_yrly_density * m2_per_cell
+    
+    return incremental_yrly_rates, r, magnitudes        
