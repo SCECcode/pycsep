@@ -2,7 +2,7 @@ name: docs
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   build_docs:
@@ -39,6 +39,9 @@ jobs:
           doc_root=`mktemp -d`
           rsync -av "docs/_build/html/" "${doc_root}/"
           pushd "${doc_root}"
+          echo "${doc_root}"
+          echo "${GITHUB_ACTOR}"
+          echo "${GITHUB_REPOSITORY}"
           git config --global user.name "${GITHUB_ACTOR}"
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           git init
@@ -47,5 +50,5 @@ jobs:
           echo "Empty README.md for documenation cache." > README.md
           echo "docs.cseptesting.org" > CNAME
           git add .
-          git commit -am "Updating pyCSEP docs for commit ${GITHUB_SHA} made on `date -d"@{SOURCE_DATE_EPOCH} --iso-8601=seconds` from ${GITHUB_REF} by ${GITHUB_ACTOR}"
+          git commit -am "Updating pyCSEP docs for commit ${GITHUB_SHA} from ${GITHUB_REF} by ${GITHUB_ACTOR}"
           git push deploy gh-pages --force
