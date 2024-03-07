@@ -5,7 +5,7 @@ We are working on a ``conda-forge`` recipe and PyPI distribution.
 If you plan on contributing to this package, visit the
 `contribution guidelines <https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md>`_ for installation instructions.
 
-.. note:: This package requires >=Python 3.7.
+.. note:: This package requires >=Python 3.9.
 
 The easiest way to install PyCSEP is using ``conda``. It can also be installed using ``pip`` or built from source.
 
@@ -22,29 +22,25 @@ Before this installation will work, you must **first** install the following sys
 should be installed by the installation script. To help manage dependency issues, we recommend using virtual environments
 like `virtualenv`.
 
-| Python 3.7 or later (https://python.org)
+| Python 3.9 or later (https://python.org)
 |
-| NumPy 1.10 or later (https://numpy.org)
+| NumPy 1.21.3 or later (https://numpy.org)
 |     Python package for scientific computing and numerical calculations.
 |
-| GEOS 3.3.3 or later (https://trac.osgeo.org/geos/)
-|     C++ library for processing geometry.
+| SciPy 1.7.1 or later (https://scipy.org)
+|     Python package that extends NumPy tools.
 |
-| PROJ 4.9.0 or later (https://proj4.org/)
-|     Library for cartographic projections.
+| Pandas 1.3.4 or later (https://pandas.pydata.org)
+|     Python package for data analysis and manipulation.
+|
+| Cartopy 0.22.0 or later (https://scitools.org.uk/cartopy/)
+|     Python package for geospatial data processing.
 
-Example for Ubuntu: ::
+Example for Ubuntu and MacOS: ::
 
-    sudo apt-get install libproj-dev proj-data proj-bin
-    sudo apt-get install libgeos-dev
+    git clone https://github.com/sceccode/pycsep
     pip install --upgrade pip
-    pip install numpy
-
-Example for MacOS: ::
-
-    brew install proj geos
-    pip install --upgrade pip
-    pip install numpy
+    pip install -e .
 
 Installing from Source
 ----------------------
@@ -54,13 +50,13 @@ the latest GitHub commit.
 
 We recommend using virtual environments when installing python packages from source to avoid any dependency conflicts. We prefer
 ``conda`` as the package manager over ``pip``, because ``conda`` does a good job of handling binary distributions of packages
-across multiple platforms. Also, we recommend using the ``miniconda`` installer, because it is lightweight and only includes
+across multiple platforms. Also, we recommend using the ``miniconda`` or the ``miniforge`` (which uses mamba for a faster dependency handling) installers, because it is lightweight and only includes
 necessary pacakages like ``pip`` and ``zlib``.
 
 Using Conda
 ***********
 
-If you don't have ``conda`` on your machine, download and install `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_. ::
+If you don't have ``conda`` on your machine, download and install `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_ or `Miniforge <https://github.com/conda-forge/miniforge>`_ ::
 
     git clone https://github.com/SCECcode/pycsep
     cd pycsep
