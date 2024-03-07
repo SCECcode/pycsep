@@ -36,13 +36,11 @@ pyCSEP can be installed in several ways. It can be installed using conda or pip 
 source code found in the pyCSEP github repo. Researchers interested in contributing to pyCSEP development should 
 install pyCSEP from source code. pyCSEP depends on the following software packages. 
 These which may be installed automatically, or manually, depending on the installation method used.
-* Python 3.7 or later (https://python.org)
+* Python 3.9 or later (https://python.org)
 * NumPy 1.21.3 or later (https://numpy.org)
 * SciPy 1.7.1 or later (https://scipy.org)
 * pandas 1.3.4 or later (https://pandas.pydata.org)
-* cartopy 0.20.0 or later (https://scitools.org.uk/cartopy/docs/latest)
-* GEOS 3.7.2 or later (https://trac.osgeo.org/geos/)
-* PROJ 8.0.0 or later (https://proj.org/)
+* cartopy 0.22.0 or later (https://scitools.org.uk/cartopy/docs/latest)
 
 Please see the [requirements file](https://github.com/SCECcode/pycsep/blob/master/requirements.yml) for a complete list 
 of requirements. These are installed automatically when using the `conda` distribution.

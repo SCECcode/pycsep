@@ -45,3 +45,32 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
         run: |
           bash <(curl -s https://codecov.io/bash) || echo 'Codecov failed to upload'
+
+
+  build_pip:
+    if: github.repository == 'SCECcode/pycsep'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.9']
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install pyCSEP
+        run: |
+          pip install -e .
+          python -c "import csep; print('Version: ', csep.__version__)"
+
+      - name: Test with pytest
+        run: |
+          pip install vcrpy==4.3.1 pytest pytest-cov
+          pytest --cov=./ --cov-config=.coveragerc
