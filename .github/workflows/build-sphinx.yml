@@ -47,7 +47,7 @@ jobs:
           git init
           git remote add deploy "https://token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git checkout -b gh-pages
-          echo "Empty README.md for documenation cache." > README.md
+          echo "Empty README.md for documentation cache." > README.md
           echo "docs.cseptesting.org" > CNAME
           git add .
           git commit -am "Updating pyCSEP docs for commit ${GITHUB_SHA} from ${GITHUB_REF} by ${GITHUB_ACTOR}"
