@@ -1,0 +1,55 @@
+
+:orphan:
+
+.. _sphx_glr_sg_execution_times:
+
+
+Computation times
+=================
+**01:45.543** total execution time for 7 files **from all galleries**:
+
+.. container::
+
+  .. raw:: html
+
+    <style scoped>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    </style>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" class="init">
+    $(document).ready( function () {
+        $('table.sg-datatable').DataTable({order: [[1, 'desc']]});
+    } );
+    </script>
+
+  .. list-table::
+   :header-rows: 1
+   :class: table table-striped sg-datatable
+
+   * - Example
+     - Time
+     - Mem (MB)
+   * - :ref:`sphx_glr_tutorials_plot_customizations.py` (``../examples/tutorials/plot_customizations.py``)
+     - 00:49.988
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_catalog_filtering.py` (``../examples/tutorials/catalog_filtering.py``)
+     - 00:25.253
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_working_with_catalog_forecasts.py` (``../examples/tutorials/working_with_catalog_forecasts.py``)
+     - 00:09.999
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_catalog_forecast_evaluation.py` (``../examples/tutorials/catalog_forecast_evaluation.py``)
+     - 00:09.913
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_gridded_forecast_evaluation.py` (``../examples/tutorials/gridded_forecast_evaluation.py``)
+     - 00:07.638
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_quadtree_gridded_forecast_evaluation.py` (``../examples/tutorials/quadtree_gridded_forecast_evaluation.py``)
+     - 00:01.797
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_plot_gridded_forecast.py` (``../examples/tutorials/plot_gridded_forecast.py``)
+     - 00:00.956
+     - 0.0
