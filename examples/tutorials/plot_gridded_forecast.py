@@ -47,3 +47,4 @@ forecast = csep.load_gridded_forecast(datasets.helmstetter_mainshock_fname,
 
 ax = forecast.plot(show=True)
 
+ax1= plots.plot_ROC(forecast, catalog)
