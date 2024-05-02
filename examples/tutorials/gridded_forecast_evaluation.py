@@ -107,21 +107,24 @@ ax = plots.plot_poisson_consistency_test(spatial_test_result,
 plt.show()
 
 ####################################################################################################################################
-# Plot ROC Curves
+# Plot concentration ROC Curves
 # -----------------------
 #
 # We can also plot the Receiver operating characteristic (ROC) Curves based on forecast and testing-catalog.
 # In the figure below, False Positive Rate is the normalized cumulative forecast rate, after sorting cells in decreasing order of rate.
 # The "True Positive Rate" is the normalized cumulative area. The dashed line is the ROC curve for a uniform forecast,
-# meaning the likelihood for an earthquake to occur at any position is the same. The further the ROC curve of a
+# meaning the likelihood for an earthquake to occur at any position is the same. The further the concentration ROC curve of a
 # forecast is to the uniform forecast, the specific the forecast is. When comparing the
 # forecast ROC curve against a catalog, one can evaluate if the forecast is more or less specific
 # (or smooth) at different level or seismic rate.
 #
 # Note: This figure just shows an example of plotting an ROC curve with a catalog forecast.
+#       If "linear=True" the diagram is represented using a linear x-axis.
+#       If "linear=False" the diagram is represented using a logarithmic x-axis.
 
-print("Plotting ROC curve")
-ax= plots.plot_ROC(forecast, catalog)
+
+print("Plotting concentration ROC curve")
+_= plots.plot_concentration_ROC(forecast, catalog, linear=True)
 
 
 
@@ -135,13 +138,16 @@ ax= plots.plot_ROC(forecast, catalog)
 #estimate the Area Skill Score to assess the accuracy and reliability of the prediction models. The generated graphs
 #visually represent the prediction performance.
 
+# Note: If "linear=True" the diagram is represented using a linear x-axis.
+#       If "linear=False" the diagram is represented using a logarithmic x-axis.
+
 print("Plotting ROC curve from the contingency table")
 # Set linear True to obtain a linear x-axis, False to obtain a logical x-axis.
-_ = plots.plot_contingency_ROC(forecast, catalog, linear=False)
+_ = plots.plot_ROC_diagram(forecast, catalog, linear=True)
 
 print("Plotting Molchan curve from the contingency table and the Area Skill Score")
 # Set linear True to obtain a linear x-axis, False to obtain a logical x-axis.
-_ = plots.plot_contingency_Molchan(forecast, catalog, linear=False)
+_ = plots.plot_Molchan_diagram(forecast, catalog, linear=True)
 
 
 

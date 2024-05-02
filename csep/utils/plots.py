@@ -2132,7 +2132,7 @@ def plot_pvalues_and_intervals(test_results, ax, var=None):
     return ax
 
 
-def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
+def plot_concentration_ROC_diagram(forecast, catalog, linear=True, axes=None, plot_uniform=True, savepdf=True,
              savepng=True, show=True,
              plot_args=None):
     """
@@ -2155,6 +2155,7 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
     Args:
         forecast (:class: `csep.forecast.GriddedForecast`):
         catalog (:class:`AbstractBaseCatalog`): evaluation catalog
+        linear: (bool): if true, a linear x-axis is used; if false a logarithmic x-axis is used.
         axes (:class:`matplotlib.pyplot.ax`): Previously defined ax object
         savepdf (str):    output option of pdf file
         savepng (str):    output option of png file
@@ -2184,6 +2185,7 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
         RuntimeError: throws error if Catalog and Forecast do not have the same region
 
         Written by Han Bao, UCLA, March 2021. Modified June 2021.
+        Modified by Emanuele Biondini, University of Bologna, May 2024.
     """
     if not catalog.region == forecast.region:
         raise RuntimeError(
@@ -2201,7 +2203,7 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
     title_fontsize = plot_args.get('title_fontsize', 18)
     label_fontsize = plot_args.get('label_fontsize', 14)
     filename = plot_args.get('filename', 'roc_figure')
-    title = plot_args.get('title', 'ROC Curve')
+    title = plot_args.get('title', 'Concentration ROC Curve')
 
     # Plot catalog ordered by forecast rates
     name = forecast.name
@@ -2259,7 +2261,11 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
     ax.set_ylabel("True Positive Rate", fontsize=label_fontsize)
     ax.set_xlabel('False Positive Rate (Normalized Area)',
                   fontsize=label_fontsize)
-    ax.set_xscale('log')
+    if linear==True:
+        legend_loc=plot_args.get('legend_loc', 'lower right')
+    elif linear==False:
+        ax.set_xscale('log')
+
     ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
     ax.set_title(title, fontsize=title_fontsize)
 
@@ -2276,7 +2282,7 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
     return ax
 
 
-def plot_contingency_ROC(forecast, catalog, linear=False, axes=None, plot_uniform=True, savepdf=True, savepng=True, show=True,
+def plot_ROC_diagram(forecast, catalog, linear=True, axes=None, plot_uniform=True, savepdf=True, savepng=True, show=True,
                     plot_args=None):
     """
     Plot Receiver operating characteristic (ROC) based on forecast and test catalogs using the contingency table.
@@ -2300,7 +2306,7 @@ def plot_contingency_ROC(forecast, catalog, linear=False, axes=None, plot_unifor
     Args:
         forecast (:class: `csep.forecast.GriddedForecast`):
         catalog (:class:`AbstractBaseCatalog`): evaluation catalog
-        linear (bool): set False to use a log x-axis; set True to use a linear x-axis. By default Linear=False
+        linear: (bool): if true, a linear x-axis is used; if false a logarithmic x-axis is used.
         axes (:class:`matplotlib.pyplot.ax`): Previously defined ax object
         savepdf (str):    output option of pdf file
         savepng (str):    output option of png file
@@ -2457,7 +2463,7 @@ def plot_contingency_ROC(forecast, catalog, linear=False, axes=None, plot_unifor
     return ax
 
 
-def plot_contingency_Molchan(forecast, catalog, linear=False, axes=None, plot_uniform=True, savepdf=True, savepng=True,
+def plot_Molchan_diagram(forecast, catalog, linear=True, axes=None, plot_uniform=True, savepdf=True, savepng=True,
                              show=True,
                              plot_args=None):
     """
@@ -2485,7 +2491,7 @@ def plot_contingency_Molchan(forecast, catalog, linear=False, axes=None, plot_un
     Args:
         forecast (:class: `csep.forecast.GriddedForecast`):
         catalog (:class:`AbstractBaseCatalog`): evaluation catalog
-        Linear (bool): set False to use a log x-axis; set True to use a linear x-axis. By default Linear=False
+        linear: (bool): if true, a linear x-axis is used; if false a logarithmic x-axis is used.
         axes (:class:`matplotlib.pyplot.ax`): Previously defined ax object
         savepdf (str):    output option of pdf file
         savepng (str):    output option of png file
