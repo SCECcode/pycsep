@@ -123,7 +123,7 @@ plt.show()
 
 
 print("Plotting concentration ROC curve")
-_= plots.plot_concentration_ROC(forecast, catalog, linear=True)
+_= plots.plot_concentration_ROC_diagram(forecast, catalog, linear=True)
 
 
 
