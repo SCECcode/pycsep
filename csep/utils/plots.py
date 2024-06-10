@@ -3,7 +3,8 @@ import time
 # Third-party imports
 import numpy
 import string
-
+import pandas as pandas
+from scipy.integrate import cumtrapz
 import scipy.stats
 import matplotlib
 import matplotlib.lines
@@ -2131,7 +2132,7 @@ def plot_pvalues_and_intervals(test_results, ax, var=None):
     return ax
 
 
-def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
+def plot_concentration_ROC_diagram(forecast, catalog, linear=True, axes=None, plot_uniform=True, savepdf=True,
              savepng=True, show=True,
              plot_args=None):
     """
@@ -2154,6 +2155,7 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
     Args:
         forecast (:class: `csep.forecast.GriddedForecast`):
         catalog (:class:`AbstractBaseCatalog`): evaluation catalog
+        linear: (bool): if true, a linear x-axis is used; if false a logarithmic x-axis is used.
         axes (:class:`matplotlib.pyplot.ax`): Previously defined ax object
         savepdf (str):    output option of pdf file
         savepng (str):    output option of png file
@@ -2183,6 +2185,7 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
         RuntimeError: throws error if Catalog and Forecast do not have the same region
 
         Written by Han Bao, UCLA, March 2021. Modified June 2021.
+        Modified by Emanuele Biondini, University of Bologna, May 2024.
     """
     if not catalog.region == forecast.region:
         raise RuntimeError(
@@ -2200,7 +2203,7 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
     title_fontsize = plot_args.get('title_fontsize', 18)
     label_fontsize = plot_args.get('label_fontsize', 14)
     filename = plot_args.get('filename', 'roc_figure')
-    title = plot_args.get('title', 'ROC Curve')
+    title = plot_args.get('title', 'Concentration ROC Curve')
 
     # Plot catalog ordered by forecast rates
     name = forecast.name
@@ -2258,7 +2261,406 @@ def plot_ROC(forecast, catalog, axes=None, plot_uniform=True, savepdf=True,
     ax.set_ylabel("True Positive Rate", fontsize=label_fontsize)
     ax.set_xlabel('False Positive Rate (Normalized Area)',
                   fontsize=label_fontsize)
-    ax.set_xscale('log')
+    if linear==True:
+        legend_loc=plot_args.get('legend_loc', 'lower right')
+    elif linear==False:
+        ax.set_xscale('log')
+
+    ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
+    ax.set_title(title, fontsize=title_fontsize)
+
+    if filename:
+        if savepdf:
+            outFile = "{}.pdf".format(filename)
+            pyplot.savefig(outFile, format='pdf')
+        if savepng:
+            outFile = "{}.png".format(filename)
+            pyplot.savefig(outFile, format='png')
+
+    if show:
+        pyplot.show()
+    return ax
+
+
+def plot_ROC_diagram(forecast, catalog, linear=True, axes=None, plot_uniform=True, savepdf=True, savepng=True, show=True,
+                    plot_args=None):
+    """
+    Plot Receiver operating characteristic (ROC) based on forecast and test catalogs using the contingency table.
+    The ROC is computed following this procedure:
+        (1) Obtain spatial rates from GriddedForecast and the observed events from the observed catalog.
+        (2) Rank the rates in descending order (highest rates first).
+        (3) Sort forecasted rates by ordering found in (2), and normalize rates so their sum is equals unity.
+        (4) Obtain binned spatial rates from observed catalog
+        (5) Sort gridded observed rates by ordering found in (2).
+        (6) Test each ordered and normalized forecasted rate defined in (3) as a threshold value to obtain the
+            corresponding contingency table.
+        (7) Define the H (Success rate) and F (False alarm rate) for each threshold soil using the information provided
+            by the correspondent contingency table defined in (6).
+
+    Note that:
+        (1) The testing catalog and forecast should have exactly the same time-window (duration)
+        (2) Forecasts should be defined over the same region
+        (3) If calling this function multiple times, update the color in plot_args
+        (4) The user can choose the x-scale (linear or log), see the Args section below
+
+    Args:
+        forecast (:class: `csep.forecast.GriddedForecast`):
+        catalog (:class:`AbstractBaseCatalog`): evaluation catalog
+        linear: (bool): if true, a linear x-axis is used; if false a logarithmic x-axis is used.
+        axes (:class:`matplotlib.pyplot.ax`): Previously defined ax object
+        savepdf (str):    output option of pdf file
+        savepng (str):    output option of png file
+        plot_uniform (bool): if true, include uniform forecast on plot
+
+        Optional plotting arguments:
+            * figsize: (:class:`list`/:class:`tuple`) - default: [9, 8]
+            * forecast_linestyle: (:class:`str`) - default: '-'
+            * legend_fontsize: (:class:`float`) Fontsize of the plot title - default: 16
+            * legend_loc: (:class:`str`) - default: 'upper left'
+            * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 18
+            * label_fontsize: (:class:`float`) Fontsize of the plot title - default: 14
+            * title: (:class:`str`) - default: ROC Curve from contingency table
+            * filename: (:class:`str`) - default: contingency_roc_figure.
+
+    Returns:
+        :class:`matplotlib.pyplot.ax` object
+
+    Raises:
+        TypeError: throws error if CatalogForecast-like object is provided
+        RuntimeError: throws error if Catalog and Forecast do not have the same region
+
+        Written by Emanuele Biondini, UNIBO, March 2023.
+    """
+    if not catalog.region == forecast.region:
+        raise RuntimeError(
+            "catalog region and forecast region must be identical.")
+
+    # Parse plotting arguments
+    plot_args = plot_args or {}
+    figsize = plot_args.get('figsize', (9, 8))
+    forecast_linestyle = plot_args.get('forecast_linestyle', '-')
+    legend_fontsize = plot_args.get('legend_fontsize', 16)
+    legend_loc = plot_args.get('legend_loc', 'upper left')
+    title_fontsize = plot_args.get('title_fontsize', 16)
+    label_fontsize = plot_args.get('label_fontsize', 14)
+    title = plot_args.get('title', 'ROC Curve from contingency table')
+    filename = plot_args.get('filename', 'contingency_roc_figure')
+
+    # Initialize figure
+    if axes is not None:
+        ax = axes
+    else:
+        fig, ax = pyplot.subplots(figsize=figsize)
+
+    name = forecast.name
+    if not name:
+        name = ''
+    else:
+        name = f'{name}'
+
+    forecast_label = plot_args.get('forecast_label', f'{name}')
+    observed_label = plot_args.get('observed_label', f'{name}')
+
+    # Obtain forecast rates (or counts) and observed catalog aggregated in spatial cells
+    rate = forecast.spatial_counts()
+    obs_counts = catalog.spatial_counts()
+    # Define the threshold to be analysed to compile the contingency table and draw the ROC curve
+
+    # Get index of rates (descending sort)
+    I = numpy.argsort(rate)
+    I = numpy.flip(I)
+
+    # Order forecast and cells rates by highest rate cells first and normalize the rates.
+    thresholds = (rate[I]) / numpy.sum(rate)
+    obs_counts = obs_counts[I]
+
+    Table_ROC = pandas.DataFrame({
+        'Threshold': [],
+        'Successful_bins': [],
+        'Obs_active_bins': [],
+        'H': [],
+        'F': []
+
+    })
+
+    #Each forecasted and normalized rate are tested as a threshold value to define the contingency table.
+    for threshold in thresholds:
+        threshold = float(threshold)
+
+        binary_forecast = numpy.where(thresholds >= threshold, 1, 0)
+        forecastedYes_observedYes = obs_counts[(binary_forecast == 1) & (obs_counts > 0)]
+        forecastedYes_observedNo=obs_counts[(binary_forecast == 1) & (obs_counts == 0)]
+        forecastedNo_observedYes=obs_counts[(binary_forecast == 0) & (obs_counts > 0)]
+        forecastedNo_observedNo = obs_counts[(binary_forecast == 0) & (obs_counts == 0)]
+        # Creating the DataFrame for the contingency table
+        data = {
+            "Observed": [len(forecastedYes_observedYes), len(forecastedNo_observedYes)],
+            "Not Observed": [len(forecastedYes_observedNo), len(forecastedNo_observedNo)]
+        }
+        index = ["Forecasted", "Not Forecasted"]
+        contingency_df = pandas.DataFrame(data, index=index)
+
+        H = contingency_df.loc['Forecasted', 'Observed'] / (
+                    contingency_df.loc['Forecasted', 'Observed'] + contingency_df.loc['Not Forecasted', 'Observed'])
+        F = contingency_df.loc['Forecasted', 'Not Observed'] / (
+                    contingency_df.loc['Forecasted', 'Not Observed'] + contingency_df.loc[
+                'Not Forecasted', 'Not Observed'])
+
+        threshold_row = {
+            'Threshold': threshold,
+            'Successful_bins': contingency_df.loc['Forecasted', 'Observed'],
+            'Obs_active_bins': contingency_df['Observed'].sum(),
+            'H': H,
+            'F': F
+
+        }
+        threshold_row_df = pandas.DataFrame([threshold_row])
+
+        # Concatena threshold_row_df a Table_molchan
+        Table_ROC = pandas.concat([Table_ROC, threshold_row_df], ignore_index=True)
+
+    # to start the trajecroy in the poin (0,0)
+    first_row = pandas.DataFrame({'H': [0], 'F': [0]})
+    Table_ROC = pandas.concat([first_row, Table_ROC], ignore_index=True)
+
+    # Plot the ROC curve
+    ax.plot((Table_ROC['F']), (Table_ROC['H']),
+            label=forecast_label,
+            color='black',
+            linestyle=forecast_linestyle)
+
+    # Plot uniform forecast
+    if plot_uniform:
+        x_uniform = numpy.arange(0, 1.001, 0.001)
+        y_uniform = numpy.arange(0, 1.001, 0.001)
+        ax.plot(x_uniform, y_uniform, linestyle='--', color='gray', label='SUP')
+    # Plotting arguments
+    ax.set_ylabel("Hit Rate", fontsize=label_fontsize)
+    ax.set_xlabel('Fraction of false alarms', fontsize=label_fontsize)
+
+    if linear==True:
+        pass
+    elif linear==False:
+        ax.set_xscale('log')
+
+    ax.set_yscale('linear')
+    ax.tick_params(axis='x', labelsize=label_fontsize)
+    ax.tick_params(axis='y', labelsize=label_fontsize)
+    ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
+    ax.set_title(title, fontsize=title_fontsize)
+
+
+    if filename:
+        if savepdf:
+            outFile = "{}.pdf".format(filename)
+            pyplot.savefig(outFile, format='pdf')
+        if savepng:
+            outFile = "{}.png".format(filename)
+            pyplot.savefig(outFile,format='png')
+
+    if show:
+        pyplot.show()
+    return ax
+
+
+def plot_Molchan_diagram(forecast, catalog, linear=True, axes=None, plot_uniform=True, savepdf=True, savepng=True,
+                             show=True,
+                             plot_args=None):
+    """
+    Plot the Molchan Diagram based on forecast and test catalogs using the contingency table.
+    The Area Skill score and its error are shown  in the legend
+
+    The Molchan diagram is computed following this procedure:
+        (1) Obtain spatial rates from GriddedForecast and the observed events from the observed catalog.
+        (2) Rank the rates in descending order (highest rates first).
+        (3) Sort forecasted rates by ordering found in (2), and normalize rates so their sum is equals unity.
+        (4) Obtain binned spatial rates from observed catalog
+        (5) Sort gridded observed rates by ordering found in (2).
+        (6) Test each ordered and normalized forecasted rate defined in (3) as a threshold value to obtain the
+            corresponding contingency table.
+        (7) Define the "nu" (Miss rate) and "tau" (Fraction of spatial alarmed cells) for each threshold soil using the
+            information provided by the correspondent contingency table defined in (6).
+
+
+    Note that:
+        (1) The testing catalog and forecast should have exactly the same time-window (duration)
+        (2) Forecasts should be defined over the same region
+        (3) If calling this function multiple times, update the color in plot_args
+        (4) The user can choose the x-scale (linear or log), see the Args section below
+
+    Args:
+        forecast (:class: `csep.forecast.GriddedForecast`):
+        catalog (:class:`AbstractBaseCatalog`): evaluation catalog
+        linear: (bool): if true, a linear x-axis is used; if false a logarithmic x-axis is used.
+        axes (:class:`matplotlib.pyplot.ax`): Previously defined ax object
+        savepdf (str):    output option of pdf file
+        savepng (str):    output option of png file
+        plot_uniform (bool): if true, include uniform forecast on plot
+
+        Optional plotting arguments:
+            * figsize: (:class:`list`/:class:`tuple`) - default: [9, 8]
+            * forecast_linestyle: (:class:`str`) - default: '-'
+            * legend_fontsize: (:class:`float`) Fontsize of the plot title - default: 16
+            * legend_loc: (:class:`str`) - default: 'lower left'
+            * title_fontsize: (:class:`float`) Fontsize of the plot title - default: 18
+            * label_fontsize: (:class:`float`) Fontsize of the plot title - default: 14
+            * title: (:class:`str`) - default: 'Molchan diagram'
+            * filename: (:class:`str`) - default: molchan_diagram.
+
+    Returns:
+        :class:`matplotlib.pyplot.ax` object
+
+    Raises:
+        TypeError: throws error if CatalogForecast-like object is provided
+        RuntimeError: throws error if Catalog and Forecast do not have the same region
+
+        Written by Emanuele Biondini, UNIBO, March 2023.
+    """
+    if not catalog.region == forecast.region:
+        raise RuntimeError(
+            "catalog region and forecast region must be identical.")
+
+    # Parse plotting arguments
+    plot_args = plot_args or {}
+    figsize = plot_args.get('figsize', (9, 8))
+    forecast_linestyle = plot_args.get('forecast_linestyle', '-')
+    legend_fontsize = plot_args.get('legend_fontsize', 16)
+    legend_loc = plot_args.get('legend_loc', 'lower left')
+    title_fontsize = plot_args.get('title_fontsize', 16)
+    label_fontsize = plot_args.get('label_fontsize', 14)
+    title = plot_args.get('title', '')
+    filename = plot_args.get('filename', 'molchan_figure')
+
+    # Initialize figure
+    if axes is not None:
+        ax = axes
+    else:
+        fig, ax = pyplot.subplots(figsize=figsize)
+
+    name = forecast.name
+    if not name:
+        name = ''
+    else:
+        name = f'{name}'
+
+    forecast_label = plot_args.get('forecast_label', f'{name}')
+    observed_label = plot_args.get('observed_label', f'{name}')
+
+    # Obtain forecast rates (or counts) and observed catalog aggregated in spatial cells
+    rate = forecast.spatial_counts()
+    obs_counts = catalog.spatial_counts()
+
+    # Define the threshold to be analysed tp draw the Molchan diagram
+
+    # Get index of rates (descending sort)
+    I = numpy.argsort(rate)
+    I = numpy.flip(I)
+
+    # Order forecast and cells rates by highest rate cells first
+    thresholds = (rate[I]) / numpy.sum(rate)
+    obs_counts = obs_counts[I]
+
+    Table_molchan = pandas.DataFrame({
+        'Threshold': [],
+        'Successful_bins': [],
+        'Obs_active_bins': [],
+        'tau': [],
+        'nu': [],
+        'R_score': []
+    })
+
+    # Each forecasted and normalized rate are tested as a threshold value to define the contingency table.
+    for threshold in thresholds:
+        threshold = float(threshold)
+
+        binary_forecast = numpy.where(thresholds >= threshold, 1, 0)
+        forecastedYes_observedYes = obs_counts[(binary_forecast == 1) & (obs_counts > 0)]
+        forecastedYes_observedNo = obs_counts[(binary_forecast == 1) & (obs_counts == 0)]
+        forecastedNo_observedYes = obs_counts[(binary_forecast == 0) & (obs_counts > 0)]
+        forecastedNo_observedNo = obs_counts[(binary_forecast == 0) & (obs_counts == 0)]
+        # Creating the DataFrame for the contingency table
+        data = {
+            "Observed": [len(forecastedYes_observedYes), len(forecastedNo_observedYes)],
+            "Not Observed": [len(forecastedYes_observedNo), len(forecastedNo_observedNo)]
+        }
+        index = ["Forecasted", "Not Forecasted"]
+        contingency_df = pandas.DataFrame(data, index=index)
+        nu = contingency_df.loc['Not Forecasted', 'Observed'] / contingency_df['Observed'].sum()
+        tau = contingency_df.loc['Forecasted'].sum() / (contingency_df.loc['Forecasted'].sum() +
+                                                        contingency_df.loc['Not Forecasted'].sum())
+        R_score = (contingency_df.loc['Forecasted', 'Observed'] / contingency_df['Observed'].sum()) - \
+                  (contingency_df.loc['Forecasted', 'Not Observed'] / contingency_df['Not Observed'].sum())
+
+        threshold_row = {
+            'Threshold': threshold,
+            'Successful_bins': contingency_df.loc['Forecasted', 'Observed'],
+            'Obs_active_bins': contingency_df['Observed'].sum(),
+            'tau': tau,
+            'nu': nu,
+            'R_score': R_score,
+
+        }
+        threshold_row_df = pandas.DataFrame([threshold_row])
+
+        Table_molchan = pandas.concat([Table_molchan, threshold_row_df], ignore_index=True)
+
+    bottom_row = {'Threshold': 'Full alarms', 'tau': 1, 'nu': 0, 'Obs_active_bins': contingency_df['Observed'].sum()}
+    top_row = {'Threshold': 'No alarms', 'tau': 0, 'nu': 1, 'Obs_active_bins': contingency_df['Observed'].sum()}
+
+    Table_molchan = pandas.concat([pandas.DataFrame([top_row]), Table_molchan], ignore_index=True)
+
+    Table_molchan = pandas.concat([Table_molchan, pandas.DataFrame([bottom_row])], ignore_index=True)
+
+    # Computation of Area Skill score (ASS)
+    Tab_as_score = pandas.DataFrame()
+
+    Tab_as_score['Threshold'] = Table_molchan['Threshold']
+    Tab_as_score['tau'] = Table_molchan['tau']
+    Tab_as_score['nu'] = Table_molchan['nu']
+
+    ONE = numpy.ones(len(Tab_as_score))
+    Tab_as_score['CUM_BAND'] = cumtrapz(ONE, Tab_as_score['tau'], initial=0) - cumtrapz(Tab_as_score['nu'],
+                                                                                        Tab_as_score['tau'],
+                                                                                        initial=0)
+    Tab_as_score['AS_score'] = numpy.divide(Tab_as_score['CUM_BAND'],
+                                         cumtrapz(ONE, Tab_as_score['tau'], initial=0) + 1e-10)
+    Tab_as_score.loc[Tab_as_score.index[-1], 'AS_score'] = max(0.5, Tab_as_score['AS_score'].iloc[-1])
+    ASscore = numpy.round(Tab_as_score.loc[Tab_as_score.index[-1], 'AS_score'], 2)
+
+    bin = 0.01
+    import math
+    devstd = numpy.sqrt(1 / (12 * Table_molchan['Obs_active_bins'].iloc[0]))
+    devstd = devstd * bin ** -1
+    devstd = math.ceil(devstd + 0.5)
+    devstd = devstd / bin ** -1
+    Tab_as_score['st_dev'] = devstd
+    Tab_as_score['st_dev'] = devstd
+    dev_std = numpy.round(devstd, 2)
+
+    # Plot the Molchan trajectory
+
+    ax.plot(Table_molchan['tau'], Table_molchan['nu'],
+            label=f"{forecast_label}, ASS={ASscore}±{dev_std} ",
+            color='black',
+            linestyle=forecast_linestyle)
+
+    # Plot uniform forecast
+    if plot_uniform:
+        x_uniform = numpy.arange(0, 1.001, 0.001)
+        y_uniform = numpy.arange(1.00, -0.001, -0.001)
+        ax.plot(x_uniform, y_uniform, linestyle='--', color='gray', label='SUP' + ' ASS=0.50')
+
+    # Plotting arguments
+    ax.set_ylabel("Miss Rate", fontsize=label_fontsize)
+    ax.set_xlabel('Fraction of area occupied by alarms', fontsize=label_fontsize)
+
+    if linear == True:
+        legend_loc = plot_args.get('legend_loc', 'upper right')
+    elif linear == False:
+        ax.set_xscale('log')
+
+    ax.tick_params(axis='x', labelsize=label_fontsize)
+    ax.tick_params(axis='y', labelsize=label_fontsize)
     ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
     ax.set_title(title, fontsize=title_fontsize)
 

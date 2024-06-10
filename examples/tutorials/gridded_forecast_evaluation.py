@@ -118,9 +118,38 @@ plt.show()
 # When comparing the forecast ROC curve against a catalog, one can evaluate if the forecast is more or less specific (or smooth) at different level or seismic rate.
 #
 # Note: This figure just shows an example of plotting an ROC curve with a catalog forecast.
+#       If "linear=True" the diagram is represented using a linear x-axis.
+#       If "linear=False" the diagram is represented using a logarithmic x-axis.
 
-print("Plotting ROC curve")
-_ = plots.plot_ROC(forecast, catalog)
+
+print("Plotting concentration ROC curve")
+_= plots.plot_concentration_ROC_diagram(forecast, catalog, linear=True)
+
+
+
+
+####################################################################################################################################
+# Plot ROC and Molchan curves using the alarm-based approach
+# -----------------------
+#In this script, we generate ROC diagrams and Molchan diagrams using the alarm-based approach to evaluate the predictive
+#performance of models. This method exploits contingency table analysis to evaluate the predictive capabilities of
+#forecasting models. By analysing the contingency table data, we determine the ROC curve and Molchan trajectory and
+#estimate the Area Skill Score to assess the accuracy and reliability of the prediction models. The generated graphs
+#visually represent the prediction performance.
+
+# Note: If "linear=True" the diagram is represented using a linear x-axis.
+#       If "linear=False" the diagram is represented using a logarithmic x-axis.
+
+print("Plotting ROC curve from the contingency table")
+# Set linear True to obtain a linear x-axis, False to obtain a logical x-axis.
+_ = plots.plot_ROC_diagram(forecast, catalog, linear=True)
+
+print("Plotting Molchan curve from the contingency table and the Area Skill Score")
+# Set linear True to obtain a linear x-axis, False to obtain a logical x-axis.
+_ = plots.plot_Molchan_diagram(forecast, catalog, linear=True)
+
+
+
 
 ####################################################################################################################################
 # Calculate Kagan's I_1 score
