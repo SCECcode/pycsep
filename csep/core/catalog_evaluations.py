@@ -136,7 +136,7 @@ def spatial_test(forecast, observed_catalog, verbose=True):
         delta_1, delta_2 = get_quantiles(test_distribution_spatial_1d, obs_lh_norm)
 
     result = CatalogSpatialTestResult(test_distribution=test_distribution_spatial_1d,
-                                      name='S-Test',
+                                      name='Catalog S-Test',
                                       observed_statistic=obs_lh_norm,
                                       quantile=(delta_1, delta_2),
                                       status=message,
@@ -160,7 +160,7 @@ def magnitude_test(forecast, observed_catalog, verbose=True):
         print("Cannot perform magnitude test when observed event count is zero.")
         # prepare result
         result = CatalogMagnitudeTestResult(test_distribution=test_distribution,
-                                            name='M-Test',
+                                            name='Catalog M-Test',
                                             observed_statistic=None,
                                             quantile=(None, None),
                                             status='not-valid',
