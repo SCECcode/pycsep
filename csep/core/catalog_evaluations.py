@@ -55,6 +55,7 @@ def number_test(forecast, observed_catalog, verbose=True):
                                      obs_name=observed_catalog.name)
     return result
 
+
 def spatial_test(forecast, observed_catalog, verbose=True):
     """ Performs spatial test for catalog-based forecasts.
 
@@ -129,7 +130,7 @@ def spatial_test(forecast, observed_catalog, verbose=True):
         delta_1, delta_2 = get_quantiles(test_distribution_spatial_1d, obs_lh_norm)
 
     result = CatalogSpatialTestResult(test_distribution=test_distribution_spatial_1d,
-                                      name='S-Test',
+                                      name='Catalog S-Test',
                                       observed_statistic=obs_lh_norm,
                                       quantile=(delta_1, delta_2),
                                       status=message,
@@ -139,6 +140,7 @@ def spatial_test(forecast, observed_catalog, verbose=True):
                                       obs_name=observed_catalog.name)
 
     return result
+
 
 def magnitude_test(forecast, observed_catalog, verbose=True):
     """ Performs magnitude test for catalog-based forecasts """
@@ -152,7 +154,7 @@ def magnitude_test(forecast, observed_catalog, verbose=True):
         print("Cannot perform magnitude test when observed event count is zero.")
         # prepare result
         result = CatalogMagnitudeTestResult(test_distribution=test_distribution,
-                                            name='M-Test',
+                                            name='Catalog M-Test',
                                             observed_statistic=None,
                                             quantile=(None, None),
                                             status='not-valid',
@@ -214,6 +216,7 @@ def magnitude_test(forecast, observed_catalog, verbose=True):
                               sim_name=forecast.name)
 
     return result
+
 
 def pseudolikelihood_test(forecast, observed_catalog, verbose=True):
     """ Performs the spatial pseudolikelihood test for catalog forecasts.
@@ -309,6 +312,7 @@ def pseudolikelihood_test(forecast, observed_catalog, verbose=True):
     )
 
     return result
+
 
 def calibration_test(evaluation_results, delta_1=False):
     """ Perform the calibration test by computing a Kilmogorov-Smirnov test of the observed quantiles against a uniform

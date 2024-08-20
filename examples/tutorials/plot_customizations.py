@@ -191,7 +191,7 @@ args = {'figsize': (6,5),
 # Description of plot arguments can be found in :func:`plot_poisson_consistency_test`.
 # We set ``one_sided_lower=True`` as usual for an L-test, where the model is rejected if the observed
 # is located within the lower tail of the simulated distribution.
-ax = plots.plot_poisson_consistency_test(L_results, one_sided_lower=True, plot_args=args)
+ax = plots.plot_consistency_test(L_results, one_sided_lower=True, plot_args=args)
 
 # Needed to show plots if running as script
 plt.show()
