@@ -102,8 +102,8 @@ csep.write_json(spatial_test_result, 'example_spatial_test.json')
 # We provide the function :func:`csep.utils.plotting.plot_poisson_consistency_test` to visualize the evaluation results from
 # consistency tests.
 
-ax = plots.plot_poisson_consistency_test(spatial_test_result,
-                                        plot_args={'xlabel': 'Spatial likelihood'})
+ax = plots.plot_consistency_test(spatial_test_result,
+                                 plot_args={'xlabel': 'Spatial likelihood'})
 plt.show()
 
 ####################################################################################################################################
