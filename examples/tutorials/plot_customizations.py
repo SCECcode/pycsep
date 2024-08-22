@@ -134,19 +134,20 @@ ax = plots.plot_spatial_dataset(numpy.log10(rate_sum), forecast.region,
 ####################################################################################################################################
 # **Load a Catalog from ComCat**
 
-start_time = csep.utils.time_utils.strptime_to_utc_datetime('1995-01-01 00:00:00.0')
-end_time = csep.utils.time_utils.strptime_to_utc_datetime('2015-01-01 00:00:00.0')
-min_mag = 3.95
+start_time = csep.utils.time_utils.strptime_to_utc_datetime('2002-01-01 00:00:00.0')
+end_time = csep.utils.time_utils.strptime_to_utc_datetime('2012-01-01 00:00:00.0')
+min_mag = 4.5
 catalog = csep.query_comcat(start_time, end_time, min_magnitude=min_mag, verbose=False)
 
 # **Define plotting arguments**
-plot_args = {'basemap': 'ESRI_terrain',
+plot_args = {'basemap': csep.datasets.basemap_california,
              'markersize': 2,
              'markercolor': 'red',
              'alpha': 0.3,
              'mag_scale': 7,
              'legend': True,
              'legend_loc': 3,
+             'coastline': False,
              'mag_ticks': [4.0, 5.0, 6.0, 7.0]}
 
 ####################################################################################################################################
