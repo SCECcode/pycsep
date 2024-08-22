@@ -768,6 +768,15 @@ class TestPlotBasemap(TestPlots):
         mock_get_basemap.assert_not_called()
         self.assertTrue(ax.get_extent() == (-180, 180, -90, 90))
 
+    def test_plot_basemap_tif_file(self):
+        basemap = csep.datasets.basemap_california
+        projection = ccrs.PlateCarree()
+        extent = [-126, -111, 30, 42.5]
+        ax = plot_basemap(basemap, extent=extent, projection=projection, show=show_plots)
+
+        self.assertIsInstance(ax, plt.Axes)
+        self.assertEqual(ax.projection, projection)
+
     def test_plot_basemap_with_custom_projection(self):
         projection = ccrs.Mercator()
         basemap = None
