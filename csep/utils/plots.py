@@ -2,7 +2,7 @@ import os
 import shutil
 import string
 import warnings
-from typing import TYPE_CHECKING, Optional, Any, List, Union, Tuple
+from typing import TYPE_CHECKING, Optional, Any, List, Union, Tuple, Sequence
 
 import cartopy
 import cartopy.crs as ccrs
@@ -76,7 +76,7 @@ DEFAULT_PLOT_ARGS = {
     # Consistency and Comparison tests
     "capsize": 2,
     "hbars": True,
-    # Specific to spatial plotting
+    # Spatial plotting
     "grid_labels": True,
     "grid_fontsize": 8,
     "region_color": "black",
@@ -100,7 +100,8 @@ def plot_magnitude_vs_time(
     ax: Optional[Axes] = None,
     color: Optional[str] = "steelblue",
     size: Optional[int] = 4,
-    mag_scale: Optional[int] = 6,
+    max_size: Optional[int] = 300,
+    power: Optional[int] = 4,
     alpha: Optional[float] = 0.5,
     show: bool = False,
     **kwargs: Any,
@@ -118,9 +119,11 @@ def plot_magnitude_vs_time(
             Color of the scatter plot points. If not provided, defaults to value in
             `DEFAULT_PLOT_ARGS`.
         size (int):
-            Size of the scatter plot markers.
-        mag_scale (int):
-            Scaling factor for the magnitudes.
+             Size of the event with the minimum magnitude
+        max_size (int):
+            Size of the event with the maximum magnitude
+        power (int):
+            Power scaling of the scatter sizing.
         alpha (float):
             Transparency level for the scatter plot points. If not provided, defaults to value
             in `DEFAULT_PLOT_ARGS`.
@@ -149,7 +152,7 @@ def plot_magnitude_vs_time(
         mag,
         marker="o",
         c=color,
-        s=_autosize_scatter(size, mag, mag_scale),
+        s=_autosize_scatter(mag, min_size=size, max_size=max_size, power=power),
         alpha=alpha,
     )
 
@@ -1419,10 +1422,14 @@ def plot_catalog(
     ax: Optional[matplotlib.axes.Axes] = None,
     projection: Optional[Union[ccrs.Projection, str]] = ccrs.PlateCarree(),
     show: bool = False,
-    extent: Optional[List[float]] = None,
+    extent: Optional[Sequence[float]] = None,
     set_global: bool = False,
-    mag_scale: float = 1,
-    mag_ticks: Optional[List[float]] = None,
+    mag_ticks: Optional[Union[Sequence[float], np.ndarray, int]] = None,
+    size: float = 15,
+    max_size: float = 300,
+    power: float = 3,
+    min_val: Optional[float] = None,
+    max_val: Optional[float] = None,
     plot_region: bool = False,
     **kwargs,
 ) -> matplotlib.axes.Axes:
@@ -1436,10 +1443,14 @@ def plot_catalog(
         extent (list): Default 1.05 * :func:`catalog.region.get_bbox()`.
         projection (cartopy.crs.Projection): Projection to be used in the underlying basemap
         set_global (bool): Display the complete globe as basemap.
-        mag_scale (float): Scaling of the scatter.
-        mag_ticks (list): Ticks to display in the legend.
+        size (float): Size of the event with the minimum magnitude
+        max_size (float): Size of the catalog's maximum magnitude
+        power (float, list): Power scaling of the scatter sizing.
+        min_val (float): Override minimum magnitude of the catalog for scatter sizing
+        max_val (float): Override maximum magnitude of the catalog for scatter sizing
+        mag_ticks (list, int): Ticks to display in the legend.
         plot_region (bool): Flag to plot the catalog region border.
-        kwargs: size, alpha, markercolor, markeredgecolor, figsize, legend,
+        kwargs: alpha, markercolor, markeredgecolor, figsize, legend,
          legend_title, legend_labelspacing, legend_borderpad, legend_framealpha
 
     Returns:
@@ -1455,10 +1466,11 @@ def plot_catalog(
     ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False, **plot_args)
 
     # Plot catalog
-    scatter = ax.scatter(
+    ax.scatter(
         catalog.get_longitudes(),
         catalog.get_latitudes(),
-        s=_size_map(plot_args["size"], catalog.get_magnitudes(), mag_scale),
+        s=_autosize_scatter(values=catalog.get_magnitudes(), min_size=size, max_size=max_size,
+                            power=power, min_val=min_val, max_val=max_val),
         transform=ccrs.PlateCarree(),
         color=plot_args["markercolor"],
         edgecolors=plot_args["markeredgecolor"],
@@ -1467,22 +1479,32 @@ def plot_catalog(
 
     # Legend
     if plot_args["legend"]:
-        mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
+        if isinstance(mag_ticks, (list, np.ndarray)):
+            mag_ticks = np.array(mag_ticks)
+        else:
+            mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
+            mag_ticks = np.linspace(mw_range[0], mw_range[1], mag_ticks or 4, endpoint=True)
 
-        if isinstance(mag_ticks, (tuple, list, numpy.ndarray)):
-            if not numpy.all([mw_range[0] <= i <= mw_range[1] for i in mag_ticks]):
-                print("Magnitude ticks do not lie within the catalog magnitude range")
-        elif mag_ticks is None:
-            mag_ticks = numpy.linspace(mw_range[0], mw_range[1], 4)
-
-        handles, labels = scatter.legend_elements(
-            prop="sizes",
-            num=list(_size_map(plot_args["size"], mag_ticks, mag_scale)),
-            alpha=0.3,
+        # Map mag_ticks to marker sizes using the custom size mapping function
+        legend_sizes = _autosize_scatter(
+            values=mag_ticks,
+            min_size=size,
+            max_size=max_size,
+            power=power,
+            min_val=min_val or np.min(catalog.get_magnitudes()),
+            max_val=max_val or np.max(catalog.get_magnitudes())
         )
+
+        # Create custom legend handles
+        handles = [pyplot.Line2D([0], [0], marker='o', lw=0, label=str(m),
+                                 markersize=np.sqrt(s), markerfacecolor='gray', alpha=0.5,
+                                 markeredgewidth=0.8,
+                                 markeredgecolor='black')
+                   for m, s in zip(mag_ticks, legend_sizes)]
+
         ax.legend(
             handles,
-            numpy.round(mag_ticks, 1),
+            np.round(mag_ticks, 1),
             loc=plot_args["legend_loc"],
             handletextpad=5,
             title=plot_args.get("legend_title") or "Magnitudes",
@@ -2127,25 +2149,14 @@ def _plot_pvalues_and_intervals(test_results, ax, var=None):
     return ax
 
 
-def _autosize_scatter(markersize, values, scale):
-    if isinstance(scale, (int, float)):
-        # return (values - min(values) + markersize) ** scale  # Adjust this formula as needed for better visualization
-        # return mark0ersize * (1 + (values - numpy.min(values)) / (numpy.max(values) - numpy.min(values)) ** scale)
-        return markersize / (scale ** min(values)) * numpy.power(values, scale)
+def _autosize_scatter(values, min_size=50., max_size=400., power=3.0, min_val=None,
+                      max_val=None):
 
-    elif isinstance(scale, (numpy.ndarray, list)):
-        return scale
-    else:
-        raise ValueError("scale data type not supported")
-
-
-def _size_map(markersize, values, scale):
-    if isinstance(scale, (int, float)):
-        return markersize / (scale ** min(values)) * numpy.power(values, scale)
-    elif isinstance(scale, (numpy.ndarray, list)):
-        return scale
-    else:
-        raise ValueError("Scale data type not supported")
+    min_val = min_val or np.min(values)
+    max_val = max_val or np.max(values)
+    normalized_values = ((values - min_val) / (max_val - min_val)) ** power
+    marker_sizes = min_size + normalized_values * (max_size - min_size) * bool(power)
+    return marker_sizes
 
 
 def _autoscale_histogram(ax: pyplot.Axes, bin_edges, simulated, observation, mass=99.5):
@@ -2286,17 +2297,6 @@ def _create_geo_axes(figsize, extent, projection, set_global):
     return ax
 
 
-def _calculate_marker_size(markersize, magnitudes, scale):
-    mw_range = [min(magnitudes), max(magnitudes)]
-    if isinstance(scale, (int, float)):
-        return (markersize / (scale ** mw_range[0])) * numpy.power(magnitudes, scale)
-    elif isinstance(scale, (numpy.ndarray, list)):
-        return scale
-    else:
-        raise ValueError("Scale data type not supported")
-
-
-# Helper function to add gridlines
 def _add_gridlines(ax, grid_labels, grid_fontsize):
     gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
     gl.right_labels = False
