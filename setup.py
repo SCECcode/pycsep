@@ -35,6 +35,7 @@ setup(
         'obspy',
         'pyproj',
         'python-dateutil',
+        'rasterio',
         'mercantile',
         'shapely'
     ],

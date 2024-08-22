@@ -1,23 +1,29 @@
+import os
+import shutil
 import string
+import warnings
 from typing import TYPE_CHECKING, Optional, Any, List, Union, Tuple
 
+import cartopy
+import cartopy.crs as ccrs
+import matplotlib
+import matplotlib.lines
+import matplotlib.pyplot as pyplot
 # Third-party imports
 import numpy
 import numpy as np
 import pandas as pandas
-import cartopy
-import cartopy.crs as ccrs
+import rasterio
+import scipy.stats
 from cartopy.io import img_tiles
+from cartopy.io.img_tiles import GoogleWTS
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from matplotlib.axes import Axes
 from matplotlib.dates import AutoDateLocator, DateFormatter
 from matplotlib.lines import Line2D
-import scipy.stats
+from rasterio import DatasetReader
+from rasterio import plot as rioplot
 from scipy.integrate import cumulative_trapezoid
-import matplotlib
-import matplotlib.lines
-import matplotlib.pyplot as pyplot
-
 
 # PyCSEP imports
 import csep.utils.time_utils
@@ -1337,8 +1343,8 @@ def plot_basemap(
 
     Args:
         basemap (str): Possible values are: 'stock_img', 'google-satellite', 'ESRI_terrain',
-                       'ESRI_imagery', 'ESRI_relief', 'ESRI_topo', or a webservice link.
-                        Default is None.
+                       'ESRI_imagery', 'ESRI_relief', 'ESRI_topo', a custom webservice link,
+                       or a GeoTiff filepath. Default is None.
         extent (list): [lon_min, lon_max, lat_min, lat_max]
         ax (matplotlib.Axes): Previously defined ax object.
         coastline (bool): Flag to plot coastline. Default True.
@@ -1383,9 +1389,14 @@ def plot_basemap(
         if basemap == "stock_img":
             ax.stock_img()
         elif basemap is not None:
-            tiles = _get_basemap(basemap)
-            if tiles:
-                ax.add_image(tiles, tile_depth)
+            basemap_obj = _get_basemap(basemap)
+            # basemap_obj is a cartopy TILE IMAGE
+            if isinstance(basemap_obj, GoogleWTS):
+                ax.add_image(basemap_obj, tile_depth)
+            # basemap_obj is a rasterio image
+            elif isinstance(basemap_obj, DatasetReader):
+                ax = rioplot.show(basemap_obj, ax=ax)
+
     except Exception as e:
         print(
             f"Unable to plot basemap. This might be due to no internet access. "
@@ -1639,38 +1650,79 @@ def _get_axis_limits(pnts, border=0.05):
 
 
 def _get_basemap(basemap):
-    if basemap == "google-satellite":
-        tiles = img_tiles.GoogleTiles(style="satellite", cache=True)
-    elif basemap == "ESRI_terrain":
-        webservice = (
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/"
-            "MapServer/tile/{z}/{y}/{x}.jpg"
-        )
-        tiles = img_tiles.GoogleTiles(url=webservice, cache=True)
-    elif basemap == "ESRI_imagery":
-        webservice = (
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/"
-            "MapServer/tile/{z}/{y}/{x}.jpg"
-        )
-        tiles = img_tiles.GoogleTiles(url=webservice, cache=True)
-    elif basemap == "ESRI_relief":
-        webservice = (
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/"
-            "MapServer/tile/{z}/{y}/{x}.jpg"
-        )
-        tiles = img_tiles.GoogleTiles(url=webservice, cache=True)
-    elif basemap == "ESRI_topo":
-        webservice = (
-            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/"
-            "MapServer/tile/{z}/{y}/{x}.jpg"
-        )
-        tiles = img_tiles.GoogleTiles(url=webservice, cache=True)
-    else:
-        try:
-            webservice = basemap
-            tiles = img_tiles.GoogleTiles(url=webservice, cache=True)
-        except Exception as e:
-            raise ValueError(f"Basemap type not valid or not implemented. {e}")
+    last_cache = os.path.join(os.path.dirname(cartopy.config["cache_dir"]), 'last_cartopy_cache')
+
+    def _clean_cache(basemap_):
+        if os.path.isfile(last_cache):
+            with open(last_cache, 'r') as fp:
+                cache_src = fp.read()
+            if cache_src != basemap_:
+                if os.path.isdir(cartopy.config["cache_dir"]):
+                    print(f'Cleaning existing {basemap_} cache')
+                    shutil.rmtree(cartopy.config["cache_dir"])
+
+    def _save_cache_src(basemap_):
+        with open(last_cache, 'w') as fp:
+            fp.write(basemap_)
+
+    cache = True
+
+    warning_message_to_suppress = ('Cartopy created the following directory to cache'
+                                   ' GoogleWTS tiles')
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=warning_message_to_suppress)
+        if basemap == "google-satellite":
+            _clean_cache(basemap)
+            tiles = img_tiles.GoogleTiles(style="satellite", cache=cache)
+            _save_cache_src(basemap)
+
+        elif basemap == "ESRI_terrain":
+            _clean_cache(basemap)
+            webservice = (
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/"
+                "MapServer/tile/{z}/{y}/{x}.jpg"
+            )
+            tiles = img_tiles.GoogleTiles(url=webservice, cache=cache)
+            _save_cache_src(basemap)
+
+        elif basemap == "ESRI_imagery":
+            _clean_cache(basemap)
+            webservice = (
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/"
+                "MapServer/tile/{z}/{y}/{x}.jpg"
+            )
+            tiles = img_tiles.GoogleTiles(url=webservice, cache=cache)
+            _save_cache_src(basemap)
+
+        elif basemap == "ESRI_relief":
+            _clean_cache(basemap)
+            webservice = (
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/"
+                "MapServer/tile/{z}/{y}/{x}.jpg"
+            )
+            tiles = img_tiles.GoogleTiles(url=webservice, cache=cache)
+            _save_cache_src(basemap)
+
+        elif basemap == "ESRI_topo":
+            _clean_cache(basemap)
+            webservice = (
+                "https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/"
+                "MapServer/tile/{z}/{y}/{x}.jpg"
+            )
+            tiles = img_tiles.GoogleTiles(url=webservice, cache=cache)
+            _save_cache_src(basemap)
+
+        elif os.path.isfile(basemap):
+            return rasterio.open(basemap)
+
+        else:
+            try:
+                _clean_cache(basemap)
+                webservice = basemap
+                tiles = img_tiles.GoogleTiles(url=webservice, cache=cache)
+                _save_cache_src(basemap)
+            except Exception as e:
+                raise ValueError(f"Basemap type not valid or not implemented. {e}")
 
     return tiles
 

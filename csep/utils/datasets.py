@@ -5,6 +5,7 @@ _root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _gridded_forecast_root = os.path.join(_root_dir, 'artifacts', 'ExampleForecasts', 'GriddedForecasts')
 _catalog_forecast_root = os.path.join(_root_dir, 'artifacts', 'ExampleForecasts', 'CatalogForecasts')
 _observed_catalog_root = os.path.join(_root_dir, 'artifacts', 'ObservedCatalogs')
+_basemap_root = os.path.join(_root_dir, 'artifacts', 'ExampleBasemaps')
 _polygon_region_root = os.path.join(_root_dir, 'artifacts', 'Regions', 'Polygons')
 _l_test_example_root = os.path.join(_root_dir, 'artifacts', 'ExampleResults', 'Poisson_l-test')
 
@@ -34,6 +35,10 @@ italy_testing_polygon_fname = os.path.join(
 italy_collection_polygon_fname = os.path.join(
     _polygon_region_root, 'Italy', 'ItalyCollectionPolygon.txt'
 )
+
+# basemap file name
+basemap_california = os.path.join(_basemap_root, 'basemap_california.tif')
+
 
 # Example test results
 l_test_examples = [os.path.join(_l_test_example_root, j) for j in os.listdir(_l_test_example_root)]
