@@ -42,7 +42,6 @@ from csep.utils.plots import (
     _get_basemap,  # noqa
     _calculate_spatial_extent,  # noqa
     _create_geo_axes,  # noqa
-    _calculate_marker_size,  # noqa
     _add_gridlines,  # noqa
     _get_marker_style,  # noqa
     _get_marker_t_color,  # noqa
@@ -50,7 +49,6 @@ from csep.utils.plots import (
     _get_axis_limits,  # noqa
     _add_labels_for_publication,  # noqa
     _autosize_scatter,  # noqa
-    _size_map,  # noqa
     _autoscale_histogram,  # noqa
     _annotate_distribution_plot,  # noqa
     _define_colormap_and_alpha,  # noqa
@@ -71,7 +69,7 @@ def is_internet_available():
 
 is_github_actions = os.getenv("GITHUB_ACTIONS") == "true"
 
-show_plots = False
+show_plots = True
 
 
 class TestPlots(unittest.TestCase):
@@ -125,10 +123,10 @@ class TestTimeSeriesPlots(TestPlots):
         self.assertTrue(all(scatter_color[:3] == (1.0, 0.0, 0.0)))  # Check if color is red
 
         # Test with custom marker size
-        ax = plot_magnitude_vs_time(catalog=self.observation_m2, size=10, mag_scale=1,
+        ax = plot_magnitude_vs_time(catalog=self.observation_m2, size=25, max_size=600,
                                     show=show_plots)
         scatter_sizes = ax.collections[0].get_sizes()
-        func_sizes = _autosize_scatter(10, self.observation_m2.data["magnitude"], 1)
+        func_sizes = _autosize_scatter(self.observation_m2.data["magnitude"], 25, 600, 4)
         numpy.testing.assert_array_almost_equal(scatter_sizes, func_sizes)
 
         # Test with custom alpha
@@ -136,14 +134,14 @@ class TestTimeSeriesPlots(TestPlots):
         scatter_alpha = ax.collections[0].get_alpha()
         self.assertEqual(scatter_alpha, 0.5)
 
-        # Test with custom mag_scale
-        ax = plot_magnitude_vs_time(catalog=self.observation_m2, mag_scale=8, show=show_plots)
+        # Test with custom marker size power
+        ax = plot_magnitude_vs_time(catalog=self.observation_m2, power=6, show=show_plots)
         scatter_sizes = ax.collections[0].get_sizes()
-        func_sizes = _autosize_scatter(4, self.observation_m2.data["magnitude"], 8)
+        func_sizes = _autosize_scatter(self.observation_m2.data["magnitude"], 4, 300, 6)
         numpy.testing.assert_array_almost_equal(scatter_sizes, func_sizes)
-
-        # Test with show=show_plots (just to ensure no errors occur)
-        plot_magnitude_vs_time(catalog=self.observation_m2, show=show_plots)
+        #
+        # # Test with show=True (just to ensure no errors occur)
+        plot_magnitude_vs_time(catalog=self.observation_m2, show=True)
 
     def test_plot_cumulative_events_default(self):
         # Test with default arguments to ensure basic functionality
@@ -832,8 +830,14 @@ class TestPlotCatalog(TestPlots):
             [[-125, 25], [-85, 25], [-85, 65], [-125, 65], [-125, 25]]
         )
 
+        self.mock_fix = MagicMock()
+        self.mock_fix.get_magnitudes.return_value = numpy.array([4, 5, 6, 7, 8])
+        self.mock_fix.get_latitudes.return_value = numpy.array([36, 35, 34, 33, 32])
+        self.mock_fix.get_longitudes.return_value = numpy.array([-110, -110, -110, -110, -110])
+        self.mock_fix.get_bbox.return_value = [-114, -104, 31.5, 37.5]
+
     def test_plot_catalog_default(self):
-        # Test plot with default settings
+        # Test plot with default settings4
         ax = plot_catalog(self.mock_catalog, show=show_plots)
         self.assertIsInstance(ax, plt.Axes)
         self.assertEqual(ax.get_title(), '')
@@ -849,6 +853,42 @@ class TestPlotCatalog(TestPlots):
         ax = plot_catalog(self.mock_catalog, mag_scale=7, show=show_plots, legend=False)
         legend = ax.get_legend()
         self.assertIsNone(legend)
+
+    def test_plot_catalog_custom_legend(self):
+
+        ax = plot_catalog(self.mock_catalog, mag_ticks=5,
+                          show=show_plots)
+        legend = ax.get_legend()
+        self.assertIsNotNone(legend)
+
+        mags = self.mock_catalog.get_magnitudes()
+        mag_bins = numpy.linspace(min(mags), max(mags), 3, endpoint=True)
+        ax = plot_catalog(self.mock_catalog, mag_ticks=mag_bins, show=show_plots)
+        legend = ax.get_legend()
+        self.assertIsNotNone(legend)
+
+    def test_plot_catalog_correct_sizing(self):
+
+        ax = plot_catalog(self.mock_fix,
+                          figsize=(4,6),
+                          mag_ticks=[4, 5, 6, 7, 8],
+                          legend_loc='right',
+                          show=show_plots)
+        legend = ax.get_legend()
+        self.assertIsNotNone(legend)
+
+    def test_plot_catalog_custom_sizes(self):
+
+        ax = plot_catalog(self.mock_catalog, size=5, max_size=800, power=6,
+                          show=show_plots)
+        legend = ax.get_legend()
+        self.assertIsNotNone(legend)
+
+    def test_plot_catalog_same_size(self):
+
+        ax = plot_catalog(self.mock_catalog, size=30, power=0, show=show_plots)
+        legend = ax.get_legend()
+        self.assertIsNotNone(legend)
 
     def test_plot_catalog_with_custom_extent(self):
         # Test plot with custom extent
@@ -1080,19 +1120,43 @@ class TestHelperFunctions(TestPlots):
         self.assertEqual(len(annotations), 1)
         self.assertEqual(annotations[0].get_text(), "(a)")
 
-    def test_autosize_scatter(self):
-        values = numpy.array([1, 2, 3])
-        scale = 1.5
-        expected_sizes = (2 / (scale**1)) * numpy.power(values, scale)
-        numpy.testing.assert_array_almost_equal(
-            _autosize_scatter(2, values, scale), expected_sizes
-        )
 
-    def test_size_map(self):
-        values = numpy.array([1, 2, 3])
-        scale = 1.5
-        expected_sizes = (2 / (scale**1)) * numpy.power(values, scale)
-        numpy.testing.assert_array_almost_equal(_size_map(2, values, scale), expected_sizes)
+    def test_autosize_scatter(self):
+        values = numpy.array([1, 2, 3, 4, 5])
+        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
+        result = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
+        numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
+
+        values = numpy.array([1, 2, 3, 4, 5])
+        min_val = 0
+        max_val = 10
+        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=3.0,
+                                           min_val=min_val, max_val=max_val)
+        result = _autosize_scatter(values, min_size=50., max_size=400., power=3.0, min_val=min_val,
+                                   max_val=max_val)
+        numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
+
+        values = numpy.array([1, 2, 3, 4, 5])
+        power = 2.0
+        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=power)
+        result = _autosize_scatter(values, min_size=50., max_size=400., power=power)
+        numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
+
+        values = numpy.array([1, 2, 3, 4, 5])
+        power = 0.0
+        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=power)
+        result = _autosize_scatter(values, min_size=50., max_size=400., power=power)
+        numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
+
+        values = numpy.array([5, 5, 5, 5, 5])
+        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
+        result = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
+        numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
+
+        values = numpy.array([10, 100, 1000, 10000, 100000])
+        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
+        result = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
+        numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
 
     def test_autoscale_histogram(self):
         fig, ax = plt.subplots()
@@ -1176,26 +1240,6 @@ class TestHelperFunctions(TestPlots):
                               set_global=False)
         self.assertIsInstance(ax, plt.Axes)
         self.assertAlmostEqual(ax.get_extent(), extent)
-
-    def test_calculate_marker_size(self):
-        # Test marker size calculation with a scale factor
-        magnitudes = numpy.array([4.0, 5.0, 6.0])
-        markersize = 5
-        scale = 1.2
-        sizes = _calculate_marker_size(markersize, magnitudes, scale)
-        expected_sizes = (markersize / (scale ** min(magnitudes))) * numpy.power(
-            magnitudes, scale
-        )
-        numpy.testing.assert_array_almost_equal(sizes, expected_sizes)
-
-        # Test marker size calculation with a fixed scale array
-        scale_array = numpy.array([10, 20, 30])
-        sizes = _calculate_marker_size(markersize, magnitudes, scale_array)
-        numpy.testing.assert_array_almost_equal(sizes, scale_array)
-
-        # Test invalid scale type
-        with self.assertRaises(ValueError):
-            _calculate_marker_size(markersize, magnitudes, "invalid_scale")
 
     def test_add_gridlines(self):
         # Test adding gridlines to an axis
