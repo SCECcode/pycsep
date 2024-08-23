@@ -4,7 +4,7 @@ import time
 import numpy
 import string
 import pandas as pandas
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 import scipy.stats
 import matplotlib
 import matplotlib.lines
@@ -2619,11 +2619,11 @@ def plot_Molchan_diagram(forecast, catalog, linear=True, axes=None, plot_uniform
     Tab_as_score['nu'] = Table_molchan['nu']
 
     ONE = numpy.ones(len(Tab_as_score))
-    Tab_as_score['CUM_BAND'] = cumtrapz(ONE, Tab_as_score['tau'], initial=0) - cumtrapz(Tab_as_score['nu'],
+    Tab_as_score['CUM_BAND'] = cumulative_trapezoid(ONE, Tab_as_score['tau'], initial=0) - cumulative_trapezoid(Tab_as_score['nu'],
                                                                                         Tab_as_score['tau'],
                                                                                         initial=0)
     Tab_as_score['AS_score'] = numpy.divide(Tab_as_score['CUM_BAND'],
-                                         cumtrapz(ONE, Tab_as_score['tau'], initial=0) + 1e-10)
+                                         cumulative_trapezoid(ONE, Tab_as_score['tau'], initial=0) + 1e-10)
     Tab_as_score.loc[Tab_as_score.index[-1], 'AS_score'] = max(0.5, Tab_as_score['AS_score'].iloc[-1])
     ASscore = numpy.round(Tab_as_score.loc[Tab_as_score.index[-1], 'AS_score'], 2)
 
