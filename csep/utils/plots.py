@@ -63,8 +63,11 @@ DEFAULT_PLOT_ARGS = {
     "legend_framealpha": None,
     # Line/Scatter parameters
     "color": "steelblue",
+    "secondary_color": "red",
     "alpha": 0.8,
     "linewidth": 1,
+    "linestyle": '-',
+    "secondary_linestyle": "red",
     "size": 5,
     "marker": "o",
     "markersize": 5,
@@ -932,35 +935,41 @@ def plot_consistency_test(
 # Alarm-based plots
 ###################
 def plot_concentration_ROC_diagram(
-    forecast,
-    catalog,
-    linear=True,
-    axes=None,
-    plot_uniform=True,
-    show=True,
-    figsize=(9, 8),
-    forecast_linecolor="black",
-    forecast_linestyle="-",
-    observed_linecolor="blue",
-    observed_linestyle="-",
-    legend_fontsize=16,
-    legend_loc="upper left",
-    title_fontsize=18,
-    label_fontsize=14,
-    title="Concentration ROC Curve",
-):
+        forecast: "GriddedForecast",
+        catalog: "CSEPCatalog",
+        linear: bool = True,
+        plot_uniform: bool = True,
+        show: bool = True,
+        ax: Optional[pyplot.Axes] = None,
+        **kwargs
+) -> matplotlib.axes.Axes:
+    """
+    Plots the Concentration ROC Diagram for a given forecast and observed catalog.
+
+    Args:
+        forecast (GriddedForecast): Forecast object containing spatial forecast data.
+        catalog (CSEPCatalog): Catalog object containing observed data.
+        linear (bool): If True, uses a linear scale for the X-axis, otherwise logarithmic.
+        ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
+        plot_uniform (bool): If True, plots the uniform (random) model as a reference (default: True).
+        show (bool): If True, displays the plot (default: True).
+        ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
+        **kwargs: Additional keyword arguments for customization.
+
+    Returns:
+        matplotlib.axes.Axes: The Axes object with the plot.
+    """
+
+    # Initialize plot
+    plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
+    fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
+
     if not catalog.region == forecast.region:
-        raise RuntimeError("catalog region and forecast region must be identical.")
+        raise AttributeError("catalog region and forecast region must be identical.")
 
-    name = forecast.name
-    forecast_label = f"Forecast {name}" if name else "Forecast"
-    observed_label = f"Observed {name}" if name else "Observed"
-
-    # Initialize figure
-    if axes is not None:
-        ax = axes
-    else:
-        fig, ax = pyplot.subplots(figsize=figsize)
+    # Getting data
+    forecast_label = plot_args.get("forecast_label", forecast.name or "Forecast")
+    observed_label = plot_args.get("observation_label", "Observations")
 
     area_km2 = catalog.region.get_cell_area()
     obs_counts = catalog.spatial_counts()
@@ -973,6 +982,7 @@ def plot_concentration_ROC_diagram(
     area_norm_sorted = numpy.cumsum(area_km2[I]) / numpy.sum(area_km2)
     obs_norm_sorted = numpy.cumsum(obs_counts[I]) / numpy.sum(obs_counts)
 
+    # Plot data
     if plot_uniform:
         ax.plot(area_norm_sorted, area_norm_sorted, "k--", label="Uniform")
 
@@ -980,27 +990,29 @@ def plot_concentration_ROC_diagram(
         area_norm_sorted,
         fore_norm_sorted,
         label=forecast_label,
-        color=forecast_linecolor,
-        linestyle=forecast_linestyle,
+        color=plot_args['secondary_color']
     )
 
     ax.step(
         area_norm_sorted,
         obs_norm_sorted,
         label=observed_label,
-        color=observed_linecolor,
-        linestyle=observed_linestyle,
+        color=plot_args['color'],
+        linestyle=plot_args['linestyle'],
     )
 
-    ax.set_ylabel("True Positive Rate", fontsize=label_fontsize)
-    ax.set_xlabel("False Positive Rate (Normalized Area)", fontsize=label_fontsize)
-
+    # Plot formatting
+    ax.set_title(plot_args['title'], fontsize=plot_args['title_fontsize'])
+    ax.grid(plot_args["grid"])
     if not linear:
         ax.set_xscale("log")
-
-    ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
-    ax.set_title(title, fontsize=title_fontsize)
-
+    ax.set_ylabel(plot_args['ylabel'] or "True Positive Rate", fontsize=plot_args['ylabel_fontsize'])
+    ax.set_xlabel(plot_args['xlabel'] or "False Positive Rate (Normalized Area)", fontsize=plot_args['xlabel_fontsize'])
+    if plot_args["legend"]:
+        ax.legend(loc=plot_args['legend_loc'], shadow=True, fontsize=plot_args['legend_fontsize'],
+                  framealpha=plot_args['legend_framealpha'])
+    if plot_args["tight_layout"]:
+        fig.tight_layout()
     if show:
         pyplot.show()
 
@@ -1008,33 +1020,41 @@ def plot_concentration_ROC_diagram(
 
 
 def plot_ROC_diagram(
-    forecast,
-    catalog,
-    linear=True,
-    axes=None,
-    plot_uniform=True,
-    show=True,
-    figsize=(9, 8),
-    forecast_linestyle="-",
-    legend_fontsize=16,
-    legend_loc="upper left",
-    title_fontsize=16,
-    label_fontsize=14,
-    title="ROC Curve from contingency table",
-):
+        forecast: "GriddedForecast",
+        catalog: "CSEPCatalog",
+        linear: bool = True,
+        plot_uniform: bool = True,
+        show: bool = True,
+        ax: Optional[pyplot.Axes] = None,
+        **kwargs
+) -> matplotlib.pyplot.Axes:
+    """
+       Plots the ROC (Receiver Operating Characteristic) curve for a given forecast and observed catalog.
+
+       Args:
+           forecast (GriddedForecast): Forecast object containing spatial forecast data.
+           catalog (CSEPCatalog): Catalog object containing observed data.
+           linear (bool): If True, uses a linear scale for the X-axis, otherwise logarithmic.
+           plot_uniform (bool): If True, plots the uniform (random) model as a reference (default: True).
+           show (bool): If True, displays the plot (default: True).
+           ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
+           **kwargs: Additional keyword arguments for customization.
+
+       Returns:
+           pyplot.Axes: The Axes object with the plot.
+    """
+
+    # Initialize plot
+    plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
+    fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
+
     if not catalog.region == forecast.region:
         raise RuntimeError("catalog region and forecast region must be identical.")
-
-    if axes is not None:
-        ax = axes
-    else:
-        fig, ax = pyplot.subplots(figsize=figsize)
 
     rate = forecast.spatial_counts()
     obs_counts = catalog.spatial_counts()
 
-    I = numpy.argsort(rate)
-    I = numpy.flip(I)
+    I = numpy.argsort(rate)[::-1]  # Sort in descending order
 
     thresholds = (rate[I]) / numpy.sum(rate)
     obs_counts = obs_counts[I]
@@ -1043,7 +1063,6 @@ def plot_ROC_diagram(
 
     for threshold in thresholds:
         threshold = float(threshold)
-
         binary_forecast = numpy.where(thresholds >= threshold, 1, 0)
         forecastedYes_observedYes = obs_counts[(binary_forecast == 1) & (obs_counts > 0)]
         forecastedYes_observedNo = obs_counts[(binary_forecast == 1) & (obs_counts == 0)]
@@ -1069,9 +1088,9 @@ def plot_ROC_diagram(
     ax.plot(
         Table_ROC["F"],
         Table_ROC["H"],
-        label=forecast.name or "Forecast",
-        color="black",
-        linestyle=forecast_linestyle,
+        label=plot_args.get("forecast_label", forecast.name or "Forecast"),
+        color=plot_args['color'],
+        linestyle=plot_args['linestyle'],
     )
 
     if plot_uniform:
@@ -1080,20 +1099,23 @@ def plot_ROC_diagram(
             numpy.arange(0, 1.001, 0.001),
             linestyle="--",
             color="gray",
-            label="SUP",
+            label="Uniform",
         )
 
-    ax.set_ylabel("Hit Rate", fontsize=label_fontsize)
-    ax.set_xlabel("Fraction of false alarms", fontsize=label_fontsize)
-
+    # Plot formatting
+    ax.set_ylabel(plot_args['ylabel'] or "Hit Rate", fontsize=plot_args['ylabel_fontsize'])
+    ax.set_xlabel(plot_args['xlabel'] or "Fraction of False Alarms", fontsize=plot_args['xlabel_fontsize'])
     if not linear:
         ax.set_xscale("log")
-
     ax.set_yscale("linear")
-    ax.tick_params(axis="x", labelsize=label_fontsize)
-    ax.tick_params(axis="y", labelsize=label_fontsize)
-    ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
-    ax.set_title(title, fontsize=title_fontsize)
+    ax.tick_params(axis="x", labelsize=plot_args['xticks_fontsize'])
+    ax.tick_params(axis="y", labelsize=plot_args['yticks_fontsize'])
+    if plot_args['legend']:
+        ax.legend(loc=plot_args['legend_loc'], shadow=True,
+                  fontsize=plot_args['legend_fontsize'])
+    ax.set_title(plot_args['title'], fontsize=plot_args['title_fontsize'])
+    if plot_args['tight_layout']:
+        fig.tight_layout()
 
     if show:
         pyplot.show()
@@ -1102,83 +1124,58 @@ def plot_ROC_diagram(
 
 
 def plot_Molchan_diagram(
-    forecast,
-    catalog,
-    linear=True,
-    axes=None,
-    plot_uniform=True,
-    show=True,
-    figsize=(9, 8),
-    forecast_linestyle="-",
-    legend_fontsize=16,
-    legend_loc="lower left",
-    title_fontsize=16,
-    label_fontsize=14,
-    title="Molchan diagram",
-    forecast_label=None,
-    observed_label=None,
-    color="black",
-):
+        forecast: "GriddedForecast",
+        catalog: "CSEPCatalog",
+        linear: bool = True,
+        plot_uniform: bool = True,
+        show: bool = True,
+        ax: Optional[pyplot.Axes] = None,
+        **kwargs
+) -> matplotlib.axes.Axes:
     """
     Plot the Molchan Diagram based on forecast and test catalogs using the contingency table.
     The Area Skill score and its error are shown in the legend.
 
     The Molchan diagram is computed following this procedure:
-        (1) Obtain spatial rates from GriddedForecast and the observed events from the observed catalog.
-        (2) Rank the rates in descending order (highest rates first).
-        (3) Sort forecasted rates by ordering found in (2), and normalize rates so their sum is equal to unity.
-        (4) Obtain binned spatial rates from the observed catalog.
-        (5) Sort gridded observed rates by ordering found in (2).
-        (6) Test each ordered and normalized forecasted rate defined in (3) as a threshold value to obtain the
-            corresponding contingency table.
-        (7) Define the "nu" (Miss rate) and "tau" (Fraction of spatial alarmed cells) for each threshold using the
-            information provided by the corresponding contingency table defined in (6).
+    1. Obtain spatial rates from the GriddedForecast and the observed events from the catalog.
+    2. Rank the rates in descending order (highest rates first).
+    3. Sort forecasted rates by ordering found in (2), and normalize rates so their sum is equal to unity.
+    4. Obtain binned spatial rates from the observed catalog.
+    5. Sort gridded observed rates by ordering found in (2).
+    6. Test each ordered and normalized forecasted rate defined in (3) as a threshold value to obtain the
+       corresponding contingency table.
+    7. Define the "nu" (Miss rate) and "tau" (Fraction of spatial alarmed cells) for each threshold using the
+       information provided by the corresponding contingency table defined in (6).
 
-    Note that:
-        (1) The testing catalog and forecast should have exactly the same time-window (duration).
-        (2) Forecasts should be defined over the same region.
-        (3) If calling this function multiple times, update the color in the arguments.
-        (4) The user can choose the x-scale (linear or log).
+    Note:
+    1. The testing catalog and forecast should have exactly the same time-window (duration).
+    2. Forecasts should be defined over the same region.
+    3. If calling this function multiple times, update the color in the arguments.
+    4. The user can choose the x-scale (linear or log).
 
     Args:
-        forecast (:class: `csep.forecast.GriddedForecast`):
-        catalog (:class:`AbstractBaseCatalog`): evaluation catalog
-        linear (bool): if true, a linear x-axis is used; if false, a logarithmic x-axis is used.
-        axes (:class:`matplotlib.pyplot.Axes`): Previously defined ax object.
-        plot_uniform (bool): if true, include uniform forecast on plot.
-        show (bool): if true, displays the plot.
-        figsize (tuple): Figure size - default: (9, 8).
-        forecast_linestyle (str): Linestyle for the forecast line - default: '-'.
-        legend_fontsize (float): Fontsize of the plot legend - default: 16.
-        legend_loc (str): Location of the plot legend - default: 'lower left'.
-        title_fontsize (float): Fontsize of the plot title - default: 16.
-        label_fontsize (float): Fontsize of the axis labels - default: 14.
-        title (str): Title of the plot - default: 'Molchan diagram'.
-        forecast_label (str): Label for the forecast in the legend - default: forecast name.
-        observed_label (str): Label for the observed catalog in the legend - default: forecast name.
-        color (str): Color of the forecast line - default: 'black'.
+        forecast (GriddedForecast): The forecast object.
+        catalog (CSEPCatalog): The evaluation catalog.
+        linear (bool): If True, a linear x-axis is used; if False, a logarithmic x-axis is used.
+        plot_uniform (bool): If True, include a uniform forecast on the plot.
+        show (bool): If True, displays the plot.
+        ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
+        **kwargs: Additional keyword arguments for customization.
 
     Returns:
-        :class:`matplotlib.pyplot.Axes` object
+        matplotlib.axes.Axes: The Axes object with the plot.
 
     Raises:
-        TypeError: Throws error if a CatalogForecast-like object is provided.
-        RuntimeError: Throws error if Catalog and Forecast do not have the same region.
+        RuntimeError: If the catalog and forecast do not have the same region.
     """
+
+    plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
+    fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
+
     if not catalog.region == forecast.region:
         raise RuntimeError("Catalog region and forecast region must be identical.")
 
-    # Initialize figure
-    if axes is not None:
-        ax = axes
-    else:
-        fig, ax = pyplot.subplots(figsize=figsize)
-
-    if forecast_label is None:
-        forecast_label = forecast.name if forecast.name else ""
-
-    if observed_label is None:
-        observed_label = forecast.name if forecast.name else ""
+    forecast_label = plot_args.get("forecast_label", forecast.name or "Forecast")
 
     # Obtain forecast rates (or counts) and observed catalog aggregated in spatial cells
     rate = forecast.spatial_counts()
@@ -1295,33 +1292,30 @@ def plot_Molchan_diagram(
         Table_molchan["tau"],
         Table_molchan["nu"],
         label=f"{forecast_label}, ASS={ASscore}±{dev_std} ",
-        color=color,
-        linestyle=forecast_linestyle,
+        color=plot_args['color'],
+        linestyle=plot_args['linestyle'],
     )
 
     # Plot uniform forecast
     if plot_uniform:
         x_uniform = numpy.arange(0, 1.001, 0.001)
         y_uniform = numpy.arange(1.00, -0.001, -0.001)
-        ax.plot(x_uniform, y_uniform, linestyle="--", color="gray", label="SUP")
+        ax.plot(x_uniform, y_uniform, linestyle="--", color="gray", label="Uniform")
 
-    # Plotting arguments
-    ax.set_ylabel("Miss Rate", fontsize=label_fontsize)
-    ax.set_xlabel("Fraction of area occupied by alarms", fontsize=label_fontsize)
-
-    if linear:
-        legend_loc = "upper right"
-    else:
+    # Plot formatting
+    ax.set_ylabel(plot_args['ylabel'] or "Miss Rate", fontsize=plot_args['ylabel_fontsize'])
+    ax.set_xlabel(plot_args['xlabel'] or "Fraction of area occupied by alarms", fontsize=plot_args['xlabel_fontsize'])
+    if not linear:
         ax.set_xscale("log")
+    ax.tick_params(axis="x", labelsize=plot_args['xlabel_fontsize'])
+    ax.tick_params(axis="y", labelsize=plot_args['ylabel_fontsize'])
+    ax.legend(loc=plot_args['legend_loc'], shadow=True, fontsize=plot_args['legend_fontsize'])
+    ax.set_title(plot_args['title'] or "Molchan Diagram", fontsize=plot_args['title_fontsize'])
 
-    ax.tick_params(axis="x", labelsize=label_fontsize)
-    ax.tick_params(axis="y", labelsize=label_fontsize)
-    ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
-    ax.set_title(title, fontsize=title_fontsize)
-
+    if plot_args["tight_layout"]:
+        fig.tight_layout()
     if show:
         pyplot.show()
-
     return ax
 
 
