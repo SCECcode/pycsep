@@ -34,10 +34,12 @@ jobs:
       - name: Install pyCSEP
         run: |
           pip install --no-deps -e .
+          pip install rasterio
           python -c "import csep; print('Version: ', csep.__version__)"
 
       - name: Test with pytest
         run: |
+
           pip install vcrpy==4.3.1 pytest pytest-cov
           pytest --cov=./ --cov-config=.coveragerc
 
