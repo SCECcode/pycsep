@@ -1,8 +1,7 @@
 import os
 import shutil
-import string
 import warnings
-from typing import TYPE_CHECKING, Optional, Any, List, Union, Tuple, Sequence
+from typing import TYPE_CHECKING, Optional, Any, List, Union, Tuple, Sequence, Dict
 
 import cartopy
 import cartopy.crs as ccrs
@@ -13,8 +12,6 @@ import matplotlib.pyplot as pyplot
 import numpy
 import numpy as np
 import pandas as pandas
-import rasterio
-import scipy.stats
 from cartopy.io import img_tiles
 from cartopy.io.img_tiles import GoogleWTS
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -22,8 +19,10 @@ from matplotlib.axes import Axes
 from matplotlib.dates import AutoDateLocator, DateFormatter
 from matplotlib.lines import Line2D
 from rasterio import DatasetReader
-from rasterio import plot as rioplot
+from rasterio import plot as rio_plot
+from rasterio import open as rio_open
 from scipy.integrate import cumulative_trapezoid
+from scipy.stats import poisson, nbinom, beta
 
 # PyCSEP imports
 import csep.utils.time_utils
@@ -66,7 +65,7 @@ DEFAULT_PLOT_ARGS = {
     "secondary_color": "red",
     "alpha": 0.8,
     "linewidth": 1,
-    "linestyle": '-',
+    "linestyle": "-",
     "secondary_linestyle": "red",
     "size": 5,
     "marker": "o",
@@ -532,7 +531,7 @@ def plot_distribution_test(
             linestyle="--",
             label=obs_label + numpy.isinf(observation) * " (-inf)",
         )
-    else:
+    elif isinstance(observation, (list, np.ndarray)):
         observation = observation[~numpy.isnan(observation)]
         ax.hist(
             observation,
@@ -592,11 +591,14 @@ def plot_calibration_test(
     Plots a calibration test (QQ plot) with confidence intervals.
 
     Args:
-        evaluation_result (EvaluationResult): The evaluation result object containing the test distribution.
+        evaluation_result (EvaluationResult): The evaluation result object containing the test
+                                             distribution.
         percentile (float): Percentile to build confidence interval
-        ax (Optional[matplotlib.axes.Axes]): Axes object to plot on. If None, creates a new figure.
+        ax (Optional[matplotlib.axes.Axes]): Axes object to plot on. If None, creates a new
+                                             figure.
         show (bool): If True, displays the plot. Default is False.
-        label (Optional[str]): Label for the plotted data. If None, uses `evaluation_result.sim_name`.
+        label (Optional[str]): Label for the plotted data. If None, uses
+                               `evaluation_result.sim_name`.
         **kwargs: Additional keyword arguments for customizing the plot. These are merged with
             `DEFAULT_PLOT_ARGS`.
 
@@ -615,8 +617,8 @@ def plot_calibration_test(
     # Compute confidence intervals for order statistics using beta distribution
     inf = (100 - percentile) / 2
     sup = 100 - (100 - percentile) / 2
-    ulow = scipy.stats.beta.ppf(inf / 100, k, n - k + 1)
-    uhigh = scipy.stats.beta.ppf(sup / 100, k, n - k + 1)
+    ulow = beta.ppf(inf / 100, k, n - k + 1)
+    uhigh = beta.ppf(sup / 100, k, n - k + 1)
 
     # Quantiles should be sorted for plotting
     sorted_td = numpy.sort(evaluation_result.test_distribution)
@@ -935,13 +937,13 @@ def plot_consistency_test(
 # Alarm-based plots
 ###################
 def plot_concentration_ROC_diagram(
-        forecast: "GriddedForecast",
-        catalog: "CSEPCatalog",
-        linear: bool = True,
-        plot_uniform: bool = True,
-        show: bool = True,
-        ax: Optional[pyplot.Axes] = None,
-        **kwargs
+    forecast: "GriddedForecast",
+    catalog: "CSEPCatalog",
+    linear: bool = True,
+    plot_uniform: bool = True,
+    show: bool = True,
+    ax: Optional[pyplot.Axes] = None,
+    **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Plots the Concentration ROC Diagram for a given forecast and observed catalog.
@@ -951,7 +953,8 @@ def plot_concentration_ROC_diagram(
         catalog (CSEPCatalog): Catalog object containing observed data.
         linear (bool): If True, uses a linear scale for the X-axis, otherwise logarithmic.
         ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
-        plot_uniform (bool): If True, plots the uniform (random) model as a reference (default: True).
+        plot_uniform (bool): If True, plots the uniform (random) model as a reference
+                            (default: True).
         show (bool): If True, displays the plot (default: True).
         ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
         **kwargs: Additional keyword arguments for customization.
@@ -975,12 +978,12 @@ def plot_concentration_ROC_diagram(
     obs_counts = catalog.spatial_counts()
     rate = forecast.spatial_counts()
 
-    I = numpy.argsort(rate)
-    I = numpy.flip(I)
+    indices = numpy.argsort(rate)
+    indices = numpy.flip(indices)
 
-    fore_norm_sorted = numpy.cumsum(rate[I]) / numpy.sum(rate)
-    area_norm_sorted = numpy.cumsum(area_km2[I]) / numpy.sum(area_km2)
-    obs_norm_sorted = numpy.cumsum(obs_counts[I]) / numpy.sum(obs_counts)
+    fore_norm_sorted = numpy.cumsum(rate[indices]) / numpy.sum(rate)
+    area_norm_sorted = numpy.cumsum(area_km2[indices]) / numpy.sum(area_km2)
+    obs_norm_sorted = numpy.cumsum(obs_counts[indices]) / numpy.sum(obs_counts)
 
     # Plot data
     if plot_uniform:
@@ -990,27 +993,36 @@ def plot_concentration_ROC_diagram(
         area_norm_sorted,
         fore_norm_sorted,
         label=forecast_label,
-        color=plot_args['secondary_color']
+        color=plot_args["secondary_color"],
     )
 
     ax.step(
         area_norm_sorted,
         obs_norm_sorted,
         label=observed_label,
-        color=plot_args['color'],
-        linestyle=plot_args['linestyle'],
+        color=plot_args["color"],
+        linestyle=plot_args["linestyle"],
     )
 
     # Plot formatting
-    ax.set_title(plot_args['title'], fontsize=plot_args['title_fontsize'])
+    ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"])
     ax.grid(plot_args["grid"])
     if not linear:
         ax.set_xscale("log")
-    ax.set_ylabel(plot_args['ylabel'] or "True Positive Rate", fontsize=plot_args['ylabel_fontsize'])
-    ax.set_xlabel(plot_args['xlabel'] or "False Positive Rate (Normalized Area)", fontsize=plot_args['xlabel_fontsize'])
+    ax.set_ylabel(
+        plot_args["ylabel"] or "True Positive Rate", fontsize=plot_args["ylabel_fontsize"]
+    )
+    ax.set_xlabel(
+        plot_args["xlabel"] or "False Positive Rate (Normalized Area)",
+        fontsize=plot_args["xlabel_fontsize"],
+    )
     if plot_args["legend"]:
-        ax.legend(loc=plot_args['legend_loc'], shadow=True, fontsize=plot_args['legend_fontsize'],
-                  framealpha=plot_args['legend_framealpha'])
+        ax.legend(
+            loc=plot_args["legend_loc"],
+            shadow=True,
+            fontsize=plot_args["legend_fontsize"],
+            framealpha=plot_args["legend_framealpha"],
+        )
     if plot_args["tight_layout"]:
         fig.tight_layout()
     if show:
@@ -1020,28 +1032,30 @@ def plot_concentration_ROC_diagram(
 
 
 def plot_ROC_diagram(
-        forecast: "GriddedForecast",
-        catalog: "CSEPCatalog",
-        linear: bool = True,
-        plot_uniform: bool = True,
-        show: bool = True,
-        ax: Optional[pyplot.Axes] = None,
-        **kwargs
+    forecast: "GriddedForecast",
+    catalog: "CSEPCatalog",
+    linear: bool = True,
+    plot_uniform: bool = True,
+    show: bool = True,
+    ax: Optional[pyplot.Axes] = None,
+    **kwargs,
 ) -> matplotlib.pyplot.Axes:
     """
-       Plots the ROC (Receiver Operating Characteristic) curve for a given forecast and observed catalog.
+    Plots the ROC (Receiver Operating Characteristic) curve for a given forecast and observed
+    catalog.
 
-       Args:
-           forecast (GriddedForecast): Forecast object containing spatial forecast data.
-           catalog (CSEPCatalog): Catalog object containing observed data.
-           linear (bool): If True, uses a linear scale for the X-axis, otherwise logarithmic.
-           plot_uniform (bool): If True, plots the uniform (random) model as a reference (default: True).
-           show (bool): If True, displays the plot (default: True).
-           ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
-           **kwargs: Additional keyword arguments for customization.
+    Args:
+        forecast (GriddedForecast): Forecast object containing spatial forecast data.
+        catalog (CSEPCatalog): Catalog object containing observed data.
+        linear (bool): If True, uses a linear scale for the X-axis, otherwise logarithmic.
+        plot_uniform (bool): If True, plots the uniform (random) model as a reference (default:
+                             True).
+        show (bool): If True, displays the plot (default: True).
+        ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
+        **kwargs: Additional keyword arguments for customization.
 
-       Returns:
-           pyplot.Axes: The Axes object with the plot.
+    Returns:
+        pyplot.Axes: The Axes object with the plot.
     """
 
     # Initialize plot
@@ -1054,10 +1068,10 @@ def plot_ROC_diagram(
     rate = forecast.spatial_counts()
     obs_counts = catalog.spatial_counts()
 
-    I = numpy.argsort(rate)[::-1]  # Sort in descending order
+    indices = numpy.argsort(rate)[::-1]  # Sort in descending order
 
-    thresholds = (rate[I]) / numpy.sum(rate)
-    obs_counts = obs_counts[I]
+    thresholds = (rate[indices]) / numpy.sum(rate)
+    obs_counts = obs_counts[indices]
 
     Table_ROC = pandas.DataFrame({"Threshold": [], "H": [], "F": []})
 
@@ -1089,8 +1103,8 @@ def plot_ROC_diagram(
         Table_ROC["F"],
         Table_ROC["H"],
         label=plot_args.get("forecast_label", forecast.name or "Forecast"),
-        color=plot_args['color'],
-        linestyle=plot_args['linestyle'],
+        color=plot_args["color"],
+        linestyle=plot_args["linestyle"],
     )
 
     if plot_uniform:
@@ -1103,18 +1117,21 @@ def plot_ROC_diagram(
         )
 
     # Plot formatting
-    ax.set_ylabel(plot_args['ylabel'] or "Hit Rate", fontsize=plot_args['ylabel_fontsize'])
-    ax.set_xlabel(plot_args['xlabel'] or "Fraction of False Alarms", fontsize=plot_args['xlabel_fontsize'])
+    ax.set_ylabel(plot_args["ylabel"] or "Hit Rate", fontsize=plot_args["ylabel_fontsize"])
+    ax.set_xlabel(
+        plot_args["xlabel"] or "Fraction of False Alarms", fontsize=plot_args["xlabel_fontsize"]
+    )
     if not linear:
         ax.set_xscale("log")
     ax.set_yscale("linear")
-    ax.tick_params(axis="x", labelsize=plot_args['xticks_fontsize'])
-    ax.tick_params(axis="y", labelsize=plot_args['yticks_fontsize'])
-    if plot_args['legend']:
-        ax.legend(loc=plot_args['legend_loc'], shadow=True,
-                  fontsize=plot_args['legend_fontsize'])
-    ax.set_title(plot_args['title'], fontsize=plot_args['title_fontsize'])
-    if plot_args['tight_layout']:
+    ax.tick_params(axis="x", labelsize=plot_args["xticks_fontsize"])
+    ax.tick_params(axis="y", labelsize=plot_args["yticks_fontsize"])
+    if plot_args["legend"]:
+        ax.legend(
+            loc=plot_args["legend_loc"], shadow=True, fontsize=plot_args["legend_fontsize"]
+        )
+    ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"])
+    if plot_args["tight_layout"]:
         fig.tight_layout()
 
     if show:
@@ -1124,13 +1141,13 @@ def plot_ROC_diagram(
 
 
 def plot_Molchan_diagram(
-        forecast: "GriddedForecast",
-        catalog: "CSEPCatalog",
-        linear: bool = True,
-        plot_uniform: bool = True,
-        show: bool = True,
-        ax: Optional[pyplot.Axes] = None,
-        **kwargs
+    forecast: "GriddedForecast",
+    catalog: "CSEPCatalog",
+    linear: bool = True,
+    plot_uniform: bool = True,
+    show: bool = True,
+    ax: Optional[pyplot.Axes] = None,
+    **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Plot the Molchan Diagram based on forecast and test catalogs using the contingency table.
@@ -1139,13 +1156,15 @@ def plot_Molchan_diagram(
     The Molchan diagram is computed following this procedure:
     1. Obtain spatial rates from the GriddedForecast and the observed events from the catalog.
     2. Rank the rates in descending order (highest rates first).
-    3. Sort forecasted rates by ordering found in (2), and normalize rates so their sum is equal to unity.
+    3. Sort forecasted rates by ordering found in (2), and normalize rates so their sum is equal
+     to unity.
     4. Obtain binned spatial rates from the observed catalog.
     5. Sort gridded observed rates by ordering found in (2).
-    6. Test each ordered and normalized forecasted rate defined in (3) as a threshold value to obtain the
-       corresponding contingency table.
-    7. Define the "nu" (Miss rate) and "tau" (Fraction of spatial alarmed cells) for each threshold using the
-       information provided by the corresponding contingency table defined in (6).
+    6. Test each ordered and normalized forecasted rate defined in (3) as a threshold value to
+    obtain the corresponding contingency table.
+    7. Define the "nu" (Miss rate) and "tau" (Fraction of spatial alarmed cells) for each
+    threshold using the information provided by the corresponding contingency table defined in
+    (6).
 
     Note:
     1. The testing catalog and forecast should have exactly the same time-window (duration).
@@ -1182,12 +1201,12 @@ def plot_Molchan_diagram(
     obs_counts = catalog.spatial_counts()
 
     # Get index of rates (descending sort)
-    I = numpy.argsort(rate)
-    I = numpy.flip(I)
+    indices = numpy.argsort(rate)
+    indices = numpy.flip(indices)
 
     # Order forecast and cells rates by highest rate cells first
-    thresholds = (rate[I]) / numpy.sum(rate)
-    obs_counts = obs_counts[I]
+    thresholds = (rate[indices]) / numpy.sum(rate)
+    obs_counts = obs_counts[indices]
 
     Table_molchan = pandas.DataFrame(
         {
@@ -1280,11 +1299,11 @@ def plot_Molchan_diagram(
     )
     ASscore = numpy.round(Tab_as_score.loc[Tab_as_score.index[-1], "AS_score"], 2)
 
-    bin = 0.01
+    bin_size = 0.01
     devstd = numpy.sqrt(1 / (12 * Table_molchan["Obs_active_bins"].iloc[0]))
-    devstd = devstd * bin**-1
+    devstd = devstd * bin_size**-1
     devstd = numpy.ceil(devstd + 0.5)
-    devstd = devstd / bin**-1
+    devstd = devstd / bin_size**-1
     dev_std = numpy.round(devstd, 2)
 
     # Plot the Molchan trajectory
@@ -1292,8 +1311,8 @@ def plot_Molchan_diagram(
         Table_molchan["tau"],
         Table_molchan["nu"],
         label=f"{forecast_label}, ASS={ASscore}±{dev_std} ",
-        color=plot_args['color'],
-        linestyle=plot_args['linestyle'],
+        color=plot_args["color"],
+        linestyle=plot_args["linestyle"],
     )
 
     # Plot uniform forecast
@@ -1303,14 +1322,17 @@ def plot_Molchan_diagram(
         ax.plot(x_uniform, y_uniform, linestyle="--", color="gray", label="Uniform")
 
     # Plot formatting
-    ax.set_ylabel(plot_args['ylabel'] or "Miss Rate", fontsize=plot_args['ylabel_fontsize'])
-    ax.set_xlabel(plot_args['xlabel'] or "Fraction of area occupied by alarms", fontsize=plot_args['xlabel_fontsize'])
+    ax.set_ylabel(plot_args["ylabel"] or "Miss Rate", fontsize=plot_args["ylabel_fontsize"])
+    ax.set_xlabel(
+        plot_args["xlabel"] or "Fraction of area occupied by alarms",
+        fontsize=plot_args["xlabel_fontsize"],
+    )
     if not linear:
         ax.set_xscale("log")
-    ax.tick_params(axis="x", labelsize=plot_args['xlabel_fontsize'])
-    ax.tick_params(axis="y", labelsize=plot_args['ylabel_fontsize'])
-    ax.legend(loc=plot_args['legend_loc'], shadow=True, fontsize=plot_args['legend_fontsize'])
-    ax.set_title(plot_args['title'] or "Molchan Diagram", fontsize=plot_args['title_fontsize'])
+    ax.tick_params(axis="x", labelsize=plot_args["xlabel_fontsize"])
+    ax.tick_params(axis="y", labelsize=plot_args["ylabel_fontsize"])
+    ax.legend(loc=plot_args["legend_loc"], shadow=True, fontsize=plot_args["legend_fontsize"])
+    ax.set_title(plot_args["title"] or "Molchan Diagram", fontsize=plot_args["title_fontsize"])
 
     if plot_args["tight_layout"]:
         fig.tight_layout()
@@ -1392,7 +1414,7 @@ def plot_basemap(
                 ax.add_image(basemap_obj, tile_depth)
             # basemap_obj is a rasterio image
             elif isinstance(basemap_obj, DatasetReader):
-                ax = rioplot.show(basemap_obj, ax=ax)
+                ax = rio_plot.show(basemap_obj, ax=ax)
 
     except Exception as e:
         print(
@@ -1463,8 +1485,14 @@ def plot_catalog(
     ax.scatter(
         catalog.get_longitudes(),
         catalog.get_latitudes(),
-        s=_autosize_scatter(values=catalog.get_magnitudes(), min_size=size, max_size=max_size,
-                            power=power, min_val=min_val, max_val=max_val),
+        s=_autosize_scatter(
+            values=catalog.get_magnitudes(),
+            min_size=size,
+            max_size=max_size,
+            power=power,
+            min_val=min_val,
+            max_val=max_val,
+        ),
         transform=ccrs.PlateCarree(),
         color=plot_args["markercolor"],
         edgecolors=plot_args["markeredgecolor"],
@@ -1486,15 +1514,25 @@ def plot_catalog(
             max_size=max_size,
             power=power,
             min_val=min_val or np.min(catalog.get_magnitudes()),
-            max_val=max_val or np.max(catalog.get_magnitudes())
+            max_val=max_val or np.max(catalog.get_magnitudes()),
         )
 
         # Create custom legend handles
-        handles = [pyplot.Line2D([0], [0], marker='o', lw=0, label=str(m),
-                                 markersize=np.sqrt(s), markerfacecolor='gray', alpha=0.5,
-                                 markeredgewidth=0.8,
-                                 markeredgecolor='black')
-                   for m, s in zip(mag_ticks, legend_sizes)]
+        handles = [
+            pyplot.Line2D(
+                [0],
+                [0],
+                marker="o",
+                lw=0,
+                label=str(m),
+                markersize=np.sqrt(s),
+                markerfacecolor="gray",
+                alpha=0.5,
+                markeredgewidth=0.8,
+                markeredgecolor="black",
+            )
+            for m, s in zip(mag_ticks, legend_sizes)
+        ]
 
         ax.legend(
             handles,
@@ -1581,7 +1619,7 @@ def plot_spatial_dataset(
     ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False, **plot_args)
 
     # Define colormap and alpha transparency
-    colormap, alpha = _define_colormap_and_alpha(colormap, alpha_exp, alpha)
+    colormap, alpha = _get_colormap(colormap, alpha_exp, alpha)
 
     # Plot spatial dataset
     lons, lats = numpy.meshgrid(
@@ -1595,10 +1633,18 @@ def plot_spatial_dataset(
 
     # Colorbar options
     if colorbar:
-        _add_colorbar(
-            ax, im, clabel, plot_args["colorbar_labelsize"], plot_args["colorbar_ticksize"]
+        cax = ax.get_figure().add_axes(
+            [
+                ax.get_position().x1 + 0.01,
+                ax.get_position().y0,
+                0.025,
+                ax.get_position().height,
+            ],
+            label="Colorbar",
         )
-
+        cbar = ax.get_figure().colorbar(im, ax=ax, cax=cax)
+        cbar.set_label(clabel, fontsize=plot_args["colorbar_labelsize"])
+        cbar.ax.tick_params(labelsize=plot_args["colorbar_ticksize"])
     # Draw forecast's region border
     if plot_region and not set_global:
         try:
@@ -1618,8 +1664,18 @@ def plot_spatial_dataset(
 #####################
 # Plot helper functions
 #####################
-def _get_marker_style(obs_stat, p, one_sided_lower):
-    """Returns matplotlib marker style as fmt string"""
+def _get_marker_style(obs_stat: float, p: Sequence[float], one_sided_lower: bool) -> str:
+    """
+    Returns the matplotlib marker style as a format string.
+
+    Args:
+        obs_stat (float): The observed statistic.
+        p (Sequence[float, float]): A tuple of lower and upper percentiles.
+        one_sided_lower (bool): Indicates if the test is one-sided lower.
+
+    Returns:
+        str: A format string representing the marker style.
+    """
     if obs_stat < p[0] or obs_stat > p[1]:
         # red circle
         fmt = "ro"
@@ -1634,21 +1690,39 @@ def _get_marker_style(obs_stat, p, one_sided_lower):
     return fmt
 
 
-def _get_marker_t_color(distribution):
-    """Returns matplotlib marker style as fmt string"""
+def _get_marker_t_color(distribution: Sequence[float]) -> str:
+    """
+    Returns the color for the marker based on the distribution.
+
+    Args:
+        distribution (Sequence[float, float]): A tuple representing the lower and upper bounds
+                                            of the test distribution.
+
+    Returns:
+        str: Marker color
+    """
     if distribution[0] > 0.0 and distribution[1] > 0.0:
-        fmt = "green"
+        color = "green"
     elif distribution[0] < 0.0 and distribution[1] < 0.0:
-        fmt = "red"
+        color = "red"
     else:
-        fmt = "grey"
+        color = "grey"
 
-    return fmt
+    return color
 
 
-def _get_marker_w_color(distribution, percentile):
-    """Returns matplotlib marker style as fmt string"""
+def _get_marker_w_color(distribution: float, percentile: float) -> bool:
+    """
+    Returns a boolean indicating whether the distribution's percentile is below a given
+    threshold.
 
+    Args:
+        distribution (float): The value of the distribution's percentile.
+        percentile (float): The percentile threshold.
+
+    Returns:
+        bool: True if the distribution's percentile is below the threshold, False otherwise.
+    """
     if distribution < (1 - percentile / 100):
         fmt = True
     else:
@@ -1657,34 +1731,59 @@ def _get_marker_w_color(distribution, percentile):
     return fmt
 
 
-def _get_axis_limits(pnts, border=0.05):
-    """Returns a tuple of x_min and x_max given points on plot."""
-    x_min = numpy.min(pnts)
-    x_max = numpy.max(pnts)
+def _get_axis_limits(points: Union[Sequence, numpy.ndarray],
+                     border: float = 0.05) -> Tuple[float, float]:
+    """
+    Returns a tuple of x_min and x_max given points on a plot.
+
+    Args:
+        points (numpy.ndarray): An array of points.
+        border (float): The border fraction to apply to the limits.
+
+    Returns:
+        Sequence[float, float]: The x_min and x_max values adjusted with the border.
+    """
+    x_min = numpy.min(points)
+    x_max = numpy.max(points)
     xd = (x_max - x_min) * border
     return x_min - xd, x_max + xd
 
 
-def _get_basemap(basemap):
-    last_cache = os.path.join(os.path.dirname(cartopy.config["cache_dir"]), 'last_cartopy_cache')
+def _get_basemap(basemap: str) -> Union[img_tiles.GoogleTiles, DatasetReader]:
+    """
+    Returns the basemap tiles for a given basemap type or web service.
+
+    Args:
+        basemap (str): The type of basemap for cartopy, an URL for a web service or a TIF file
+                       path.
+
+    Returns:
+        Union[img_tiles.GoogleTiles, rasterio.io.DatasetReader]: The corresponding tiles or
+                raster object.
+
+    """
+    last_cache = os.path.join(
+        os.path.dirname(cartopy.config["cache_dir"]), "last_cartopy_cache"
+    )
 
     def _clean_cache(basemap_):
         if os.path.isfile(last_cache):
-            with open(last_cache, 'r') as fp:
+            with open(last_cache, "r") as fp:
                 cache_src = fp.read()
             if cache_src != basemap_:
                 if os.path.isdir(cartopy.config["cache_dir"]):
-                    print(f'Cleaning existing {basemap_} cache')
+                    print(f"Cleaning existing {basemap_} cache")
                     shutil.rmtree(cartopy.config["cache_dir"])
 
     def _save_cache_src(basemap_):
-        with open(last_cache, 'w') as fp:
+        with open(last_cache, "w") as fp:
             fp.write(basemap_)
 
     cache = True
 
-    warning_message_to_suppress = ('Cartopy created the following directory to cache'
-                                   ' GoogleWTS tiles')
+    warning_message_to_suppress = (
+        "Cartopy created the following directory to cache" " GoogleWTS tiles"
+    )
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=warning_message_to_suppress)
         if basemap == "google-satellite":
@@ -1729,7 +1828,7 @@ def _get_basemap(basemap):
             _save_cache_src(basemap)
 
         elif os.path.isfile(basemap):
-            return rasterio.open(basemap)
+            return rio_open(basemap)
 
         else:
             try:
@@ -1743,409 +1842,28 @@ def _get_basemap(basemap):
     return tiles
 
 
-def _add_labels_for_publication(figure, style="bssa", labelsize=16):
-    """Adds publication labels too the outside of a figure."""
-    all_axes = figure.get_axes()
-    ascii_iter = iter(string.ascii_lowercase)
-    for ax in all_axes:
-        # check for colorbar and ignore for annotations
-        if ax.get_label() == "Colorbar":
-            continue
-        annot = next(ascii_iter)
-        if style == "bssa":
-            ax.annotate(
-                f"({annot})", (0.025, 1.025), xycoords="axes fraction", fontsize=labelsize
-            )
-
-    return
-
-
-def _plot_pvalues_and_intervals(test_results, ax, var=None):
-    """Plots p-values and intervals for a list of Poisson or NBD test results
+def _autosize_scatter(
+    values: numpy.ndarray,
+    min_size: float = 50.0,
+    max_size: float = 400.0,
+    power: float = 3.0,
+    min_val: Optional[float] = None,
+    max_val: Optional[float] = None,
+) -> numpy.ndarray:
+    """
+    Auto-sizes scatter plot markers based on values.
 
     Args:
-        test_results (list): list of EvaluationResults for N-test. All tests should use the same
-                             distribution (ie Poisson or NBD).
-        ax (matplotlib.axes.Axes.axis): axes to use for plot. create using matplotlib
-        var (float): variance of the NBD distribution. Must be used for NBD plots.
+        values (numpy.ndarray): The data values (e.g., magnitude) to base the sizing on.
+        min_size (float): The minimum marker size.
+        max_size (float): The maximum marker size.
+        power (float): The power to apply for scaling.
+        min_val (Optional[float]): The minimum value (e.g., magnitude) for normalization.
+        max_val (Optional[float]): The maximum value (e.g., magnitude) for normalization.
 
     Returns:
-        ax (matplotlib.axes.Axes.axis): axes handle containing this plot
-
-    Raises:
-        ValueError: throws error if NBD tests are supplied without a variance
+        numpy.ndarray: The calculated marker sizes.
     """
-
-    variance = var
-    percentile = 97.5
-    p_values = []
-
-    # Differentiate between N-tests and other consistency tests
-    if test_results[0].name == "NBD N-Test" or test_results[0].name == "Poisson N-Test":
-        legend_elements = [
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="red",
-                lw=0,
-                label=r"p < 10e-5",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="#FF7F50",
-                lw=0,
-                label=r"10e-5 $\leq$ p < 10e-4",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="gold",
-                lw=0,
-                label=r"10e-4 $\leq$ p < 10e-3",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="white",
-                lw=0,
-                label=r"10e-3 $\leq$ p < 0.0125",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="skyblue",
-                lw=0,
-                label=r"0.0125 $\leq$ p < 0.025",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="blue",
-                lw=0,
-                label=r"p $\geq$ 0.025",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-        ]
-        ax.legend(handles=legend_elements, loc=4, fontsize=13, edgecolor="k")
-        # Act on Negative binomial tests
-        if test_results[0].name == "NBD N-Test":
-            if var is None:
-                raise ValueError("var must not be None if N-tests use the NBD distribution.")
-
-            for i in range(len(test_results)):
-                mean = test_results[i].test_distribution[1]
-                upsilon = 1.0 - ((variance - mean) / variance)
-                tau = mean**2 / (variance - mean)
-                phigh97 = scipy.stats.nbinom.ppf((1 - percentile / 100.0) / 2.0, tau, upsilon)
-                plow97 = scipy.stats.nbinom.ppf(
-                    1 - (1 - percentile / 100.0) / 2.0, tau, upsilon
-                )
-                low97 = test_results[i].observed_statistic - plow97
-                high97 = phigh97 - test_results[i].observed_statistic
-                ax.errorbar(
-                    test_results[i].observed_statistic,
-                    (len(test_results) - 1) - i,
-                    xerr=numpy.array([[low97, high97]]).T,
-                    capsize=4,
-                    color="slategray",
-                    alpha=1.0,
-                    zorder=0,
-                )
-                p_values.append(
-                    test_results[i].quantile[1] * 2.0
-                )  # Calculated p-values according to Meletti et al., (2021)
-
-                if p_values[i] < 10e-5:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="red",
-                        markersize=8,
-                        zorder=2,
-                    )
-                if p_values[i] >= 10e-5 and p_values[i] < 10e-4:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="#FF7F50",
-                        markersize=8,
-                        zorder=2,
-                    )
-                if p_values[i] >= 10e-4 and p_values[i] < 10e-3:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="gold",
-                        markersize=8,
-                        zorder=2,
-                    )
-                if p_values[i] >= 10e-3 and p_values[i] < 0.0125:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="white",
-                        markersize=8,
-                        zorder=2,
-                    )
-                if p_values[i] >= 0.0125 and p_values[i] < 0.025:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="skyblue",
-                        markersize=8,
-                        zorder=2,
-                    )
-                if p_values[i] >= 0.025:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="blue",
-                        markersize=8,
-                        zorder=2,
-                    )
-        # Act on Poisson N-test
-        if test_results[0].name == "Poisson N-Test":
-            for i in range(len(test_results)):
-                plow97 = scipy.stats.poisson.ppf(
-                    (1 - percentile / 100.0) / 2.0, test_results[i].test_distribution[1]
-                )
-                phigh97 = scipy.stats.poisson.ppf(
-                    1 - (1 - percentile / 100.0) / 2.0, test_results[i].test_distribution[1]
-                )
-                low97 = test_results[i].observed_statistic - plow97
-                high97 = phigh97 - test_results[i].observed_statistic
-                ax.errorbar(
-                    test_results[i].observed_statistic,
-                    (len(test_results) - 1) - i,
-                    xerr=numpy.array([[low97, high97]]).T,
-                    capsize=4,
-                    color="slategray",
-                    alpha=1.0,
-                    zorder=0,
-                )
-                p_values.append(test_results[i].quantile[1] * 2.0)
-                if p_values[i] < 10e-5:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="red",
-                        markersize=8,
-                        zorder=2,
-                    )
-                elif p_values[i] >= 10e-5 and p_values[i] < 10e-4:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="#FF7F50",
-                        markersize=8,
-                        zorder=2,
-                    )
-                elif p_values[i] >= 10e-4 and p_values[i] < 10e-3:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="gold",
-                        markersize=8,
-                        zorder=2,
-                    )
-                elif p_values[i] >= 10e-3 and p_values[i] < 0.0125:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="white",
-                        markersize=8,
-                        zorder=2,
-                    )
-                elif p_values[i] >= 0.0125 and p_values[i] < 0.025:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="skyblue",
-                        markersize=8,
-                        zorder=2,
-                    )
-                elif p_values[i] >= 0.025:
-                    ax.plot(
-                        test_results[i].observed_statistic,
-                        (len(test_results) - 1) - i,
-                        marker="o",
-                        color="blue",
-                        markersize=8,
-                        zorder=2,
-                    )
-    # Operate on all other consistency tests
-    else:
-        for i in range(len(test_results)):
-            plow97 = numpy.percentile(test_results[i].test_distribution, 2.5)
-            phigh97 = numpy.percentile(test_results[i].test_distribution, 97.5)
-            low97 = test_results[i].observed_statistic - plow97
-            high97 = phigh97 - test_results[i].observed_statistic
-            ax.errorbar(
-                test_results[i].observed_statistic,
-                (len(test_results) - 1) - i,
-                xerr=numpy.array([[low97, high97]]).T,
-                capsize=4,
-                color="slategray",
-                alpha=1.0,
-                zorder=0,
-            )
-            p_values.append(test_results[i].quantile)
-
-            if p_values[i] < 10e-5:
-                ax.plot(
-                    test_results[i].observed_statistic,
-                    (len(test_results) - 1) - i,
-                    marker="o",
-                    color="red",
-                    markersize=8,
-                    zorder=2,
-                )
-            elif p_values[i] >= 10e-5 and p_values[i] < 10e-4:
-                ax.plot(
-                    test_results[i].observed_statistic,
-                    (len(test_results) - 1) - i,
-                    marker="o",
-                    color="#FF7F50",
-                    markersize=8,
-                    zorder=2,
-                )
-            elif p_values[i] >= 10e-4 and p_values[i] < 10e-3:
-                ax.plot(
-                    test_results[i].observed_statistic,
-                    (len(test_results) - 1) - i,
-                    marker="o",
-                    color="gold",
-                    markersize=8,
-                    zorder=2,
-                )
-            elif p_values[i] >= 10e-3 and p_values[i] < 0.025:
-                ax.plot(
-                    test_results[i].observed_statistic,
-                    (len(test_results) - 1) - i,
-                    marker="o",
-                    color="white",
-                    markersize=8,
-                    zorder=2,
-                )
-            elif p_values[i] >= 0.025 and p_values[i] < 0.05:
-                ax.plot(
-                    test_results[i].observed_statistic,
-                    (len(test_results) - 1) - i,
-                    marker="o",
-                    color="skyblue",
-                    markersize=8,
-                    zorder=2,
-                )
-            elif p_values[i] >= 0.05:
-                ax.plot(
-                    test_results[i].observed_statistic,
-                    (len(test_results) - 1) - i,
-                    marker="o",
-                    color="blue",
-                    markersize=8,
-                    zorder=2,
-                )
-
-        legend_elements = [
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="red",
-                lw=0,
-                label=r"p < 10e-5",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="#FF7F50",
-                lw=0,
-                label=r"10e-5 $\leq$ p < 10e-4",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="gold",
-                lw=0,
-                label=r"10e-4 $\leq$ p < 10e-3",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="white",
-                lw=0,
-                label=r"10e-3 $\leq$ p < 0.025",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="skyblue",
-                lw=0,
-                label=r"0.025 $\leq$ p < 0.05",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-            matplotlib.lines.Line2D(
-                [0],
-                [0],
-                marker="o",
-                color="blue",
-                lw=0,
-                label=r"p $\geq$ 0.05",
-                markersize=10,
-                markeredgecolor="k",
-            ),
-        ]
-
-        ax.legend(handles=legend_elements, loc=4, fontsize=13, edgecolor="k")
-
-    return ax
-
-
-def _autosize_scatter(values, min_size=50., max_size=400., power=3.0, min_val=None,
-                      max_val=None):
-
     min_val = min_val or np.min(values)
     max_val = max_val or np.max(values)
     normalized_values = ((values - min_val) / (max_val - min_val)) ** power
@@ -2153,7 +1871,26 @@ def _autosize_scatter(values, min_size=50., max_size=400., power=3.0, min_val=No
     return marker_sizes
 
 
-def _autoscale_histogram(ax: pyplot.Axes, bin_edges, simulated, observation, mass=99.5):
+def _autoscale_histogram(
+    ax: matplotlib.axes.Axes,
+    bin_edges: numpy.ndarray,
+    simulated: numpy.ndarray,
+    observation: numpy.ndarray,
+    mass: float = 99.5,
+) -> matplotlib.axes.Axes:
+    """
+    Autoscale the histogram axes based on the data distribution.
+
+    Args:
+        ax (matplotlib.axes.Axes): The axes to apply the scaling to.
+        bin_edges (numpy.ndarray): The edges of the histogram bins.
+        simulated (numpy.ndarray): Simulated data values.
+        observation (numpy.ndarray): Observed data values.
+        mass (float): The percentage of the data mass to consider.
+
+    Returns:
+        matplotlib.axes.Axes: The scaled axes
+    """
 
     upper_xlim = numpy.percentile(simulated, 100 - (100 - mass) / 2)
     upper_xlim = numpy.max([upper_xlim, numpy.max(observation)])
@@ -2180,10 +1917,23 @@ def _autoscale_histogram(ax: pyplot.Axes, bin_edges, simulated, observation, mas
 
 
 def _annotate_distribution_plot(
-    ax, evaluation_result, auto_annotate, plot_args
+    ax: matplotlib.axes.Axes,
+    evaluation_result: "EvaluationResult",
+    auto_annotate: bool,
+    plot_args: Dict[str, Any],
 ) -> matplotlib.axes.Axes:
-    """Returns specific plot details based on the type of evaluation_result."""
+    """
+    Annotates a distribution plot based on the evaluation result type.
 
+    Args:
+        ax (matplotlib.axes.Axes): The axes to annotate.
+        evaluation_result (EvaluationResult): The evaluation result object.
+        auto_annotate (bool): If True, automatically annotates the plot based on result type.
+        plot_args (Dict[str, Any]): Additional plotting arguments.
+
+    Returns:
+        matplotlib.axes.Axes: The annotated axes.
+    """
     annotation_text = None
     annotation_xy = None
     title = None
@@ -2214,7 +1964,8 @@ def _annotate_distribution_plot(
             title = f"{evaluation_result.name}: {evaluation_result.sim_name}"
             annotation_xy = (0.2, 0.6)
             annotation_text = (
-                f"$\\gamma = P(X \\leq x) = {numpy.array(evaluation_result.quantile).ravel()[-1]:.2f}$\n"
+                f"$\\gamma = P(X \\leq x) = "
+                f"{numpy.array(evaluation_result.quantile).ravel()[-1]:.2f}$\n"
                 f"$\\omega = {evaluation_result.observed_statistic:.2f}$"
             )
 
@@ -2224,7 +1975,8 @@ def _annotate_distribution_plot(
             title = f"{evaluation_result.name}: {evaluation_result.sim_name}"
             annotation_xy = (0.55, 0.6)
             annotation_text = (
-                f"$\\gamma = P(X \\geq x) = {numpy.array(evaluation_result.quantile).ravel()[0]:.2f}$\n"
+                f"$\\gamma = P(X \\geq x) = "
+                f"{numpy.array(evaluation_result.quantile).ravel()[0]:.2f}$\n"
                 f"$\\omega = {evaluation_result.observed_statistic:.2f}$"
             )
         elif evaluation_result.name == "Catalog PL-Test":
@@ -2233,7 +1985,8 @@ def _annotate_distribution_plot(
             title = f"{evaluation_result.name}: {evaluation_result.sim_name}"
             annotation_xy = (0.55, 0.3)
             annotation_text = (
-                f"$\\gamma = P(X \\leq x) = {numpy.array(evaluation_result.quantile).ravel()[-1]:.2f}$\n"
+                f"$\\gamma = P(X \\leq x) = "
+                f"{numpy.array(evaluation_result.quantile).ravel()[-1]:.2f}$\n"
                 f"$\\omega = {evaluation_result.observed_statistic:.2f}$"
             )
 
@@ -2255,12 +2008,30 @@ def _annotate_distribution_plot(
     return ax
 
 
-def _calculate_spatial_extent(catalog, set_global, region_border, padding_fraction=0.05):
+def _calculate_spatial_extent(
+    element: Union["CSEPCatalog", "CartesianGrid2D"],
+    set_global: bool,
+    region_border: bool,
+    padding_fraction: float = 0.05,
+) -> Optional[List[float]]:
+    """
+    Calculates the spatial extent for plotting based on the catalog.
+
+    Args:
+        element (CSEPCatalog), CartesianGrid2D: The catalog or region object to base the extent
+                                                on.
+        set_global (bool): If True, sets the extent to the global view.
+        region_border (bool): If True, uses the catalog's region border.
+        padding_fraction (float): The fraction of padding to apply to the extent.
+
+    Returns:
+        Optional[List[float]]: The calculated extent or None if global view is set.
+    """
     # todo: perhaps calculate extent also from chained ax object
-    bbox = catalog.get_bbox()
+    bbox = element.get_bbox()
     if region_border:
         try:
-            bbox = catalog.region.get_bbox()
+            bbox = element.region.get_bbox()
         except AttributeError:
             pass
 
@@ -2272,7 +2043,24 @@ def _calculate_spatial_extent(catalog, set_global, region_border, padding_fracti
     return [bbox[0] - dh, bbox[1] + dh, bbox[2] - dv, bbox[3] + dv]
 
 
-def _create_geo_axes(figsize, extent, projection, set_global):
+def _create_geo_axes(
+    figsize: Optional[Tuple[float, float]],
+    extent: Optional[List[float]],
+    projection: Union[ccrs.Projection, str],
+    set_global: bool,
+) -> pyplot.Axes:
+    """
+    Creates and returns GeoAxes for plotting.
+
+    Args:
+        figsize (Optional[Tuple[float, float]]): The size of the figure.
+        extent (Optional[List[float]]): The spatial extent to set.
+        projection (Union[ccrs.Projection, str]): The projection to use.
+        set_global (bool): If True, sets the global view.
+
+    Returns:
+        pyplot.Axes: The created GeoAxes object.
+    """
 
     if projection == "approx":
         fig = pyplot.figure(figsize=figsize)
@@ -2291,7 +2079,15 @@ def _create_geo_axes(figsize, extent, projection, set_global):
     return ax
 
 
-def _add_gridlines(ax, grid_labels, grid_fontsize):
+def _add_gridlines(ax: matplotlib.axes.Axes, grid_labels: bool, grid_fontsize: float) -> None:
+    """
+    Adds gridlines and optionally labels to the axes.
+
+    Args:
+        ax (matplotlib.axes.Axes): The axes to add gridlines to.
+        grid_labels (bool): If True, labels the gridlines.
+        grid_fontsize (float): The font size of the grid labels.
+    """
     gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
     gl.right_labels = False
     gl.top_labels = False
@@ -2301,18 +2097,22 @@ def _add_gridlines(ax, grid_labels, grid_fontsize):
     gl.yformatter = LATITUDE_FORMATTER
 
 
-def _define_colormap_and_alpha(cmap, alpha_exp, alpha_0=None):
+def _get_colormap(
+    cmap: Union[str, matplotlib.colors.Colormap],
+    alpha_exp: float,
+    alpha_0: Optional[float] = None,
+) -> Tuple[matplotlib.colors.ListedColormap, Optional[float]]:
     """
     Defines the colormap and applies alpha transparency based on the given parameters.
 
     Args:
-        cmap (str or matplotlib.colors.Colormap): The colormap to be used.
-        alpha_0 (float or None): If set, this alpha will be applied uniformly across the colormap.
-        alpha_exp (float): Exponent to control transparency scaling. If set to 0, no alpha scaling is applied.
+        cmap (Union[str, matplotlib.colors.Colormap]): The colormap to use.
+        alpha_exp (float): The exponent to control transparency scaling.
+        alpha_0 (Optional[float]): If set, applies a uniform alpha across the colormap.
 
     Returns:
-        cmap (matplotlib.colors.ListedColormap): The resulting colormap with applied alpha.
-        alpha (float or None): The alpha value used for the entire colormap, or None if alpha is scaled per color.
+        Tuple[matplotlib.colors.ListedColormap, Optional[float]]: The modified colormap
+        and the alpha value used for the entire colormap.
     """
 
     # Get the colormap object if a string is provided
@@ -2336,32 +2136,41 @@ def _define_colormap_and_alpha(cmap, alpha_exp, alpha_0=None):
     return cmap, alpha
 
 
-def _add_colorbar(ax, im, clabel, clabel_fontsize, cticks_fontsize):
-    fig = ax.get_figure()
-    cax = fig.add_axes(
-        [ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025, ax.get_position().height],
-        label="Colorbar",
-    )
-    cbar = fig.colorbar(im, ax=ax, cax=cax)
-    cbar.set_label(clabel, fontsize=clabel_fontsize)
-    cbar.ax.tick_params(labelsize=cticks_fontsize)
+def _process_stat_distribution(
+    res: "EvaluationResult",
+    percentile: float,
+    variance: Optional[float],
+    normalize: bool,
+    one_sided_lower: bool,
+) -> Tuple[float, float, float, float]:
+    """
+    Processes the statistical distribution based on its type and returns plotting values.
 
+    Args:
+        res (EvaluationResult): The evaluation result object containing the distribution data.
+        percentile (float): The percentile for calculating the confidence intervals.
+        variance (Optional[float]): The variance of the negative binomial distribution, if
+                                    applicable.
+        normalize (bool): If True, normalizes the distribution by the observed statistic.
+        one_sided_lower (bool): If True, performs a one-sided lower test.
 
-def _process_stat_distribution(res, percentile, variance, normalize, one_sided_lower):
-    """Process the distribution based on its type and return plotting values."""
+    Returns:
+        Tuple[float, float, float, float]: A tuple containing the lower percentile,
+        upper percentile, mean, and observed statistic.
+    """
     dist_type = res.test_distribution[0]
 
     if dist_type == "poisson":
         mean = res.test_distribution[1]
-        plow = scipy.stats.poisson.ppf((1 - percentile / 100.0) / 2.0, mean)
-        phigh = scipy.stats.poisson.ppf(1 - (1 - percentile / 100.0) / 2.0, mean)
+        plow = poisson.ppf((1 - percentile / 100.0) / 2.0, mean)
+        phigh = poisson.ppf(1 - (1 - percentile / 100.0) / 2.0, mean)
         observed_statistic = res.observed_statistic
     elif dist_type == "negative_binomial":
         mean = res.test_distribution[1]
         upsilon = 1.0 - ((variance - mean) / variance)
         tau = mean**2 / (variance - mean)
-        plow = scipy.stats.nbinom.ppf((1 - percentile / 100.0) / 2.0, tau, upsilon)
-        phigh = scipy.stats.nbinom.ppf(1 - (1 - percentile / 100.0) / 2.0, tau, upsilon)
+        plow = nbinom.ppf((1 - percentile / 100.0) / 2.0, tau, upsilon)
+        phigh = nbinom.ppf(1 - (1 - percentile / 100.0) / 2.0, tau, upsilon)
         observed_statistic = res.observed_statistic
 
     else:
