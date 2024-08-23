@@ -14,9 +14,9 @@ import matplotlib.pyplot as plt
 import numpy
 from cartopy import crs as ccrs
 from matplotlib import colors
-from matplotlib.text import Annotation
 
 import csep
+from csep.core import catalogs
 from csep.core.catalog_evaluations import (
     CatalogNumberTestResult,
     CatalogSpatialTestResult,
@@ -24,7 +24,6 @@ from csep.core.catalog_evaluations import (
     CatalogPseudolikelihoodTestResult,
     CalibrationTestResult,
 )
-from csep.core import catalogs
 from csep.utils.plots import (
     plot_cumulative_events_versus_time,
     plot_magnitude_vs_time,
@@ -47,29 +46,30 @@ from csep.utils.plots import (
     _get_marker_t_color,  # noqa
     _get_marker_w_color,  # noqa
     _get_axis_limits,  # noqa
-    _add_labels_for_publication,  # noqa
     _autosize_scatter,  # noqa
     _autoscale_histogram,  # noqa
     _annotate_distribution_plot,  # noqa
-    _define_colormap_and_alpha,  # noqa
-    _add_colorbar,  # noqa
+    _get_colormap,  # noqa
     _process_stat_distribution,  # noqa
 )
 
 
 def is_internet_available():
-    """Check if internet is available by attempting to connect to a well-known host."""
     try:
-        # Try to connect to Google's DNS server
-        socket.create_connection(("8.8.8.8", 53), timeout=1)
+        socket.create_connection(("8.8.8.8", 53), timeout=3)
         return True
     except OSError:
         return False
 
 
-is_github_actions = os.getenv("GITHUB_ACTIONS") == "true"
+def is_github_ci():
+    if os.getenv("GITHUB_ACTIONS") or os.getenv("CI") or os.getenv("GITHUB_ACTION"):
+        return True
+    else:
+        return False
 
-show_plots = True
+
+show_plots = False
 
 
 class TestPlots(unittest.TestCase):
@@ -85,6 +85,7 @@ class TestPlots(unittest.TestCase):
         ax.figure.savefig(os.path.join(self.save_dir, name))
 
 
+#
 class TestTimeSeriesPlots(TestPlots):
 
     def setUp(self):
@@ -118,13 +119,14 @@ class TestTimeSeriesPlots(TestPlots):
         self.assertEqual(ax.get_ylabel(), "$M$")
 
         # Test with custom color
-        ax = plot_magnitude_vs_time(catalog=self.observation_m2, color='red', show=show_plots)
+        ax = plot_magnitude_vs_time(catalog=self.observation_m2, color="red", show=show_plots)
         scatter_color = ax.collections[0].get_facecolor()[0]
         self.assertTrue(all(scatter_color[:3] == (1.0, 0.0, 0.0)))  # Check if color is red
 
         # Test with custom marker size
-        ax = plot_magnitude_vs_time(catalog=self.observation_m2, size=25, max_size=600,
-                                    show=show_plots)
+        ax = plot_magnitude_vs_time(
+            catalog=self.observation_m2, size=25, max_size=600, show=show_plots
+        )
         scatter_sizes = ax.collections[0].get_sizes()
         func_sizes = _autosize_scatter(self.observation_m2.data["magnitude"], 25, 600, 4)
         numpy.testing.assert_array_almost_equal(scatter_sizes, func_sizes)
@@ -141,14 +143,15 @@ class TestTimeSeriesPlots(TestPlots):
         numpy.testing.assert_array_almost_equal(scatter_sizes, func_sizes)
         #
         # # Test with show=True (just to ensure no errors occur)
-        plot_magnitude_vs_time(catalog=self.observation_m2, show=True)
+        plot_magnitude_vs_time(catalog=self.observation_m2, show=False)
+        plt.close("all")
 
     def test_plot_cumulative_events_default(self):
         # Test with default arguments to ensure basic functionality
         ax = plot_cumulative_events_versus_time(
             catalog_forecast=self.stochastic_event_sets,
             observation=self.observation_m5,
-            show=show_plots
+            show=show_plots,
         )
 
         self.assertIsNotNone(ax.get_title())
@@ -166,7 +169,7 @@ class TestTimeSeriesPlots(TestPlots):
             ylabel="Cumulative Event Count",
             title="Cumulative Event Counts by Hour",
             legend_loc="upper left",
-            show=show_plots
+            show=show_plots,
         )
 
         self.assertEqual(ax.get_xlabel(), "Hours since Mainshock")
@@ -185,7 +188,7 @@ class TestTimeSeriesPlots(TestPlots):
             xlabel="Days since Mainshock",
             ylabel="Cumulative Event Count",
             title="Cumulative Event Counts with More Bins",
-            legend_loc="best"
+            legend_loc="best",
         )
 
         self.assertEqual(ax.get_title(), "Cumulative Event Counts with More Bins")
@@ -205,7 +208,7 @@ class TestTimeSeriesPlots(TestPlots):
             ylabel="Cumulative Event Count",
             title="Cumulative Event Counts with Custom Legend",
             legend_loc="lower right",
-            legend_fontsize=14
+            legend_fontsize=14,
         )
 
         self.assertEqual(ax.get_legend()._get_loc(), 4)
@@ -237,7 +240,6 @@ class TestPlotMagnitudeHistogram(TestPlots):
         self.mock_cat.get_magnitudes.return_value = gr_dist(500, b_val=1.2)
         self.mock_cat.get_number_of_events.return_value = 500
         self.mock_cat.region.magnitudes = numpy.arange(3.0, 8.0, 0.1)
-        self.save_dir = os.path.join(os.path.dirname(__file__), "artifacts", "plots")
 
         cat_file_m5 = os.path.join(
             self.artifacts,
@@ -259,28 +261,19 @@ class TestPlotMagnitudeHistogram(TestPlots):
 
     def test_plot_magnitude_histogram_basic(self):
         # Test with basic arguments
-        ax = plot_magnitude_histogram(self.mock_forecast,
-                                      self.mock_cat, show=show_plots,
-                                      density=True)
+        plot_magnitude_histogram(
+            self.mock_forecast, self.mock_cat, show=show_plots, density=True
+        )
 
         # Verify that magnitudes were retrieved
         for catalog in self.mock_forecast:
             catalog.get_magnitudes.assert_called_once()
         self.mock_cat.get_magnitudes.assert_called_once()
         self.mock_cat.get_number_of_events.assert_called_once()
-        ax.figure.savefig(os.path.join(self.save_dir, "magnitude_histogram.png"))
 
     def test_plot_magnitude_histogram_ucerf(self):
         # Test with basic arguments
-        ax = plot_magnitude_histogram(self.stochastic_event_sets, self.comcat,
-                                      show=show_plots)
-
-        # # Verify that magnitudes were retrieved
-        # for catalog in self.stochastic_event_sets:
-        #     catalog.get_magnitudes.assert_called_once()
-        # self.comcat.get_magnitudes.assert_called_once()
-        # self.comcat.get_number_of_events.assert_called_once()
-        ax.figure.savefig(os.path.join(self.save_dir, "magnitude_histogram_ucerf.png"))
+        plot_magnitude_histogram(self.stochastic_event_sets, self.comcat, show=show_plots)
 
     def tearDown(self):
         plt.close("all")
@@ -404,45 +397,39 @@ class TestPlotDistributionTests(TestPlots):
             xlim=xlim,
             show=show_plots,
         )
-        self.savefig(ax, "plot_dist_test_xlims.png")
         self.assertEqual(ax.get_xlim(), xlim)
 
     def test_plot_dist_test_autoxlim_nan(self):
 
-        ax = plot_distribution_test(
+        plot_distribution_test(
             evaluation_result=self.result_nan,
             percentile=95,
             show=show_plots,
         )
-        self.savefig(ax, "plot_dist_test_xlims_inf.png")
 
     def test_plot_n_test(self):
-        ax = plot_distribution_test(
+        plot_distribution_test(
             self.n_test,
             show=show_plots,
         )
-        self.savefig(ax, "plot_n_test.png")
 
     def test_plot_m_test(self):
-        ax = plot_distribution_test(
+        plot_distribution_test(
             self.m_test,
             show=show_plots,
         )
-        self.savefig(ax, "plot_m_test.png")
 
     def test_plot_s_test(self):
-        ax = plot_distribution_test(
+        plot_distribution_test(
             self.s_test,
             show=show_plots,
         )
-        self.savefig(ax, "plot_s_test.png")
 
     def test_plot_l_test(self):
-        ax = plot_distribution_test(
+        plot_distribution_test(
             self.l_test,
             show=show_plots,
         )
-        self.savefig(ax, "plot_l_test.png")
 
     def tearDown(self):
         plt.close("all")
@@ -523,7 +510,7 @@ class TestBatchPlots(TestPlots):
 
     def test_plot_consistency_basic(self):
         ax = plot_consistency_test(eval_results=self.mock_result, show=show_plots)
-        self.assertEqual(ax.get_title(), '')
+        self.assertEqual(ax.get_title(), "")
         self.assertEqual(ax.get_xlabel(), "Statistic distribution")
 
     def test_plot_consistency_with_multiple_results(self):
@@ -532,8 +519,9 @@ class TestBatchPlots(TestPlots):
         self.assertEqual(len(ax.get_yticklabels()), 5)
 
     def test_plot_consistency_with_normalization(self):
-        ax = plot_consistency_test(eval_results=self.mock_result, normalize=True,
-                                   show=show_plots)
+        ax = plot_consistency_test(
+            eval_results=self.mock_result, normalize=True, show=show_plots
+        )
         # Assert that the observed statistic is plotted at 0
         self.assertEqual(ax.lines[0].get_xdata(), 0)
 
@@ -541,38 +529,47 @@ class TestBatchPlots(TestPlots):
         mock_result = copy.deepcopy(self.mock_result)
         # THe observed statistic is placed to the right of the model test distribution.
         mock_result.observed_statistic = max(self.mock_result.test_distribution) + 1
-        ax = plot_consistency_test(eval_results=mock_result, one_sided_lower=True,
-                                   show=show_plots)
+        ax = plot_consistency_test(
+            eval_results=mock_result, one_sided_lower=True, show=show_plots
+        )
         # The end of the infinite dashed line should extend way away from the plot limit
         self.assertGreater(ax.lines[-1].get_xdata()[-1], ax.get_xlim()[1])
 
     def test_plot_consistency_with_custom_percentile(self):
-        ax = plot_consistency_test(eval_results=self.mock_result, percentile=99,
-                                   show=show_plots)
+        ax = plot_consistency_test(
+            eval_results=self.mock_result, percentile=99, show=show_plots
+        )
 
         # Check that the line extent equals the lower 0.5 % percentile
-        self.assertAlmostEqual(ax.lines[2].get_xdata(),
-                               numpy.percentile(self.mock_result.test_distribution, 0.5))
+        self.assertAlmostEqual(
+            ax.lines[2].get_xdata(), numpy.percentile(self.mock_result.test_distribution, 0.5)
+        )
 
     def test_plot_consistency_with_variance(self):
         mock_nb = copy.deepcopy(self.mock_result)
         mock_poisson = copy.deepcopy(self.mock_result)
-        mock_nb.test_distribution = ('negative_binomial', 8)
-        mock_poisson.test_distribution = ('poisson', 8)
+        mock_nb.test_distribution = ("negative_binomial", 8)
+        mock_poisson.test_distribution = ("poisson", 8)
         ax_nb = plot_consistency_test(eval_results=mock_nb, variance=16, show=show_plots)
         ax_p = plot_consistency_test(eval_results=mock_poisson, variance=None, show=show_plots)
         # Ensure the negative binomial has a larger x-axis extent than poisson
         self.assertTrue(ax_p.get_xlim()[1] < ax_nb.get_xlim()[1])
 
     def test_plot_consistency_with_custom_plot_args(self):
-        ax = plot_consistency_test(eval_results=self.mock_result, show=show_plots,
-                                   xlabel="Custom X", ylabel="Custom Y", title="Custom Title")
+        ax = plot_consistency_test(
+            eval_results=self.mock_result,
+            show=show_plots,
+            xlabel="Custom X",
+            ylabel="Custom Y",
+            title="Custom Title",
+        )
         self.assertEqual(ax.get_xlabel(), "Custom X")
         self.assertEqual(ax.get_title(), "Custom Title")
 
     def test_plot_consistency_with_mean(self):
-        ax = plot_consistency_test(eval_results=self.mock_result, plot_mean=True,
-                                   show=show_plots)
+        ax = plot_consistency_test(
+            eval_results=self.mock_result, plot_mean=True, show=show_plots
+        )
         # Check for the mean line plotted as a circle
         self.assertTrue(any(["o" in str(line.get_marker()) for line in ax.lines]))
 
@@ -593,7 +590,7 @@ class TestBatchPlots(TestPlots):
                 [i.get_text() for i in matplotlib.pyplot.gca().get_yticklabels()],
                 [i.sim_name for i in [Ntest_result]],
             )
-            self.assertEqual(matplotlib.pyplot.gca().get_title(), '')
+            self.assertEqual(matplotlib.pyplot.gca().get_title(), "")
 
     def test_MultiNTestPlot(self):
 
@@ -650,7 +647,7 @@ class TestBatchPlots(TestPlots):
             t_plots = numpy.random.randint(2, 20)
             t_tests = []
 
-            def rand(limit=10, offset=0.):
+            def rand(limit=10, offset=0.0):
                 return limit * (numpy.random.random() - offset)
 
             for n in range(t_plots):
@@ -704,7 +701,7 @@ class TestPlotBasemap(TestPlots):
         mock_tiles = MagicMock()
         mock_get_basemap.return_value = mock_tiles
 
-        basemap = 'stock_img'
+        basemap = "stock_img"
         ax = plot_basemap(
             basemap=basemap,
             extent=self.chiloe_extent,
@@ -721,7 +718,7 @@ class TestPlotBasemap(TestPlots):
         mock_get_basemap.assert_not_called()
         self.assertTrue(ax.get_legend() is None)
 
-    @unittest.skipIf(is_github_actions, "Skipping test in GitHub CI environment")
+    @unittest.skipIf(is_github_ci(), "Skipping test in GitHub CI environment")
     @unittest.skipIf(not is_internet_available(), "Skipping test due to no internet connection")
     def test_plot_google_satellite(self):
         basemap = "google-satellite"
@@ -735,7 +732,7 @@ class TestPlotBasemap(TestPlots):
         self.assertIsInstance(ax, plt.Axes)
         self.assertTrue(ax.get_legend() is None)
 
-    @unittest.skipIf(is_github_actions, "Skipping test in GitHub CI environment")
+    @unittest.skipIf(is_github_ci(), "Skipping test in GitHub CI environment")
     @unittest.skipIf(not is_internet_available(), "Skipping test due to no internet connection")
     def test_plot_esri(self):
         basemap = "ESRI_terrain"
@@ -766,6 +763,7 @@ class TestPlotBasemap(TestPlots):
         mock_get_basemap.assert_not_called()
         self.assertTrue(ax.get_extent() == (-180, 180, -90, 90))
 
+    @unittest.skipIf(is_github_ci(), "Skipping test in GitHub CI environment")
     def test_plot_basemap_tif_file(self):
         basemap = csep.datasets.basemap_california
         projection = ccrs.PlateCarree()
@@ -786,15 +784,17 @@ class TestPlotBasemap(TestPlots):
     def test_plot_basemap_with_custom_projection_and_features(self):
         projection = ccrs.Mercator()
         basemap = None
-        ax = plot_basemap(basemap=basemap,
-                          extent=self.chiloe_extent,
-                          projection=projection,
-                          coastline=True,
-                          borders=True,
-                          grid=True,
-                          grid_labels=True,
-                          grid_fontsize=8,
-                          show=show_plots)
+        ax = plot_basemap(
+            basemap=basemap,
+            extent=self.chiloe_extent,
+            projection=projection,
+            coastline=True,
+            borders=True,
+            grid=True,
+            grid_labels=True,
+            grid_fontsize=8,
+            show=show_plots,
+        )
 
         self.assertIsInstance(ax, plt.Axes)
         self.assertEqual(ax.projection, projection)
@@ -821,7 +821,7 @@ class TestPlotCatalog(TestPlots):
             numpy.min(self.mock_catalog.get_longitudes()),
             numpy.max(self.mock_catalog.get_longitudes()),
             numpy.min(self.mock_catalog.get_latitudes()),
-            numpy.max(self.mock_catalog.get_latitudes())
+            numpy.max(self.mock_catalog.get_latitudes()),
         ]
 
         # Mock region if needed
@@ -840,13 +840,13 @@ class TestPlotCatalog(TestPlots):
         # Test plot with default settings4
         ax = plot_catalog(self.mock_catalog, show=show_plots)
         self.assertIsInstance(ax, plt.Axes)
-        self.assertEqual(ax.get_title(), '')
+        self.assertEqual(ax.get_title(), "")
 
     def test_plot_catalog_title(self):
         # Test plot with default settings
         ax = plot_catalog(self.mock_catalog, show=show_plots, title=self.mock_catalog.name)
         self.assertIsInstance(ax, plt.Axes)
-        self.assertEqual(ax.get_title(), 'Mock Catalog')
+        self.assertEqual(ax.get_title(), "Mock Catalog")
 
     def test_plot_catalog_without_legend(self):
         # Test plot with legend
@@ -856,8 +856,7 @@ class TestPlotCatalog(TestPlots):
 
     def test_plot_catalog_custom_legend(self):
 
-        ax = plot_catalog(self.mock_catalog, mag_ticks=5,
-                          show=show_plots)
+        ax = plot_catalog(self.mock_catalog, mag_ticks=5, show=show_plots)
         legend = ax.get_legend()
         self.assertIsNotNone(legend)
 
@@ -869,18 +868,19 @@ class TestPlotCatalog(TestPlots):
 
     def test_plot_catalog_correct_sizing(self):
 
-        ax = plot_catalog(self.mock_fix,
-                          figsize=(4,6),
-                          mag_ticks=[4, 5, 6, 7, 8],
-                          legend_loc='right',
-                          show=show_plots)
+        ax = plot_catalog(
+            self.mock_fix,
+            figsize=(4, 6),
+            mag_ticks=[4, 5, 6, 7, 8],
+            legend_loc="right",
+            show=show_plots,
+        )
         legend = ax.get_legend()
         self.assertIsNotNone(legend)
 
     def test_plot_catalog_custom_sizes(self):
 
-        ax = plot_catalog(self.mock_catalog, size=5, max_size=800, power=6,
-                          show=show_plots)
+        ax = plot_catalog(self.mock_catalog, size=5, max_size=800, power=6, show=show_plots)
         legend = ax.get_legend()
         self.assertIsNotNone(legend)
 
@@ -909,44 +909,48 @@ class TestPlotCatalog(TestPlots):
 
     def test_plot_catalog_with_no_grid(self):
         # Test plot with grid disabled
-        ax = plot_catalog(
-            self.mock_catalog, show=show_plots, grid=False
-        )
+        ax = plot_catalog(self.mock_catalog, show=show_plots, grid=False)
         gl = ax.gridlines()
         self.assertIsNotNone(gl)
 
     def test_plot_catalog_w_basemap(self):
         # Test plot with default settings
-        ax = plot_catalog(self.mock_catalog, basemap='stock_img', show=show_plots)
+        ax = plot_catalog(self.mock_catalog, basemap="stock_img", show=show_plots)
         self.assertIsInstance(ax, plt.Axes)
-        self.assertEqual(ax.get_title(), '')
+        self.assertEqual(ax.get_title(), "")
 
     def test_plot_catalog_w_basemap_stream_kwargs(self):
 
         projection = ccrs.Mercator()
-        ax = plot_catalog(self.mock_catalog, basemap=None,
-                          projection=projection,
-                          coastline=True,
-                          borders=True,
-                          grid=True,
-                          grid_labels=True,
-                          grid_fontsize=8,
-                          show=show_plots)
+        ax = plot_catalog(
+            self.mock_catalog,
+            basemap=None,
+            projection=projection,
+            coastline=True,
+            borders=True,
+            grid=True,
+            grid_labels=True,
+            grid_fontsize=8,
+            show=show_plots,
+        )
         self.assertIsInstance(ax, plt.Axes)
-        self.assertEqual(ax.get_title(), '')
+        self.assertEqual(ax.get_title(), "")
 
     def test_plot_catalog_w_approx_projection(self):
-        projection = 'approx'
-        ax = plot_catalog(self.mock_catalog, basemap='stock_img',
-                          projection=projection,
-                          coastline=True,
-                          borders=True,
-                          grid=True,
-                          grid_labels=True,
-                          grid_fontsize=8,
-                          show=show_plots)
+        projection = "approx"
+        ax = plot_catalog(
+            self.mock_catalog,
+            basemap="stock_img",
+            projection=projection,
+            coastline=True,
+            borders=True,
+            grid=True,
+            grid_labels=True,
+            grid_fontsize=8,
+            show=show_plots,
+        )
         self.assertIsInstance(ax, plt.Axes)
-        self.assertEqual(ax.get_title(), '')
+        self.assertEqual(ax.get_title(), "")
 
     def tearDown(self):
         plt.close("all")
@@ -981,7 +985,7 @@ class TestPlotSpatialDataset(TestPlots):
     def test_extent_setting_w_ax(self):
         extent = (-30, 30, -20, 20)
         ax = plot_spatial_dataset(
-            self.gridded_data, self.region,  extent=extent, show=show_plots
+            self.gridded_data, self.region, extent=extent, show=show_plots
         )
         numpy.testing.assert_array_almost_equal(ax.get_extent(crs=ccrs.PlateCarree()), extent)
 
@@ -996,17 +1000,23 @@ class TestPlotSpatialDataset(TestPlots):
     def test_color_mapping(self):
         cmap = plt.get_cmap("plasma")
         fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
-        ax = plot_spatial_dataset(self.gridded_data, self.region, ax=ax, colormap=cmap, show=show_plots)
+        ax = plot_spatial_dataset(
+            self.gridded_data, self.region, ax=ax, colormap=cmap, show=show_plots
+        )
         self.assertIsInstance(ax.collections[0].cmap, colors.ListedColormap)
 
     def test_gridlines(self):
         fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
-        ax = plot_spatial_dataset(self.gridded_data, self.region, ax=ax, grid=True, show=show_plots)
+        ax = plot_spatial_dataset(
+            self.gridded_data, self.region, ax=ax, grid=True, show=show_plots
+        )
         self.assertTrue(ax.gridlines())
 
     def test_alpha_transparency(self):
         fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
-        ax = plot_spatial_dataset(self.gridded_data, self.region, ax=ax, alpha=0.5, show=show_plots)
+        ax = plot_spatial_dataset(
+            self.gridded_data, self.region, ax=ax, alpha=0.5, show=show_plots
+        )
         self.assertIsInstance(ax, plt.Axes)
 
     def test_plot_with_alpha_exp(self):
@@ -1049,17 +1059,18 @@ class TestPlotSpatialDataset(TestPlots):
             grid_labels=True,
             grid_fontsize=8,
             show=show_plots,
-            plot_region=False
+            plot_region=False,
         )
 
         self.assertIsInstance(ax, plt.Axes)
-        self.assertEqual(ax.get_title(), '')
+        self.assertEqual(ax.get_title(), "")
 
     def test_plot_spatial_dataset_w_approx_projection(self):
-        projection = 'approx'
+        projection = "approx"
         ax = plot_spatial_dataset(
             self.gridded_data,
-            self.region, basemap='stock_img',
+            self.region,
+            basemap="stock_img",
             extent=[-20, 40, -5, 25],
             projection=projection,
             coastline=True,
@@ -1068,11 +1079,11 @@ class TestPlotSpatialDataset(TestPlots):
             grid_labels=True,
             grid_fontsize=8,
             show=show_plots,
-            plot_region=False
+            plot_region=False,
         )
 
         self.assertIsInstance(ax, plt.Axes)
-        self.assertEqual(ax.get_title(), '')
+        self.assertEqual(ax.get_title(), "")
 
     def tearDown(self):
         plt.close("all")
@@ -1112,50 +1123,43 @@ class TestHelperFunctions(TestPlots):
         expected_limits = (0.8, 5.2)
         self.assertEqual(_get_axis_limits(pnts, border=0.05), expected_limits)
 
-    def test_add_labels_for_publication(self):
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        _add_labels_for_publication(fig)
-        annotations = [child for child in ax.get_children() if isinstance(child, Annotation)]
-        self.assertEqual(len(annotations), 1)
-        self.assertEqual(annotations[0].get_text(), "(a)")
-
-
     def test_autosize_scatter(self):
         values = numpy.array([1, 2, 3, 4, 5])
-        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
-        result = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
+        expected_sizes = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=3.0)
+        result = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=3.0)
         numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
 
         values = numpy.array([1, 2, 3, 4, 5])
         min_val = 0
         max_val = 10
-        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=3.0,
-                                           min_val=min_val, max_val=max_val)
-        result = _autosize_scatter(values, min_size=50., max_size=400., power=3.0, min_val=min_val,
-                                   max_val=max_val)
+        expected_sizes = _autosize_scatter(
+            values, min_size=50.0, max_size=400.0, power=3.0, min_val=min_val, max_val=max_val
+        )
+        result = _autosize_scatter(
+            values, min_size=50.0, max_size=400.0, power=3.0, min_val=min_val, max_val=max_val
+        )
         numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
 
         values = numpy.array([1, 2, 3, 4, 5])
         power = 2.0
-        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=power)
-        result = _autosize_scatter(values, min_size=50., max_size=400., power=power)
+        expected_sizes = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=power)
+        result = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=power)
         numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
 
         values = numpy.array([1, 2, 3, 4, 5])
         power = 0.0
-        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=power)
-        result = _autosize_scatter(values, min_size=50., max_size=400., power=power)
+        expected_sizes = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=power)
+        result = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=power)
         numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
 
         values = numpy.array([5, 5, 5, 5, 5])
-        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
-        result = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
+        expected_sizes = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=3.0)
+        result = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=3.0)
         numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
 
         values = numpy.array([10, 100, 1000, 10000, 100000])
-        expected_sizes = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
-        result = _autosize_scatter(values, min_size=50., max_size=400., power=3.0)
+        expected_sizes = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=3.0)
+        result = _autosize_scatter(values, min_size=50.0, max_size=400.0, power=3.0)
         numpy.testing.assert_almost_equal(result, expected_sizes, decimal=2)
 
     def test_autoscale_histogram(self):
@@ -1175,8 +1179,8 @@ class TestHelperFunctions(TestPlots):
     def test_annotate_distribution_plot(self):
         # Mock evaluation_result for Catalog N-Test
         evaluation_result = Mock()
-        evaluation_result.name = 'Catalog N-Test'
-        evaluation_result.sim_name = 'Simulated Catalog'
+        evaluation_result.name = "Catalog N-Test"
+        evaluation_result.sim_name = "Simulated Catalog"
         evaluation_result.quantile = [0.25, 0.75]
         evaluation_result.observed_statistic = 5.0
 
@@ -1190,19 +1194,20 @@ class TestHelperFunctions(TestPlots):
             "title": None,
         }
 
-        ax = _annotate_distribution_plot(ax, evaluation_result, auto_annotate=True,
-                                         plot_args=plot_args)
+        ax = _annotate_distribution_plot(
+            ax, evaluation_result, auto_annotate=True, plot_args=plot_args
+        )
 
         # Assertions to check if the annotations were correctly set
-        self.assertEqual(ax.get_xlabel(), 'Event Count')
-        self.assertEqual(ax.get_ylabel(), 'Number of Catalogs')
-        self.assertEqual(ax.get_title(), 'Catalog N-Test: Simulated Catalog')
+        self.assertEqual(ax.get_xlabel(), "Event Count")
+        self.assertEqual(ax.get_ylabel(), "Number of Catalogs")
+        self.assertEqual(ax.get_title(), "Catalog N-Test: Simulated Catalog")
 
         annotation = ax.texts[0].get_text()
         expected_annotation = (
-            f'$\\delta_1 = P(X \\geq x) = 0.25$\n'
-            f'$\\delta_2 = P(X \\leq x) = 0.75$\n'
-            f'$\\omega = 5.00$'
+            f"$\\delta_1 = P(X \\geq x) = 0.25$\n"
+            f"$\\delta_2 = P(X \\leq x) = 0.75$\n"
+            f"$\\omega = 5.00$"
         )
         self.assertEqual(annotation, expected_annotation)
 
@@ -1228,16 +1233,18 @@ class TestHelperFunctions(TestPlots):
 
     def test_create_geo_axes(self):
         # Test GeoAxes creation with no extent (global)
-        ax = _create_geo_axes(figsize=(10, 8), extent=None, projection=ccrs.PlateCarree(),
-                              set_global=True)
+        ax = _create_geo_axes(
+            figsize=(10, 8), extent=None, projection=ccrs.PlateCarree(), set_global=True
+        )
         self.assertIsInstance(ax, plt.Axes)
         self.assertAlmostEqual(ax.get_xlim(), (-180, 180))
         self.assertAlmostEqual(ax.get_ylim(), (-90, 90))
 
         # Test GeoAxes creation with a specific extent
         extent = (-125, -110, 25, 40)
-        ax = _create_geo_axes(figsize=(10, 8), extent=extent, projection=ccrs.PlateCarree(),
-                              set_global=False)
+        ax = _create_geo_axes(
+            figsize=(10, 8), extent=extent, projection=ccrs.PlateCarree(), set_global=False
+        )
         self.assertIsInstance(ax, plt.Axes)
         self.assertAlmostEqual(ax.get_extent(), extent)
 
@@ -1263,8 +1270,8 @@ class TestHelperFunctions(TestPlots):
         tiles = _get_basemap("ESRI_terrain")
         mock_google_tiles.assert_called_once_with(
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Terrain_Base/"
-                "MapServer/tile/{z}/{y}/{x}.jpg",
-            cache=True
+            "MapServer/tile/{z}/{y}/{x}.jpg",
+            cache=True,
         )
         self.assertIsNotNone(tiles)
 
@@ -1292,54 +1299,29 @@ class TestHelperFunctions(TestPlots):
         self.assertIsInstance(ax, plt.Axes)
 
     def test_default_colormap(self):
-        cmap, alpha = _define_colormap_and_alpha("viridis", 0)
+        cmap, alpha = _get_colormap("viridis", 0)
         self.assertIsInstance(cmap, matplotlib.colors.ListedColormap)
         expected_cmap = plt.get_cmap("viridis")
         self.assertTrue(numpy.allclose(cmap.colors, expected_cmap(numpy.arange(cmap.N))))
 
     def test_custom_colormap(self):
         cmap = plt.get_cmap("plasma")
-        cmap, alpha = _define_colormap_and_alpha(cmap, 0)
+        cmap, alpha = _get_colormap(cmap, 0)
         self.assertIsInstance(cmap, matplotlib.colors.ListedColormap)
         expected_cmap = plt.get_cmap("plasma")
         self.assertTrue(numpy.allclose(cmap.colors, expected_cmap(numpy.arange(cmap.N))))
 
     def test_alpha_exponent(self):
-        cmap, alpha = _define_colormap_and_alpha("viridis", 0.5)
+        cmap, alpha = _get_colormap("viridis", 0.5)
         self.assertIsInstance(cmap, matplotlib.colors.ListedColormap)
         self.assertIsNone(alpha)
         # Check that alpha values are correctly modified
         self.assertTrue(numpy.all(cmap.colors[:, -1] == numpy.linspace(0, 1, cmap.N) ** 0.5))
 
     def test_no_alpha_exponent(self):
-        cmap, alpha = _define_colormap_and_alpha("viridis", 0)
+        cmap, alpha = _get_colormap("viridis", 0)
         self.assertEqual(alpha, 1)
         self.assertTrue(numpy.all(cmap.colors[:, -1] == 1))  # No alpha modification
-
-    def test_add_colorbar(self):
-        fig, ax = plt.subplots()
-        im = ax.imshow(numpy.random.rand(10, 10), cmap="viridis")
-        _add_colorbar(
-            ax, im, clabel="Colorbar Label", clabel_fontsize=12, cticks_fontsize=10
-        )
-
-        # Check if the colorbar is added to the figure
-        colorbars = [
-            child
-            for child in fig.get_children()
-            if isinstance(child, plt.Axes) and "Colorbar" in child.get_label()
-        ]
-        self.assertGreater(len(colorbars), 0)
-
-        # Check colorbar label and font sizes
-        cbar = colorbars[0]
-        self.assertEqual(cbar.get_ylabel(), "Colorbar Label")
-        self.assertEqual(cbar.get_ylabel(), "Colorbar Label")
-        self.assertEqual(cbar.yaxis.label.get_size(), 12)
-
-        # Check tick label font size
-        tick_labels = cbar.get_yticklabels()
-        self.assertTrue(all(label.get_fontsize() == 10 for label in tick_labels))
 
     def tearDown(self):
         plt.close("all")
@@ -1383,11 +1365,11 @@ class TestProcessDistribution(unittest.TestCase):
 
     def setUp(self):
         self.result_poisson = mock.Mock()
-        self.result_poisson.test_distribution = ['poisson', 10]
+        self.result_poisson.test_distribution = ["poisson", 10]
         self.result_poisson.observed_statistic = 8
 
         self.result_neg_binom = mock.Mock()
-        self.result_neg_binom.test_distribution = ['negative_binomial', 10]
+        self.result_neg_binom.test_distribution = ["negative_binomial", 10]
         self.result_neg_binom.observed_statistic = 8
 
         self.result_empirical = mock.Mock()
@@ -1396,8 +1378,11 @@ class TestProcessDistribution(unittest.TestCase):
 
     def test_process_distribution_poisson(self):
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
-            self.result_poisson, percentile=95, variance=None, normalize=False,
-            one_sided_lower=False
+            self.result_poisson,
+            percentile=95,
+            variance=None,
+            normalize=False,
+            one_sided_lower=False,
         )
         self.assertAlmostEqual(mean, 10)
         self.assertAlmostEqual(observed_statistic, 8)
@@ -1406,8 +1391,11 @@ class TestProcessDistribution(unittest.TestCase):
     def test_process_distribution_negative_binomial(self):
         variance = 12
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
-            self.result_neg_binom, percentile=95, variance=variance, normalize=False,
-            one_sided_lower=False
+            self.result_neg_binom,
+            percentile=95,
+            variance=variance,
+            normalize=False,
+            one_sided_lower=False,
         )
         self.assertAlmostEqual(mean, 10)
         self.assertAlmostEqual(observed_statistic, 8)
@@ -1415,8 +1403,11 @@ class TestProcessDistribution(unittest.TestCase):
 
     def test_process_distribution_empirical(self):
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
-            self.result_empirical, percentile=95, variance=None, normalize=False,
-            one_sided_lower=False
+            self.result_empirical,
+            percentile=95,
+            variance=None,
+            normalize=False,
+            one_sided_lower=False,
         )
         self.assertAlmostEqual(mean, numpy.mean(self.result_empirical.test_distribution))
         self.assertAlmostEqual(observed_statistic, 8)
@@ -1424,18 +1415,29 @@ class TestProcessDistribution(unittest.TestCase):
 
     def test_process_distribution_empirical_normalized(self):
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
-            self.result_empirical, percentile=95, variance=None, normalize=True,
-            one_sided_lower=False
+            self.result_empirical,
+            percentile=95,
+            variance=None,
+            normalize=True,
+            one_sided_lower=False,
         )
-        self.assertAlmostEqual(mean, numpy.mean(self.result_empirical.test_distribution -
-                                                self.result_empirical.observed_statistic))
+        self.assertAlmostEqual(
+            mean,
+            numpy.mean(
+                self.result_empirical.test_distribution
+                - self.result_empirical.observed_statistic
+            ),
+        )
         self.assertAlmostEqual(observed_statistic, 0)
         self.assertTrue(plow < mean < phigh)
 
     def test_process_distribution_empirical_one_sided(self):
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
-            self.result_empirical, percentile=95, variance=None, normalize=False,
-            one_sided_lower=True
+            self.result_empirical,
+            percentile=95,
+            variance=None,
+            normalize=False,
+            one_sided_lower=True,
         )
         self.assertAlmostEqual(mean, numpy.mean(self.result_empirical.test_distribution))
         self.assertAlmostEqual(observed_statistic, 8)
