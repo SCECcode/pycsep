@@ -1,0 +1,55 @@
+
+:orphan:
+
+.. _sphx_glr_tutorials_sg_execution_times:
+
+
+Computation times
+=================
+**02:15.210** total execution time for 7 files **from tutorials**:
+
+.. container::
+
+  .. raw:: html
+
+    <style scoped>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    </style>
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script type="text/javascript" class="init">
+    $(document).ready( function () {
+        $('table.sg-datatable').DataTable({order: [[1, 'desc']]});
+    } );
+    </script>
+
+  .. list-table::
+   :header-rows: 1
+   :class: table table-striped sg-datatable
+
+   * - Example
+     - Time
+     - Mem (MB)
+   * - :ref:`sphx_glr_tutorials_plot_customizations.py` (``plot_customizations.py``)
+     - 00:51.446
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_catalog_filtering.py` (``catalog_filtering.py``)
+     - 00:41.367
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_gridded_forecast_evaluation.py` (``gridded_forecast_evaluation.py``)
+     - 00:19.708
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_working_with_catalog_forecasts.py` (``working_with_catalog_forecasts.py``)
+     - 00:09.983
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_catalog_forecast_evaluation.py` (``catalog_forecast_evaluation.py``)
+     - 00:09.953
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_quadtree_gridded_forecast_evaluation.py` (``quadtree_gridded_forecast_evaluation.py``)
+     - 00:01.771
+     - 0.0
+   * - :ref:`sphx_glr_tutorials_plot_gridded_forecast.py` (``plot_gridded_forecast.py``)
+     - 00:00.983
+     - 0.0
