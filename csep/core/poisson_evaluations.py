@@ -47,7 +47,7 @@ def paired_t_test(forecast, benchmark_forecast, observed_catalog,
     result.name = 'Paired T-Test'
     result.test_distribution = (out['ig_lower'], out['ig_upper'])
     result.observed_statistic = out['information_gain']
-    result.quantile = (out['t_statistic'], out['t_critical'])
+    result.quantile = (out['t_statistic'], out['t_critical'], alpha)
     result.sim_name = (forecast.name, benchmark_forecast.name)
     result.obs_name = observed_catalog.name
     result.status = 'normal'

@@ -773,7 +773,8 @@ def plot_comparison_test(
     if plot_args["legend"]:
         # Add custom legend to explain results
         legend_elements = [
-            Line2D([0], [0], color="red", lw=2, label="T-test rejected"),
+            Line2D([0], [0], color="red", lw=2,
+                   label=f"T-test rejected ($\\alpha = {results_t[0].quantile[-1]}$)"),
             Line2D([0], [0], color="green", lw=2, label="T-test non-rejected"),
             Line2D([0], [0], color="gray", lw=2, label="T-test indistinguishable"),
             Line2D(
