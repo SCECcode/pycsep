@@ -548,7 +548,7 @@ class TestBatchPlots(TestPlots):
     def test_plot_consistency_with_variance(self):
         mock_nb = copy.deepcopy(self.mock_result)
         mock_poisson = copy.deepcopy(self.mock_result)
-        mock_nb.test_distribution = ("negative_binomial", 8)
+        mock_nb.test_distribution = ("negative_binomial", 8, 16)
         mock_poisson.test_distribution = ("poisson", 8)
         ax_nb = plot_consistency_test(eval_results=mock_nb, variance=16, show=show_plots)
         ax_p = plot_consistency_test(eval_results=mock_poisson, variance=None, show=show_plots)
@@ -1369,7 +1369,7 @@ class TestProcessDistribution(unittest.TestCase):
         self.result_poisson.observed_statistic = 8
 
         self.result_neg_binom = mock.Mock()
-        self.result_neg_binom.test_distribution = ["negative_binomial", 10]
+        self.result_neg_binom.test_distribution = ["negative_binomial", 10, 12]
         self.result_neg_binom.observed_statistic = 8
 
         self.result_empirical = mock.Mock()
@@ -1380,7 +1380,6 @@ class TestProcessDistribution(unittest.TestCase):
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
             self.result_poisson,
             percentile=95,
-            variance=None,
             normalize=False,
             one_sided_lower=False,
         )
@@ -1389,11 +1388,9 @@ class TestProcessDistribution(unittest.TestCase):
         self.assertTrue(plow < mean < phigh)
 
     def test_process_distribution_negative_binomial(self):
-        variance = 12
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
             self.result_neg_binom,
             percentile=95,
-            variance=variance,
             normalize=False,
             one_sided_lower=False,
         )
@@ -1405,7 +1402,6 @@ class TestProcessDistribution(unittest.TestCase):
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
             self.result_empirical,
             percentile=95,
-            variance=None,
             normalize=False,
             one_sided_lower=False,
         )
@@ -1417,7 +1413,6 @@ class TestProcessDistribution(unittest.TestCase):
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
             self.result_empirical,
             percentile=95,
-            variance=None,
             normalize=True,
             one_sided_lower=False,
         )
@@ -1435,7 +1430,6 @@ class TestProcessDistribution(unittest.TestCase):
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
             self.result_empirical,
             percentile=95,
-            variance=None,
             normalize=False,
             one_sided_lower=True,
         )
