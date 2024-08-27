@@ -813,7 +813,6 @@ def plot_consistency_test(
     normalize: bool = False,
     one_sided_lower: bool = False,
     percentile: float = 95,
-    variance: Optional[float] = None,
     ax: Optional[pyplot.Axes] = None,
     plot_mean: bool = False,
     color: str = "black",
@@ -836,8 +835,6 @@ def plot_consistency_test(
             Percentile for the extent of the model score distribution (default: 95).
         one_sided_lower (bool):
             Plot for a one-sided test (default: False).
-        variance (Optional[float]):
-            Variance for negative binomial distribution (default: None).
         ax (Optional[pyplot.Axes]):
             Axes object to plot on (default: None).
         plot_mean (bool):
@@ -865,7 +862,7 @@ def plot_consistency_test(
 
     for index, res in enumerate(results):
         plow, phigh, mean, observed_statistic = _process_stat_distribution(
-            res, percentile, variance, normalize, one_sided_lower
+            res, percentile, normalize, one_sided_lower
         )
 
         if not numpy.isinf(observed_statistic):  # Check if test result does not diverge
@@ -2139,7 +2136,6 @@ def _get_colormap(
 def _process_stat_distribution(
     res: "EvaluationResult",
     percentile: float,
-    variance: Optional[float],
     normalize: bool,
     one_sided_lower: bool,
 ) -> Tuple[float, float, float, float]:
@@ -2167,6 +2163,7 @@ def _process_stat_distribution(
         observed_statistic = res.observed_statistic
     elif dist_type == "negative_binomial":
         mean = res.test_distribution[1]
+        variance = res.test_distribution[2]
         upsilon = 1.0 - ((variance - mean) / variance)
         tau = mean**2 / (variance - mean)
         plow = nbinom.ppf((1 - percentile / 100.0) / 2.0, tau, upsilon)
