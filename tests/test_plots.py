@@ -662,7 +662,7 @@ class TestBatchPlots(TestPlots):
                     t_result.observed_statistic - rand(5),
                     t_result.observed_statistic + rand(5),
                 ]
-
+                t_result.quantile = (None, None, 0.05)
                 if numpy.random.random() < 0.05:  # sim possible infinite values
                     t_result.observed_statistic = -numpy.inf
                 t_tests.append(t_result)
