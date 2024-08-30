@@ -26,7 +26,7 @@ from csep.core.catalog_evaluations import (
 )
 from csep.utils.plots import (
     plot_cumulative_events_versus_time,
-    plot_magnitude_vs_time,
+    plot_magnitude_versus_time,
     plot_distribution_test,
     plot_magnitude_histogram,
     plot_calibration_test,
@@ -34,7 +34,7 @@ from csep.utils.plots import (
     plot_consistency_test,
     plot_basemap,
     plot_catalog,
-    plot_spatial_dataset,
+    plot_gridded_dataset,
     plot_concentration_ROC_diagram,
     plot_Molchan_diagram,
     plot_ROC_diagram,
@@ -113,18 +113,18 @@ class TestTimeSeriesPlots(TestPlots):
 
     def test_plot_magnitude_vs_time(self):
         # Basic test
-        ax = plot_magnitude_vs_time(catalog=self.observation_m2, show=show_plots)
-        self.assertEqual(ax.get_title(), "Magnitude vs. Time")
+        ax = plot_magnitude_versus_time(catalog=self.observation_m2, show=show_plots)
+        self.assertEqual(ax.get_title(), "")
         self.assertEqual(ax.get_xlabel(), "Datetime")
-        self.assertEqual(ax.get_ylabel(), "$M$")
+        self.assertEqual(ax.get_ylabel(), "Magnitude")
 
         # Test with custom color
-        ax = plot_magnitude_vs_time(catalog=self.observation_m2, color="red", show=show_plots)
+        ax = plot_magnitude_versus_time(catalog=self.observation_m2, color="red", show=show_plots)
         scatter_color = ax.collections[0].get_facecolor()[0]
         self.assertTrue(all(scatter_color[:3] == (1.0, 0.0, 0.0)))  # Check if color is red
 
         # Test with custom marker size
-        ax = plot_magnitude_vs_time(
+        ax = plot_magnitude_versus_time(
             catalog=self.observation_m2, size=25, max_size=600, show=show_plots
         )
         scatter_sizes = ax.collections[0].get_sizes()
@@ -132,18 +132,18 @@ class TestTimeSeriesPlots(TestPlots):
         numpy.testing.assert_array_almost_equal(scatter_sizes, func_sizes)
 
         # Test with custom alpha
-        ax = plot_magnitude_vs_time(catalog=self.observation_m2, alpha=0.5, show=show_plots)
+        ax = plot_magnitude_versus_time(catalog=self.observation_m2, alpha=0.5, show=show_plots)
         scatter_alpha = ax.collections[0].get_alpha()
         self.assertEqual(scatter_alpha, 0.5)
 
         # Test with custom marker size power
-        ax = plot_magnitude_vs_time(catalog=self.observation_m2, power=6, show=show_plots)
+        ax = plot_magnitude_versus_time(catalog=self.observation_m2, power=6, show=show_plots)
         scatter_sizes = ax.collections[0].get_sizes()
         func_sizes = _autosize_scatter(self.observation_m2.data["magnitude"], 4, 300, 6)
         numpy.testing.assert_array_almost_equal(scatter_sizes, func_sizes)
         #
         # # Test with show=True (just to ensure no errors occur)
-        plot_magnitude_vs_time(catalog=self.observation_m2, show=False)
+        plot_magnitude_versus_time(catalog=self.observation_m2, show=False)
         plt.close("all")
 
     def test_plot_cumulative_events_default(self):
@@ -979,19 +979,19 @@ class TestPlotSpatialDataset(TestPlots):
 
     def test_default_plot(self):
         fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
-        ax = plot_spatial_dataset(self.gridded_data, self.region, ax=ax)
+        ax = plot_gridded_dataset(self.gridded_data, self.region, ax=ax)
         self.assertIsInstance(ax, plt.Axes)
 
     def test_extent_setting_w_ax(self):
         extent = (-30, 30, -20, 20)
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data, self.region, extent=extent, show=show_plots
         )
         numpy.testing.assert_array_almost_equal(ax.get_extent(crs=ccrs.PlateCarree()), extent)
 
     def test_extent_setting(self):
         extent = (-30, 30, -20, 20)
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data, self.region, extent=extent, show=show_plots
         )
         numpy.testing.assert_array_almost_equal(ax.get_extent(crs=ccrs.PlateCarree()), extent)
@@ -1000,34 +1000,34 @@ class TestPlotSpatialDataset(TestPlots):
     def test_color_mapping(self):
         cmap = plt.get_cmap("plasma")
         fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data, self.region, ax=ax, colormap=cmap, show=show_plots
         )
         self.assertIsInstance(ax.collections[0].cmap, colors.ListedColormap)
 
     def test_gridlines(self):
         fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data, self.region, ax=ax, grid=True, show=show_plots
         )
         self.assertTrue(ax.gridlines())
 
     def test_alpha_transparency(self):
         fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data, self.region, ax=ax, alpha=0.5, show=show_plots
         )
         self.assertIsInstance(ax, plt.Axes)
 
     def test_plot_with_alpha_exp(self):
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data, self.region, alpha_exp=0.5, include_cbar=True, show=show_plots
         )
         self.assertIsInstance(ax, plt.Axes)
 
     def test_include_colorbar(self):
         fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data, self.region, ax=ax, include_cbar=True, show=show_plots
         )
         colorbars = [
@@ -1039,7 +1039,7 @@ class TestPlotSpatialDataset(TestPlots):
 
     def test_no_region_border(self):
         fig, ax = plt.subplots(subplot_kw={"projection": ccrs.PlateCarree()})
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data, self.region, ax=ax, plot_region=False, show=show_plots
         )
         lines = ax.get_lines()
@@ -1048,7 +1048,7 @@ class TestPlotSpatialDataset(TestPlots):
     def test_plot_spatial_dataset_w_basemap_stream_kwargs(self):
 
         projection = ccrs.Mercator()
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data,
             self.region,
             extent=[-20, 40, -5, 25],
@@ -1067,7 +1067,7 @@ class TestPlotSpatialDataset(TestPlots):
 
     def test_plot_spatial_dataset_w_approx_projection(self):
         projection = "approx"
-        ax = plot_spatial_dataset(
+        ax = plot_gridded_dataset(
             self.gridded_data,
             self.region,
             basemap="stock_img",
