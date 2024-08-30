@@ -13,7 +13,7 @@ from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 from csep.core.catalogs import AbstractBaseCatalog
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
-from csep.utils.plots import plot_spatial_dataset
+from csep.utils.plots import plot_gridded_dataset
 
 
 # idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet, bc of functions like
@@ -458,11 +458,11 @@ class GriddedForecast(MarkedGriddedDataSet):
         if log:
             plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per cell per {time}')
             with numpy.errstate(divide='ignore'):
-                ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, ax=ax,
+                ax = plot_gridded_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, ax=ax,
                                           show=show, extent=extent, set_global=set_global, plot_args=plot_args)
         else:
             plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per cell per {time}')
-            ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, ax=ax,show=show, extent=extent,
+            ax = plot_gridded_dataset(self.spatial_counts(cartesian=True), self.region, ax=ax, show=show, extent=extent,
                                       set_global=set_global, plot_args=plot_args)
         return ax
 

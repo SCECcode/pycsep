@@ -3,15 +3,14 @@ import shutil
 import warnings
 from typing import TYPE_CHECKING, Optional, Any, List, Union, Tuple, Sequence, Dict
 
+# Third-party imports
+import numpy
+import pandas
 import cartopy
 import cartopy.crs as ccrs
 import matplotlib
 import matplotlib.lines
 import matplotlib.pyplot as pyplot
-# Third-party imports
-import numpy
-import numpy as np
-import pandas as pandas
 from cartopy.io import img_tiles
 from cartopy.io.img_tiles import GoogleWTS
 from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
@@ -66,7 +65,6 @@ DEFAULT_PLOT_ARGS = {
     "alpha": 0.8,
     "linewidth": 1,
     "linestyle": "-",
-    "secondary_linestyle": "red",
     "size": 5,
     "marker": "o",
     "markersize": 5,
@@ -85,7 +83,6 @@ DEFAULT_PLOT_ARGS = {
     "coastline": True,
     "coastline_color": "black",
     "coastline_linewidth": 1.5,
-    "borders": False,
     "borders_color": "black",
     "borders_linewidth": 1.5,
     # Color bars
@@ -97,51 +94,54 @@ DEFAULT_PLOT_ARGS = {
 ########################
 # Data-exploratory plots
 ########################
-def plot_magnitude_vs_time(
+def plot_magnitude_versus_time(
     catalog: "CSEPCatalog",
-    ax: Optional[Axes] = None,
-    color: Optional[str] = "steelblue",
-    size: Optional[int] = 4,
-    max_size: Optional[int] = 300,
-    power: Optional[int] = 4,
-    alpha: Optional[float] = 0.5,
+    color: str = "steelblue",
+    size: int = 4,
+    max_size: int = 300,
+    power: int = 4,
+    alpha: float = 0.5,
+    ax: Optional[matplotlib.axes.Axes] = None,
     show: bool = False,
     **kwargs: Any,
 ) -> matplotlib.axes.Axes:
     """
-    Plots magnitude versus time for a given catalog.
+    Scatter plot of the catalog magnitudes and origin times. The size of each event is scaled
+    exponentially by its magnitude using the parameters ``size``,``max_size`` and ``power``.
 
     Args:
-        catalog (:class:`csep.core.catalogs.CSEPCatalog`):
-            Catalog of seismic events to be plotted.
-        ax (Axes):
-            Matplotlib axis object on which to plot. If not provided, a new figure and axis are
-            created.
-        color (str):
-            Color of the scatter plot points. If not provided, defaults to value in
-            `DEFAULT_PLOT_ARGS`.
-        size (int):
-             Size of the event with the minimum magnitude
-        max_size (int):
-            Size of the event with the maximum magnitude
-        power (int):
-            Power scaling of the scatter sizing.
-        alpha (float):
-            Transparency level for the scatter plot points. If not provided, defaults to value
-            in `DEFAULT_PLOT_ARGS`.
-        show (bool):
-            Whether to display the plot. Defaults to `False`.
+        catalog (CSEPCatalog): Catalog of seismic events to be plotted.
+        color (str, optional): Color of the scatter plot. Defaults to `'steelblue'`.
+        size (int, optional): Marker size for the event with the minimum magnitude. Defaults
+            to `4`.
+        max_size (int, optional): Marker size for the event with the maximum magnitude.
+            Defaults to `300`.
+        power (int, optional): Power scaling of the scatter sizing. Defaults to `4`.
+        alpha (float, optional): Transparency level for the scatter points. Defaults to `0.5`.
+        ax (matplotlib.axes.Axes, optional): Axis object on which to plot. If not provided, a
+            new figure and axis are created. Defaults to `None`.
+        show (bool, optional): Whether to display the plot. Defaults to `False`.
         **kwargs:
-            Additional keyword arguments for customizing the plot. These are merged with
-            `DEFAULT_PLOT_ARGS`.
+            Additional keyword arguments to customize the plot:
 
+            - **figsize** (`tuple`): The size of the figure.
+            - **title** (`str`): Plot title. Defaults to `None`.
+            - **title_fontsize** (`int`): Font size for the plot title.
+            - **xlabel** (`str`): Label for the X-axis. Defaults to `'Datetime'`.
+            - **xlabel_fontsize** (`int`): Font size for the X-axis label.
+            - **ylabel** (`str`): Label for the Y-axis. Defaults to `'Magnitude'`.
+            - **ylabel_fontsize** (`int`): Font size for the Y-axis label.
+            - **datetime_locator** (`matplotlib.dates.Locator`): Locator for the
+              X-axis datetime ticks.
+            - **datetime_formatter** (`str` or `matplotlib.dates.Formatter`):
+              Formatter for the datetime axis. Defaults to `'%Y-%m-%d'`.
+            - **grid** (`bool`): Whether to show grid lines. Defaults to `True`.
+            - **tight_layout** (`bool`): Whether to use a tight layout for the figure.
+              Defaults to `True`.
 
     Returns:
-        Axes:
-            The Matplotlib axes object with the plotted data.
-
+        matplotlib.axes.Axes: The Matplotlib axes object with the plotted data.
     """
-
     # Initialize plot
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
@@ -160,10 +160,8 @@ def plot_magnitude_vs_time(
 
     # Set labels and title
     ax.set_xlabel(plot_args["xlabel"] or "Datetime", fontsize=plot_args["xlabel_fontsize"])
-    ax.set_ylabel(plot_args["ylabel"] or "$M$", fontsize=plot_args["ylabel_fontsize"])
-    ax.set_title(
-        plot_args["title"] or "Magnitude vs. Time", fontsize=plot_args["title_fontsize"]
-    )
+    ax.set_ylabel(plot_args["ylabel"] or "Magnitude", fontsize=plot_args["ylabel_fontsize"])
+    ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"])
 
     # Autoformat ticks and labels
     ax.xaxis.set_major_locator(plot_args["datetime_locator"])
@@ -184,30 +182,55 @@ def plot_cumulative_events_versus_time(
     observation: "CSEPCatalog",
     time_axis: str = "datetime",
     bins: int = 50,
-    ax: Optional[matplotlib.axes.Axes] = None,
     sim_label: Optional[str] = "Simulated",
     obs_label: Optional[str] = "Observation",
+    ax: Optional[matplotlib.axes.Axes] = None,
     show: bool = False,
     **kwargs,
 ) -> matplotlib.axes.Axes:
     """
-    Plots the cumulative number of forecasted events versus observed events over time.
+    Plots the cumulative number of forecasted events from a
+    :class:`~csep.core.forecasts.CatalogForecast` versus the observed events over time.
 
     Args:
-        catalog_forecast (GriddedForecast): The forecasted catalogs.
-        observation (CSEPCatalog): The observed catalog of events.
-        time_axis (str): The type of time axis ('datetime', 'days', 'hours'). Defaults
-            to 'datetime'.
-        ax (Optional[pyplot.Axes]): The axes to plot on. If None, a new figure and
-            axes are created.
-        bins (int): The number of bins for time slicing. Defaults to 50.
-        sim_label (str): Label for simulated data. Defaults to 'Simulated'.
-        obs_label (str): Label for observed data. Defaults to 'Observation'.
-        show (bool): If True, displays the plot. Defaults to False.
-        **kwargs: Additional plotting arguments to override `DEFAULT_PLOT_ARGS`.
+        catalog_forecast (CatalogForecast): The forecasted synthetic catalogs.
+        observation (CSEPCatalog): The observed catalog.
+        time_axis (str, optional): The type of time axis (`'datetime'`, `'days'`, `'hours'`).
+            Defaults to `'datetime'`.
+        bins (int, optional): The number of bins for time slicing. Defaults to `50`.
+        sim_label (str, optional): Label for simulated data. Defaults to `'Simulated'`.
+        obs_label (str, optional): Label for observed data. Defaults to `'Observation'`.
+        ax (matplotlib.axes.Axes, optional): Axis object on which to plot. If not provided, a
+            new figure and axis are created. Defaults to `None`.
+        show (bool, optional): If True, displays the plot. Defaults to `False`.
+        **kwargs: Additional keyword arguments to customize the plot:
+
+            - **figsize** (`tuple`): The size of the figure.
+            - **xlabel** (`str`): Label for the X-axis. Defaults to `'Datetime'`,
+              `'Days after Mainshock'`, or `'Hours after Mainshock'`, depending on
+              `time_axis`.
+            - **xlabel_fontsize** (`int`): Font size for the X-axis label.
+            - **ylabel** (`str`): Label for the Y-axis. Defaults to
+              `'Cumulative event counts'`.
+            - **ylabel_fontsize** (`int`): Font size for the Y-axis label.
+            - **title** (`str`): Title of the plot. Defaults to `None`.
+            - **title_fontsize** (`int`): Font size for the plot title.
+            - **color** (`str`): Color for the simulated forecast.
+            - **linewidth** (`float`): Line width for the plot lines. Defaults to
+              `1.5`.
+            - **grid** (`bool`): Whether to show grid lines. Defaults to `True`.
+            - **legend** (`bool`): Whether to show the legend. Defaults to `True`.
+            - **legend_loc** (`str`): Location of the legend. Defaults to `'best'`.
+            - **legend_fontsize** (`int`): Font size of the legend text.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure.
+              Defaults to `True`.
+            - **datetime_locator** (`matplotlib.dates.Locator`): Locator for the
+              X-axis datetime ticks.
+            - **datetime_formatter** (`str` or `matplotlib.dates.Formatter`):
+              Formatter for the datetime axis. Defaults to ``'%Y-%m-%d'``.
 
     Returns:
-        pyplot.Axes: The axes with the cumulative event plot.
+        matplotlib.axes.Axes: The Matplotlib axes object with the plotted data.
     """
 
     # Initialize plot
@@ -347,19 +370,41 @@ def plot_magnitude_histogram(
     event counts.
 
     Args:
-        catalog_forecast (CatalogForecast, List[CSEPCatalog]): A Catalog-based forecast
+        catalog_forecast (CatalogForecast or list of CSEPCatalog): A catalog-based forecast
+            or a list of observed catalogs.
         observation (CSEPCatalog): The observed catalog for comparison.
-        magnitude_bins (Optional[Union[List[float], numpy.ndarray]]): The bins for magnitude
-            histograms. If None, defaults to the region magnitudes or standard CSEP bins.
-        percentile (int): The percentile used for uncertainty intervals (default: 95).
-        ax (Optional[pyplot.Axes]): The axes object to draw the plot on. If None, a new
-            figure and axes are created.
-        show (bool): Whether to display the plot immediately (default: False).
-        **kwargs: Additional keyword arguments for plot customization. These override defaults.
+        magnitude_bins (list of float or numpy.ndarray, optional): The bins for magnitude
+            histograms. If `None`, defaults to the region magnitudes or standard CSEP bins.
+            Defaults to `None`.
+        percentile (int, optional): The percentile used for uncertainty intervals. Defaults to
+            `95`.
+        ax (matplotlib.axes.Axes, optional): The axes object to draw the plot on. If `None`, a
+            new figure and axes are created. Defaults to `None`.
+        show (bool, optional): Whether to display the plot immediately. Defaults to `False`.
+        **kwargs: Additional keyword arguments to customize the plot:
+
+            - **figsize** (`tuple`): The size of the figure.
+            - **color** (`str`): Color for the observed histogram points.
+            - **markersize** (`int`): Size of the markers in the plot. Defaults to `6`.
+            - **capsize** (`float`): Size of the error bar caps. Defaults to `4`.
+            - **linewidth** (`float`): Width of the error bar lines. Defaults to `1.5`.
+            - **xlim** (`tuple`): Limits for the X-axis.
+            - **xlabel** (`str`): Label for the X-axis. Defaults to `'Magnitude'`.
+            - **xlabel_fontsize** (`int`): Font size for the X-axis label.
+            - **ylabel** (`str`): Label for the Y-axis. Defaults to `'Event count'`.
+            - **ylabel_fontsize** (`int`): Font size for the Y-axis label.
+            - **title** (`str`): Title of the plot. Defaults to `'Magnitude Histogram'`.
+            - **title_fontsize** (`int`): Font size for the plot title.
+            - **grid** (`bool`): Whether to show grid lines. Defaults to `True`.
+            - **legend_loc** (`str`): Location of the legend. Defaults to `'best'`.
+            - **legend_fontsize** (`int`): Font size of the legend text.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure.
+              Defaults to `True`.
 
     Returns:
         matplotlib.axes.Axes: The axes object containing the plot.
     """
+
     # Initialize plot
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
@@ -459,6 +504,386 @@ def plot_magnitude_histogram(
     return ax
 
 
+###############
+# Spatial plots
+###############
+def plot_basemap(
+    basemap: Optional[str] = None,
+    extent: Optional[List[float]] = None,
+    coastline: bool = True,
+    borders: bool = False,
+    tile_depth: Union[str, int] = "auto",
+    set_global: bool = False,
+    projection: Optional[ccrs.Projection] = None,
+    ax: Optional[pyplot.Axes] = None,
+    show: bool = False,
+    **kwargs,
+) -> matplotlib.axes.Axes:
+    """
+    Wrapper function for multiple Cartopy base plots, including access to standard raster
+    web services and filesystem geoTIFF.
+
+    Args:
+        basemap (str): Possible values are: `'stock_img'`, `'google-satellite'`,
+            `'ESRI_terrain'`, `'ESRI_imagery'`, `'ESRI_relief'`, `'ESRI_topo'`, a custom web
+            service link, or a GeoTiff filepath. Defaults to `None`.
+        extent (list of float): `[lon_min, lon_max, lat_min, lat_max]`. Defaults to `None`.
+        coastline (bool): Flag to plot coastline. Defaults to `True`.
+        borders (bool): Flag to plot country borders. Defaults to `False`.
+        tile_depth (str or int): Zoom resolution level (`1-12`) of the basemap tiles. If
+            `'auto'`, it is automatically derived from extent. Defaults to `'auto'`.
+        set_global (bool): Display the complete globe as basemap. Required by global forecasts.
+            Defaults to `False`.
+        projection (cartopy.crs.Projection): Projection to be used in the basemap. It can be a
+            cartopy projection instance, or `approx` for a quick approximation of Mercator.
+            Defaults to :class:`~cartopy.crs.PlateCarree` if `None`.
+        ax (matplotlib.axes.Axes, optional): Previously defined ax object. If `None`, a new
+            axis is created. Defaults to `None`.
+        show (bool): If `True`, displays the plot. Defaults to `False`.
+        **kwargs: Additional keyword arguments to customize the plot:
+
+            - **figsize** (`tuple`): The size of the figure.
+            - **coastline_color** (`str`): Color for the coastlines.
+            - **coastline_linewidth** (`float`): Line width for the coastlines.
+            - **borders_color** (`str`): Color for the borders.
+            - **borders_linewidth** (`float`): Line width for the borders.
+            - **grid** (`bool`): Whether to show grid lines. Defaults to `True`.
+            - **grid_labels** (`bool`): Whether to show grid labels.
+            - **grid_fontsize** (`int`): Font size for the grid labels.
+
+    Returns:
+        matplotlib.axes.Axes: The Matplotlib axes object with the plotted data.
+    """
+
+    plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
+    ax = ax or _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
+
+    line_autoscaler = cartopy.feature.AdaptiveScaler("110m", (("50m", 50), ("10m", 5)))
+    tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
+    tile_depth = (
+        4
+        if set_global
+        else (tile_autoscaler.scale_from_extent(extent) if tile_depth == "auto" else tile_depth)
+    )
+    # Add coastlines and borders
+    if coastline:
+        ax.coastlines(
+            color=plot_args["coastline_color"], linewidth=plot_args["coastline_linewidth"]
+        )
+    if borders:
+        borders = cartopy.feature.NaturalEarthFeature(
+            "cultural",
+            "admin_0_boundary_lines_land",
+            line_autoscaler,
+            edgecolor=plot_args["borders_color"],
+            facecolor="never",
+        )
+        ax.add_feature(borders, linewidth=plot_args["borders_linewidth"])
+
+    # Add basemap tiles
+    try:
+        if basemap == "stock_img":
+            ax.stock_img()
+        elif basemap is not None:
+            basemap_obj = _get_basemap(basemap)
+            # basemap_obj is a cartopy TILE IMAGE
+            if isinstance(basemap_obj, GoogleWTS):
+                ax.add_image(basemap_obj, tile_depth)
+            # basemap_obj is a rasterio image
+            elif isinstance(basemap_obj, DatasetReader):
+                ax = rio_plot.show(basemap_obj, ax=ax)
+
+    except Exception as e:
+        print(
+            f"Unable to plot basemap. This might be due to no internet access. "
+            f"Error: {str(e)}"
+        )
+
+    # Set up Grid-lines
+    if plot_args["grid"]:
+        _add_gridlines(ax, plot_args["grid_labels"], plot_args["grid_fontsize"])
+
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def plot_catalog(
+    catalog: "CSEPCatalog",
+    basemap: Optional[str] = None,
+    projection: Optional[Union[ccrs.Projection, str]] = None,
+    extent: Optional[Sequence[float]] = None,
+    set_global: bool = False,
+    mag_ticks: Optional[Union[Sequence[float], numpy.ndarray, int]] = None,
+    size: float = 15,
+    max_size: float = 300,
+    power: float = 3,
+    min_val: Optional[float] = None,
+    max_val: Optional[float] = None,
+    plot_region: bool = False,
+    ax: Optional[matplotlib.axes.Axes] = None,
+    show: bool = False,
+    **kwargs,
+) -> matplotlib.axes.Axes:
+    """
+    Spatial plot of catalog. Can be plotted over a basemap if desired, by passing the keyword
+    parameters of the function :func:`~csep.utils.plots.plot_basemap`. The size of the events
+    is automatically scaled according to their magnitude. Fine-tuning of an exponential sizing
+    function can be set with the parameters ``size``, ``max_size``, ``power``, ``min_val`` and
+    ``max_val``.
+
+    Args:
+        catalog (CSEPCatalog): Catalog object to be plotted.
+        basemap (str): Passed to :func:`~csep.utils.plots.plot_basemap` along with `kwargs`.
+            Possible values are: `'stock_img'`, `'google-satellite'`, `'ESRI_terrain'`,
+            `'ESRI_imagery'`, `'ESRI_relief'`, `'ESRI_topo'`, a custom web service link, or a
+            GeoTiff filepath. Defaults to `None`.
+        projection (cartopy.crs.Projection or str): Projection to be used in the underlying
+            basemap. Can be a cartopy projection instance, or `approx` for a quick approximation
+             of Mercator. Defaults to :class:`~cartopy.crs.PlateCarree` if `None`.
+        extent (list of float): Defaults to `1.05` * :meth:`catalog.region.get_bbox`. Defaults
+            to `None`.
+        set_global (bool): Display the complete globe. Defaults to `False`.
+        mag_ticks (list of float, int): Ticks to display in the legend. Can be an array/list of
+            magnitudes, or a number of bins to discretize the magnitude range. Defaults to
+            `None`.
+        size (float): Size of the minimum magnitude event. Defaults to `15`.
+        max_size (float): Size of the maximum magnitude event. Defaults to `300`.
+        power (float): Power scaling of the scatter sizing. Defaults to `3`.
+        min_val (float): Override minimum magnitude of the catalog for scatter sizing.  Useful
+            to plot multiple catalogs with different magnitude ranges. Defaults to `None`.
+        max_val (float): Override maximum magnitude of the catalog for scatter sizing. Useful
+            to plot multiple catalogs with different magnitude ranges. Defaults to `None`.
+        plot_region (bool): Flag to plot the catalog region border. Defaults to `False`.
+        ax (matplotlib.axes.Axes): Previously defined ax object. Defaults to `None`.
+        show (bool): If `True`, displays the plot. Defaults to `False`.
+        **kwargs: Additional keyword arguments to customize the plot:
+
+            - **alpha** (`float`): Transparency level for the scatter points.
+            - **markercolor** (`str`): Color for the scatter points.
+            - **markeredgecolor** (`str`): Color for the edges of the scatter points.
+            - **figsize** (`tuple`): The size of the figure.
+            - **legend** (`bool`): Whether to display a legend. Defaults to `True`.
+            - **legend_title** (`str`): Title for the legend.
+            - **legend_labelspacing** (`float`): Spacing between labels in the legend.
+            - **legend_borderpad** (`float`): Border padding for the legend.
+            - **legend_framealpha** (`float`): Frame alpha for the legend.
+            - **region_color** (`str`): Color for the region border.
+            - **title** (`str`): Title of the plot.
+            - **title_fontsize** (`int`): Font size of the plot title.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure.
+
+    Returns:
+        matplotlib.axes.Axes: The Matplotlib axes object with the plotted data.
+    """
+
+    plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
+    # Get spatial information for plotting
+    extent = extent or _calculate_spatial_extent(catalog, set_global, plot_region)
+    # Instantiate GeoAxes object
+    ax = ax or _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
+    # chain basemap
+    ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False, **plot_args)
+
+    # Plot catalog
+    ax.scatter(
+        catalog.get_longitudes(),
+        catalog.get_latitudes(),
+        s=_autosize_scatter(
+            values=catalog.get_magnitudes(),
+            min_size=size,
+            max_size=max_size,
+            power=power,
+            min_val=min_val,
+            max_val=max_val,
+        ),
+        transform=ccrs.PlateCarree(),
+        color=plot_args["markercolor"],
+        edgecolors=plot_args["markeredgecolor"],
+        alpha=plot_args["alpha"],
+    )
+
+    # Legend
+    if plot_args["legend"]:
+        if isinstance(mag_ticks, (list, numpy.ndarray)):
+            mag_ticks = numpy.array(mag_ticks)
+        else:
+            mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
+            mag_ticks = numpy.linspace(mw_range[0], mw_range[1], mag_ticks or 4, endpoint=True)
+
+        # Map mag_ticks to marker sizes using the custom size mapping function
+        legend_sizes = _autosize_scatter(
+            values=mag_ticks,
+            min_size=size,
+            max_size=max_size,
+            power=power,
+            min_val=min_val or numpy.min(catalog.get_magnitudes()),
+            max_val=max_val or numpy.max(catalog.get_magnitudes()),
+        )
+
+        # Create custom legend handles
+        handles = [
+            pyplot.Line2D(
+                [0],
+                [0],
+                marker="o",
+                lw=0,
+                label=str(m),
+                markersize=numpy.sqrt(s),
+                markerfacecolor="gray",
+                alpha=0.5,
+                markeredgewidth=0.8,
+                markeredgecolor="black",
+            )
+            for m, s in zip(mag_ticks, legend_sizes)
+        ]
+
+        ax.legend(
+            handles,
+            numpy.round(mag_ticks, 1),
+            loc=plot_args["legend_loc"],
+            handletextpad=5,
+            title=plot_args.get("legend_title") or "Magnitudes",
+            fontsize=plot_args["legend_fontsize"],
+            title_fontsize=plot_args["legend_titlesize"],
+            labelspacing=plot_args["legend_labelspacing"],
+            borderpad=plot_args["legend_borderpad"],
+            framealpha=plot_args["legend_framealpha"],
+        )
+
+    # Draw catalog's region border
+    if plot_region:
+        try:
+            pts = catalog.region.tight_bbox()
+            ax.plot(pts[:, 0], pts[:, 1], lw=1, color=plot_args["region_color"])
+        except AttributeError:
+            pass
+
+    ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"], y=1.06)
+
+    if plot_args["tight_layout"]:
+        ax.figure.tight_layout()
+
+    if show:
+        pyplot.show()
+
+    return ax
+
+
+def plot_gridded_dataset(
+    gridded: numpy.ndarray,
+    region: "CartesianGrid2D",
+    basemap: Optional[str] = None,
+    ax: Optional[pyplot.Axes] = None,
+    projection: Optional[Union[ccrs.Projection, str]] = None,
+    show: bool = False,
+    extent: Optional[List[float]] = None,
+    set_global: bool = False,
+    plot_region: bool = True,
+    colorbar: bool = True,
+    colormap: Union[str, matplotlib.colors.Colormap] = "viridis",
+    clim: Optional[Tuple[float, float]] = None,
+    clabel: Optional[str] = None,
+    alpha: Optional[float] = None,
+    alpha_exp: float = 0,
+    **kwargs,
+) -> matplotlib.axes.Axes:
+    """
+    Plot spatial gridded dataset such as data from a gridded forecast. Can be plotted over a
+    basemap if desired, by passing the keyword parameters of the function
+    :func:`~csep.utils.plots.plot_basemap`. The color map can be fine-tuned using the arguments
+    ``colorbar``, ``colormap``, ``clim``. An exponential transparency function can be set
+    with ``alpha`` and ``alpha_exp``.
+
+    Args:
+        gridded (numpy.ndarray): 2D-square array of values corresponding to the region. See
+            :class:`~csep.core.regions.CartesianGrid2D` and
+            :meth:`~csep.core.regions.CartesianGrid2D.get_cartesian` to convert a 1D array
+            (whose indices correspond to each spatial cell) to a 2D-square array.
+        region (CartesianGrid2D): Region in which gridded values are contained.
+        basemap (str): Passed to :func:`~csep.utils.plots.plot_basemap` along with `kwargs`.
+        ax (matplotlib.axes.Axes): Previously defined ax object. Defaults to `None`.
+        projection (cartopy.crs.Projection or str): Projection to be used in the underlying
+            basemap. It can be a cartopy projection instance, or `approx` for a quick
+            approximation of Mercator. Defaults to :class:`~cartopy.crs.PlateCarree` if `None`.
+        show (bool): If `True`, displays the plot. Defaults to `False`.
+        extent (list of float): ``[lon_min, lon_max, lat_min, lat_max]``. Defaults to `None`.
+        set_global (bool): Display the complete globe as basemap. Defaults to `False`.
+        plot_region (bool): If `True`, plot the dataset region border. Defaults to `True`.
+        colorbar (bool): If `True`, include a colorbar. Defaults to `True`.
+        colormap (str or matplotlib.colors.Colormap): Colormap to use. Defaults to `'viridis'`.
+        clim (tuple of float): Range of the colorbar. Defaults to `None`.
+        clabel (str): Label of the colorbar. Defaults to `None`.
+        alpha (float): Transparency level. Defaults to `None`.
+        alpha_exp (float): Exponent for the alpha function (recommended between `0.4` and `1`).
+            Defaults to `0`.
+        **kwargs: Additional keyword arguments to customize the plot:
+
+            - **colorbar_labelsize** (`int`): Font size for the colorbar label.
+            - **colorbar_ticksize** (`int`): Font size for the colorbar ticks.
+            - **figsize** (`tuple`): The size of the figure.
+            - **region_color** (`str`): Color for the region border.
+            - **title** (`str`): Title of the plot.
+            - **title_fontsize** (`int`): Font size of the plot title.
+
+    Returns:
+        matplotlib.axes.Axes: Matplotlib axes object.
+    """
+
+    plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
+
+    # Get spatial information for plotting
+    extent = extent or _calculate_spatial_extent(region, set_global, plot_region)
+    # Instantiate GeoAxes object
+    ax = ax or _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
+
+    # chain basemap
+    ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False, **plot_args)
+
+    # Define colormap and alpha transparency
+    colormap, alpha = _get_colormap(colormap, alpha_exp, alpha)
+
+    # Plot spatial dataset
+    lons, lats = numpy.meshgrid(
+        numpy.append(region.xs, region.get_bbox()[1]),
+        numpy.append(region.ys, region.get_bbox()[3]),
+    )
+    im = ax.pcolor(
+        lons, lats, gridded, cmap=colormap, alpha=alpha, snap=True, transform=ccrs.PlateCarree()
+    )
+    im.set_clim(clim)
+
+    # Colorbar options
+    if colorbar:
+        cax = ax.get_figure().add_axes(
+            [
+                ax.get_position().x1 + 0.01,
+                ax.get_position().y0,
+                0.025,
+                ax.get_position().height,
+            ],
+            label="Colorbar",
+        )
+        cbar = ax.get_figure().colorbar(im, ax=ax, cax=cax)
+        cbar.set_label(clabel, fontsize=plot_args["colorbar_labelsize"])
+        cbar.ax.tick_params(labelsize=plot_args["colorbar_ticksize"])
+    # Draw forecast's region border
+    if plot_region and not set_global:
+        try:
+            pts = region.tight_bbox()
+            ax.plot(pts[:, 0], pts[:, 1], lw=1, color=plot_args["region_color"])
+        except AttributeError:
+            pass
+
+    ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"], y=1.06)
+
+    if show:
+        pyplot.show()
+
+    return ax
+
+
 #####################
 # Single Result plots
 #####################
@@ -478,23 +903,40 @@ def plot_distribution_test(
     Plots a histogram of a single statistic for stochastic event sets and observations.
 
     Args:
-        evaluation_result (EvaluationResult): Object containing test distributions and
-            observed statistics.
-        bins (Union[str, int], optional): Binning strategy for the histogram. Defaults
-            to 'fd'.
-        percentile (int, optional): Percentile for shading regions. Defaults to None
-            (use global setting).
-        ax (Optional[matplotlib.axes.Axes], optional): Axes object to plot on. If None,
-            creates a new figure and axes.
-        auto_annotate (bool, dict): If True, automatically format the plot details based
-            on the evaluation result. It can be customized by passing the keyword arguments
-            `xlabel`, `ylabel`, `annotation_text`, `annotation_xy` and `annotation_fontsize`.
-        sim_label (str, optional): Label for the simulated data.
-        obs_label (str, optional): Label for the observation data.
-        legend (Optional[bool], optional): Whether to display the legend. Defaults to
-            global setting.
-        show (bool, optional): If True, show the plot. Defaults to False.
+        evaluation_result (EvaluationResult): Object containing test
+            distributions and observed statistics.
+        bins (str, int, or list): Binning strategy for the histogram. See
+            :func:`matplotlib.pyplot.hist` for details on this parameter. Defaults to `'fd'`.
+        percentile (int): Percentile for shading regions. Defaults to `95`.
+        ax (matplotlib.axes.Axes): Axes object to plot on. If `None`, creates a new figure
+            and axes. Defaults to `None`.
+        auto_annotate (bool or dict): If `True`, automatically formats the plot details based
+            on the evaluation result. It can be further customized by passing the keyword
+            arguments `xlabel`, `ylabel`, `annotation_text`, `annotation_xy`, and
+            `annotation_fontsize`. Defaults to `True`.
+        sim_label (str): Label for the simulated data. Defaults to `'Simulated'`.
+        obs_label (str): Label for the observation data. Defaults to `'Observation'`.
+        legend (bool): Whether to display the legend. Defaults to `True`.
+        show (bool): If `True`, shows the plot. Defaults to `False`.
         **kwargs: Additional keyword arguments for plot customization.
+
+            - **color** (`str`): Color of the histogram bars.
+            - **alpha** (`float`): Transparency level for the histogram bars.
+            - **figsize** (`tuple`): The size of the figure.
+            - **xlim** (`tuple`): Limits for the X-axis.
+            - **grid** (`bool`): Whether to display grid lines. Defaults to `True`.
+            - **legend_loc** (`str`): Location of the legend. Defaults to `'best'`.
+            - **legend_fontsize** (`int`): Font size of the legend text.
+            - **xlabel**: Label of the X-axis. If `auto_annotate` is `True`, will be set to the
+              test statistic name.
+            - **ylabel**: Label of the Y-axis.
+            - **annotate_text**: Annotate the plot. If `auto_annotate` is `True`, it will
+              provide information about the statistics of the test.
+            - **annotate_xy**: Position for `annotate_text` in axes fraction. Can be override
+              if `auto_annotate` does not give an optimal position
+            - **annotate_fontsize**: Size of the annotation.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure.
+              Defaults to `True`.
 
     Returns:
         matplotlib.axes.Axes: Matplotlib axes handle.
@@ -531,7 +973,7 @@ def plot_distribution_test(
             linestyle="--",
             label=obs_label + numpy.isinf(observation) * " (-inf)",
         )
-    elif isinstance(observation, (list, np.ndarray)):
+    elif isinstance(observation, (list, numpy.ndarray)):
         observation = observation[~numpy.isnan(observation)]
         ax.hist(
             observation,
@@ -588,22 +1030,36 @@ def plot_calibration_test(
     **kwargs,
 ) -> matplotlib.axes.Axes:
     """
-    Plots a calibration test (QQ plot) with confidence intervals.
+    Plots a calibration test (Quantile-Quantile plot) with confidence intervals.
 
     Args:
-        evaluation_result (EvaluationResult): The evaluation result object containing the test
-                                             distribution.
-        percentile (float): Percentile to build confidence interval
-        ax (Optional[matplotlib.axes.Axes]): Axes object to plot on. If None, creates a new
-                                             figure.
-        show (bool): If True, displays the plot. Default is False.
-        label (Optional[str]): Label for the plotted data. If None, uses
-                               `evaluation_result.sim_name`.
-        **kwargs: Additional keyword arguments for customizing the plot. These are merged with
-            `DEFAULT_PLOT_ARGS`.
+        evaluation_result (EvaluationResult): The evaluation result object containing
+            the test distribution.
+        percentile (float): Percentile to build confidence interval. Defaults to `95`.
+        ax (matplotlib.axes.Axes): Axes object to plot on. If `None`, creates a new figure.
+            Defaults to `None`.
+        label (str): Label for the plotted data. If `None`, uses
+            `evaluation_result.sim_name`. Defaults to `None`.
+        show (bool): If `True`, displays the plot. Defaults to `False`.
+        **kwargs: Additional keyword arguments for customizing the plot:
+
+            - **color** (`str`): Color of the plot line and markers.
+            - **marker** (`str`): Marker style for the data points.
+            - **markersize** (`float`): Size of the markers.
+            - **grid** (`bool`): Whether to display grid lines. Defaults to `True`.
+            - **title** (`str`): Title of the plot.
+            - **title_fontsize** (`int`): Font size for the plot title.
+            - **xlabel** (`str`): Label for the X-axis.
+            - **xlabel_fontsize** (`int`): Font size for the X-axis label.
+            - **ylabel** (`str`): Label for the Y-axis.
+            - **ylabel_fontsize** (`int`): Font size for the Y-axis label.
+            - **legend_loc** (`str`): Location of the legend. Defaults to `'best'`.
+            - **legend_fontsize** (`int`): Font size of the legend text.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure.
+              Defaults to `True`.
 
     Returns:
-        pyplot.Axes: The matplotlib axes object containing the plot.
+        matplotlib.axes.Axes: The Matplotlib axes object containing the plot.
     """
     # Initialize plot
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
@@ -679,17 +1135,32 @@ def plot_comparison_test(
     Plots a list of T-Test (and optional W-Test) results on a single axis.
 
     Args:
-        results_t (List[EvaluationResult]): List of T-Test results.
-        results_w (Optional[List[EvaluationResult]]): List of W-Test results. If provided, they
-             are plotted alongside the T-Test results.
-        percentile (int): Percentile for coloring W-Test results. Default is 95.
-        ax (Optional[matplotlib.axes.Axes]): Matplotlib axes object to plot on. If None, a new
-            figure and axes are created.
-        show (bool): If True, the plot is displayed after creation. Default is False.
-        **kwargs: Additional plotting arguments to override defaults.
+        results_t (list of EvaluationResult): List of T-Test results.
+        results_w (list of EvaluationResult, optional): List of W-Test results. If
+            provided, they are plotted alongside the T-Test results. Defaults to `None`.
+        percentile (int): Percentile for coloring W-Test results. Defaults to `95`.
+        ax (matplotlib.axes.Axes): Matplotlib axes object to plot on. If `None`, a new
+            figure and axes are created. Defaults to `None`.
+        show (bool): If `True`, the plot is displayed after creation. Defaults to `False`.
+        **kwargs: Additional keyword arguments for customizing the plot:
+
+            - **linewidth** (`float`): Width of the error bars.
+            - **capsize** (`float`): Size of the caps on the error bars.
+            - **markersize** (`float`): Size of the markers.
+            - **xlabel_fontsize** (`int`): Font size for the X-axis labels.
+            - **ylabel** (`str`): Label for the Y-axis. Defaults to `'Information gain per earthquake'`.
+            - **ylabel_fontsize** (`int`): Font size for the Y-axis label.
+            - **title** (`str`): Title of the plot. Defaults to the name of the first T-Test result.
+            - **ylim** (`tuple`): Limits for the Y-axis.
+            - **grid** (`bool`): Whether to display grid lines. Defaults to `True`.
+            - **hbars** (`bool`): Whether to include horizontal bars for visual separation.
+            - **legend** (`bool`): Whether to display a legend. Defaults to `True`.
+            - **legend_fontsize** (`int`): Font size for the legend text.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure. Defaults
+              to `True`.
 
     Returns:
-        pyplot.Axes: The matplotlib axes object containing the plot.
+        matplotlib.axes.Axes: The Matplotlib axes object containing the plot.
     """
 
     # Initialize plot
@@ -821,31 +1292,40 @@ def plot_consistency_test(
     **kwargs,
 ) -> matplotlib.axes.Axes:
     """
-    Plots the results from ultiple consistency tests. The distribution of score results from
-    multiple realizations of a model are plotted as a line representing for a given percentile.
+    Plots the results from multiple consistency tests. The distribution of score results from
+    multiple realizations of a model are plotted as a line representing a given percentile.
     The score of the observation under a model is plotted as a marker. The model is assumed
-    inconsistent when the observation score lies outside from the model distribution for a
+    inconsistent when the observation score lies outside the model distribution for a
     two-sided test, or lies to the right of the distribution for a one-sided test.
 
     Args:
-        eval_results (Union[List[EvaluationResult], EvaluationResult]):
-            Evaluation results from one or multiple models
-        normalize (bool):
-            Normalize the forecast likelihood by observed likelihood (default: False).
-        percentile (float):
-            Percentile for the extent of the model score distribution (default: 95).
-        one_sided_lower (bool):
-            Plot for a one-sided test (default: False).
-        ax (Optional[pyplot.Axes]):
-            Axes object to plot on (default: None).
-        plot_mean (bool):
-            Plot the mean of the test distribution (default: False).
-        color (str):
-            Color for the line representing a model score distribution (default: 'black').
-        show (bool):
-            If True, display the plot (default: False).
-        **kwargs:
-            Additional keyword arguments for plot customization from DEFAULT_PLOT_ARGS.
+        eval_results (list of EvaluationResult or EvaluationResult): Evaluation results from one
+             or multiple models.
+        normalize (bool): Normalize the forecast likelihood by observed likelihood. Defaults
+            to `False`.
+        one_sided_lower (bool): Plot for a one-sided test. Defaults to `False`.
+        percentile (float): Percentile for the extent of the model score distribution. Defaults
+            to `95`.
+        ax (matplotlib.axes.Axes): Axes object to plot on. If `None`, creates a new figure.
+            Defaults to `None`.
+        plot_mean (bool): Plot the mean of the test distribution. Defaults to `False`.
+        color (str): Color for the line representing a model score distribution. Defaults to
+            `'black'`.
+        show (bool): If `True`, displays the plot. Defaults to `False`.
+        **kwargs: Additional keyword arguments for plot customization:
+
+            - **figsize** (`tuple`): The size of the figure.
+            - **capsize** (`float`): Size of the caps on the error bars.
+            - **linewidth** (`float`): Width of the error bars and lines.
+            - **xlabel** (`str`): Label for the X-axis.
+            - **xlabel_fontsize** (`int`): Font size for the X-axis label.
+            - **ylabel_fontsize** (`int`): Font size for the Y-axis labels.
+            - **xticks_fontsize** (`int`): Font size for the X-axis ticks.
+            - **title** (`str`): Title of the plot.
+            - **title_fontsize** (`int`): Font size of the plot title.
+            - **hbars** (`bool`): Whether to include horizontal bars for visual separation.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure.
+              Defaults to `True`.
 
     Returns:
         matplotlib.axes.Axes: Matplotlib axes object with the consistency test plot.
@@ -950,12 +1430,33 @@ def plot_concentration_ROC_diagram(
         forecast (GriddedForecast): Forecast object containing spatial forecast data.
         catalog (CSEPCatalog): Catalog object containing observed data.
         linear (bool): If True, uses a linear scale for the X-axis, otherwise logarithmic.
-        ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
-        plot_uniform (bool): If True, plots the uniform (random) model as a reference
-                            (default: True).
-        show (bool): If True, displays the plot (default: True).
-        ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
-        **kwargs: Additional keyword arguments for customization.
+            Defaults to `True`.
+        plot_uniform (bool): If True, plots the uniform (random) model as a reference.
+            Defaults to `True`.
+        show (bool): If True, displays the plot. Defaults to `True`.
+        ax (matplotlib.axes.Axes): Axes object to plot on. If `None`, creates a new figure.
+            Defaults to `None`.
+        **kwargs: Additional keyword arguments for customization:
+
+            - **figsize** (`tuple`): The size of the figure.
+            - **forecast_label** (`str`): Label for the forecast data in the plot.
+            - **observation_label** (`str`): Label for the observation data in the plot.
+            - **color** (`str`): Color for the observed data line.
+            - **secondary_color** (`str`): Color for the forecast data line.
+            - **linestyle** (`str`): Line style for the observed data line.
+            - **title** (`str`): Title of the plot.
+            - **title_fontsize** (`int`): Font size of the plot title.
+            - **xlabel** (`str`): Label for the X-axis.
+            - **xlabel_fontsize** (`int`): Font size for the X-axis label.
+            - **ylabel** (`str`): Label for the Y-axis.
+            - **ylabel_fontsize** (`int`): Font size for the Y-axis label.
+            - **grid** (`bool`): Whether to show grid lines. Defaults to `True`.
+            - **legend** (`bool`): Whether to display a legend. Defaults to `True`.
+            - **legend_loc** (`str`): Location of the legend. Defaults to `'best'`.
+            - **legend_fontsize** (`int`): Font size of the legend text.
+            - **legend_framealpha** (`float`): Transparency level for the legend frame.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure.
+              Defaults to `True`.
 
     Returns:
         matplotlib.axes.Axes: The Axes object with the plot.
@@ -1046,14 +1547,32 @@ def plot_ROC_diagram(
         forecast (GriddedForecast): Forecast object containing spatial forecast data.
         catalog (CSEPCatalog): Catalog object containing observed data.
         linear (bool): If True, uses a linear scale for the X-axis, otherwise logarithmic.
-        plot_uniform (bool): If True, plots the uniform (random) model as a reference (default:
-                             True).
-        show (bool): If True, displays the plot (default: True).
-        ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
-        **kwargs: Additional keyword arguments for customization.
+            Defaults to `True`.
+        plot_uniform (bool): If True, plots the uniform (random) model as a reference.
+            Defaults to `True`.
+        show (bool): If True, displays the plot. Defaults to `True`.
+        ax (matplotlib.axes.Axes): Axes object to plot on. If `None`, creates a new figure.
+            Defaults to `None`.
+        **kwargs: Additional keyword arguments for customization:
+
+            - **figsize** (`tuple`): The size of the figure.
+            - **forecast_label** (`str`): Label for the forecast data in the plot.
+            - **color** (`str`): Color for the ROC curve line.
+            - **linestyle** (`str`): Line style for the ROC curve.
+            - **xlabel** (`str`): Label for the X-axis.
+            - **xlabel_fontsize** (`int`): Font size for the X-axis label.
+            - **ylabel** (`str`): Label for the Y-axis.
+            - **ylabel_fontsize** (`int`): Font size for the Y-axis label.
+            - **xticks_fontsize** (`int`): Font size for the X-axis ticks.
+            - **yticks_fontsize** (`int`): Font size for the Y-axis ticks.
+            - **legend** (`bool`): Whether to display a legend. Defaults to `True`.
+            - **legend_loc** (`str`): Location of the legend. Defaults to `'best'`.
+            - **legend_fontsize** (`int`): Font size of the legend text.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure.
+              Defaults to `True`.
 
     Returns:
-        pyplot.Axes: The Axes object with the plot.
+        matplotlib.pyplot.Axes: The Axes object with the plot.
     """
 
     # Initialize plot
@@ -1147,22 +1666,24 @@ def plot_Molchan_diagram(
     ax: Optional[pyplot.Axes] = None,
     **kwargs,
 ) -> matplotlib.axes.Axes:
+
     """
     Plot the Molchan Diagram based on forecast and test catalogs using the contingency table.
     The Area Skill score and its error are shown in the legend.
 
     The Molchan diagram is computed following this procedure:
+
     1. Obtain spatial rates from the GriddedForecast and the observed events from the catalog.
     2. Rank the rates in descending order (highest rates first).
     3. Sort forecasted rates by ordering found in (2), and normalize rates so their sum is equal
-     to unity.
+       to unity.
     4. Obtain binned spatial rates from the observed catalog.
     5. Sort gridded observed rates by ordering found in (2).
     6. Test each ordered and normalized forecasted rate defined in (3) as a threshold value to
-    obtain the corresponding contingency table.
+       obtain the corresponding contingency table.
     7. Define the "nu" (Miss rate) and "tau" (Fraction of spatial alarmed cells) for each
-    threshold using the information provided by the corresponding contingency table defined in
-    (6).
+       threshold using the information provided by the corresponding contingency table defined in
+       (6).
 
     Note:
     1. The testing catalog and forecast should have exactly the same time-window (duration).
@@ -1174,10 +1695,25 @@ def plot_Molchan_diagram(
         forecast (GriddedForecast): The forecast object.
         catalog (CSEPCatalog): The evaluation catalog.
         linear (bool): If True, a linear x-axis is used; if False, a logarithmic x-axis is used.
-        plot_uniform (bool): If True, include a uniform forecast on the plot.
-        show (bool): If True, displays the plot.
-        ax (Optional[pyplot.Axes]): Axes object to plot on (default: None).
-        **kwargs: Additional keyword arguments for customization.
+            Defaults to `True`.
+        plot_uniform (bool): If True, include a uniform forecast on the plot. Defaults to `True`.
+        show (bool): If True, displays the plot. Defaults to `True`.
+        ax (matplotlib.axes.Axes): Axes object to plot on. If `None`, creates a new figure.
+            Defaults to `None`.
+        **kwargs: Additional keyword arguments for customization:
+
+            - **figsize** (`tuple`): The size of the figure.
+            - **forecast_label** (`str`): Label for the forecast data in the plot.
+            - **color** (`str`): Color for the Molchan diagram line.
+            - **linestyle** (`str`): Line style for the Molchan diagram line.
+            - **xlabel** (`str`): Label for the X-axis.
+            - **xlabel_fontsize** (`int`): Font size for the X-axis label.
+            - **ylabel** (`str`): Label for the Y-axis.
+            - **ylabel_fontsize** (`int`): Font size for the Y-axis label.
+            - **legend_loc** (`str`): Location of the legend. Defaults to `'best'`.
+            - **legend_fontsize** (`int`): Font size of the legend text.
+            - **tight_layout** (`bool`): Whether to use tight layout for the figure.
+              Defaults to `True`.
 
     Returns:
         matplotlib.axes.Axes: The Axes object with the plot.
@@ -1336,326 +1872,6 @@ def plot_Molchan_diagram(
         fig.tight_layout()
     if show:
         pyplot.show()
-    return ax
-
-
-###############
-# Spatial plots
-###############
-def plot_basemap(
-    basemap: Optional[str] = None,
-    extent: Optional[List[float]] = None,
-    coastline: bool = True,
-    borders: bool = False,
-    tile_depth: Union[str, int] = "auto",
-    set_global: bool = False,
-    projection: ccrs.Projection = ccrs.PlateCarree(),
-    ax: Optional[pyplot.Axes] = None,
-    show: bool = False,
-    **kwargs,
-) -> matplotlib.axes.Axes:
-    """
-    Wrapper function for multiple Cartopy base plots, including access to standard raster
-    webservices.
-
-    Args:
-        basemap (str): Possible values are: 'stock_img', 'google-satellite', 'ESRI_terrain',
-                       'ESRI_imagery', 'ESRI_relief', 'ESRI_topo', a custom webservice link,
-                       or a GeoTiff filepath. Default is None.
-        extent (list): [lon_min, lon_max, lat_min, lat_max]
-        ax (matplotlib.Axes): Previously defined ax object.
-        coastline (bool): Flag to plot coastline. Default True.
-        borders (bool): Flag to plot country borders. Default False.
-        tile_depth (str/int): Zoom level (1-12) of the basemap tiles. If 'auto', it is
-            automatically derived from extent.
-        set_global (bool): Display the complete globe as basemap.
-        projection (cartopy.crs.Projection): Projection to be used in the basemap.
-        show (bool): If True, displays the plot.
-
-    Returns:
-        matplotlib.Axes: Matplotlib Axes object.
-    """
-
-    plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
-    ax = ax or _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
-
-    line_autoscaler = cartopy.feature.AdaptiveScaler("110m", (("50m", 50), ("10m", 5)))
-    tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
-    tile_depth = (
-        4
-        if set_global
-        else (tile_autoscaler.scale_from_extent(extent) if tile_depth == "auto" else tile_depth)
-    )
-    # Add coastlines and borders
-    if coastline:
-        ax.coastlines(
-            color=plot_args["coastline_color"], linewidth=plot_args["coastline_linewidth"]
-        )
-    if borders:
-        borders = cartopy.feature.NaturalEarthFeature(
-            "cultural",
-            "admin_0_boundary_lines_land",
-            line_autoscaler,
-            edgecolor=plot_args["borders_color"],
-            facecolor="never",
-        )
-        ax.add_feature(borders, linewidth=plot_args["borders_linewidth"])
-
-    # Add basemap tiles
-    try:
-        if basemap == "stock_img":
-            ax.stock_img()
-        elif basemap is not None:
-            basemap_obj = _get_basemap(basemap)
-            # basemap_obj is a cartopy TILE IMAGE
-            if isinstance(basemap_obj, GoogleWTS):
-                ax.add_image(basemap_obj, tile_depth)
-            # basemap_obj is a rasterio image
-            elif isinstance(basemap_obj, DatasetReader):
-                ax = rio_plot.show(basemap_obj, ax=ax)
-
-    except Exception as e:
-        print(
-            f"Unable to plot basemap. This might be due to no internet access. "
-            f"Error: {str(e)}"
-        )
-
-    # Set up Grid-lines
-    if plot_args["grid"]:
-        _add_gridlines(ax, plot_args["grid_labels"], plot_args["grid_fontsize"])
-
-    if show:
-        pyplot.show()
-
-    return ax
-
-
-def plot_catalog(
-    catalog: "CSEPCatalog",
-    basemap: Optional[str] = None,
-    ax: Optional[matplotlib.axes.Axes] = None,
-    projection: Optional[Union[ccrs.Projection, str]] = ccrs.PlateCarree(),
-    show: bool = False,
-    extent: Optional[Sequence[float]] = None,
-    set_global: bool = False,
-    mag_ticks: Optional[Union[Sequence[float], np.ndarray, int]] = None,
-    size: float = 15,
-    max_size: float = 300,
-    power: float = 3,
-    min_val: Optional[float] = None,
-    max_val: Optional[float] = None,
-    plot_region: bool = False,
-    **kwargs,
-) -> matplotlib.axes.Axes:
-    """Plot catalog in a region.
-
-    Args:
-        catalog (:class:`CSEPCatalog`): Catalog object to be plotted.
-        basemap (str): Optional. Passed to :func:`plot_basemap` along with `kwargs`
-        ax (:class:`matplotlib.pyplot.ax`): Previously defined ax object.
-        show (bool): Flag if the figure is displayed.
-        extent (list): Default 1.05 * :func:`catalog.region.get_bbox()`.
-        projection (cartopy.crs.Projection): Projection to be used in the underlying basemap
-        set_global (bool): Display the complete globe as basemap.
-        size (float): Size of the event with the minimum magnitude
-        max_size (float): Size of the catalog's maximum magnitude
-        power (float, list): Power scaling of the scatter sizing.
-        min_val (float): Override minimum magnitude of the catalog for scatter sizing
-        max_val (float): Override maximum magnitude of the catalog for scatter sizing
-        mag_ticks (list, int): Ticks to display in the legend.
-        plot_region (bool): Flag to plot the catalog region border.
-        kwargs: alpha, markercolor, markeredgecolor, figsize, legend,
-         legend_title, legend_labelspacing, legend_borderpad, legend_framealpha
-
-    Returns:
-        :class:`matplotlib.pyplot.ax` object
-    """
-
-    plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
-    # Get spatial information for plotting
-    extent = extent or _calculate_spatial_extent(catalog, set_global, plot_region)
-    # Instantiate GeoAxes object
-    ax = ax or _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
-    # chain basemap
-    ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False, **plot_args)
-
-    # Plot catalog
-    ax.scatter(
-        catalog.get_longitudes(),
-        catalog.get_latitudes(),
-        s=_autosize_scatter(
-            values=catalog.get_magnitudes(),
-            min_size=size,
-            max_size=max_size,
-            power=power,
-            min_val=min_val,
-            max_val=max_val,
-        ),
-        transform=ccrs.PlateCarree(),
-        color=plot_args["markercolor"],
-        edgecolors=plot_args["markeredgecolor"],
-        alpha=plot_args["alpha"],
-    )
-
-    # Legend
-    if plot_args["legend"]:
-        if isinstance(mag_ticks, (list, np.ndarray)):
-            mag_ticks = np.array(mag_ticks)
-        else:
-            mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
-            mag_ticks = np.linspace(mw_range[0], mw_range[1], mag_ticks or 4, endpoint=True)
-
-        # Map mag_ticks to marker sizes using the custom size mapping function
-        legend_sizes = _autosize_scatter(
-            values=mag_ticks,
-            min_size=size,
-            max_size=max_size,
-            power=power,
-            min_val=min_val or np.min(catalog.get_magnitudes()),
-            max_val=max_val or np.max(catalog.get_magnitudes()),
-        )
-
-        # Create custom legend handles
-        handles = [
-            pyplot.Line2D(
-                [0],
-                [0],
-                marker="o",
-                lw=0,
-                label=str(m),
-                markersize=np.sqrt(s),
-                markerfacecolor="gray",
-                alpha=0.5,
-                markeredgewidth=0.8,
-                markeredgecolor="black",
-            )
-            for m, s in zip(mag_ticks, legend_sizes)
-        ]
-
-        ax.legend(
-            handles,
-            np.round(mag_ticks, 1),
-            loc=plot_args["legend_loc"],
-            handletextpad=5,
-            title=plot_args.get("legend_title") or "Magnitudes",
-            fontsize=plot_args["legend_fontsize"],
-            title_fontsize=plot_args["legend_titlesize"],
-            labelspacing=plot_args["legend_labelspacing"],
-            borderpad=plot_args["legend_borderpad"],
-            framealpha=plot_args["legend_framealpha"],
-        )
-
-    # Draw catalog's region border
-    if plot_region:
-        try:
-            pts = catalog.region.tight_bbox()
-            ax.plot(pts[:, 0], pts[:, 1], lw=1, color=plot_args["region_color"])
-        except AttributeError:
-            pass
-
-    ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"], y=1.06)
-
-    if plot_args["tight_layout"]:
-        ax.figure.tight_layout()
-
-    if show:
-        pyplot.show()
-
-    return ax
-
-
-def plot_spatial_dataset(
-    gridded: numpy.ndarray,
-    region: "CartesianGrid2D",
-    basemap: Optional[str] = None,
-    ax: Optional[pyplot.Axes] = None,
-    projection: Optional[Union[ccrs.Projection, str]] = ccrs.PlateCarree(),
-    show: bool = False,
-    extent: Optional[List[float]] = None,
-    set_global: bool = False,
-    plot_region: bool = True,
-    colorbar: bool = True,
-    colormap: Union[str, matplotlib.colors.Colormap] = "viridis",
-    clim: Optional[Tuple[float, float]] = None,
-    clabel: Optional[str] = None,
-    alpha: Optional[float] = None,
-    alpha_exp: float = 0,
-    **kwargs,
-) -> matplotlib.axes.Axes:
-    """
-    Plot spatial dataset such as data from a gridded forecast.
-
-    Args:
-        gridded (numpy.ndarray): 2D array of values corresponding to the region.
-        region (CartesianGrid2D): Region in which gridded values are contained.
-        basemap (str): Optional. Passed to :func:`plot_basemap` along with `kwargs`
-        ax (Optional[pyplot.Axes]): Previously defined ax object.
-        projection (cartopy.crs.Projection): Projection to be used in the basemap.
-        show (bool): If True, displays the plot.
-        extent (Optional[List[float]]): [lon_min, lon_max, lat_min, lat_max].
-        set_global (bool): Display the complete globe as basemap.
-        plot_region (bool): If True, plot the dataset region border.
-        colorbar (bool): If True, include a colorbar.
-        colormap (Union[str, matplotlib.colors.Colormap]): Colormap to use.
-        clim (Optional[Tuple[float, float]]): Range of the colorbar.
-        clabel (Optional[str]): Label of the colorbar.
-        alpha (Optional[float]): Transparency level.
-        alpha_exp (float): Exponent for the alpha function (recommended between 0.4 and 1).
-        kwargs: colorbar_labelsize, colorbar_ticksize
-    Returns:
-        matplotlib.axes.Axes: Matplotlib axes handle.
-    """
-
-    plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
-
-    # Get spatial information for plotting
-    extent = extent or _calculate_spatial_extent(region, set_global, plot_region)
-    # Instantiate GeoAxes object
-    ax = ax or _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
-
-    # chain basemap
-    ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False, **plot_args)
-
-    # Define colormap and alpha transparency
-    colormap, alpha = _get_colormap(colormap, alpha_exp, alpha)
-
-    # Plot spatial dataset
-    lons, lats = numpy.meshgrid(
-        numpy.append(region.xs, region.get_bbox()[1]),
-        numpy.append(region.ys, region.get_bbox()[3]),
-    )
-    im = ax.pcolor(
-        lons, lats, gridded, cmap=colormap, alpha=alpha, snap=True, transform=ccrs.PlateCarree()
-    )
-    im.set_clim(clim)
-
-    # Colorbar options
-    if colorbar:
-        cax = ax.get_figure().add_axes(
-            [
-                ax.get_position().x1 + 0.01,
-                ax.get_position().y0,
-                0.025,
-                ax.get_position().height,
-            ],
-            label="Colorbar",
-        )
-        cbar = ax.get_figure().colorbar(im, ax=ax, cax=cax)
-        cbar.set_label(clabel, fontsize=plot_args["colorbar_labelsize"])
-        cbar.ax.tick_params(labelsize=plot_args["colorbar_ticksize"])
-    # Draw forecast's region border
-    if plot_region and not set_global:
-        try:
-            pts = region.tight_bbox()
-            ax.plot(pts[:, 0], pts[:, 1], lw=1, color=plot_args["region_color"])
-        except AttributeError:
-            pass
-
-    ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"], y=1.06)
-
-    if show:
-        pyplot.show()
-
     return ax
 
 
@@ -1862,8 +2078,8 @@ def _autosize_scatter(
     Returns:
         numpy.ndarray: The calculated marker sizes.
     """
-    min_val = min_val or np.min(values)
-    max_val = max_val or np.max(values)
+    min_val = min_val or numpy.min(values)
+    max_val = max_val or numpy.max(values)
     normalized_values = ((values - min_val) / (max_val - min_val)) ** power
     marker_sizes = min_size + normalized_values * (max_size - min_size) * bool(power)
     return marker_sizes
@@ -1944,7 +2160,7 @@ def _annotate_distribution_plot(
             ylabel = "Number of Catalogs"
             title = f"{evaluation_result.name}: {evaluation_result.sim_name}"
             annotation_xy = (0.5, 0.3)
-            if isinstance(evaluation_result.quantile, (list, np.ndarray)):
+            if isinstance(evaluation_result.quantile, (list, tuple, numpy.ndarray)):
                 annotation_text = (
                     f"$\\delta_1 = P(X \\geq x) = {evaluation_result.quantile[0]:.2f}$\n"
                     f"$\\delta_2 = P(X \\leq x) = {evaluation_result.quantile[1]:.2f}$\n"
@@ -2067,6 +2283,10 @@ def _create_geo_axes(
         # Set plot aspect according to local longitude-latitude ratio in metric units
         LATKM = 110.574  # length of a ° of latitude [km] --> ignores Earth's flattening
         ax.set_aspect(LATKM / (111.320 * numpy.cos(numpy.deg2rad(central_latitude))))
+    elif projection is None:
+        projection = ccrs.PlateCarree()
+        fig = pyplot.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection=projection)
     else:
         fig = pyplot.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection=projection)
