@@ -97,7 +97,7 @@ comcat_catalog = comcat_catalog.filter_spatial(forecast.region)
 print(comcat_catalog)
 
 # Plot the catalog
-comcat_catalog.plot()
+comcat_catalog.plot(show=True)
 
 ####################################################################################################################################
 # Perform number test

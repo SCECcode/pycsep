@@ -34,39 +34,35 @@ import matplotlib.pyplot as plt
 forecast = csep.load_gridded_forecast(datasets.hires_ssm_italy_fname,
                                       name='Werner, et al (2010) Italy')
 ####################################################################################################################################
-# **Selecting plotting arguments**
-#
-# Create a dictionary containing the plot arguments
-args_dict = {'title': 'Italy 10 year forecast',
-             'grid_labels': True,
-             'borders': True,
-             'feature_lw': 0.5,
-             'basemap': 'ESRI_imagery',
-             'cmap': 'rainbow',
-             'alpha_exp': 0.8,
-             'projection': cartopy.crs.Mercator()}
+# **Plotting the dataset with fine-tuned arguments**
+
 ####################################################################################################################################
 # These arguments are, in order:
 #
+# * Set an extent
+# * Select ESRI Imagery as a basemap.
 # * Assign a title
 # * Set labels to the geographic axes
 # * Draw country borders
-# * Set a linewidth of 0.5 to country borders
-# * Select ESRI Imagery as a basemap.
-# * Assign ``'rainbow'`` as colormap. Possible values from from ``matplotlib.cm`` library
+# * Set a linewidth of 0.5 to country border
+# * Assign ``'rainbow'`` as colormap. Possible values from ``matplotlib.cm`` library
 # * Defines 0.8 for an exponential transparency function (default is 0 for constant alpha, whereas 1 for linear).
 # * An object cartopy.crs.Projection() is passed as Projection to the map
 #
-# The complete description of plot arguments can be found in :func:`csep.utils.plots.plot_spatial_dataset`
+# The complete description of plot arguments can be found in :func:`csep.utils.plots.plot_gridded_dataset`
 
 ####################################################################################################################################
-# **Plotting the dataset**
-#
-# The map `extent` can be defined. Otherwise, the extent of the data would be used. The dictionary defined must be passed as argument
 
 ax = forecast.plot(extent=[3, 22, 35, 48],
-                   show=True,
-                   plot_args=args_dict)
+                   basemap='ESRI_imagery',
+                   title='Italy 10 year forecast',
+                   grid_labels=True,
+                   borders=True,
+                   borders_linewidth=1.5,
+                   cmap='rainbow',
+                   alpha_exp=0.8,
+                   projection=cartopy.crs.Mercator(),
+                   show=True)
 
 ####################################################################################################################################
 # Example 2: Plot a global forecast and a selected magnitude bin range
@@ -102,26 +98,22 @@ rate_sum = rates_mw.sum(axis=1)
 rate_sum = forecast.region.get_cartesian(rate_sum)
 
 ####################################################################################################################################
-# **Define plot arguments**
-#
-# We define the arguments and a global projection, centered at $lon=-180$
-
-plot_args = {'figsize': (10,6), 'coastline':True, 'feature_color':'black',
-             'projection': cartopy.crs.Robinson(central_longitude=180.0),
-             'title': forecast.name, 'grid_labels': False,
-             'cmap': 'magma',
-             'clabel': r'$\log_{10}\lambda\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per '
-                       r'${%.1f}^\circ\times {%.1f}^\circ $ per forecast period' %
-                       (low_bound, upper_bound, forecast.region.dh, forecast.region.dh)}
-
-####################################################################################################################################
 # **Plotting the dataset**
 # To plot a global forecast, we must assign the option ``set_global=True``, which is required by :ref:cartopy to handle
-# internally the extent of the plot
+# internally the extent of the plot. We can further customize the plot using the required arguments from :func:`csep.utils.plots.plot_gridded_dataset`
 
 ax = plots.plot_gridded_dataset(numpy.log10(rate_sum), forecast.region,
-                                show=True, set_global=True,
-                                plot_args=plot_args)
+                                figsize=(10,6),
+                                set_global=True,
+                                coastline_color='black',
+                                projection=cartopy.crs.Robinson(central_longitude=180.0),
+                                title=forecast.name,
+                                grid_labels=False,
+                                colormap='magma',
+                                clabel= r'$\log_{10}\lambda\left(M_w \in [{%.2f},\,{%.2f}]\right)$ per ' \
+                                        r'${%.1f}^\circ\times {%.1f}^\circ $ per forecast period' % \
+                                        (low_bound, upper_bound, forecast.region.dh, forecast.region.dh),
+                                show=True)
 
 ####################################################################################################################################
 
@@ -139,21 +131,12 @@ end_time = csep.utils.time_utils.strptime_to_utc_datetime('2012-01-01 00:00:00.0
 min_mag = 4.5
 catalog = csep.query_comcat(start_time, end_time, min_magnitude=min_mag, verbose=False)
 
-# **Define plotting arguments**
-plot_args = {'basemap': csep.datasets.basemap_california,
-             'markersize': 2,
-             'markercolor': 'red',
-             'alpha': 0.3,
-             'mag_scale': 7,
-             'legend': True,
-             'legend_loc': 3,
-             'coastline': False,
-             'mag_ticks': [4.0, 5.0, 6.0, 7.0]}
+# **Define plotting arguments*
 
 ####################################################################################################################################
 # These arguments are, in order:
 #
-# * Assign as basemap the ESRI_terrain webservice
+# * Assign as basemap a TIFF file in the same reference as the plot
 # * Set minimum markersize of 2 with red color
 # * Set a 0.3 transparency
 # * mag_scale is used to exponentially scale the size with respect to magnitude. Recommended 1-8
@@ -161,11 +144,24 @@ plot_args = {'basemap': csep.datasets.basemap_california,
 # * Set a list of Magnitude ticks to display in the legend
 #
 # The complete description of plot arguments can be found in :func:`csep.utils.plots.plot_catalog`
+# The arguments can be stored as a dictionary a priori and then unpacked to the function with `**`.
+
+
+plot_args = {'basemap': csep.datasets.basemap_california,
+             'size': 7,
+             'max_size': 500,
+             'markercolor': 'red',
+             'alpha': 0.3,
+             'mag_scale': 8,
+             'legend': True,
+             'legend_loc': 3,
+             'coastline': False,
+             'mag_ticks': [4.0, 5.0, 6.0, 7.0]}
 
 ####################################################################################################################################
 
 # **Plot the catalog**
-ax = catalog.plot(show=False, plot_args=plot_args)
+ax = catalog.plot(show=True, **plot_args)
 
 
 ####################################################################################################################################
@@ -177,24 +173,25 @@ ax = catalog.plot(show=False, plot_args=plot_args)
 # :doc:`gridded_forecast_evaluation` for information on calculating and storing evaluation results)
 
 L_results = [csep.load_evaluation_result(i) for i in datasets.l_test_examples]
-args = {'figsize': (6,5),
-        'title': r'$\mathcal{L}-\mathrm{test}$',
-        'title_fontsize': 18,
-        'xlabel': 'Log-likelihood',
-        'xticks_fontsize': 9,
-        'ylabel_fontsize': 9,
-        'linewidth': 0.8,
-        'capsize': 3,
-        'hbars':True,
-        'tight_layout': True}
+plot_args = {'figsize': (6, 5),
+             'title': r'$\mathcal{L}-\mathrm{test}$',
+             'title_fontsize': 18,
+             'xlabel': 'Log-likelihood',
+             'xticks_fontsize': 9,
+             'ylabel_fontsize': 9,
+             'linewidth': 0.8,
+             'capsize': 3,
+             'hbars':True,
+             'tight_layout': True}
 
 ####################################################################################################################################
 # Description of plot arguments can be found in :func:`plot_poisson_consistency_test`.
 # We set ``one_sided_lower=True`` as usual for an L-test, where the model is rejected if the observed
 # is located within the lower tail of the simulated distribution.
-ax = plots.plot_consistency_test(L_results, one_sided_lower=True, plot_args=args)
+ax = plots.plot_consistency_test(L_results,
+                                 one_sided_lower=True,
+                                 show=True,
+                                 **plot_args)
 
-# Needed to show plots if running as script
-plt.show()
 
 
