@@ -195,8 +195,8 @@ number_test_single_res_result = poisson.number_test(forecast_single_grid, catalo
 
 stest_result = [spatial_test_single_res_result, spatial_test_multi_res_result]
 ax_spatial = plots.plot_consistency_test(stest_result,
-                                        plot_args={'xlabel': 'Spatial likelihood'})
+                                         xlabel='Spatial likelihood')
 
 ntest_result = [number_test_single_res_result, number_test_multi_res_result]
 ax_number = plots.plot_consistency_test(ntest_result,
-                                        plot_args={'xlabel': 'Number of Earthquakes'})
+                                        xlabel='Number of Earthquakes')

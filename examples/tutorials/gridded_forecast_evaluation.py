@@ -103,7 +103,7 @@ csep.write_json(spatial_test_result, 'example_spatial_test.json')
 # consistency tests.
 
 ax = plots.plot_consistency_test(spatial_test_result,
-                                 plot_args={'xlabel': 'Spatial likelihood'})
+                                 xlabel='Spatial likelihood')
 plt.show()
 
 ####################################################################################################################################

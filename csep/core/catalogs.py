@@ -840,7 +840,8 @@ class AbstractBaseCatalog(LoggingMixin):
         """ Implements the b-positive indicator from Nicholas van der Elst """
         pass
 
-    def plot(self, ax=None, show=False, extent=None, set_global=False, plot_args=None):
+    def plot(self, ax=None, show=False, extent=None, set_global=False, plot_args=None,
+             **kwargs):
         """ Plot catalog according to plate-carree projection
 
         Args:
@@ -855,17 +856,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
         # no mutable function arguments
         plot_args_default = {
-             'basemap': 'ESRI_terrain',
-             'markersize': 2,
-             'markercolor': 'red',
-             'alpha': 0.3,
-             'mag_scale': 7,
-             'legend': True,
-             'grid_labels': True,
-             'legend_loc': 3,
-             'figsize': (8, 8),
-             'title': self.name,
-             'mag_ticks': False
+             'basemap': kwargs.pop('basemap', None) or 'ESRI_terrain',
         }
 
         # Plot the region border (if it exists) by default
@@ -880,8 +871,8 @@ class AbstractBaseCatalog(LoggingMixin):
         plot_args_default.update(plot_args)
 
         # this call requires internet connection and basemap
-        ax = plot_catalog(self, ax=ax,show=show, extent=extent,
-                          set_global=set_global, plot_args=plot_args_default)
+        ax = plot_catalog(self, ax=ax, show=show, extent=extent,
+                          set_global=set_global, **plot_args_default, **kwargs)
         return ax
 
 
