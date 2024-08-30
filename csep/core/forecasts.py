@@ -432,7 +432,8 @@ class GriddedForecast(MarkedGriddedDataSet):
         gds = cls(start_date, end_date, magnitudes=mws, name=name, region=region, data=rates)
         return gds
 
-    def plot(self, ax=None, show=False, log=True, extent=None, set_global=False, plot_args=None):
+    def plot(self, ax=None, show=False, log=True, extent=None, set_global=False, plot_args=None,
+             **kwargs):
         """ Plot gridded forecast according to plate-carree projection
 
         Args:
@@ -451,19 +452,23 @@ class GriddedForecast(MarkedGriddedDataSet):
             time = f'{round(end-start,3)} years'
 
         plot_args = plot_args or {}
-        plot_args.setdefault('figsize', (10, 10))
-        plot_args.setdefault('title', self.name)
-
+        plot_args.update({
+             'basemap': kwargs.pop('basemap', None) or 'ESRI_terrain',
+             'title': kwargs.pop('title', None) or self.name,
+             'figsize': kwargs.pop('figsize', None) or (8, 8),
+        })
+        plot_args.update(**kwargs)
         # this call requires internet connection and basemap
         if log:
             plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per cell per {time}')
             with numpy.errstate(divide='ignore'):
                 ax = plot_gridded_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, ax=ax,
-                                          show=show, extent=extent, set_global=set_global, plot_args=plot_args)
+                                          show=show, extent=extent, set_global=set_global,
+                                          **plot_args)
         else:
             plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per cell per {time}')
             ax = plot_gridded_dataset(self.spatial_counts(cartesian=True), self.region, ax=ax, show=show, extent=extent,
-                                      set_global=set_global, plot_args=plot_args)
+                                      set_global=set_global, **plot_args)
         return ax
 
 

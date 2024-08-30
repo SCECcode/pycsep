@@ -559,7 +559,7 @@ def plot_basemap(
     ax = ax or _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
 
     line_autoscaler = cartopy.feature.AdaptiveScaler("110m", (("50m", 50), ("10m", 5)))
-    tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15)))
+    tile_autoscaler = cartopy.feature.AdaptiveScaler(5, ((6, 50), (7, 15), (8, 5), (9, 1)))
     tile_depth = (
         4
         if set_global
@@ -1148,9 +1148,11 @@ def plot_comparison_test(
             - **capsize** (`float`): Size of the caps on the error bars.
             - **markersize** (`float`): Size of the markers.
             - **xlabel_fontsize** (`int`): Font size for the X-axis labels.
-            - **ylabel** (`str`): Label for the Y-axis. Defaults to `'Information gain per earthquake'`.
+            - **ylabel** (`str`): Label for the Y-axis. Defaults to
+              `'Information gain per earthquake'`.
             - **ylabel_fontsize** (`int`): Font size for the Y-axis label.
-            - **title** (`str`): Title of the plot. Defaults to the name of the first T-Test result.
+            - **title** (`str`): Title of the plot. Defaults to the name of the first T-Test
+              result.
             - **ylim** (`tuple`): Limits for the Y-axis.
             - **grid** (`bool`): Whether to display grid lines. Defaults to `True`.
             - **hbars** (`bool`): Whether to include horizontal bars for visual separation.
@@ -1682,8 +1684,8 @@ def plot_Molchan_diagram(
     6. Test each ordered and normalized forecasted rate defined in (3) as a threshold value to
        obtain the corresponding contingency table.
     7. Define the "nu" (Miss rate) and "tau" (Fraction of spatial alarmed cells) for each
-       threshold using the information provided by the corresponding contingency table defined in
-       (6).
+       threshold using the information provided by the corresponding contingency table defined
+       in (6).
 
     Note:
     1. The testing catalog and forecast should have exactly the same time-window (duration).
@@ -1696,7 +1698,8 @@ def plot_Molchan_diagram(
         catalog (CSEPCatalog): The evaluation catalog.
         linear (bool): If True, a linear x-axis is used; if False, a logarithmic x-axis is used.
             Defaults to `True`.
-        plot_uniform (bool): If True, include a uniform forecast on the plot. Defaults to `True`.
+        plot_uniform (bool): If True, include a uniform forecast on the plot. Defaults to
+            `True`.
         show (bool): If True, displays the plot. Defaults to `True`.
         ax (matplotlib.axes.Axes): Axes object to plot on. If `None`, creates a new figure.
             Defaults to `None`.
