@@ -3,6 +3,7 @@ scipy
 pandas
 matplotlib
 cartopy
+h5py
 obspy
 pyproj
 python-dateutil

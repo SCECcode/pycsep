@@ -30,6 +30,7 @@ setup(
         'numpy',
         'scipy',
         'pandas',
+        'h5py',
         'matplotlib',
         'cartopy',
         'obspy',
