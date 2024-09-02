@@ -4,6 +4,7 @@ pandas
 matplotlib
 cartopy
 obspy
+h5py
 pyproj
 python-dateutil
 pytest
