@@ -357,7 +357,6 @@ def calibration_test(evaluation_results, delta_1=False):
 
 def resampled_magnitude_test(forecast: "CatalogForecast",
                              observed_catalog: CSEPCatalog,
-                             mag_half_bin: float = 0.05,
                              verbose: bool = False,
                              seed: Optional[int] = None) -> CatalogMagnitudeTestResult:
     """
@@ -365,6 +364,7 @@ def resampled_magnitude_test(forecast: "CatalogForecast",
     which corrects the bias from the original M-test implementation to the total N of events.
     Calculates the pseudo log-likelihood distribution from the synthetic catalog Λ_j as:
 
+    # todo: check correct formula
         D_j = Σ_k [log(Λ_U(k) / N_U + 1) - log(Λ_j(k) / N_j + 1)]^2
 
     where k are the magnitude bins, Λ_U the union of all synthetic catalogs, N_U the total
@@ -372,6 +372,7 @@ def resampled_magnitude_test(forecast: "CatalogForecast",
 
     The pseudo log-likelihood score from the observations is calculated as:
 
+    # todo: check correct formula
         D_o = Σ_k [log(Λ_U(k) / N_U + 1) - log(Ω(k) / N_o + 1)]^2
 
     where Ω is the observed catalog and N_o the total number of observed events.
@@ -379,9 +380,8 @@ def resampled_magnitude_test(forecast: "CatalogForecast",
     Args:
         forecast (CatalogForecast): The forecast to be evaluated
         observed_catalog (CSEPCatalog): The observation/testing catalog.
-        mag_half_bin (float): half of the magnitude bin size
         verbose (bool): Flag to display debug messages
-        seed (int): random number seed generator
+        seed (int): Random number generator seed
 
     Returns:
         A CatalogMagnitudeTestResult object containing the statistic distribution and the
@@ -422,6 +422,8 @@ def resampled_magnitude_test(forecast: "CatalogForecast",
     union_histogram = numpy.zeros(len(forecast.magnitudes))
     for j, cat in enumerate(forecast):
         union_histogram += cat.magnitude_counts()
+
+    mag_half_bin = numpy.diff(observed_catalog.region.magnitudes)[0] / 2.
     # end new
     n_union_events = numpy.sum(union_histogram)
     obs_histogram = observed_catalog.magnitude_counts()
@@ -484,129 +486,31 @@ def resampled_magnitude_test(forecast: "CatalogForecast",
 
 def MLL_magnitude_test(forecast: "CatalogForecast",
                        observed_catalog: CSEPCatalog,
+                       full_calculation: bool = False,
                        verbose: bool = False,
                        seed: Optional[int] = None) -> CatalogMagnitudeTestResult:
     """
+    Implements the modified Multinomial likelihood log-ratio (MLL) magnitude test (Serafini et
+    al., 2024).
+
 
     Args:
-        forecast:
-        observed_catalog:
-        verbose:
-        seed:
+        forecast (CatalogForecast): The forecast to be evaluated
+        observed_catalog (CSEPCatalog): The observation/testing catalog.
+        full_calculation (bool): Whether to sample from the entire stochastic catalogs or from
+            its already processed magnitude histogram.
+        verbose (bool): Flag to display debug messages
+        seed (int): Random number generator seed
 
     Returns:
-
-    """
-
-    if seed:
-        numpy.random.seed(seed)
-
-    test_distribution = []
-
-    if forecast.region.magnitudes is None:
-        raise CSEPEvaluationException(
-            "Forecast must have region.magnitudes member to perform magnitude test.")
-
-    # short-circuit if zero events
-    if observed_catalog.event_count == 0:
-        print("Cannot perform magnitude test when observed event count is zero.")
-        # prepare result
-        result = CatalogMagnitudeTestResult(test_distribution=test_distribution,
-                                            name='M-Test',
-                                            observed_statistic=None,
-                                            quantile=(None, None),
-                                            status='not-valid',
-                                            min_mw=forecast.min_magnitude,
-                                            obs_catalog_repr=str(observed_catalog),
-                                            obs_name=observed_catalog.name,
-                                            sim_name=forecast.name)
-
-        return result
-
-    # compute expected rates for forecast if needed
-    if forecast.expected_rates is None:
-        forecast.get_expected_rates(verbose=verbose)
-
-    # calculate histograms of union forecast and total number of events
-    Lambda_u_histogram = numpy.zeros(len(forecast.magnitudes))
-    Lambda_u = []
-    for j, cat in enumerate(forecast):
-        Lambda_u = numpy.append(Lambda_u, cat.get_magnitudes())
-        Lambda_u_histogram += cat.magnitude_counts()
-    # # calculate histograms of observations and observed number of events
-    Omega_histogram = observed_catalog.magnitude_counts()
-    n_obs = numpy.sum(Omega_histogram)
-
-    # compute observed statistic
-    obs_d_statistic = MLL_score(Lambda_U_counts=Lambda_u_histogram,
-                                            Lambda_j_counts=Omega_histogram)
-
-    # compute the test statistic for each catalog
-    t0 = time.time()
-    for i, catalog in enumerate(forecast):
-        # this is new - sampled from the union forecast histogram
-        mag_values = numpy.random.choice(Lambda_u, size=int(n_obs))
-        extended_mag_max = max(forecast.magnitudes) + 10
-        Lambda_j_histogram, tmp = numpy.histogram(mag_values,
-                                                  bins=numpy.append(forecast.magnitudes,
-                                                                    extended_mag_max))
-        # end new
-        n_events = numpy.sum(Lambda_j_histogram)
-        # if n_events == 0:
-        # print("Skipping to next because catalog contained zero events.")
-        #   continue
-
-        # compute magnitude test statistic for the catalog
-        test_distribution.append(
-            MLL_score(Lambda_U_counts=Lambda_u_histogram,
-                                  Lambda_j_counts=Lambda_j_histogram)
-        )
-        # output status
-        if verbose:
-            tens_exp = numpy.floor(numpy.log10(i + 1))
-            if (i + 1) % 10 ** tens_exp == 0:
-                t1 = time.time()
-                print(f'Processed {i + 1} catalogs in {t1 - t0} seconds', flush=True)
-
-    # score evaluation
-    delta_1, delta_2 = get_quantiles(test_distribution, obs_d_statistic)
-
-    # prepare result
-    result = CatalogMagnitudeTestResult(test_distribution=test_distribution,
-                                        name='M-Test',
-                                        observed_statistic=obs_d_statistic,
-                                        quantile=(delta_1, delta_2),
-                                        status='normal',
-                                        min_mw=forecast.min_magnitude,
-                                        obs_catalog_repr=str(observed_catalog),
-                                        obs_name=observed_catalog.name,
-                                        sim_name=forecast.name)
-
-    return result
-
-
-def MLL_magnitude_test_light(forecast: "CatalogForecast",
-                             observed_catalog: CSEPCatalog,
-                             mag_half_bin: float = 0.05,
-                             verbose: bool = False,
-                             seed: Optional[int] = None) -> CatalogMagnitudeTestResult:
-    """
-
-    Args:
-        forecast:
-        observed_catalog:
-        mag_half_bin:
-        verbose:
-        seed:
-
-    Returns:
-
+        A CatalogMagnitudeTestResult object containing the statistic distribution and the
+        observed statistic.
     """
 
     # set seed
     if seed:
         numpy.random.seed(seed)
-    """ Performs magnitude test for catalog-based forecasts """
+
     test_distribution = []
 
     if forecast.region.magnitudes is None:
@@ -635,7 +539,15 @@ def MLL_magnitude_test_light(forecast: "CatalogForecast",
 
     # calculate histograms of union forecast and total number of events
     Lambda_u_histogram = numpy.zeros(len(forecast.magnitudes))
+
+    if full_calculation:
+        Lambda_u = []
+    else:
+        mag_half_bin = numpy.diff(observed_catalog.region.magnitudes)[0] / 2.
+
     for j, cat in enumerate(forecast):
+        if full_calculation:
+            Lambda_u = numpy.append(Lambda_u, cat.get_magnitudes())
         Lambda_u_histogram += cat.magnitude_counts()
 
     # # calculate histograms of observations and observed number of events
@@ -644,7 +556,7 @@ def MLL_magnitude_test_light(forecast: "CatalogForecast",
 
     # compute observed statistic
     obs_d_statistic = MLL_score(Lambda_U_counts=Lambda_u_histogram,
-                                            Lambda_j_counts=Omega_histogram)
+                                Lambda_j_counts=Omega_histogram)
 
     probs = Lambda_u_histogram / numpy.sum(Lambda_u_histogram)
 
@@ -652,8 +564,11 @@ def MLL_magnitude_test_light(forecast: "CatalogForecast",
     t0 = time.time()
     for i, catalog in enumerate(forecast):
         # this is new - sampled from the union forecast histogram
-        mag_values = numpy.random.choice(forecast.magnitudes + mag_half_bin, p=probs,
-                                         size=int(n_obs))
+        if full_calculation:
+            mag_values = numpy.random.choice(Lambda_u, size=int(n_obs))
+        else:
+            mag_values = numpy.random.choice(forecast.magnitudes + mag_half_bin, p=probs,
+                                             size=int(n_obs))
         extended_mag_max = max(forecast.magnitudes) + 10
         Lambda_j_histogram, tmp = numpy.histogram(mag_values,
                                                   bins=numpy.append(forecast.magnitudes,
@@ -667,7 +582,7 @@ def MLL_magnitude_test_light(forecast: "CatalogForecast",
         # compute magnitude test statistic for the catalog
         test_distribution.append(
             MLL_score(Lambda_U_counts=Lambda_u_histogram,
-                                  Lambda_j_counts=Lambda_j_histogram)
+                      Lambda_j_counts=Lambda_j_histogram)
         )
         # output status
         if verbose:
