@@ -1,3 +1,5 @@
+from typing import Sequence
+
 import numpy
 import scipy.stats
 import scipy.special
@@ -269,3 +271,38 @@ def get_Kagan_I1_score(forecasts, catalog):
         I_1[j] = numpy.dot(counts[non_zero_idx], numpy.log2(rate_den[non_zero_idx] / uniform_forecast)) / n_event
     
     return I_1
+
+
+def log_d_multinomial(x: numpy.ndarray, size: int, prob: numpy.ndarray):
+
+    return scipy.special.loggamma(size + 1) + numpy.sum(
+        x * numpy.log(prob) - scipy.special.loggamma(x + 1))
+
+
+def MLL_score(Lambda_U_counts: numpy.ndarray, Lambda_j_counts: numpy.ndarray):
+    """
+
+    Args:
+        Lambda_U_counts:
+        Lambda_j_counts:
+
+    Returns:
+
+    """
+    N_u = numpy.sum(Lambda_U_counts)
+    N_j = numpy.sum(Lambda_j_counts)
+    coef_ = N_u / N_j
+    Lambda_U_mod = Lambda_U_counts + coef_
+    Lambda_j_mod = Lambda_j_counts + 1
+    Lambda_merged = Lambda_U_mod + Lambda_j_mod
+
+    pr_merged = Lambda_merged / numpy.sum(Lambda_merged)
+    pr_U = Lambda_U_mod / numpy.sum(Lambda_U_mod)
+    pr_j = Lambda_j_mod / numpy.sum(Lambda_j_mod)
+
+    loglik_merged = log_d_multinomial(x=Lambda_merged, size=numpy.sum(Lambda_merged),
+                                      prob=pr_merged)
+    loglik_U = log_d_multinomial(x=Lambda_U_mod, size=numpy.sum(Lambda_U_mod), prob=pr_U)
+    loglik_j = log_d_multinomial(x=Lambda_j_mod, size=numpy.sum(Lambda_j_mod), prob=pr_j)
+
+    return 2 * (loglik_merged - loglik_U - loglik_j)
