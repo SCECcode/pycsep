@@ -364,18 +364,16 @@ def resampled_magnitude_test(forecast: "CatalogForecast",
     which corrects the bias from the original M-test implementation to the total N of events.
     Calculates the pseudo log-likelihood distribution from the synthetic catalog Λ_j as:
 
-    # todo: check correct formula
-        D_j = Σ_k [log(Λ_U(k) / N_U + 1) - log(Λ_j(k) / N_j + 1)]^2
+        D_j = Σ_k [log(Λ_U(k) / N_U + 1) - log(Λ̃_j(k) + 1)] ^ 2
 
-    where k are the magnitude bins, Λ_U the union of all synthetic catalogs, N_U the total
-    number of events in Λ_U,  and N_j the number of events in Λ_j
+    where k are the magnitude bins,  Λ_U the union of all synthetic catalogs, N_U the total
+    number of events in Λ_U,  and Λ̃_j the resampled catalog containing exactly N events.
 
     The pseudo log-likelihood score from the observations is calculated as:
 
-    # todo: check correct formula
-        D_o = Σ_k [log(Λ_U(k) / N_U + 1) - log(Ω(k) / N_o + 1)]^2
+        D_o = Σ_k [log(Λ_U(k) / N_U + 1) - log(Ω(k) + 1)]^2
 
-    where Ω is the observed catalog and N_o the total number of observed events.
+    where Ω is the observed catalog.
 
     Args:
         forecast (CatalogForecast): The forecast to be evaluated
