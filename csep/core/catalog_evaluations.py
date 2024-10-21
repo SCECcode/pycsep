@@ -362,16 +362,17 @@ def resampled_magnitude_test(forecast: "CatalogForecast",
     """
     Performs the resampled magnitude test for catalog-based forecasts (Serafini et al., 2024),
     which corrects the bias from the original M-test implementation to the total N of events.
-    Calculates the pseudo log-likelihood distribution from the synthetic catalog Λ_j as:
+    Calculates the (pseudo log-likelihood) test statistic distribution from the forecast's
+    synthetic catalogs Λ_j as:
 
-        D_j = Σ_k [log(Λ_U(k) / N_U + 1) - log(Λ̃_j(k) + 1)] ^ 2
+        D_j = Σ_k [log(Λ_u(k) * N / N_u + 1) - log(Λ̃_j(k) + 1)] ^ 2
 
-    where k are the magnitude bins,  Λ_U the union of all synthetic catalogs, N_U the total
-    number of events in Λ_U,  and Λ̃_j the resampled catalog containing exactly N events.
+    where k are the magnitude bins, Λ_u the union of all synthetic catalogs, N_u the total
+    number of events in Λ_u, and Λ̃_j the resampled catalog containing exactly N events.
 
-    The pseudo log-likelihood score from the observations is calculated as:
+    The pseudo log-likelihood statistic from the observations is calculated as:
 
-        D_o = Σ_k [log(Λ_U(k) / N_U + 1) - log(Ω(k) + 1)]^2
+        D_o = Σ_k [log(Λ_U(k) * N / N_u + 1) - log(Ω(k) + 1)]^2
 
     where Ω is the observed catalog.
 
@@ -488,9 +489,22 @@ def MLL_magnitude_test(forecast: "CatalogForecast",
                        verbose: bool = False,
                        seed: Optional[int] = None) -> CatalogMagnitudeTestResult:
     """
-    Implements the modified Multinomial likelihood log-ratio (MLL) magnitude test (Serafini et
-    al., 2024).
+    Implements the modified Multinomial log-likelihood ratio (MLL) magnitude test (Serafini et
+    al., 2024). Calculates the test statistic distribution as:
 
+        D̃_j = -2 * log( L(Λ_u + N_u / N_j + Λ̃_j + 1) /
+                       [L(Λ_u + N_u / N_j) * L(Λ̃_j + 1)]
+                       )
+
+    where L is the multinomial likelihood function, Λ_u the union of all the forecasts'
+    synthetic catalogs, N_u the total number of events in Λ_u, Λ̃_j the resampled catalog
+    containing exactly N observed events. The observed statistic is defined as:
+
+        D_o = -2 * log( L(Λ_u + N_u / N + Ω + 1) /
+                       [L(Λ_u + N_u / N) * L(Ω + 1)]
+                       )
+
+    where Ω is the observed catalog.
 
     Args:
         forecast (CatalogForecast): The forecast to be evaluated
@@ -553,8 +567,8 @@ def MLL_magnitude_test(forecast: "CatalogForecast",
     n_obs = numpy.sum(Omega_histogram)
 
     # compute observed statistic
-    obs_d_statistic = MLL_score(Lambda_U_counts=Lambda_u_histogram,
-                                Lambda_j_counts=Omega_histogram)
+    obs_d_statistic = MLL_score(union_catalog_counts=Lambda_u_histogram,
+                                catalog_counts=Omega_histogram)
 
     probs = Lambda_u_histogram / numpy.sum(Lambda_u_histogram)
 
@@ -571,16 +585,11 @@ def MLL_magnitude_test(forecast: "CatalogForecast",
         Lambda_j_histogram, tmp = numpy.histogram(mag_values,
                                                   bins=numpy.append(forecast.magnitudes,
                                                                     extended_mag_max))
-        # end new
-        n_events = numpy.sum(Lambda_j_histogram)
-        # if n_events == 0:
-        # print("Skipping to next because catalog contained zero events.")
-        #   continue
 
         # compute magnitude test statistic for the catalog
         test_distribution.append(
-            MLL_score(Lambda_U_counts=Lambda_u_histogram,
-                      Lambda_j_counts=Lambda_j_histogram)
+            MLL_score(union_catalog_counts=Lambda_u_histogram,
+                      catalog_counts=Lambda_j_histogram)
         )
         # output status
         if verbose:
