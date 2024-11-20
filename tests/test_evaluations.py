@@ -1,10 +1,12 @@
 import os
 import numpy
+import numpy as np
+import scipy
 import unittest
 
 import csep.core.poisson_evaluations as poisson
 import csep.core.binomial_evaluations as binary
-
+import csep.core.brier_evaluations as brier
 def get_datadir():
     root_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(root_dir, 'artifacts', 'Comcat')
@@ -113,6 +115,63 @@ class TestBinomialLikelihood(unittest.TestCase):
         numpy.testing.assert_allclose(bill, -6.7197988064)
         numpy.testing.assert_allclose(qs, 1)
         numpy.testing.assert_allclose(simulated_ll[0], -7.921741654647629)
+
+
+class TestPoissonBrier(unittest.TestCase):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.seed = 1
+        self.forecast_data = numpy.array([[0.3, 0.2, 0.1], [0.2, 0.1, 0.1]])
+        self.observed_data = numpy.array([[0, 1, 2], [1, 1, 0]])
+
+    def test_brier_score_calculation(self):
+
+        # 1 bin
+        rate = 1
+        prob = 1 - scipy.stats.poisson.pmf(0, rate)
+        brier_score_hit = -2 * (prob - 1)**2
+        brier_score = brier._brier_score_ndarray(numpy.array([[rate]]),
+                                                 numpy.array([[1]]))
+        numpy.testing.assert_allclose(brier_score_hit, brier_score)
+
+        brier_score_nohit = -2 * prob**2
+        brier_score = brier._brier_score_ndarray(numpy.array([[rate]]),
+                                                 numpy.array([[0]]))
+        numpy.testing.assert_allclose(brier_score_nohit, brier_score)
+        # 2 bins
+        rate = np.array([1, 0.5])
+        hits = np.array([0, 1])
+        prob = 1 - scipy.stats.poisson.pmf(0, rate)
+        brier_score_2bins = (-2 * (prob - hits)**2).sum() / len(rate)
+        brier_score = brier._brier_score_ndarray(np.array(rate),
+                                                 np.array([hits]))
+        numpy.testing.assert_allclose(brier_score_2bins, brier_score)
+
+        hits = np.array([0, 0])
+        brier_score_2bins = (-2 * (prob - hits)**2).sum() / len(rate)
+        brier_score = brier._brier_score_ndarray(np.array(rate),
+                                                 np.array([hits]))
+        numpy.testing.assert_allclose(brier_score_2bins, brier_score)
+
+    def test_brier_test(self):
+
+        expected_sim = numpy.array([1, 1, 1, 1, 0, 0])
+        qs, obs_brier, simulated_brier = brier._brier_score_test(
+            self.forecast_data,
+            self.observed_data,
+            num_simulations=1,
+            seed=self.seed,
+            verbose=True)
+
+        probs = 1 - scipy.stats.poisson.pmf(0, self.forecast_data.ravel())
+        sim_brier_analytic = ((-2 * (probs - expected_sim)**2).sum() /
+                              len(probs))
+        numpy.testing.assert_allclose(simulated_brier[0], sim_brier_analytic)
+        obs_brier_analytic = (
+            (-2 * (probs - self.observed_data.ravel().astype(bool))**2).sum() /
+            len(probs))
+        numpy.testing.assert_allclose(obs_brier, obs_brier_analytic)
 
 
 if __name__ == '__main__':
