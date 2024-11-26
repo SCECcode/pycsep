@@ -1019,7 +1019,7 @@ on the figure by default.
 Resampled Magnitude Test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Aim: Perform the resampled magnitude test for catalog-based forecasts (Serafini et al., 2024),
+Aim: Perform the resampled magnitude test for catalog-based forecasts (Serafini et al., , in-prep),
 which is a correction to the original M-test implementation that is biased to the total N of
 events.
 
@@ -1064,7 +1064,7 @@ horizontal line. The quantile score for this forecast is
 Modified Multinomial Log-Likelihood (MLL) Magnitude Test
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Aim: Implements the modified Multinomial log-likelihood (MLL) magnitude test (Serafini et al., 2024).
+* Aim: Implements the modified Multinomial log-likelihood (MLL) magnitude test (Serafini et al., in-prep).
 
 * Method:  Calculates the test statistic distribution as:
 
