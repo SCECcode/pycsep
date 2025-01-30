@@ -80,7 +80,7 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
         h = bins[1] - bins[0]
 
     a0_tol = numpy.abs(a0) * numpy.finfo(numpy.float64).eps
-    h_tol = numpy.abs(h) * numpy.finfo(numpy.float64).eps
+    h_tol = a0_tol  # must be based on *involved* numbers
     p_tol = numpy.abs(p) * numpy.finfo(numpy.float64).eps
 
     # absolute tolerance
