@@ -101,27 +101,15 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
     p_tol = tol or _get_tolerance(p)
 
     idx = numpy.floor((p - a0 + p_tol + a0_tol) / (h - h_tol))
+    idx = numpy.asarray(idx)  # assure idx is an array
 
     if right_continuous:
         # set upper bin index to last
-        try:
-            idx[(idx < 0)] = -1
-            idx[(idx >= len(bins) - 1)] = len(bins) - 1
-        except TypeError:
-            if idx >= len(bins) - 1:
-                idx = len(bins) - 1
-            if idx < 0:
-                idx = -1
+        idx[idx < 0] = -1
+        idx[idx >= len(bins) - 1] = len(bins) - 1
     else:
-        try:
-            idx[((idx < 0) | (idx >= len(bins)))] = -1
-        except TypeError:
-            if idx < 0 or idx >= len(bins):
-                idx = -1
-    try:
-        idx = idx.astype(numpy.int64)
-    except AttributeError:
-        idx = int(idx)
+        idx[(idx < 0) | (idx >= len(bins))] = -1
+    idx = idx.astype(numpy.int64)
     return idx
 
 def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
