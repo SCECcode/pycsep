@@ -79,8 +79,8 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
     Raises:
         ValueError:
     """
-    bins = numpy.array(bins)
-    p = numpy.array(p)
+    bins = numpy.asarray(bins)
+    p = numpy.asarray(p)
 
     # if not np.all(bins[:-1] <= bins[1:]):  # check for sorted bins, which is a requirement
     #     raise ValueError("Bin edges are not sorted.")  # (pyCSEP always passes sorted bins)
