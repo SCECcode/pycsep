@@ -51,6 +51,16 @@ def discretize(data, bin_edges, right_continuous=False):
     x_new = bin_edges[idx]
     return x_new
 
+def _get_tolerance(v):
+    """Determine a numerical tolerance due to limited precision of floating-point values.
+
+    In other words, returns a maximum possible difference that can be considered negligible.
+    Only relevant for floating-point values.
+    """
+    if issubclass(v.dtype.type, numpy.floating):
+        return numpy.abs(v) * numpy.finfo(v.dtype).eps
+    return 0  # assuming it's an int
+
 def bin1d_vec(p, bins, tol=None, right_continuous=False):
     """Efficient implementation of binning routine on 1D Cartesian Grid.
 
@@ -71,26 +81,24 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
     """
     bins = numpy.array(bins)
     p = numpy.array(p)
+
     a0 = numpy.min(bins)
-    # if user supplies only a single bin, do 2 things: 1) fix right continuous to true, and use of h is arbitrary
     if bins.size == 1:
+        # for a single bin, set `right_continuous` to true; h is now arbitrary
         right_continuous = True
-        h = 1
+        h = bins[0]  # (just take over dtype)
     else:
         h = bins[1] - bins[0]
 
-    a0_tol = numpy.abs(a0) * numpy.finfo(numpy.float64).eps
-    h_tol = a0_tol  # must be based on *involved* numbers
-    p_tol = numpy.abs(p) * numpy.finfo(numpy.float64).eps
-
-    # absolute tolerance
-    if tol is None:
-        idx = numpy.floor((p + (p_tol + a0_tol) - a0) / (h - h_tol))
-    else:
-        idx = numpy.floor((p + (tol + a0_tol) - a0) / (h - h_tol))
     if h < 0:
         raise ValueError("grid spacing must be positive and monotonically increasing.")
-    # account for floating point uncertainties by considering extreme case
+
+    # account for floating point precision
+    a0_tol = _get_tolerance(a0)
+    h_tol = a0_tol  # must be based on *involved* numbers
+    p_tol = tol or _get_tolerance(p)
+
+    idx = numpy.floor((p - a0 + p_tol + a0_tol) / (h - h_tol))
 
     if right_continuous:
         # set upper bin index to last
