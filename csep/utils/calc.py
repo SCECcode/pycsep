@@ -70,7 +70,7 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
 
     Args:
         p (array-like): Point(s) to be placed into b
-        bins (array-like): bins to considering for binning, must be monotonically increasing
+        bins (array-like): bin edges; must be sorted (monotonically increasing)
         right_continuous (bool): if true, consider last bin extending to infinity
 
     Returns:
@@ -82,7 +82,9 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
     bins = numpy.array(bins)
     p = numpy.array(p)
 
-    a0 = numpy.min(bins)
+    # if not np.all(bins[:-1] <= bins[1:]):  # check for sorted bins, which is a requirement
+    #     raise ValueError("Bin edges are not sorted.")  # (pyCSEP always passes sorted bins)
+    a0 = bins[0]
     if bins.size == 1:
         # for a single bin, set `right_continuous` to true; h is now arbitrary
         right_continuous = True
