@@ -106,6 +106,13 @@ class TestBin1d(unittest.TestCase):
         expected = [-1, -1, 0, 0, 0, 0, 0, -1]
         self.assertListEqual(test.tolist(), expected)
 
+    def test_bin1d_single_bin2(self):
+        data = [4.0]
+        bin_edges = [3.0]
+        test = bin1d_vec(data, bin_edges)
+        expected = [0]
+        self.assertListEqual(test.tolist(), expected)
+
     def test_upper_limit_right_continuous(self):
         data = [40, 40, 40]
         bin_edges = [0, 10, 20, 30]
@@ -134,18 +141,27 @@ class TestBin1d(unittest.TestCase):
         expected = [-1, 3, -1]
         self.assertListEqual(test.tolist(), expected)
 
-    def test_scalar_outside(self):
-        from csep.utils.calc import bin1d_vec
-        mbins = numpy.arange(5.95, 9, 0.1)  # This gives bins from 5.95 to 8.95
-        idx = bin1d_vec(5.95, mbins, right_continuous=True)
-        self.assertEqual(idx, 0)
+    def test_scalar_inside(self):
+        mbins = numpy.arange(5.95, 9, 0.1)  # (magnitude) bins from 5.95 to 8.95
 
-        idx = bin1d_vec(6, mbins, right_continuous=True)  # This would give 0: Which is fine.
-        self.assertEqual(idx, 0)
+        for i, m in enumerate(mbins):
+            idx = bin1d_vec(m, mbins, right_continuous=True)  # corner cases
+            self.assertEqual(idx, i)
+
+            idx = bin1d_vec(m + 0.05, mbins, right_continuous=True)  # center bins
+            self.assertEqual(idx, i)
+
+            idx = bin1d_vec(m + 0.099999999, mbins, right_continuous=True)  # end of bins
+            self.assertEqual(idx, i)
+
+        idx = bin1d_vec(10, mbins, right_continuous=True)  # larger than last bin edge
+        self.assertEqual(idx, mbins.size - 1)
+
+    def test_scalar_outside(self):
+        mbins = numpy.arange(5.95, 9, 0.1)  # (magnitude) bins from 5.95 to 8.95
 
         idx = bin1d_vec(5, mbins, right_continuous=True)
         self.assertEqual(idx, -1)
 
         idx = bin1d_vec(4, mbins, right_continuous=True)
         self.assertEqual(idx, -1)
-
