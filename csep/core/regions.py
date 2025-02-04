@@ -313,12 +313,7 @@ def magnitude_bins(start_magnitude, end_magnitude, dmw):
     Returns:
         bin_edges (numpy.ndarray)
     """
-    # convert to integers to prevent accumulating floating point errors
-    const = 10000
-    start = numpy.floor(const * start_magnitude)
-    end = numpy.floor(const * end_magnitude)
-    d = const * dmw
-    return numpy.arange(start, end + d / 2, d) / const
+    return cleaner_range(start_magnitude, end_magnitude, dmw)
 
 def create_space_magnitude_region(region, magnitudes):
     """Simple wrapper to create space-magnitude region """

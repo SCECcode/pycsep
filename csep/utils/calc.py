@@ -213,12 +213,13 @@ def cleaner_range(start, end, h):
     Returns:
         bin_edges (numpy.ndarray)
     """
-    # convert to integers to prevent accumulating floating point errors
-    const = 100000
-    start = numpy.floor(const * start)
-    end = numpy.floor(const * end)
-    d = const * h
-    return numpy.arange(start, end + d / 2, d) / const
+    # determine required scaling to account for decimal places of bin edges and stepping
+    num_decimals_bins = len(str(float(start)).split('.')[1])
+    scale = max(10**num_decimals_bins, 1 / h)
+    start = numpy.round(scale * start)
+    end = numpy.round(scale * end)
+    d = scale * h
+    return numpy.arange(start, end + d / 2, d) / scale
 
 def first_nonnan(arr, axis=0, invalid_val=-1):
     mask = arr==arr
