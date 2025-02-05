@@ -625,8 +625,8 @@ class CartesianGrid2D:
         Returns:
             idx: ndarray-like
         """
-        idx = bin1d_vec(numpy.array(lons), self.xs)
-        idy = bin1d_vec(numpy.array(lats), self.ys)
+        idx = bin1d_vec(lons, self.xs)
+        idy = bin1d_vec(lats, self.ys)
         if numpy.any(idx == -1) or numpy.any(idy == -1):
             raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
         if numpy.any(self.bbox_mask[idy, idx] == 1):
@@ -1061,7 +1061,7 @@ class QuadtreeGrid2D:
         self.cell_area = cell_area
         return self.cell_area
 
-    def get_index_of(self, lons, lats): 
+    def get_index_of(self, lons, lats):
         """ Returns the index of lons, lats in self.polygons
 
         Args:
