@@ -495,7 +495,7 @@ def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
     """
     return list(map(lambda x: compute_vertex(x, dh, tol=tol), origin_points))
 
-def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins, tol=0.00001):
+def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins, tol=None):
     """
     Returns a list of event counts as ndarray with shape (n_poly, n_cat) where each value
     represents the event counts within the polygon.
@@ -1182,7 +1182,7 @@ class QuadtreeGrid2D:
         out = numpy.zeros([len(self.quadkeys), len(mag_bins)])
 
         idx_loc = self.get_index_of(lon, lat)
-        idx_mag = bin1d_vec(mag, mag_bins, tol=0.00001, right_continuous=True)
+        idx_mag = bin1d_vec(mag, mag_bins, right_continuous=True)
 
         numpy.add.at(out, (idx_loc, idx_mag), 1)
 
