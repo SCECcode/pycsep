@@ -213,7 +213,7 @@ class MarkedGriddedDataSet(GriddedDataSet):
         """ Returns counts of events in magnitude bins """
         return numpy.sum(self.data, axis=0)
 
-    def get_magnitude_index(self, mags, tol=0.00001):
+    def get_magnitude_index(self, mags, tol=None):
         """ Returns the indices into the magnitude bins of selected magnitudes
 
         Note: the right-most bin is treated as extending to infinity.

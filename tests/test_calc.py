@@ -137,15 +137,15 @@ class TestBin1d(unittest.TestCase):
     def test_scalar_outside(self):
         from csep.utils.calc import bin1d_vec
         mbins = numpy.arange(5.95, 9, 0.1)  # This gives bins from 5.95 to 8.95
-        idx = bin1d_vec(5.95, mbins, tol=0.00001, right_continuous=True)
+        idx = bin1d_vec(5.95, mbins, right_continuous=True)
         self.assertEqual(idx, 0)
 
-        idx = bin1d_vec(6, mbins, tol=0.00001, right_continuous=True)  # This would give 0: Which is fine.
+        idx = bin1d_vec(6, mbins, right_continuous=True)  # This would give 0: Which is fine.
         self.assertEqual(idx, 0)
 
-        idx = bin1d_vec(5, mbins, tol=0.00001, right_continuous=True)
+        idx = bin1d_vec(5, mbins, right_continuous=True)
         self.assertEqual(idx, -1)
 
-        idx = bin1d_vec(4, mbins, tol=0.00001, right_continuous=True)
+        idx = bin1d_vec(4, mbins, right_continuous=True)
         self.assertEqual(idx, -1)
 

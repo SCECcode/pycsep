@@ -395,7 +395,7 @@ class AbstractBaseCatalog(LoggingMixin):
     def get_mag_idx(self):
         """ Return magnitude index from region magnitudes """
         try:
-            return bin1d_vec(self.get_magnitudes(), self.region.magnitudes, tol=0.00001, right_continuous=True)
+            return bin1d_vec(self.get_magnitudes(), self.region.magnitudes, right_continuous=True)
         except AttributeError:
             raise CSEPCatalogException("Cannot return magnitude index without self.region.magnitudes")
 
@@ -699,7 +699,7 @@ class AbstractBaseCatalog(LoggingMixin):
         event_flag[idx] = 1
         return event_flag
 
-    def magnitude_counts(self, mag_bins=None, tol=0.00001, retbins=False):
+    def magnitude_counts(self, mag_bins=None, tol=None, retbins=False):
         """ Computes the count of events within mag_bins
 
 
@@ -734,7 +734,7 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             return out
 
-    def spatial_magnitude_counts(self, mag_bins=None, tol=0.00001):
+    def spatial_magnitude_counts(self, mag_bins=None, tol=None):
         """ Return counts of events in space-magnitude region.
 
         We figure out the index of the polygons and create a map that relates the spatial coordinate in the
