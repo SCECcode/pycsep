@@ -99,10 +99,10 @@ html_theme = 'sphinx_rtd_theme'
 # intersphinx configuration
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
-    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "numpy": (" https://numpy.org/doc/stable/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
-    "scipy": ('http://docs.scipy.org/doc/scipy/reference', None),
-    "matplotlib": ('http://matplotlib.sourceforge.net/', None)
+    "scipy": ('https://docs.scipy.org/doc/scipy/', None),
+    "matplotlib": ('https://matplotlib.org/stable', None)
 }
 
 html_theme_options = {}
