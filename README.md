@@ -1,15 +1,17 @@
 # pyCSEP: Collaboratory for the Study of Earthquake Predictability
-![](https://i.postimg.cc/Bb60rVQP/CSEP2-Logo-CMYK.png)
-<p align=center>
-    <a target="_blank" href="https://python.org" title="Python version"><img src="https://gist.githubusercontent.com/wsavran/efce311162c32460336a4f9892218532/raw/1b9c060efd1c6e52eb53f82d4249107417d6a5ec/pycsep_python_badge.svg">
-    <a target="_blank" href="https://pypi.org/project/pycsep"><img src="https://anaconda.org/conda-forge/pycsep/badges/downloads.svg">
-    <a target="_blank" href="https://github.com/SCECcode/pycsep/actions"><img src="https://github.com/SCECcode/pycsep/actions/workflows/build-test.yml/badge.svg">
-    <a target="_blank" href="https://github.com/SCECcode/pycsep/actions"><img src="https://github.com/SCECcode/pycsep/actions/workflows/build-sphinx.yml/badge.svg">
-    <a target="_blank" href="https://codecov.io/gh/SCECcode/pycsep"><img src="https://codecov.io/gh/SCECcode/pycsep/branch/master/graph/badge.svg?token=HTMKM29MAU">
-    <a target="_blank" href="https://www.zenodo.org/badge/latestdoi/149362283"><img src="https://www.zenodo.org/badge/149362283.svg" alt="DOI"></a>
-        <a target="_blank" a style="border-width:0" href="https://doi.org/10.21105/joss.03658">
-  <img src="https://joss.theoj.org/papers/10.21105/joss.03658/status.svg" alt="DOI badge" ></a>
-</p>
+
+[![CSEP Logo](https://i.postimg.cc/Bb60rVQP/CSEP2-Logo-CMYK.png)](https://cseptesting.org)
+
+
+[![Python Version](https://gist.githubusercontent.com/wsavran/efce311162c32460336a4f9892218532/raw/1b9c060efd1c6e52eb53f82d4249107417d6a5ec/pycsep_python_badge.svg)](https://python.org)
+[![Downloads](https://anaconda.org/conda-forge/pycsep/badges/downloads.svg)](https://pypi.org/project/pycsep)
+[![Build Tests](https://github.com/SCECcode/pycsep/actions/workflows/build-test.yml/badge.svg)](https://github.com/SCECcode/pycsep/actions)
+[![Build Docs](https://github.com/SCECcode/pycsep/actions/workflows/build-sphinx.yml/badge.svg)](https://github.com/SCECcode/pycsep/actions)
+[![Coverage](https://codecov.io/gh/SCECcode/pycsep/branch/master/graph/badge.svg?token=HTMKM29MAU)](https://codecov.io/gh/SCECcode/pycsep)
+[![Zenodo](https://www.zenodo.org/badge/149362283.svg)](https://www.zenodo.org/badge/latestdoi/149362283)
+[![JOSS](https://joss.theoj.org/papers/10.21105/joss.03658/status.svg)](https://doi.org/10.21105/joss.03658)
+
+
 
 # Description:
 The pyCSEP Toolkit helps earthquake forecast model developers evaluate their forecasts with the goal of understanding
@@ -24,12 +26,13 @@ pyCSEP should:
 
 # Table of Contents:
 1. [Software Documentation](https://docs.cseptesting.org)
-2. [Installation](#installation)
-3. [Usage](#usage)
-4. [Contributing](#contributing)
-5. [Change Log](https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.md)
-6. [Credits](#credits)
-7. [License](#license)
+2. [CSEP Website](https://cseptesting.org)
+3. [Installation](#installation)
+4. [Usage](#usage)
+5. [Contributing](#contributing)
+6. [Change Log](https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.md)
+7. [Credits](#credits)
+8. [License](#license)
 
 # Installation:
 pyCSEP can be installed in several ways. It can be installed using conda or pip package managers or from the 
