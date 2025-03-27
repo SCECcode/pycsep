@@ -44,7 +44,7 @@ from csep.core.catalogs import CSEPCatalog
 
 ####################################################################################################################################
 # Load Training Catalog for Multi-resolution grid
-# ----------------------------------------------
+# -----------------------------------------------
 #
 # We define a multi-resolution quadtree using earthquake catalog. We load a training catalog in CSEP and use that catalog to create a multi-resolution grid.
 # Sometimes, we do not the catalog in exact format as requried by pyCSEP. So we can read a catalog using Pandas and convert it
@@ -70,7 +70,7 @@ print(catalog_train)
 
 ####################################################################################################################################
 # Define Multi-resolution Gridded Region
-# ------------------------------------------------
+# --------------------------------------
 # Now use define a threshold for maximum number of earthquake allowed per cell, i.e. Nmax
 # and call :func:`csep.core.regions.QuadtreeGrid_from_catalog` to create a multi-resolution grid.
 # For simplicity we assume only single magnitude bin, i.e. all the earthquakes greater than and equal to 5.95
@@ -83,7 +83,7 @@ print('Number of cells in Multi-resolution grid :', r_multi.num_nodes)
 
 ####################################################################################################################################
 # Define Single-resolution Gridded Region
-# ----------------------------------------
+# ---------------------------------------
 #
 # Here as an example we define a single resolution grid at zoom-level L=6. For this purpose 
 # we call :func:`csep.core.regions.QuadtreeGrid2D_from_single_resolution` to create a single resolution grid.
@@ -98,7 +98,8 @@ print('Number of cells in Single-Resolution grid :', r_single.num_nodes)
 
 ####################################################################################################################################
 # Load forecast of multi-resolution grid
-# ---------------------------------
+# --------------------------------------
+
 # An example time-independent forecast had been created for this grid and provided the example forecast data set along with the main repository.
 # We load the time-independent global forecast which has time horizon of 1 year.   
 # The filepath is relative to the root directory of the package. You can specify any file location for your forecasts.
@@ -118,7 +119,8 @@ print(f"expected event count after scaling: {forecast_multi_grid.event_count}")
 
 ####################################################################################################################################
 # Load forecast of single-resolution grid
-# -------------------------------------
+# ---------------------------------------
+
 # We have already created a time-independent global forecast with time horizon of 1 year and provided with the reporsitory.   
 # The filepath is relative to the root directory of the package. You can specify any file location for your forecasts.
 
@@ -162,7 +164,7 @@ print(catalog)
 
 ####################################################################################################################################
 # Compute Poisson spatial test and Number test
-# ------------------------------------------------------
+# --------------------------------------------
 #
 # Simply call the :func:`csep.core.poisson_evaluations.spatial_test`  and :func:`csep.core.poisson_evaluations.number_test` functions to evaluate the forecast using the specified
 # evaluation catalog. The spatial test requires simulating from the Poisson forecast to provide uncertainty. The verbose

@@ -214,7 +214,6 @@ Region utilities:
     increase_grid_resolution
     masked_region
     generate_aftershock_region
-    california_relm_region
 
 
 Plotting
