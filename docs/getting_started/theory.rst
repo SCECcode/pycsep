@@ -971,7 +971,7 @@ Spatial test
 Aim: The spatial test again aims to isolate the spatial component of the
 forecast and test the consistency of spatial rates with observed events.
 
-Method We perform the spatial test in the catalog-based approach in a
+Method: We perform the spatial test in the catalog-based approach in a
 similar way to the grid-based spatial test approach: by normalising the
 approximate rate density. In this case, we use the normalisation
 :math:`\hat{\lambda}_s = \hat{\lambda}_s \big/ \sum_{R} \hat{\lambda}_s`.
@@ -1014,6 +1014,90 @@ dashed vertical line shows the observed test statistic
 :math:`s_{obs} = \omega = -5.88`, which is clearly within the test
 distribution. The quantile score :math:`\gamma_s = 0.36` is also printed
 on the figure by default.
+
+
+Resampled Magnitude Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Aim: Perform the resampled magnitude test for catalog-based forecasts (Serafini et al., , in-prep),
+which is a correction to the original M-test implementation that is biased to the total N of
+events.
+
+Method: Calculates the (pseudo log-likelihood) test statistic distribution :math:`D_j` from the
+resampled forecast's synthetic catalogs :math:`\hat{\Lambda}_j` as:
+
+.. math::  D_j =  \sum_{k}\Bigg(\log\Bigg[\frac{N_{obs}}{N_U} \Lambda_U^{(m)}(k) + 1\Bigg]- \log\Bigg[\hat{\Lambda}_j^{(m)}(k) + 1\Bigg]\Bigg)^2; j= 1...J
+
+where :math:`\Lambda_U^{(m)}(k)` and  :math:`\Lambda_U^{(m)}(k)` represent the count in the :math:`k`\ th bin of the magnitude-frequency
+distribution in the union catalog and resampled catalog, respectively. The resampled catalogs :math:`\hat{\Lambda}_j^{(m)}`
+are built from drawing exactly :math:`N_{obs}` events from the union catalog :math:`\Lambda_U^{(m)}`.
+
+The observed statistic is built identically as the original Magnitude test:
+
+.. math:: d_{obs}= \sum_{k}\Bigg(\log\Bigg[\frac{N_{obs}}{N_U} \Lambda_U^{(m)}(k) + 1\Bigg]- \log\Big[\Omega^{(m)}(k) + 1\Big]\Bigg)^2
+
+
+where :math:`\Omega^{(m)}(k)` represent the count in the :math:`k`\ th bin of the magnitude-frequency
+distribution in the observed catalog.
+
+
+* Implementation in pyCSEP
+
+.. code:: ipython3
+
+    from csep.core.catalog_evaluations import resampled_magnitude_test
+
+    resampled_m_test = resampled_magnitude_test(forecast, comcat_catalog, seed=1)
+    resampled_m_test.plot(show = True)
+
+
+.. image:: static/output_37_0.png
+
+
+The histogram shows the resulting test distribution with :math:`D^*`, which has a smoother
+statistic distribution than the original M-test.
+The observed statistic :math:`\omega = d_{obs}` is shown with the dashed
+horizontal line. The quantile score for this forecast is
+:math:`\gamma = 0.98`.
+
+
+Modified Multinomial Log-Likelihood (MLL) Magnitude Test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Aim: Implements the modified Multinomial log-likelihood (MLL) magnitude test (Serafini et al., in-prep).
+
+* Method:  Calculates the test statistic distribution as:
+
+  .. math:: D_j = -2 \log\Bigg[\cfrac{\mathcal{L}\big(\Lambda_u^{(m)} + \frac{N_u}{N_j}\boldsymbol{1} + \hat{\Lambda}_j^{(m)} + \boldsymbol{1}\big)} {\mathcal{L}\big(\Lambda_u^{(m)} + \frac{N_u}{N_j}\boldsymbol{1}\big) \mathcal{L}\big(\hat{\Lambda}_j^{(m)} + \boldsymbol{1}\big)}\Bigg]
+
+  where :math:`\mathcal{L}` is the multinomial likelihood function. :math:`\Lambda_u` is the union of all the forecasts'
+  synthetic catalogs, :math:`\Lambda_u^{(m)}` its magnitude histogram, and :math:`N_u` the total number of events in :math:`\Lambda_u`. :math:`\hat{\Lambda}_j` are resampled catalogs, which are built from drawing exactly :math:`N_{obs}` events from the union catalog :math:`\Lambda_U`, whereas :math:`\hat{\Lambda}_j^{(m)}` is its histogram. The vector :math:`\boldsymbol{1}` has a value of 1 on each magnitude histogram bin.
+
+  The observed statistic is defined as:
+
+  .. math:: d_{obs} = -2 \log\Bigg[\cfrac{\mathcal{L}\big(\Lambda_u^{(m)} + \frac{N_u}{N_j}\boldsymbol{1} + \Omega^{(m)} + \boldsymbol{1}\big)} {\mathcal{L}\big(\Lambda_u^{(m)} + \frac{N_u}{N_j}\boldsymbol{1}\big) \mathcal{L}\big(\Omega^{(m)} + \boldsymbol{1}\big)}\Bigg]
+
+  The multinomial likelihood function :math:`\mathcal{L}` for an arbitrary catalog's magnitude histogram :math:`\Lambda^{(m)}` is defined as:
+
+
+  .. math:: \mathcal{L}(\Lambda^{(m)}) = \cfrac{N_\Lambda!}{n_{\Lambda,1}!\, ... n_{\Lambda,K}!}\prod_{k=1}^{K} \left(\cfrac{n_{\Lambda,k}}{N}\right)^{n_{\Lambda,k}}
+
+  where :math:`N_\Lambda` is the total number of events in :math:`\Lambda^{(m)}`,
+  :math:`n_{\Lambda,k}` the number of events in the :math:`k-th`  bin, and :math:`K` the total
+  number of bins.
+
+* Implementation in pyCSEP
+
+
+  .. code:: ipython3
+
+      from csep.core.catalog_evaluations import MLL_magnitude_test
+
+      MLL_t = MLL_magnitude_test(forecast, comcat_catalog, full_calculation=False, verbose=False, seed=22)
+      MLL_t.plot(show=True)
+
+  .. image:: static/output_38_0.png
+
 
 References
 ----------

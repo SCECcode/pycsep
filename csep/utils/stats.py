@@ -1,8 +1,7 @@
 import numpy
-import scipy.stats
 import scipy.special
-# PyCSEP imports
-from csep.core import regions
+import scipy.stats
+
 
 def sup_dist(cdf1, cdf2):
     """
@@ -269,3 +268,61 @@ def get_Kagan_I1_score(forecasts, catalog):
         I_1[j] = numpy.dot(counts[non_zero_idx], numpy.log2(rate_den[non_zero_idx] / uniform_forecast)) / n_event
     
     return I_1
+
+
+def log_d_multinomial(x: numpy.ndarray, size: int, prob: numpy.ndarray):
+    """
+
+    Args:
+        x:
+        size:
+        prob:
+
+    Returns:
+
+    """
+    return scipy.special.loggamma(size + 1) + numpy.sum(
+        x * numpy.log(prob) - scipy.special.loggamma(x + 1))
+
+
+def MLL_score(union_catalog_counts: numpy.ndarray, catalog_counts: numpy.ndarray):
+    """
+    Calculates the modified Multinomial log-likelihood (MLL) score, defined by Serafini et al.,
+    (2024). It is built from a collection catalogs Λ_u and a single catalog Ω
+
+        MLL_score = 2 * log( L(Λ_u + N_u / N_o + Ω + 1) /
+                           [L(Λ_u + N_u / N_o) * L(Ω + 1)]
+                           )
+    where N_u and N_j are the total number of events in Λ_u and Ω, respectively.
+
+    Args:
+        union_catalog_counts (numpy.ndarray):
+        catalog_counts (numpy.ndarray):
+
+    Returns:
+        The MLL score for the collection of catalogs and
+    """
+
+    N_u = numpy.sum(union_catalog_counts)
+    N_j = numpy.sum(catalog_counts)
+    events_ratio = N_u / N_j
+
+    union_catalog_counts_mod = union_catalog_counts + events_ratio
+    catalog_counts_mod = catalog_counts + 1
+    merged_catalog_j = union_catalog_counts_mod + catalog_counts_mod
+
+    pr_merged_cat = merged_catalog_j / numpy.sum(merged_catalog_j)
+    pr_union_cat = union_catalog_counts_mod / numpy.sum(union_catalog_counts_mod)
+    pr_cat_j = catalog_counts_mod / numpy.sum(catalog_counts_mod)
+
+    log_lik_merged = log_d_multinomial(x=merged_catalog_j,
+                                       size=numpy.sum(merged_catalog_j),
+                                       prob=pr_merged_cat)
+    log_lik_union = log_d_multinomial(x=union_catalog_counts_mod,
+                                      size=numpy.sum(union_catalog_counts_mod),
+                                      prob=pr_union_cat)
+    log_like_cat_j = log_d_multinomial(x=catalog_counts_mod,
+                                       size=numpy.sum(catalog_counts_mod),
+                                       prob=pr_cat_j)
+
+    return 2 * (log_lik_merged - log_lik_union - log_like_cat_j)

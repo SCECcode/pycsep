@@ -159,6 +159,8 @@ Catalog-based forecast evaluations:
    number_test
    spatial_test
    magnitude_test
+   resampled_magnitude_test
+   MLL_magnitude_test
    pseudolikelihood_test
    calibration_test
 
