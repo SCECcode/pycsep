@@ -1,10 +1,11 @@
-.. _regions-reference
+.. _regions-reference:
 
 #######
 Regions
 #######
 
 .. automodule:: csep.utils.basic_types
+   :no-index:
 
 PyCSEP includes commonly used CSEP testing regions and classes that facilitate working with gridded data sets. This
 module is early in development and will be a focus of future development.
@@ -16,6 +17,7 @@ module is early in development and will be a focus of future development.
 .. :currentmodule:: csep
 
 .. automodule:: csep.core.regions
+   :no-index:
 
 Practically speaking, earthquake forecasts, especially time-dependent forecasts, treat time differently than space and
 magnitude. If we consider a family of monthly forecasts for the state of California for earthquakes with **M** 3.95+,
@@ -98,9 +100,10 @@ mapping defined in (2). The :meth:`get_index_of<csep.core.regions.CartesianGrid2
 of longitudes and latitudes and returns the index of the polygon they are associated with. For instance, this index can
 now be used to access a data value stored in another data structure.
 
-.. ***************
+.. ************
+
 Testing Regions
-########################
+###############
 
 CSEP has defined testing regions that can be used for earthquake forecasting experiments. The following functions in the
 :mod:`csep.core.regions` module returns a :class:`CartesianGrid2D<csep.core.regions.CartesianGrid2D>` consistent with
@@ -112,9 +115,10 @@ these regions.
     italy_csep_region
     global_region
 
-.. ****************
+.. *************
+
 Region Utilities
-########################
+################
 
 PyCSEP also provides some utilities that can facilitate working with regions. As we expand this module, we will include
 functions to accommodate different use-cases.
@@ -192,7 +196,7 @@ Creating spatial regions
 Here, we describe how the class works starting with the class constructors and how users can create different types regions.
 
 Multi-resolution grid based on earthquake catalog
------------------------------------------
+-------------------------------------------------
 Read a global earthquake catalog in :class:`CSEPCatalog<csep.core.catalogs.CSEPCatalog>` format and use it to generate a multi-resolution quadtree-based grid constructors. ::
 
     @classmethod
@@ -200,7 +204,7 @@ Read a global earthquake catalog in :class:`CSEPCatalog<csep.core.catalogs.CSEPC
         """ Convenience function to create a multi-resolution grid using earthquake catalog """
 
 Single-resolution grid
------------------------------------------
+----------------------
 Generate a single-resolution grid at the same zoom-level everywhere. This grid does not require a catalog. It only needs the zoom-level to determine the resolution of grid.::
 
     @classmethod
@@ -208,7 +212,7 @@ Generate a single-resolution grid at the same zoom-level everywhere. This grid d
         """ Convenience function to create a single-resolution grid """
 	
 Grid loading from already created quadkeys
----------------------------------------
+------------------------------------------
 An already saved quadtree grid can also be loaded in the pyCSEP. Read the quadkeys and use the following function to instantiate the class. ::
 
     @classmethod
@@ -229,7 +233,7 @@ now be used to access a data value stored in another data structure.
 
 
 Testing Regions
-########################
+###############
 
 CSEP has defined testing regions that can be used for earthquake forecasting experiments. The above mentioned functions are used to create quadtree grids for global testing region.
 Once a grid  
