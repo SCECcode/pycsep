@@ -1,0 +1,1175 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Theory of CSEP Tests &mdash; pyCSEP v0.6.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=43e4d6ac"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Catalogs operations" href="../tutorials/catalog_filtering.html" />
+    <link rel="prev" title="Core Concepts for Beginners" href="core_concepts.html" />
+    <!-- Google Analytics -->
+    <!-- added options to anonymize ip and disable cookies using {'storage': 'none'} 
+    <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+    ga('create', 'UA-495056-15', 'auto', {'storage': 'none'});
+    ga('set', 'anonymizeIp', true);
+    ga('send', 'pageview');
+    </script> -->
+
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            pyCSEP
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+    
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installing.html">Installing pyCSEP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="core_concepts.html">Core Concepts for Beginners</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Theory of CSEP Tests</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#grid-based-forecast-tests">Grid-based Forecast Tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#consistency-tests">Consistency tests</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#likelihood-test-l-test">Likelihood-test (L-test)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cl-test">CL-test</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#n-test">N-test</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#m-test">M-test</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#s-test">S-test</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#forecast-comparison-tests">Forecast comparison tests</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#catalog-based-forecast-tests">Catalog-based forecast tests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#number-test">Number Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#magnitude-test">Magnitude Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pseudo-likelihood-test">Pseudo-likelihood test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#spatial-test">Spatial test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#resampled-magnitude-test">Resampled Magnitude Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modified-multinomial-log-likelihood-mll-magnitude-test">Modified Multinomial Log-Likelihood (MLL) Magnitude Test</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials and Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/catalog_filtering.html">Catalogs operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/plot_gridded_forecast.html">Plotting gridded forecast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/gridded_forecast_evaluation.html">Grid-based Forecast Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/quadtree_gridded_forecast_evaluation.html">Quadtree Grid-based Forecast Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/working_with_catalog_forecasts.html">Working with catalog-based forecasts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/catalog_forecast_evaluation.html">Catalog-based Forecast Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/plot_customizations.html">Plot customizations</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../concepts/catalogs.html">Catalogs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts/forecasts.html">Forecasts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts/evaluations.html">Evaluations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../concepts/regions.html">Regions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help &amp; Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/glossary.html">Terms and Definitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/publications.html">Referenced Publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/developer_notes.html">Developer Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/api_reference.html">API Reference</a></li>
+</ul>
+
+
+    
+        <p class="caption">
+            <span class="caption-text">Source code and contributing</span>
+        </p>
+        <ul>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECCode/pycsep/issues">Getting help</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.md">Change log</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md">Contributing</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECcode/pycsep/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECcode/pycsep/blob/master/LICENSE">License</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECCode/pycsep">Source Code</a></li>
+            
+        </ul>
+    
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pyCSEP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Theory of CSEP Tests</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/getting_started/theory.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="theory-of-csep-tests">
+<h1>Theory of CSEP Tests<a class="headerlink" href="#theory-of-csep-tests" title="Link to this heading"></a></h1>
+<p>This page describes the theory of each of the forecast tests
+included in pyCSEP along with working code examples. You will find
+information on the goals of each test, the theory behind the tests, how
+the tests are applied in practice, and how forecasts are ‘scored’ given
+the test results. Also, we include the code required to run in each test
+and a description of how to interpret the test results.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import csep
+from csep.core import (
+    regions,
+    catalog_evaluations,
+    poisson_evaluations as poisson
+)
+from csep.utils import (
+    datasets,
+    time_utils,
+    comcat,
+    plots,
+    readers
+)
+
+# Filters matplotlib warnings
+import warnings
+warnings.filterwarnings(&#39;ignore&#39;)
+</pre></div>
+</div>
+<section id="grid-based-forecast-tests">
+<h2>Grid-based Forecast Tests<a class="headerlink" href="#grid-based-forecast-tests" title="Link to this heading"></a></h2>
+<p>These tests are designed for grid-based forecasts (e.g., Schorlemmer et
+al., 2007), where expected rates are provided in discrete Poisson
+space-magnitude cells covering the region of interest. The region
+<span class="math notranslate nohighlight">\(\boldsymbol{R}\)</span> is then the product of the spatial rate
+<span class="math notranslate nohighlight">\(\boldsymbol{S}\)</span> and the binned magnitude rate
+<span class="math notranslate nohighlight">\(\boldsymbol{M}\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol{R} = \boldsymbol{M} \times \boldsymbol{S}.\]</div>
+<p>A forecast <span class="math notranslate nohighlight">\(\boldsymbol{\Lambda}\)</span> can be fully specified as the
+expected number of events (or rate) in each space-magnitude bin
+(<span class="math notranslate nohighlight">\(m_i, s_j\)</span>) covering the region <span class="math notranslate nohighlight">\(\boldsymbol{R}\)</span> and
+therefore can be written as</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\Lambda} = \{ \lambda_{m_i, s_j}| m_i \in \boldsymbol{M}, s_j \in \boldsymbol{S} \},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\lambda_{m_i, s_j}\)</span> is the expected rate of events in
+magnitude bin <span class="math notranslate nohighlight">\(m_i\)</span> and spatial bin <span class="math notranslate nohighlight">\(s_j\)</span>. The observed
+catalogue of events <span class="math notranslate nohighlight">\(\boldsymbol{\Omega}\)</span> we use to evaluate the
+forecast is similarly discretised into the same space-magnitude bins,
+and can be described as</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\Omega} = \{ \omega_{m_i, s_j}| m_i \in \boldsymbol{M}, s_j \in \boldsymbol{S} \},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\omega_{m_i, s_j}\)</span> is the observed number of
+events in spatial cell <span class="math notranslate nohighlight">\(s_j\)</span> and magnitude bin <span class="math notranslate nohighlight">\(m_i\)</span>. The
+magnitude bins are specified in the forecast: typically these are in 0.1
+increments and this is the case in the examples we use here. These
+examples use the Helmstetter et al (2007) smoothed seismicity forecast
+(including aftershocks), testing over a 5 year period between 2010 and
+2015.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Set up experiment parameters
+start_date = time_utils.strptime_to_utc_datetime(&#39;2010-01-01 00:00:00.0&#39;)
+end_date = time_utils.strptime_to_utc_datetime(&#39;2015-01-01 00:00:00.0&#39;)
+
+# Loads from the PyCSEP package
+helmstetter = csep.load_gridded_forecast(
+    datasets.helmstetter_aftershock_fname,
+    start_date=start_date,
+    end_date=end_date,
+    name=&#39;helmstetter_aftershock&#39;
+)
+
+# Set up evaluation catalog
+catalog = csep.query_comcat(helmstetter.start_time, helmstetter.end_time,
+                            min_magnitude=helmstetter.min_magnitude)
+
+# Filter evaluation catalog
+catalog = catalog.filter_spatial(helmstetter.region)
+
+# Add seed for reproducibility in simulations
+seed = 123456
+
+# Number of simulations for Poisson consistency tests
+nsim = 100000
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Fetched</span> <span class="n">ComCat</span> <span class="n">catalog</span> <span class="ow">in</span> <span class="mf">5.9399449825286865</span> <span class="n">seconds</span><span class="o">.</span>
+
+<span class="n">Downloaded</span> <span class="n">catalog</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ComCat</span> <span class="k">with</span> <span class="n">following</span> <span class="n">parameters</span>
+<span class="n">Start</span> <span class="n">Date</span><span class="p">:</span> <span class="mi">2010</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">10</span> <span class="mi">00</span><span class="p">:</span><span class="mi">27</span><span class="p">:</span><span class="mf">39.320000</span><span class="o">+</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="n">End</span> <span class="n">Date</span><span class="p">:</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">24</span> <span class="mi">10</span><span class="p">:</span><span class="mi">20</span><span class="p">:</span><span class="mf">44.070000</span><span class="o">+</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="n">Min</span> <span class="n">Latitude</span><span class="p">:</span> <span class="mf">31.9788333</span> <span class="ow">and</span> <span class="n">Max</span> <span class="n">Latitude</span><span class="p">:</span> <span class="mf">41.1431667</span>
+<span class="n">Min</span> <span class="n">Longitude</span><span class="p">:</span> <span class="o">-</span><span class="mf">125.3308333</span> <span class="ow">and</span> <span class="n">Max</span> <span class="n">Longitude</span><span class="p">:</span> <span class="o">-</span><span class="mf">115.0481667</span>
+<span class="n">Min</span> <span class="n">Magnitude</span><span class="p">:</span> <span class="mf">4.96</span>
+<span class="n">Found</span> <span class="mi">24</span> <span class="n">events</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">ComCat</span> <span class="n">catalog</span><span class="o">.</span>
+</pre></div>
+</div>
+<section id="consistency-tests">
+<h3>Consistency tests<a class="headerlink" href="#consistency-tests" title="Link to this heading"></a></h3>
+<p>The consistency tests evaluate the consistency of a forecast against
+observed earthquakes. These tests were developed across a range of
+experiments and publications (Schorlemmer et al, 2007; Zechar et al
+2010; Werner et al, 2011a). The consistency tests are based on the
+likelihood of observing the catalogue (actual recorded events) given the
+forecast. Since the space-magnitude bins are assumed to be independent,
+the joint-likelihood of observing the events in each individual bin
+given the specified forecast can be written as</p>
+<div class="math notranslate nohighlight">
+\[Pr(\omega_1 | \lambda_1) Pr(\omega_2 | \lambda_2)...Pr(\omega_n | \lambda_n) = \prod_{m_i , s_j \in \boldsymbol{R}} f_{m_i, s_j}(\omega(m_i, s_j)),\]</div>
+<p>where <span class="math notranslate nohighlight">\(f_{m_i, s_j}\)</span> specifies the probability distribution in
+each space-magnitude bin. We prefer to use the joint log-likelihood in
+order to sum log-likelihoods rather than multiply the likelihoods. The
+joint log-likelihood can be written as:</p>
+<div class="math notranslate nohighlight">
+\[L(\boldsymbol{\Omega} | \boldsymbol{\Lambda}) = \sum_{m_i , s_j \in \boldsymbol{R}} log(f_{m_i, s_j}(\omega(m_i, s_j)).\]</div>
+<p>The likelihood of the observations, <span class="math notranslate nohighlight">\(\boldsymbol{\Omega}\)</span>, given
+the forecast <span class="math notranslate nohighlight">\(\boldsymbol{\Lambda}\)</span> is the sum over all
+space-magnitude bins of the log probabilities in individual cells of the
+forecast. Grid-based forecasts are specified by the expected number of
+events in a discrete space-magnitude bin. From the maximum entropy
+principle, we assign a Poisson distribution in each bin. In this case,
+the probability of an event occurring is independent of the time since
+the last event, and events occur at a rate <span class="math notranslate nohighlight">\(\lambda\)</span>. The
+Poissonian joint log-likelihood can be written as</p>
+<div class="math notranslate nohighlight">
+\[L(\boldsymbol{\Omega} | \boldsymbol{\Lambda}) = \sum_{m_i , s_j \in \boldsymbol{R}} -\lambda(m_i, s_j) + \omega(m_i, s_j)\log(\lambda(m_i, s_j)) - log(\omega(m_i, s_j)!),\]</div>
+<p>where <span class="math notranslate nohighlight">\(\lambda(m_i, s_j)\)</span> and <span class="math notranslate nohighlight">\(\omega(m_i, s_j)\)</span> are the
+expected counts from the forecast and observed counts in cell
+<span class="math notranslate nohighlight">\(m_i, s_j\)</span> respectively. We can calculate the likelihood directly
+given the forecast and discretised observations.</p>
+<p>Forecast uncertainty</p>
+<p>A simulation based approach is used to account for uncertainty in the
+forecast. We simulate realizations of catalogs that are consistent with
+the forecast to obtain distributions of scores. In the pyCSEP package,
+as in the original CSEP tests, simulation is carried out using the
+cumulative probability density of the forecast obtained by ordering the
+rates in each bin. We shall call <span class="math notranslate nohighlight">\(F_{m_is_j}\)</span> the cumulative
+probability density in cell <span class="math notranslate nohighlight">\((m_i, s_j)\)</span>. The simulation approach
+then works as follows:</p>
+<ul class="simple">
+<li><p>For each forecast bin, draw a random number <span class="math notranslate nohighlight">\(z\)</span> from a uniform
+distribution between 0 and 1</p></li>
+<li><p>Assign this event to a space-magnitude bin through the inverse
+cumulative density distribution at this point
+<span class="math notranslate nohighlight">\(F^{-1}_{m_i, s_j}(z)\)</span></p></li>
+<li><p>Iterate over all simulated events to generate a catalog containing
+<span class="math notranslate nohighlight">\(N_{sim}\)</span> events consistent with the forecast</p></li>
+</ul>
+<p>For each of these tests, we can plot the distribution of likelihoods
+computed from theses simulated catalogs relative to the observations
+using the <code class="docutils literal notranslate"><span class="pre">plots.plot_poisson_consistency_test</span></code> function. We also
+calculate a quantile score to diagnose a particular forecast with
+repsect. The number of simulations can be supplied to the Poisson
+consistency test functions using the <code class="docutils literal notranslate"><span class="pre">num_simulations</span></code> argument: for
+best results we suggest 100,000 simulations to ensure convergence.</p>
+<p>Scoring the tests</p>
+<p>Through simulation (as described above), we obtain a set of simulated
+catalogs <span class="math notranslate nohighlight">\(\{\hat{\boldsymbol{\Omega}}\}\)</span>. Each catalogue can be
+written as</p>
+<div class="math notranslate nohighlight">
+\[\hat{\boldsymbol{\Omega}}_x =\{ \hat{\lambda}_x(m_i, s_j)|(m_i, s_j) \in \boldsymbol{R}\},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\hat{\lambda}_x(m_i, s_j)\)</span> is the number of
+simulated earthquakes in cell <span class="math notranslate nohighlight">\((m_i, s_j)\)</span> of (simulated) catalog
+<span class="math notranslate nohighlight">\(x\)</span> that is consistent with the forecast <span class="math notranslate nohighlight">\(\Lambda\)</span>. We then
+compute the joint log-likelihood for each simulated catalogue
+<span class="math notranslate nohighlight">\(\hat{L}_x = L(\hat{\Omega}_x|\Lambda)\)</span>. The joint log-likelihood
+for each simulated catalogue given the forecast gives us a set of
+log-likelihoods <span class="math notranslate nohighlight">\(\{\hat{\boldsymbol{L}}\}\)</span> that represents the
+range of log-likelihoods consistent with the forecast. We then compare
+our simulated log-likelihoods with the observed log-likelihood
+<span class="math notranslate nohighlight">\(L_{obs} = L(\boldsymbol{\Omega}|\boldsymbol{\Lambda})\)</span> using a
+quantile score.</p>
+<p>The quantile score is defined by the fraction of simulated joint
+log-likelihoods less than or equal to the observed likelihood.</p>
+<div class="math notranslate nohighlight">
+\[\gamma = \frac{ |\{ \hat{L}_x | \hat{L}_x \le L_{obs}\} |}{|\{ \hat{\boldsymbol{L}} \}|}\]</div>
+<p>Whether a forecast can be said to pass an evaluation depends on the
+significance level chosen for the testing process. The quantile score
+explicitly tells us something about the significance of the result: the
+observation is consistent with the forecast with <span class="math notranslate nohighlight">\(100(1-\gamma)\%\)</span>
+confidence (Zechar, 2011). Low <span class="math notranslate nohighlight">\(\gamma\)</span> values demonstrate that
+the observed likelihood score is less than most of the simulated
+catalogs. The consistency tests, excluding the N-test, are considered to
+be one-sided tests: values which are too small are ruled inconsistent
+with the forecast, but very large values may not necessarily be
+inconsistent with the forecast and additional testing should be used to
+further clarify this (Schorlemmer et al, 2007).</p>
+<p>Different CSEP experiments have used different sensitivity values.
+Schorlemmer et al (2010b) consider <span class="math notranslate nohighlight">\(\gamma \lt 0.05\)</span> while the
+implementation in the Italian CSEP testing experiment uses
+<span class="math notranslate nohighlight">\(\gamma\)</span> &lt; 0.01 (Taroni et al, 2018). However, the consistency
+tests are most useful as diagnostic tools where the quantile score
+assesses the level of consistency between observations and data.
+Temporal variations in seismicity make it difficult to formally reject a
+model from a consistency test over a single evaluation period.</p>
+<section id="likelihood-test-l-test">
+<h4>Likelihood-test (L-test)<a class="headerlink" href="#likelihood-test-l-test" title="Link to this heading"></a></h4>
+<p>Aim: Evaluate the likelihood of observed events given the provided
+forecast - this includes the rate, spatial distribution and magnitude
+components of the forecast.</p>
+<p>Method: The L-test is one of the original forecast tests described in
+Schorlemmer et al, 2007. The likelihood of the observation given the
+model is described by a Poisson likelihood function in each cell and the
+total joint likelihood described by the product over all bins, or the
+sum of the log-likelihoods (see above, or Zechar 2011 for more details).</p>
+<p>Note: The likelihood scores are dominated by the rate-component of the
+forecast. This causes issues in scoring forecasts where the expected
+number of events are different from the observed number of events. We
+suggest to use the N-test (below) and CL-test (below) independently to
+score the rate component, and spatial-magnitude components of the
+forecast. This behavior can be observed by comparing the CL-test and
+N-test results with the L-test results in this notebook. Since the
+forecast overpredicts the rate of events during this testing period, the
+L-test provides a passing score even though the space-magnitude and rate
+components perform poorly during this evaluation period.</p>
+<p>pyCSEP implementation</p>
+<p>pyCSEP uses the forecast and catalog and returns the test distribution,
+observed statistic and quantile score, which can be accessed from the
+<code class="docutils literal notranslate"><span class="pre">likelihood_test_result</span></code> object. We can pass this directly to the
+plotting function, specifying that the test should be one-sided.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>likelihood_test_result = poisson.likelihood_test(
+    helmstetter,
+    catalog,
+    seed=seed,
+    num_simulations=nsim
+)
+ax = plots.plot_poisson_consistency_test(
+    likelihood_test_result,
+    one_sided_lower=True,
+    plot_args={&#39;title&#39;: r&#39;$\mathcal{L}-\mathrm{test}$&#39;, &#39;xlabel&#39;: &#39;Log-likelihood&#39;}
+)
+</pre></div>
+</div>
+<img alt="../_images/output_6_0.png" src="../_images/output_6_0.png" />
+<p>pyCSEP plots the resulting <span class="math notranslate nohighlight">\(95\%\)</span> range of likelihoods returned by
+the simulation with the black bar by default. The observed likelihood
+score is shown by a green square where the forecast passes the test and
+a red circle where the observed likelihood is outside the likelihood
+distribution.</p>
+</section>
+<section id="cl-test">
+<h4>CL-test<a class="headerlink" href="#cl-test" title="Link to this heading"></a></h4>
+<p>Aim: The original likelihood test described above gives a result that
+combines the spatial, magnitude and number components of a forecast. The
+conditional likelihood or CL-Test was developed to test the spatial and
+magnitude performance of a forecast without the influence of the number
+of events (Werner et al. 2011a, 2011b). By conditioning the test
+distribution on the observed number of events we elimiate the dependency
+with the forecasted number of events as described above.</p>
+<div class="line-block">
+<div class="line">Method</div>
+<div class="line">The CL-test is computed in the same way as the L-test, but with the
+number of events normalised to the observed catalog <span class="math notranslate nohighlight">\(N_{obs}\)</span>
+during the simulation stage. The quantile score is then calculated
+similarly such that</div>
+</div>
+<div class="math notranslate nohighlight">
+\[\gamma_{CL} = \frac{ |\{ \hat{CL}_x | \hat{CL}_x \le CL_{obs}\} |}{|\{ \hat{\boldsymbol{CL}} \}|}.\]</div>
+<p>Implementation in pyCSEP</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>cond_likelihood_test_result = poisson.conditional_likelihood_test(
+    helmstetter,
+    catalog,
+    seed=seed,
+    num_simulations=nsim
+)
+ax = plots.plot_poisson_consistency_test(
+    cond_likelihood_test_result,
+    one_sided_lower=True,
+    plot_args = {&#39;title&#39;: r&#39;$CL-\mathrm{test}$&#39;, &#39;xlabel&#39;: &#39;conditional log-likelihood&#39;}
+)
+</pre></div>
+</div>
+<img alt="../_images/output_9_0.png" src="../_images/output_9_0.png" />
+<p>Again, the <span class="math notranslate nohighlight">\(95\%\)</span> confidence range of likelihoods is shown by the
+black bar, and the symbol reflects the observed conditional-likelihood
+score. In this case, the observed conditional-likelihood is shown with
+the red circle, which falls outside the range of likelihoods simulated
+from the forecast. To understand why the L- and CL-tests give different
+results, consider the results of the N-test and S-test in the following
+sections.</p>
+</section>
+<section id="n-test">
+<h4>N-test<a class="headerlink" href="#n-test" title="Link to this heading"></a></h4>
+<p>Aim: The number or N-test is the most conceptually simple test of a
+forecast: To test whether the number of observed events is consistent
+with that of the forecast.</p>
+<p>Method: The originial N-test was introduced by Schorlemmer et al (2007)
+and modified by Zechar et al (2010). The observed number of events is
+given by,</p>
+<div class="math notranslate nohighlight">
+\[N_{obs} = \sum_{m_i, s_j \in R} \omega(m_i, s_j).\]</div>
+<p>Using the simulations described above, the expected number of events is
+calculated by summing the simulated number of events over all grid cells</p>
+<div class="math notranslate nohighlight">
+\[\hat{N_x} = \sum_{m_i, s_j \in R} \hat{\omega}_x(m_i, s_j),\]</div>
+<p>where <span class="math notranslate nohighlight">\(\hat{\omega}_x(m_i, s_j)\)</span> is the simulated number of events
+in catalog <span class="math notranslate nohighlight">\(x\)</span> in spatial cell <span class="math notranslate nohighlight">\(s_j\)</span> and magnitude cell
+<span class="math notranslate nohighlight">\(m_i\)</span>, generating a set of simulated rates <span class="math notranslate nohighlight">\(\{ \hat{N} \}\)</span>.
+We can then calculate the probability of i) observing at most
+<span class="math notranslate nohighlight">\(N_{obs}\)</span> events and ii) of observing at least <span class="math notranslate nohighlight">\(N_{obs}\)</span>
+events. These probabilities can be written as:</p>
+<div class="math notranslate nohighlight">
+\[\delta_1 =  \frac{ |\{ \hat{N_x} | \hat{N_x} \le N_{obs}\} |}{|\{ \hat{N} \}|}\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[\delta_2 =  \frac{ |\{ \hat{N_x} | \hat{N_x} \ge N_{obs}\} |}{|\{ \hat{N} \}|}\]</div>
+<p>If a forecast is Poisson, the expected number of events in the forecast
+follows a Poisson distribution with expectation
+<span class="math notranslate nohighlight">\(N_{fore} = \sum_{m_i, s_j \in R} \lambda(m_i, s_j)\)</span>. The
+cumulative distribution is then a Poisson cumulative distribution:</p>
+<div class="math notranslate nohighlight">
+\[F(x|N_{fore}) = \exp(-N_{fore}) \sum^{x}_{i=0} \frac{(N_{fore})^i}{i!}\]</div>
+<p>which can be used directly without the need for simulations. The N-test
+quantile score is then</p>
+<div class="math notranslate nohighlight">
+\[\delta_1 =  1 - F((N_{obs}-1)|N_{fore}),\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[\delta_2 = F(N_{obs}|N_{fore}).\]</div>
+<p>The original N-test considered only <span class="math notranslate nohighlight">\(\delta_2\)</span> and it’s complement
+<span class="math notranslate nohighlight">\(1-\delta_2\)</span>, which effectively tested the probability of at most
+<span class="math notranslate nohighlight">\(N_{obs}\)</span> events and more than <span class="math notranslate nohighlight">\(N_{obs}\)</span> events. Very small
+or very large values (&lt;0.025 or &gt; 0.975 respectively) were considered to
+be inconsistent with the forecast in Schorlemmer et al (2010). However
+the approach above aims to test something subtely different, that is at
+least <span class="math notranslate nohighlight">\(N_{obs}\)</span> events and at most <span class="math notranslate nohighlight">\(N_{obs}\)</span> events. Zechar
+et al (2010a) recommends testing both <span class="math notranslate nohighlight">\(\delta_1\)</span> and
+<span class="math notranslate nohighlight">\(\delta_2\)</span> with an effective significance of have the required
+significance level, so for a required significance level of 0.05, a
+forecast is consistent if both <span class="math notranslate nohighlight">\(\delta_1\)</span> and <span class="math notranslate nohighlight">\(\delta_2\)</span> are
+greater than 0.025. A very small <span class="math notranslate nohighlight">\(\delta_1\)</span> suggest the rate is
+too low while a very low <span class="math notranslate nohighlight">\(\delta_2\)</span> suggests a rate which is too
+high to be consistent with observations.</p>
+<p>Implementation in pyCSEP</p>
+<p>pyCSEP uses the Zechar et al (2010) version of the N-test and the
+cumulative Poisson approach to estimate the range of expected events
+from the forecasts, so does not implement a simulation in this case. The
+upper and lower bounds for the test are determined from the cumulative
+Poisson distribution. <code class="docutils literal notranslate"><span class="pre">number_test_result.quantile</span></code> will return both
+<span class="math notranslate nohighlight">\(\delta_1\)</span> and <span class="math notranslate nohighlight">\(\delta_2\)</span> values.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>number_test_result = poisson.number_test(helmstetter, catalog)
+ax = plots.plot_poisson_consistency_test(
+    number_test_result,
+    plot_args={&#39;xlabel&#39;:&#39;Number of events&#39;}
+)
+</pre></div>
+</div>
+<img alt="../_images/output_13_0.png" src="../_images/output_13_0.png" />
+<p>In this case, the black bar shows the <span class="math notranslate nohighlight">\(95\%\)</span> interval for the
+number of events in the forecast. The actual observed number of events
+is shown by the green box, which just passes the N-test in this case:
+the forecast generallly expects more events than are observed in
+practice, but the observed number falls just within the lower limits of
+what is expected so the forecast (just!) passes the N-test.</p>
+</section>
+<section id="m-test">
+<h4>M-test<a class="headerlink" href="#m-test" title="Link to this heading"></a></h4>
+<p>Aim: Establish consistency (or lack thereof) of observed event
+magnitudes with forecast magnitudes.</p>
+<p>Method: The M-test is first described in Zechar et al. (2010) and aims
+to isolate the magnitude component of a forecast. To do this, we sum
+over the spatial bins and normalise so that the sum of events matches
+the observations.</p>
+<div class="math notranslate nohighlight">
+\[\hat{\boldsymbol{\Omega}}^m = \big{\{}\omega^{m}(m_i)| m_i \in \boldsymbol{M}\big{\}},\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\omega^m(m_i) = \sum_{s_j \in \boldsymbol{S}} \omega(m_i, s_j),\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\Lambda}^m = \big{\{} \lambda^m(m_i)| m_i \in \boldsymbol{M} \big{\}},\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\lambda^m(m_i) = \frac{N_{obs}}{N_{fore}}\sum_{s_j \in \boldsymbol{S}} \lambda\big{(}m_i, s_j\big{)}.\]</div>
+<p>Then we compute the joint log-likelihood as we did for the L-test:</p>
+<div class="math notranslate nohighlight">
+\[M = L(\boldsymbol{\Omega}^m | \boldsymbol{\Lambda}^m)\]</div>
+<p>We then wish to compare this with the distribution of simulated
+log-likelihoods, this time keep the number of events fixed to</p>
+<p><span class="math notranslate nohighlight">\(N_{obs}\)</span>. Then for each simulated catalogue,
+<span class="math notranslate nohighlight">\(\hat{M}_x = L(\hat{\boldsymbol{\Omega}}^m | \boldsymbol{\Lambda}^m)\)</span></p>
+<p>Quantile score: The final test statistic is again the fraction of
+observed log likelihoods within the range of the simulated log
+likelihood values:</p>
+<div class="math notranslate nohighlight">
+\[\kappa =  \frac{ |\{ \hat{M_x} | \hat{M_x} \le M\} |}{|\{ \hat{M} \}|}\]</div>
+<p>and the observed magnitudes are inconsistent with the forecast if
+<span class="math notranslate nohighlight">\(\kappa\)</span> is less than the significance level.</p>
+<p>pyCSEP implementation</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>mag_test_result = poisson.magnitude_test(
+    helmstetter,
+    catalog,
+    seed=seed,
+    num_simulations=nsim
+)
+ax = plots.plot_poisson_consistency_test(
+    mag_test_result,
+    one_sided_lower=True,
+    plot_args={&#39;xlabel&#39;:&#39;Normalized likelihood&#39;}
+)
+</pre></div>
+</div>
+<img alt="../_images/output_16_0.png" src="../_images/output_16_0.png" />
+<p>In this example, the forecast passes the M-test, demonstrating that the
+magnitude distribution in the forecast is consistent with observed
+events. This is shown by the green square marking the joint
+log-likelihood for the observed events.</p>
+</section>
+<section id="s-test">
+<h4>S-test<a class="headerlink" href="#s-test" title="Link to this heading"></a></h4>
+<p>Aim: The spatial or S-test aims to establish consistency (or lack
+thereof) of observed event locations with a forecast. It is originally
+defined in Zechar et al (2010).</p>
+<p>Method: Similar to the M-test, but in this case we sum over all
+magnitude bins.</p>
+<div class="math notranslate nohighlight">
+\[\hat{\boldsymbol{\Omega}^s} = \{\omega^s(s_j)| s_j \in \boldsymbol{S}\},\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\omega^s(s_j) = \sum_{m_i \in \boldsymbol{M}} \omega(m_i, s_j),\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\Lambda}^s = \{ \lambda^s(s_j)| s_j \in \boldsymbol{S} \},\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\lambda^s(s_j) = \frac{N_{obs}}{N_{fore}}\sum_{m_i \in M} \lambda(m_i, s_j).\]</div>
+<p>Then we compute the joint log-likelihood as we did for the L-test or the
+M-test:</p>
+<div class="math notranslate nohighlight">
+\[S = L(\boldsymbol{\Omega}^s | \boldsymbol{\Lambda}^s)\]</div>
+<p>We then wish to compare this with the distribution of simulated
+log-likelihoods, this time keeping the number of events fixed to
+<span class="math notranslate nohighlight">\(N_{obs}\)</span>. Then for each simulated catalogue,
+<span class="math notranslate nohighlight">\(\hat{S}_x = L(\hat{\boldsymbol{\Omega}}^s | \boldsymbol{\Lambda}^s)\)</span></p>
+<p>The final test statistic is again the fraction of observed log
+likelihoods within the range of the simulated log likelihood values:</p>
+<div class="math notranslate nohighlight">
+\[\zeta =  \frac{ |\{ \hat{S_x} | \hat{S_x} \le S\} |}{|\{ \hat{S} \}|}\]</div>
+<p>and again the distinction between a forecast passing or failing the test
+depends on our significance level.</p>
+<p>pyCSEP implementation</p>
+<p>The S-test is again a one-sided test, so we specify this when plotting
+the result.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>spatial_test_result = poisson.spatial_test(
+    helmstetter,
+    catalog,
+    seed=seed,
+    num_simulations=nsim
+)
+ax = plots.plot_poisson_consistency_test(
+    spatial_test_result,
+    one_sided_lower=True,
+    plot_args = {&#39;xlabel&#39;:&#39;normalized spatial likelihood&#39;}
+)
+</pre></div>
+</div>
+<img alt="../_images/output_19_0.png" src="../_images/output_19_0.png" />
+<p>The Helmstetter model fails the S-test as the observed spatial
+likelihood falls in the tail of the simulated likelihood distribution.
+Again this is shown by a coloured symbol which highlights whether the
+forecast model passes or fails the test.</p>
+</section>
+</section>
+<section id="forecast-comparison-tests">
+<h3>Forecast comparison tests<a class="headerlink" href="#forecast-comparison-tests" title="Link to this heading"></a></h3>
+<p>The consistency tests above check whether a forecast is consistent with
+observations, but do not provide a straightforward way to compare two
+different forecasts. A few suggestions for this focus on the information
+gain of one forecast relative to another (Harte and Vere-Jones 2005,
+Imoto and Hurukawa, 2006, Imoto and Rhoades, 2010, Rhoades et al 2011).
+The T-test and W-test implementations for earthquake forecast comparison
+are first described in Rhoades et al. (2011).</p>
+<p>The information gain per earthquake (IGPE) of model A compared to model
+B is defined by <span class="math notranslate nohighlight">\(I_{N}(A, B) = R/N\)</span> where R is the rate-corrected
+log-likelihood ratio of models A and B gven by</p>
+<div class="math notranslate nohighlight">
+\[R = \sum_{k=1}^{N}\big{(}\log\lambda_A(i_k) - \log \lambda_B(i_k)\big{)} - \big{(}\hat{N}_A - \hat{N}_B\big{)}\]</div>
+<p>If we set <span class="math notranslate nohighlight">\(X_i=\log\lambda_A(k_i)\)</span> and
+<span class="math notranslate nohighlight">\(Y_i=\log\lambda_B(k_i)\)</span> then we can define the information gain
+per earthquake (IGPE) as</p>
+<div class="math notranslate nohighlight">
+\[I_N(A, B) = \frac{1}{N}\sum^N_{i=1}\big{(}X_i - Y_i\big{)} - \frac{\hat{N}_A - \hat{N}_B}{N}\]</div>
+<p>If <span class="math notranslate nohighlight">\(I(A, B)\)</span> differs significantly from 0, the model with the
+lower likelihood can be rejected in favour of the other.</p>
+<p>t-test</p>
+<p>If <span class="math notranslate nohighlight">\(X_i - Y_i\)</span> are independent and come from the same normal
+population with mean <span class="math notranslate nohighlight">\(\mu\)</span> then we can use the classic paired
+t-test to evaluate the null hypothesis that
+<span class="math notranslate nohighlight">\(\mu = (\hat{N}_A - \hat{N}_B)/N\)</span> against the alternative
+hypothesis <span class="math notranslate nohighlight">\(\mu \ne (\hat{N}_A - \hat{N}_B)/N\)</span>. To implement this,
+we let <span class="math notranslate nohighlight">\(s\)</span> denote the sample variance of <span class="math notranslate nohighlight">\((X_i - Y_i)\)</span> such
+that</p>
+<div class="math notranslate nohighlight">
+\[s^2 = \frac{1}{N-1}\sum^N_{i=1}\big{(}X_i - Y_i\big{)}^2 - \frac{1}{N^2 - N}\bigg{(}\sum^N_{i=1}\big{(}X_i - Y_i\big{)}\bigg{)}^2\]</div>
+<p>Under the null hypothesis
+<span class="math notranslate nohighlight">\(T = I_N(A, B)\big{/}\big{(}s/\sqrt{N}\big{)}\)</span> has a
+t-distribution with <span class="math notranslate nohighlight">\(N-1\)</span> degrees of freedom and the null
+hypothesis can be rejected if <span class="math notranslate nohighlight">\(|T|\)</span> exceeds a critical value of
+the <span class="math notranslate nohighlight">\(t_{N-1}\)</span> distribution. The confidence intervals for
+<span class="math notranslate nohighlight">\(\mu - (\hat{N}_A - \hat{N}_B)/N\)</span> can then be constructed with the
+form <span class="math notranslate nohighlight">\(I_N(A,B) \pm ts/\sqrt{N}\)</span> where t is the appropriate
+quantile of the <span class="math notranslate nohighlight">\(t_{N-1}\)</span> distribution.</p>
+<p>W-test</p>
+<p>An alternative to the t-test is the Wilcoxan signed-rank test or W-test.
+This is a non-parameteric alternative to the t-test which can be used if
+we do not feel the assumption of normally distributed differences in
+<span class="math notranslate nohighlight">\(X_i - Y_i\)</span> is valid. This assumption might b particularly poor
+when we have small sample sizes. The W-test instead depends on the
+(weaker) assumption that <span class="math notranslate nohighlight">\(X_i - Y_i\)</span> is symmetric and tests
+whether the meadian of <span class="math notranslate nohighlight">\(X_i - Y_i\)</span> is equal to
+<span class="math notranslate nohighlight">\((\hat{N}_A - \hat{N}_B)/N\)</span>. The W-test is less powerful than the
+T-test for normally distributed differences and cannot reject the null
+hypothesis (with <span class="math notranslate nohighlight">\(95\%\)</span> confidence) for very small sample sizes
+(<span class="math notranslate nohighlight">\(N \leq 5\)</span>).</p>
+<p>The t-test becomes more accurate as <span class="math notranslate nohighlight">\(N \rightarrow \infty\)</span> due to
+the central limit theorem and therefore the t-test is considered
+dependable for large <span class="math notranslate nohighlight">\(N\)</span>. Where <span class="math notranslate nohighlight">\(N\)</span> is small, a model might
+only be considered more informative if both the t- and W-test results
+agree.</p>
+<p>Implementation in pyCSEP</p>
+<p>The t-test and W-tests are implemented in pyCSEP as below.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>helmstetter_ms = csep.load_gridded_forecast(
+    datasets.helmstetter_mainshock_fname,
+    name = &quot;Helmstetter Mainshock&quot;
+)
+
+t_test = poisson.paired_t_test(helmstetter, helmstetter_ms, catalog)
+w_test = poisson.w_test(helmstetter, helmstetter_ms, catalog)
+comp_args = {&#39;title&#39;: &#39;Paired T-test Result&#39;,
+             &#39;ylabel&#39;: &#39;Information gain&#39;,
+             &#39;xlabel&#39;: &#39;&#39;,
+             &#39;xticklabels_rotation&#39;: 0,
+             &#39;figsize&#39;: (6,4)}
+
+ax = plots.plot_comparison_test([t_test], [w_test], plot_args=comp_args)
+</pre></div>
+</div>
+<img alt="../_images/output_22_0.png" src="../_images/output_22_0.png" />
+<p>The first argument to the <code class="docutils literal notranslate"><span class="pre">paired_t_test</span></code> function is taken as model A
+and the second as our basline model, or model B. When plotting the
+result, the horizontal dashed line indicates the performance of model B
+and the vertical bar shows the confidence bars for the information gain
+<span class="math notranslate nohighlight">\(I_N(A, B)\)</span> associated with model A relative to model B. In this
+case, the model with aftershocks performs statistically worse than the
+benchmark model. We note that this comparison is used for demonstation
+purposes only.</p>
+</section>
+</section>
+<section id="catalog-based-forecast-tests">
+<h2>Catalog-based forecast tests<a class="headerlink" href="#catalog-based-forecast-tests" title="Link to this heading"></a></h2>
+<p>Catalog-based forecast tests evaluate forecasts using simulated outputs
+in the form of synthetic earthquake catalogs. Thus, removing the need
+for the Poisson approximation and simulation procedure used with
+grid-based forecasts. We know that observed seismicity is overdispersed
+with respect to a Poissonian model due to spatio-temporal clustering.
+Overdispersed models are more likely to be rejected by the original
+Poisson-based CSEP tests (Werner et al, 2011a). This modification of the
+testing framework allows for a broader range of forecast models. The
+distribution of realizations is then compared with observations, similar
+to in the grid-based case. These tests were developed by Savran et al
+2020, who applied them to test forecasts following the 2019 Ridgecrest
+earthquake in Southern California.</p>
+<p>In the following text, we show how catalog-based forecasts are defined.
+Again we begin by defining a region <span class="math notranslate nohighlight">\(\boldsymbol{R}\)</span> as a function
+of some magnitude range <span class="math notranslate nohighlight">\(\boldsymbol{M}\)</span>, spatial domain
+<span class="math notranslate nohighlight">\(\boldsymbol{S}\)</span> and time period <span class="math notranslate nohighlight">\(\boldsymbol{T}\)</span></p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol{R} = \boldsymbol{M} \times \boldsymbol{S} \times \boldsymbol{T}.\]</div>
+<p>An earthquake <span class="math notranslate nohighlight">\(e\)</span> can be described by a magnitude <span class="math notranslate nohighlight">\(m_i\)</span> at
+some location <span class="math notranslate nohighlight">\(s_j\)</span> and time <span class="math notranslate nohighlight">\(t_k\)</span>. A catalog is simply a
+collection of earthquakes, thus the observed catalog can be written as</p>
+<div class="math notranslate nohighlight">
+\[\Omega = \big{\{}e_n \big{|} n= 1...N_{obs}; e_n \in \boldsymbol{R} \big{\}},\]</div>
+<p>and a forecast is then specified as a collection of synthetic catalogs
+containing events <span class="math notranslate nohighlight">\(\hat{e}_{nj}\)</span> in domain <span class="math notranslate nohighlight">\(\boldsymbol{R}\)</span>,
+as</p>
+<div class="math notranslate nohighlight">
+\[\boldsymbol{\Lambda} \equiv \Lambda_j = \{\hat{e}_{nj} | n = 1... N_j, j= 1....J ;\hat{e}_{nj} \in \boldsymbol{R} \}.\]</div>
+<p>That is, a forecast consists of <span class="math notranslate nohighlight">\(J\)</span> simulated catalogs each
+containing <span class="math notranslate nohighlight">\(N_j\)</span> events, described in time, space and magnitude
+such that <span class="math notranslate nohighlight">\(\hat{e}_{nj}\)</span> describes the <span class="math notranslate nohighlight">\(n\)</span>th synthetic
+event in the <span class="math notranslate nohighlight">\(j\)</span>th synthetic catalog <span class="math notranslate nohighlight">\(\Lambda_j\)</span></p>
+<p>When using simulated forecasts in pyCSEP, we must first explicitly
+specify the forecast region by specifying the spatial domain and
+magnitude regions as below. In effect, these are filters applied to the
+forecast and observations to retain only the events in
+<span class="math notranslate nohighlight">\(\boldsymbol{R}\)</span>. The examples in this section are catalog-based
+forecast simulations for the Landers earthquake and aftershock sequence
+generated using UCERF3-ETAS (Field et al, 2017).</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Define the start and end times of the forecasts
+start_time = time_utils.strptime_to_utc_datetime(&quot;1992-06-28 11:57:35.0&quot;)
+end_time = time_utils.strptime_to_utc_datetime(&quot;1992-07-28 11:57:35.0&quot;)
+
+# Magnitude bins properties
+min_mw = 4.95
+max_mw = 8.95
+dmw = 0.1
+
+# Create space and magnitude regions.
+magnitudes = regions.magnitude_bins(min_mw, max_mw, dmw)
+region = regions.california_relm_region()
+space_magnitude_region = regions.create_space_magnitude_region(
+    region,
+    magnitudes
+)
+
+# Load forecast
+forecast = csep.load_catalog_forecast(
+    datasets.ucerf3_ascii_format_landers_fname,
+    start_time = start_time,
+    end_time = end_time,
+    region = space_magnitude_region,
+    apply_filters = True
+)
+
+# Compute expected rates
+forecast.filters = [
+    f&#39;origin_time &gt;= {forecast.start_epoch}&#39;,
+    f&#39;origin_time &lt; {forecast.end_epoch}&#39;
+]
+_ = forecast.get_expected_rates(verbose=False)
+
+# Obtain Comcat catalog and filter to region
+comcat_catalog = csep.query_comcat(
+    start_time,
+    end_time,
+    min_magnitude=forecast.min_magnitude
+)
+
+# Filter observed catalog using the same region as the forecast
+comcat_catalog = comcat_catalog.filter_spatial(forecast.region)
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Fetched</span> <span class="n">ComCat</span> <span class="n">catalog</span> <span class="ow">in</span> <span class="mf">0.31937098503112793</span> <span class="n">seconds</span><span class="o">.</span>
+
+<span class="n">Downloaded</span> <span class="n">catalog</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ComCat</span> <span class="k">with</span> <span class="n">following</span> <span class="n">parameters</span>
+<span class="n">Start</span> <span class="n">Date</span><span class="p">:</span> <span class="mi">1992</span><span class="o">-</span><span class="mi">06</span><span class="o">-</span><span class="mi">28</span> <span class="mi">12</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">45</span><span class="o">+</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="n">End</span> <span class="n">Date</span><span class="p">:</span> <span class="mi">1992</span><span class="o">-</span><span class="mi">07</span><span class="o">-</span><span class="mi">24</span> <span class="mi">18</span><span class="p">:</span><span class="mi">14</span><span class="p">:</span><span class="mf">36.250000</span><span class="o">+</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+<span class="n">Min</span> <span class="n">Latitude</span><span class="p">:</span> <span class="mf">33.901</span> <span class="ow">and</span> <span class="n">Max</span> <span class="n">Latitude</span><span class="p">:</span> <span class="mf">36.705</span>
+<span class="n">Min</span> <span class="n">Longitude</span><span class="p">:</span> <span class="o">-</span><span class="mf">118.067</span> <span class="ow">and</span> <span class="n">Max</span> <span class="n">Longitude</span><span class="p">:</span> <span class="o">-</span><span class="mf">116.285</span>
+<span class="n">Min</span> <span class="n">Magnitude</span><span class="p">:</span> <span class="mf">4.95</span>
+<span class="n">Found</span> <span class="mi">19</span> <span class="n">events</span> <span class="ow">in</span> <span class="n">the</span> <span class="n">ComCat</span> <span class="n">catalog</span><span class="o">.</span>
+</pre></div>
+</div>
+<section id="number-test">
+<h3>Number Test<a class="headerlink" href="#number-test" title="Link to this heading"></a></h3>
+<p>Aim: As above, the number test aims to evaluate if the number of
+observed events is consistent with the forecast.</p>
+<p>Method: The observed statistic in this case is given by
+<span class="math notranslate nohighlight">\(N_{obs} = |\Omega|\)</span>, which is simply the number of events in the
+observed catalog. To build the test distribution from the forecast, we
+simply count the number of events in each simulated catalog.</p>
+<div class="math notranslate nohighlight">
+\[N_{j} = |\Lambda_c|; j = 1...J\]</div>
+<p>As in the gridded test above, we can then evaluate the probabilities of
+at least and at most N events, in this case using the empirical
+cumlative distribution function of <span class="math notranslate nohighlight">\(F_N\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\delta_1 = P(N_j \geq N_{obs}) = 1 - F_N(N_{obs}-1)\]</div>
+<p>and</p>
+<div class="math notranslate nohighlight">
+\[\delta_2 = P(N_j \leq N_{obs}) = F_N(N_{obs})\]</div>
+<p>Implementation in pyCSEP</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>number_test_result = catalog_evaluations.number_test(
+    forecast,
+    comcat_catalog,
+    verbose=False
+)
+ax = number_test_result.plot()
+</pre></div>
+</div>
+<img alt="../_images/output_27_0.png" src="../_images/output_27_0.png" />
+<p>Plotting the number test result of a simulated catalog forecast displays
+a histogram of the numbers of events <span class="math notranslate nohighlight">\(\hat{N}_j\)</span> in each simulated
+catalog <span class="math notranslate nohighlight">\(j\)</span>, which makes up the test distribution. The test
+statistic is shown by the dashed line - in this case it is the number of
+observed events in the catalog <span class="math notranslate nohighlight">\(N_{obs}\)</span>.</p>
+</section>
+<section id="magnitude-test">
+<h3>Magnitude Test<a class="headerlink" href="#magnitude-test" title="Link to this heading"></a></h3>
+<p>Aim: The magnitude test aims to test the consistency of the observed
+frequency-magnitude distribution with that in the simulated catalogs
+that make up the forecast.</p>
+<p>Method: The catalog-based magnitude test is implemented quite
+differently to the grid-based equivalent. We first define the union
+catalog <span class="math notranslate nohighlight">\(\Lambda_U\)</span> as the union of all simulated catalogs in the
+forecast. Formally:</p>
+<div class="math notranslate nohighlight">
+\[\Lambda_U = \{ \lambda_1 \cup \lambda_2 \cup ... \cup \lambda_j \}\]</div>
+<div class="line-block">
+<div class="line">so that the union catalog contains all events across all simulated
+catalogs for a total of
+<span class="math notranslate nohighlight">\(N_U = \sum_{j=1}^{J} \big{|}\lambda_j\big{|}\)</span> events.</div>
+<div class="line">We then compute the following histograms discretised to the magnitude
+range and magnitude step size (specified earlier for pyCSEP): 1. the
+histogram of the union catalog magnitudes <span class="math notranslate nohighlight">\(\Lambda_U^{(m)}\)</span> 2.
+Histograms of magnitudes in each of the individual simulated catalogs
+<span class="math notranslate nohighlight">\(\lambda_j^{(m)}\)</span> 3. the histogram of the observed catalog
+magnitudes <span class="math notranslate nohighlight">\(\Omega^{(m)}\)</span></div>
+</div>
+<p>The histograms are normalized so that the total number of events across
+all bins is equal to the observed number. The observed statistic is then
+calculated as the sum of squared logarithmic residuals between the
+normalised observed magnitudes and the union histograms. This statistic
+is related to the Kramer von-Mises statistic.</p>
+<div class="math notranslate nohighlight">
+\[d_{obs}= \sum_{k}\Bigg(\log\Bigg[\frac{N_{obs}}{N_U} \Lambda_U^{(m)}(k) + 1\Bigg]- \log\Big[\Omega^{(m)}(k) + 1\Big]\Bigg)^2\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Lambda_U^{(m)}(k)\)</span> and <span class="math notranslate nohighlight">\(\Omega^{(m)}(k)\)</span>
+represent the count in the <span class="math notranslate nohighlight">\(k\)</span>th bin of the magnitude-frequency
+distribution in the union and observed catalogs respectively. We add
+unity to each bin to avoid <span class="math notranslate nohighlight">\(\log(0)\)</span>. We then build the test
+distribution from the catalogs in <span class="math notranslate nohighlight">\(\boldsymbol{\Lambda}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[D_j =  \sum_{k}\Bigg(\log\Bigg[\frac{N_{obs}}{N_U} \Lambda_U^{(m)}(k) + 1\Bigg]- \log\Bigg[\frac{N_{obs}}{N_j}\Lambda_j^{(m)}(k) + 1\Bigg]\Bigg)^2; j= 1...J\]</div>
+<p>where <span class="math notranslate nohighlight">\(\lambda_j^{(m)}(k)\)</span> represents the count in the
+<span class="math notranslate nohighlight">\(k\)</span>th bin of the magnitude-frequency distribution of the
+<span class="math notranslate nohighlight">\(j\)</span>th catalog.</p>
+<p>The quantile score can then be calculated using the empirical CDF such
+that</p>
+<div class="math notranslate nohighlight">
+\[\gamma_m = F_D(d_{obs})= P(D_j \leq d_{obs})\]</div>
+<div class="line-block">
+<div class="line-block">
+<div class="line">Implementation in pyCSEP</div>
+</div>
+<div class="line">Hopefully you now see why it was necessary to specify our magnitude
+range explicitly when we set up the catalog-type testing - we need to
+makes sure the magnitudes are properly discretised for the model we
+want to test.</div>
+</div>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>magnitude_test_result = catalog_evaluations.magnitude_test(
+    forecast,
+    comcat_catalog,verbose=False
+)
+ax = magnitude_test_result.plot(plot_args={&#39;xy&#39;: (0.6,0.7)})
+</pre></div>
+</div>
+<img alt="../_images/output_30_0.png" src="../_images/output_30_0.png" />
+<p>The histogram shows the resulting test distribution with <span class="math notranslate nohighlight">\(D^*\)</span>
+calculated for each simulated catalog as described in the method above.
+The test statistic <span class="math notranslate nohighlight">\(\omega = d_{obs}\)</span> is shown with the dashed
+horizontal line. The quantile score for this forecast is
+<span class="math notranslate nohighlight">\(\gamma = 0.66\)</span>.</p>
+</section>
+<section id="pseudo-likelihood-test">
+<h3>Pseudo-likelihood test<a class="headerlink" href="#pseudo-likelihood-test" title="Link to this heading"></a></h3>
+<p>Aim : The pseudo-likelihood test aims to evaluate the likelihood of a
+forecast given an observed catalog.</p>
+<p>Method : The pseudo-likelihood test has similar aims to the grid-based
+likelihood test above, but its implementation differs in a few
+significant ways. Firstly, it does not compute an actual likelihood
+(hence the name pseudo-likelihood), and instead of aggregating over
+cells as in the grid-based case, the pseudo-likelihood test aggregates
+likelihood over target event likelihood scores (so likelihood score per
+target event, rather than likelihood score per grid cell). The most
+important difference, however, is that the pseudo-likelihood tests do
+not use a Poisson likelihood.</p>
+<p>The pseudo-likelihood approach is based on the continuous point process
+likelihood function. A continuous marked space-time point process can be
+specified by a conditional intensity function
+<span class="math notranslate nohighlight">\(\lambda(\boldsymbol{e}|H_t)\)</span>, in which <span class="math notranslate nohighlight">\(H_t\)</span> describes the
+history of the process in time. The log-likelihood function for any
+point process in <span class="math notranslate nohighlight">\(\boldsymbol{R}\)</span> is given by</p>
+<div class="math notranslate nohighlight">
+\[L = \sum_{i=1}^{N} \log \lambda(e_i|H_t) - \int_{\boldsymbol{R}}\lambda(\boldsymbol{e}|H_t)d\boldsymbol{R}\]</div>
+<p>Not all models will have an explicit likelihood function, so instead we
+approximate the expectation of <span class="math notranslate nohighlight">\(\lambda(e|H_t)\)</span> using the forecast
+catalogs. The approximate rate density is defined as the conditional
+expectation given a discretised region <span class="math notranslate nohighlight">\(R_d\)</span> of the continuous
+rate</p>
+<div class="math notranslate nohighlight">
+\[\hat{\lambda}(\boldsymbol{e}|H_t) = E\big[\lambda(\boldsymbol{e}|H_t)|R_d\big]\]</div>
+<p>We still regard the model as continuous, but the rate density is
+approximated within a single cell. This is analogous to the gridded
+approach where we count the number of events in discrete cells. The
+pseudo-loglikelihood is then</p>
+<div class="math notranslate nohighlight">
+\[\hat{L} = \sum_{i=1}^N \log \hat{\lambda}(e_i|H_t) - \int_R \hat{\lambda}(\boldsymbol{e}|H_t) dR\]</div>
+<p>and we can write the approximate rate density as</p>
+<div class="math notranslate nohighlight">
+\[\hat{\lambda}(\boldsymbol{e}|H_t) = \sum_M \hat{\lambda}(\boldsymbol{e}|H_t),\]</div>
+<p>where we take the sum over all magnitude bins <span class="math notranslate nohighlight">\(M\)</span>. We can
+calculate observed pseudolikelihood as</p>
+<div class="math notranslate nohighlight">
+\[\hat{L}_{obs} = \sum_{i=1}^{N_{obs}} \log \hat{\lambda}_s(k_i) - \bar{N},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\hat{\lambda}_s(k_i)\)</span> is the approximate rate density in
+the <span class="math notranslate nohighlight">\(k\)</span>th spatial cell and <span class="math notranslate nohighlight">\(k_i\)</span> denotes the spatil cell
+in which the <span class="math notranslate nohighlight">\(i\)</span>th event occurs. <span class="math notranslate nohighlight">\(\bar{N}\)</span> is the expected
+number of events in <span class="math notranslate nohighlight">\(R_d\)</span>. Similarly, we calculate the test
+distribution as</p>
+<div class="math notranslate nohighlight">
+\[\hat{L}_{j} = \Bigg[\sum_{i=1}^{N_{j}} \log\hat{\lambda}_s(k_{ij}) - \bar{N}\Bigg]; j = 1....J,\]</div>
+<p>where <span class="math notranslate nohighlight">\(\hat{\lambda}_s(k_{ij})\)</span> describes the approximate rate
+density of the <span class="math notranslate nohighlight">\(i\)</span>th event in the <span class="math notranslate nohighlight">\(j\)</span>th catalog. We can
+then calculate the quantile score as</p>
+<div class="math notranslate nohighlight">
+\[\gamma_L = F_L(\hat{L}_{obs})= P(\hat{L}_j \leq \hat{L}_{obs}).\]</div>
+<p>Implementation in pyCSEP</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>pseudolikelihood_test_result = catalog_evaluations.pseudolikelihood_test(
+    forecast,
+    comcat_catalog,
+    verbose=False
+)
+ax = pseudolikelihood_test_result.plot()
+</pre></div>
+</div>
+<img alt="../_images/output_33_0.png" src="../_images/output_33_0.png" />
+<p>The histogram shows the test distribution of pseudolikelihood as
+calculated above for each catalog <span class="math notranslate nohighlight">\(j\)</span>. The dashed vertical line
+shows the observed statistic <span class="math notranslate nohighlight">\(\hat{L}_{obs} = \omega\)</span>. It is clear
+that the observed statistic falls within the critical region of test
+distribution, as reflected in the quantile score of
+<span class="math notranslate nohighlight">\(\gamma_L = 0.02\)</span>.</p>
+</section>
+<section id="spatial-test">
+<h3>Spatial test<a class="headerlink" href="#spatial-test" title="Link to this heading"></a></h3>
+<p>Aim: The spatial test again aims to isolate the spatial component of the
+forecast and test the consistency of spatial rates with observed events.</p>
+<p>Method: We perform the spatial test in the catalog-based approach in a
+similar way to the grid-based spatial test approach: by normalising the
+approximate rate density. In this case, we use the normalisation
+<span class="math notranslate nohighlight">\(\hat{\lambda}_s = \hat{\lambda}_s \big/ \sum_{R} \hat{\lambda}_s\)</span>.
+Then the observed spatial test statistic is calculated as</p>
+<div class="math notranslate nohighlight">
+\[S_{obs} = \Bigg[\sum_{i=1}^{N_{obs}} \log \hat{\lambda}_s^*(k_i)\Bigg]N_{obs}^{-1}\]</div>
+<p>in which <span class="math notranslate nohighlight">\(\hat{\lambda}_s^*(k_i)\)</span> is the normalised approximate
+rate density in the <span class="math notranslate nohighlight">\(k\)</span>th cell corresponding to the
+<span class="math notranslate nohighlight">\(i\)</span>th event in the observed catalog <span class="math notranslate nohighlight">\(\Omega\)</span>. Similarly,
+we define the test distribution using</p>
+<div class="math notranslate nohighlight">
+\[S_{c} = \bigg[\sum_{i=1}^{N_{j}} \log \hat{\lambda}_s^*(k_{ij})\bigg]N_{j}^{-1}; j= 1...J\]</div>
+<p>for each catalog j. Finally, the quantile score for the spatial test is
+determined by once again comparing the observed and test distribution
+statistics:</p>
+<div class="math notranslate nohighlight">
+\[\gamma_s = F_s(\hat{S}_{obs}) = P (\hat{S}_j \leq \hat{S}_{obs})\]</div>
+<p>Implementation in pyCSEP</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>spatial_test_result = catalog_evaluations.spatial_test(
+    forecast,
+    comcat_catalog,
+    verbose=False
+)
+ax = spatial_test_result.plot()
+</pre></div>
+</div>
+<img alt="../_images/output_36_0.png" src="../_images/output_36_0.png" />
+<p>The histogram shows the test distribution of normalised
+pseduo-likelihood computed for each simulated catalog <span class="math notranslate nohighlight">\(j\)</span>. The
+dashed vertical line shows the observed test statistic
+<span class="math notranslate nohighlight">\(s_{obs} = \omega = -5.88\)</span>, which is clearly within the test
+distribution. The quantile score <span class="math notranslate nohighlight">\(\gamma_s = 0.36\)</span> is also printed
+on the figure by default.</p>
+</section>
+<section id="resampled-magnitude-test">
+<h3>Resampled Magnitude Test<a class="headerlink" href="#resampled-magnitude-test" title="Link to this heading"></a></h3>
+<p>Aim: Perform the resampled magnitude test for catalog-based forecasts (Serafini et al., , in-prep),
+which is a correction to the original M-test implementation that is biased to the total N of
+events.</p>
+<p>Method: Calculates the (pseudo log-likelihood) test statistic distribution <span class="math notranslate nohighlight">\(D_j\)</span> from the
+resampled forecast’s synthetic catalogs <span class="math notranslate nohighlight">\(\hat{\Lambda}_j\)</span> as:</p>
+<div class="math notranslate nohighlight">
+\[D_j =  \sum_{k}\Bigg(\log\Bigg[\frac{N_{obs}}{N_U} \Lambda_U^{(m)}(k) + 1\Bigg]- \log\Bigg[\hat{\Lambda}_j^{(m)}(k) + 1\Bigg]\Bigg)^2; j= 1...J\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Lambda_U^{(m)}(k)\)</span> and  <span class="math notranslate nohighlight">\(\Lambda_U^{(m)}(k)\)</span> represent the count in the <span class="math notranslate nohighlight">\(k\)</span>th bin of the magnitude-frequency
+distribution in the union catalog and resampled catalog, respectively. The resampled catalogs <span class="math notranslate nohighlight">\(\hat{\Lambda}_j^{(m)}\)</span>
+are built from drawing exactly <span class="math notranslate nohighlight">\(N_{obs}\)</span> events from the union catalog <span class="math notranslate nohighlight">\(\Lambda_U^{(m)}\)</span>.</p>
+<p>The observed statistic is built identically as the original Magnitude test:</p>
+<div class="math notranslate nohighlight">
+\[d_{obs}= \sum_{k}\Bigg(\log\Bigg[\frac{N_{obs}}{N_U} \Lambda_U^{(m)}(k) + 1\Bigg]- \log\Big[\Omega^{(m)}(k) + 1\Big]\Bigg)^2\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Omega^{(m)}(k)\)</span> represent the count in the <span class="math notranslate nohighlight">\(k\)</span>th bin of the magnitude-frequency
+distribution in the observed catalog.</p>
+<ul class="simple">
+<li><p>Implementation in pyCSEP</p></li>
+</ul>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from csep.core.catalog_evaluations import resampled_magnitude_test
+
+resampled_m_test = resampled_magnitude_test(forecast, comcat_catalog, seed=1)
+resampled_m_test.plot(show = True)
+</pre></div>
+</div>
+<img alt="../_images/output_37_0.png" src="../_images/output_37_0.png" />
+<p>The histogram shows the resulting test distribution with <span class="math notranslate nohighlight">\(D^*\)</span>, which has a smoother
+statistic distribution than the original M-test.
+The observed statistic <span class="math notranslate nohighlight">\(\omega = d_{obs}\)</span> is shown with the dashed
+horizontal line. The quantile score for this forecast is
+<span class="math notranslate nohighlight">\(\gamma = 0.98\)</span>.</p>
+</section>
+<section id="modified-multinomial-log-likelihood-mll-magnitude-test">
+<h3>Modified Multinomial Log-Likelihood (MLL) Magnitude Test<a class="headerlink" href="#modified-multinomial-log-likelihood-mll-magnitude-test" title="Link to this heading"></a></h3>
+<ul>
+<li><p>Aim: Implements the modified Multinomial log-likelihood (MLL) magnitude test (Serafini et al., in-prep).</p></li>
+<li><p>Method:  Calculates the test statistic distribution as:</p>
+<div class="math notranslate nohighlight">
+\[D_j = -2 \log\Bigg[\cfrac{\mathcal{L}\big(\Lambda_u^{(m)} + \frac{N_u}{N_j}\boldsymbol{1} + \hat{\Lambda}_j^{(m)} + \boldsymbol{1}\big)} {\mathcal{L}\big(\Lambda_u^{(m)} + \frac{N_u}{N_j}\boldsymbol{1}\big) \mathcal{L}\big(\hat{\Lambda}_j^{(m)} + \boldsymbol{1}\big)}\Bigg]\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathcal{L}\)</span> is the multinomial likelihood function. <span class="math notranslate nohighlight">\(\Lambda_u\)</span> is the union of all the forecasts’
+synthetic catalogs, <span class="math notranslate nohighlight">\(\Lambda_u^{(m)}\)</span> its magnitude histogram, and <span class="math notranslate nohighlight">\(N_u\)</span> the total number of events in <span class="math notranslate nohighlight">\(\Lambda_u\)</span>. <span class="math notranslate nohighlight">\(\hat{\Lambda}_j\)</span> are resampled catalogs, which are built from drawing exactly <span class="math notranslate nohighlight">\(N_{obs}\)</span> events from the union catalog <span class="math notranslate nohighlight">\(\Lambda_U\)</span>, whereas <span class="math notranslate nohighlight">\(\hat{\Lambda}_j^{(m)}\)</span> is its histogram. The vector <span class="math notranslate nohighlight">\(\boldsymbol{1}\)</span> has a value of 1 on each magnitude histogram bin.</p>
+<p>The observed statistic is defined as:</p>
+<div class="math notranslate nohighlight">
+\[d_{obs} = -2 \log\Bigg[\cfrac{\mathcal{L}\big(\Lambda_u^{(m)} + \frac{N_u}{N_j}\boldsymbol{1} + \Omega^{(m)} + \boldsymbol{1}\big)} {\mathcal{L}\big(\Lambda_u^{(m)} + \frac{N_u}{N_j}\boldsymbol{1}\big) \mathcal{L}\big(\Omega^{(m)} + \boldsymbol{1}\big)}\Bigg]\]</div>
+<p>The multinomial likelihood function <span class="math notranslate nohighlight">\(\mathcal{L}\)</span> for an arbitrary catalog’s magnitude histogram <span class="math notranslate nohighlight">\(\Lambda^{(m)}\)</span> is defined as:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}(\Lambda^{(m)}) = \cfrac{N_\Lambda!}{n_{\Lambda,1}!\, ... n_{\Lambda,K}!}\prod_{k=1}^{K} \left(\cfrac{n_{\Lambda,k}}{N}\right)^{n_{\Lambda,k}}\]</div>
+<p>where <span class="math notranslate nohighlight">\(N_\Lambda\)</span> is the total number of events in <span class="math notranslate nohighlight">\(\Lambda^{(m)}\)</span>,
+<span class="math notranslate nohighlight">\(n_{\Lambda,k}\)</span> the number of events in the <span class="math notranslate nohighlight">\(k-th\)</span>  bin, and <span class="math notranslate nohighlight">\(K\)</span> the total
+number of bins.</p>
+</li>
+<li><p>Implementation in pyCSEP</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from csep.core.catalog_evaluations import MLL_magnitude_test
+
+MLL_t = MLL_magnitude_test(forecast, comcat_catalog, full_calculation=False, verbose=False, seed=22)
+MLL_t.plot(show=True)
+</pre></div>
+</div>
+<img alt="../_images/output_38_0.png" src="../_images/output_38_0.png" />
+</li>
+</ul>
+</section>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<p>Field, E. H., K. R. Milner, J. L. Hardebeck, M. T. Page, N. J. van der
+Elst, T. H. Jordan, A. J. Michael, B. E. Shaw, and M. J. Werner (2017).
+A spatiotemporal clustering model for the third Uniform California
+Earthquake Rupture Forecast (UCERF3-ETAS): Toward an operational
+earthquake forecast, Bull. Seismol. Soc. Am. 107, 1049–1081.</p>
+<p>Harte, D., and D. Vere-Jones (2005), The entropy score and its uses in
+earthquake forecasting, Pure Appl. Geophys. 162 , 6-7, 1229-1253, DOI:
+10.1007/ s00024-004-2667-2.</p>
+<p>Helmstetter, A., Y. Y. Kagan, and D. D. Jackson (2006). Comparison of
+short-term and time-independent earthquake forecast models for southern
+California, Bulletin of the Seismological Society of America 96 90-106.</p>
+<p>Imoto, M., and N. Hurukawa (2006), Assessing potential seismic activity
+in Vrancea, Romania, using a stress-release model, Earth Planets Space
+58 , 1511-1514.</p>
+<p>Imoto, M., and D.A. Rhoades (2010), Seismicity models of moderate
+earthquakes in Kanto, Japan utilizing multiple predictive parameters,
+Pure Appl. Geophys. 167, 6-7, 831-843, DOI: 10.1007/s00024-010-0066-4.</p>
+<p>Rhoades, D.A, D., Schorlemmer, M.C.Gerstenberger, A. Christophersen, J.
+D. Zechar &amp; M. Imoto (2011) Efficient testing of earthquake forecasting
+models, Acta Geophysica 59</p>
+<p>Savran, W., M. J. Werner, W. Marzocchi, D. Rhoades, D. D. Jackson, K. R.
+Milner, E. H. Field, and A. J. Michael (2020). Pseudoprospective
+evaluation of UCERF3-ETAS forecasts during the 2019 Ridgecrest Sequence,
+Bulletin of the Seismological Society of America.</p>
+<p>Schorlemmer, D., and M.C. Gerstenberger (2007), RELM testing center,
+Seismol. Res. Lett. 78, 30–36.</p>
+<p>Schorlemmer, D., M.C. Gerstenberger, S. Wiemer, D.D. Jackson, and D.A.
+Rhoades (2007), Earthquake likelihood model testing, Seismol. Res. Lett.
+78, 17–29.</p>
+<p>Schorlemmer, D., A. Christophersen, A. Rovida, F. Mele, M. Stucci and W.
+Marzocchi (2010a). Setting up an earthquake forecast experiment in
+Italy, Annals of Geophysics, 53, no.3</p>
+<p>Schorlemmer, D., J.D. Zechar, M.J. Werner, E.H. Field, D.D. Jackson, and
+T.H. Jordan (2010b), First results of the Regional Earthquake Likelihood
+Models experiment, Pure Appl. Geophys., 167, 8/9,
+doi:10.1007/s00024-010-0081-5.</p>
+<p>M. Taroni, W. Marzocchi, D. Schorlemmer, M. J. Werner, S. Wiemer, J. D.
+Zechar, L. Heiniger, F. Euchner; Prospective CSEP Evaluation of 1‐Day,
+3‐Month, and 5‐Yr Earthquake Forecasts for Italy. Seismological Research
+Letters 2018;; 89 (4): 1251–1261. doi:
+<a class="reference external" href="https://doi.org/10.1785/0220180031">https://doi.org/10.1785/0220180031</a></p>
+<p>Werner, M. J., A. Helmstetter, D. D. Jackson, and Y. Y. Kagan (2011a).
+High-Resolution Long-Term and Short-Term Earthquake Forecasts for
+California, Bulletin of the Seismological Society of America 101
+1630-1648</p>
+<p>Werner, M.J. J.D. Zechar, W. Marzocchi, and S. Wiemer (2011b),
+Retrospective evaluation of the five-year and ten-year CSEP-Italy
+earthquake forecasts, Annals of Geophysics 53, no. 3, 11–30,
+doi:10.4401/ag-4840.</p>
+<p>Zechar, 2011: Evaluating earthquake predictions and earthquake
+forecasts: a guide for students and new researchers, CORSSA
+(<a class="reference external" href="http://www.corssa.org/en/articles/theme_6/">http://www.corssa.org/en/articles/theme_6/</a>)</p>
+<p>Zechar, J.D., M.C. Gerstenberger, and D.A. Rhoades (2010a),
+Likelihood-based tests for evaluating space-rate-magnitude forecasts,
+Bull. Seis. Soc. Am., 100(3), 1184—1195, doi:10.1785/0120090192.</p>
+<p>Zechar, J.D., D. Schorlemmer, M. Liukis, J. Yu, F. Euchner, P.J.
+Maechling, and T.H. Jordan (2010b), The Collaboratory for the Study of
+Earthquake Predictability perspective on computational earthquake
+science, Concurr. Comp-Pract. E., doi:10.1002/cpe.1519.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="core_concepts.html" class="btn btn-neutral float-left" title="Core Concepts for Beginners" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../tutorials/catalog_filtering.html" class="btn btn-neutral float-right" title="Catalogs operations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  
+ 
+&#169; 2020, University of Southern California.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
