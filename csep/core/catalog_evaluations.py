@@ -212,7 +212,7 @@ def magnitude_test(forecast, observed_catalog, verbose=True):
 
     # prepare result
     result = CatalogMagnitudeTestResult(test_distribution=test_distribution,
-                              name='M-Test',
+                              name='Catalog M-Test',
                               observed_statistic=obs_d_statistic,
                               quantile=(delta_1, delta_2),
                               status='normal',
@@ -307,7 +307,7 @@ def pseudolikelihood_test(forecast, observed_catalog, verbose=True):
     # prepare evaluation result
     result = CatalogPseudolikelihoodTestResult(
         test_distribution=test_distribution_1d,
-        name='PL-Test',
+        name='Catalog PL-Test',
         observed_statistic=obs_plh,
         quantile=(delta_1, delta_2),
         status=message,
