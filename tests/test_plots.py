@@ -27,7 +27,7 @@ from csep.core.catalog_evaluations import (
 from csep.utils.plots import (
     plot_cumulative_events_versus_time,
     plot_magnitude_versus_time,
-    plot_distribution_test,
+    plot_test_distribution,
     plot_magnitude_histogram,
     plot_calibration_test,
     plot_comparison_test,
@@ -144,6 +144,21 @@ class TestTimeSeriesPlots(TestPlots):
         #
         # # Test with show=True (just to ensure no errors occur)
         plot_magnitude_versus_time(catalog=self.observation_m2, show=False)
+        plt.close("all")
+
+        # Test with reset_times=True
+        ax = plot_magnitude_versus_time(catalog=self.observation_m2, reset_times=True, show=show_plots)
+        x_data = ax.collections[0].get_offsets().data[:, 0]  # extract x from scatter plot
+
+        # Check that the X-axis label is correct
+        self.assertEqual(ax.get_xlabel(), "Days since first event")
+
+        # Check that time starts at 0
+        self.assertAlmostEqual(x_data.min(), 0.0, places=4)
+
+        # Check that time increases
+        self.assertTrue(numpy.all(numpy.diff(x_data) >= 0))
+
         plt.close("all")
 
     def test_plot_cumulative_events_default(self):
@@ -319,7 +334,7 @@ class TestPlotDistributionTests(TestPlots):
             self.l_test = CatalogPseudolikelihoodTestResult.from_dict(json.load(fp))
 
     def test_plot_dist_test_with_scalar_observation_default(self):
-        ax = plot_distribution_test(
+        ax = plot_test_distribution(
             evaluation_result=self.result_obs_scalar,
             show=show_plots,
         )
@@ -330,7 +345,7 @@ class TestPlotDistributionTests(TestPlots):
         self.assertEqual(lines[0].get_xdata()[0], self.result_obs_scalar.observed_statistic)
 
     def test_plot_dist_test_with_scalar_observation_w_labels(self):
-        ax = plot_distribution_test(
+        ax = plot_test_distribution(
             evaluation_result=self.result_obs_scalar,
             xlabel="Test X Label",
             ylabel="Test Y Label",
@@ -344,7 +359,7 @@ class TestPlotDistributionTests(TestPlots):
         self.assertEqual(lines[0].get_xdata()[0], self.result_obs_scalar.observed_statistic)
 
     def test_plot_dist_test_with_array_observation(self):
-        ax = plot_distribution_test(
+        ax = plot_test_distribution(
             evaluation_result=self.result_obs_array,
             alpha=0.5,
             show=show_plots,
@@ -356,7 +371,7 @@ class TestPlotDistributionTests(TestPlots):
         )
 
     def test_plot_dist_test_with_percentile_shading(self):
-        ax = plot_distribution_test(
+        ax = plot_test_distribution(
             evaluation_result=self.result_obs_scalar,
             percentile=60,
             show=show_plots,
@@ -375,7 +390,7 @@ class TestPlotDistributionTests(TestPlots):
 
     def test_plot_dist_test_with_annotation(self):
         annotation_text = "Test Annotation"
-        ax = plot_distribution_test(
+        ax = plot_test_distribution(
             evaluation_result=self.result_obs_scalar,
             xlabel="Test X Label",
             ylabel="Test Y Label",
@@ -391,7 +406,7 @@ class TestPlotDistributionTests(TestPlots):
 
     def test_plot_dist_test_xlim(self):
         xlim = (-5, 5)
-        ax = plot_distribution_test(
+        ax = plot_test_distribution(
             evaluation_result=self.result_obs_scalar,
             percentile=95,
             xlim=xlim,
@@ -401,32 +416,32 @@ class TestPlotDistributionTests(TestPlots):
 
     def test_plot_dist_test_autoxlim_nan(self):
 
-        plot_distribution_test(
+        plot_test_distribution(
             evaluation_result=self.result_nan,
             percentile=95,
             show=show_plots,
         )
 
     def test_plot_n_test(self):
-        plot_distribution_test(
+        plot_test_distribution(
             self.n_test,
             show=show_plots,
         )
 
     def test_plot_m_test(self):
-        plot_distribution_test(
+        plot_test_distribution(
             self.m_test,
             show=show_plots,
         )
 
     def test_plot_s_test(self):
-        plot_distribution_test(
+        plot_test_distribution(
             self.s_test,
             show=show_plots,
         )
 
     def test_plot_l_test(self):
-        plot_distribution_test(
+        plot_test_distribution(
             self.l_test,
             show=show_plots,
         )
@@ -1199,7 +1214,7 @@ class TestHelperFunctions(TestPlots):
         )
 
         # Assertions to check if the annotations were correctly set
-        self.assertEqual(ax.get_xlabel(), "Event Count")
+        self.assertEqual(ax.get_xlabel(), "Event Counts")
         self.assertEqual(ax.get_ylabel(), "Number of Catalogs")
         self.assertEqual(ax.get_title(), "Catalog N-Test: Simulated Catalog")
 

@@ -143,7 +143,7 @@ class CatalogNumberTestResult(EvaluationResult):
                               'bins': bins}
         # looks funny, but will update the defaults with the user defined arguments
         plot_args_defaults.update(plot_args)
-        ax = plots.plot_distribution_test(self, show=show)
+        ax = plots.plot_test_distribution(self, show=show)
         return ax
 
 
@@ -160,7 +160,7 @@ class CatalogPseudolikelihoodTestResult(EvaluationResult):
                               'bins': 'auto'}
         # looks funny, but will update the defaults with the user defined arguments
         plot_args_defaults.update(plot_args)
-        ax = plots.plot_distribution_test(self, show=show)
+        ax = plots.plot_test_distribution(self, show=show)
         return ax
 
 
@@ -175,7 +175,7 @@ class CatalogMagnitudeTestResult(EvaluationResult):
                               'title': 'Magnitude Test',
                               'bins': 'auto'}
         plot_args_defaults.update(plot_args)
-        ax = plots.plot_distribution_test(self, show=show)
+        ax = plots.plot_test_distribution(self, show=show)
         return ax
 
 
@@ -194,7 +194,7 @@ class CatalogSpatialTestResult(EvaluationResult):
         }
         # looks funny, but will update the defaults with the user defined arguments
         plot_args_defaults.update(plot_args)
-        ax = plots.plot_distribution_test(self, show=show)
+        ax = plots.plot_test_distribution(self, show=show)
         return ax
 
 
