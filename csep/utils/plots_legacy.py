@@ -10,7 +10,9 @@ import matplotlib
 import matplotlib.lines
 from matplotlib.collections import PatchCollection
 import matplotlib.pyplot as pyplot
+import cartopy.crs as ccrs
 from cartopy.io import img_tiles
+from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 
 # PyCSEP imports
 from csep.utils.calc import bin1d_vec
@@ -566,7 +568,6 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None,
     """
     Legacy-compatible wrapper for plot_gridded_dataset.
     """
-    from .plots import plot_gridded_dataset
 
     plot_args = plot_args or {}
     warnings.warn(
@@ -577,16 +578,125 @@ def plot_spatial_dataset(gridded, region, ax=None, show=False, extent=None,
         stacklevel=2
     )
 
-    return plot_gridded_dataset(
-        gridded=gridded,
-        region=region,
-        ax=ax,
-        show=show,
-        extent=extent,
-        set_global=set_global,
-        **plot_args,
-        **kwargs
-    )
+    # Get spatial information for plotting
+    bbox = region.get_bbox()
+    if extent is None and not set_global:
+        extent = [bbox[0], bbox[1], bbox[2], bbox[3]]
+
+    # Retrieve plot arguments
+    plot_args = plot_args or {}
+    # figure and axes properties
+    figsize = plot_args.get('figsize', None)
+    title = plot_args.get('title', None)
+    title_size = plot_args.get('title_size', None)
+    filename = plot_args.get('filename', None)
+    # cartopy properties
+    projection = plot_args.get('projection',
+                               ccrs.PlateCarree(central_longitude=0.0))
+    grid = plot_args.get('grid', True)
+    grid_labels = plot_args.get('grid_labels', False)
+    grid_fontsize = plot_args.get('grid_fontsize', False)
+    basemap = plot_args.get('basemap', None)
+    coastline = plot_args.get('coastline', True)
+    borders = plot_args.get('borders', False)
+    tile_scaling = plot_args.get('tile_scaling', 'auto')
+    linewidth = plot_args.get('linewidth', True)
+    linecolor = plot_args.get('linecolor', 'black')
+    region_border = plot_args.get('region_border', True)
+    # color bar properties
+    include_cbar = plot_args.get('include_cbar', True)
+    cmap = plot_args.get('cmap', None)
+    clim = plot_args.get('clim', None)
+    clabel = plot_args.get('clabel', None)
+    clabel_fontsize = plot_args.get('clabel_fontsize', None)
+    cticks_fontsize = plot_args.get('cticks_fontsize', None)
+    alpha = plot_args.get('alpha', 1)
+    alpha_exp = plot_args.get('alpha_exp', 0)
+
+    apprx = False
+    central_latitude = 0.0
+    if projection == 'fast':
+        projection = ccrs.PlateCarree()
+        apprx = True
+        n_lats = len(region.ys) // 2
+        central_latitude = region.ys[n_lats]
+
+    # Instantiate GeoAxes object
+    if ax is None:
+        fig = pyplot.figure(figsize=figsize)
+        ax = fig.add_subplot(111, projection=projection)
+    else:
+        fig = ax.get_figure()
+
+    if set_global:
+        ax.set_global()
+        region_border = False
+    else:
+        ax.set_extent(extents=extent,
+                      crs=ccrs.PlateCarree())  # Defined extent always in lat/lon
+
+    # Basemap plotting
+    ax = plot_basemap(basemap, extent, ax=ax, coastline=coastline,
+                      borders=borders,
+                      linecolor=linecolor, linewidth=linewidth,
+                      projection=projection, apprx=apprx,
+                      central_latitude=central_latitude,
+                      tile_scaling=tile_scaling, set_global=set_global)
+
+    ## Define colormap and transparency function
+    if isinstance(cmap, str) or not cmap:
+        cmap = pyplot.get_cmap(cmap)
+    cmap_tup = cmap(numpy.arange(cmap.N))
+    if isinstance(alpha_exp, (float, int)):
+        if alpha_exp != 0:
+            cmap_tup[:, -1] = numpy.linspace(0, 1, cmap.N) ** alpha_exp
+            alpha = None
+    cmap = matplotlib.colors.ListedColormap(cmap_tup)
+
+    ## Plot spatial dataset
+    lons, lats = numpy.meshgrid(numpy.append(region.xs, bbox[1]),
+                                numpy.append(region.ys, bbox[3]))
+    im = ax.pcolor(lons, lats, gridded, cmap=cmap, alpha=alpha, snap=True,
+                   transform=ccrs.PlateCarree())
+    im.set_clim(clim)
+
+
+    # Colorbar options
+    # create an axes on the right side of ax. The width of cax will be 5%
+    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
+    if include_cbar:
+        cax = fig.add_axes(
+            [ax.get_position().x1 + 0.01, ax.get_position().y0, 0.025,
+             ax.get_position().height],
+            label='Colorbar')
+        cbar = fig.colorbar(im, ax=ax, cax=cax)
+        cbar.set_label(clabel, fontsize=clabel_fontsize)
+        cbar.ax.tick_params(labelsize=cticks_fontsize)
+
+    # Gridline options
+    if grid:
+        gl = ax.gridlines(draw_labels=grid_labels, alpha=0.5)
+        gl.right_labels = False
+        gl.top_labels = False
+        gl.xlabel_style['fontsize'] = grid_fontsize
+        gl.ylabel_style['fontsize'] = grid_fontsize
+        gl.xformatter = LONGITUDE_FORMATTER
+        gl.yformatter = LATITUDE_FORMATTER
+
+    if region_border:
+        pts = region.tight_bbox()
+        ax.plot(pts[:, 0], pts[:, 1], lw=1, color='black',
+                transform=ccrs.PlateCarree())
+
+    # matplotlib figure options
+    ax.set_title(title, y=1.06, fontsize=title_size)
+    if filename is not None:
+        ax.get_figure().savefig(filename + '.pdf')
+        ax.get_figure().savefig(filename + '.png', dpi=300)
+    if show:
+        pyplot.show()
+
+    return ax
 
 
 def plot_number_test(evaluation_result, axes=None, show=True, plot_args=None):
