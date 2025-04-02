@@ -101,6 +101,7 @@ def plot_magnitude_versus_time(
     max_size: int = 300,
     power: int = 4,
     alpha: float = 0.5,
+    reset_times: bool = False,
     ax: Optional[matplotlib.axes.Axes] = None,
     show: bool = False,
     **kwargs: Any,
@@ -118,6 +119,7 @@ def plot_magnitude_versus_time(
             Defaults to `300`.
         power (int, optional): Power scaling of the scatter sizing. Defaults to `4`.
         alpha (float, optional): Transparency level for the scatter points. Defaults to `0.5`.
+        reset_times (bool): If True, x-axis shows time in days since first event.
         ax (matplotlib.axes.Axes, optional): Axis object on which to plot. If not provided, a
             new figure and axis are created. Defaults to `None`.
         show (bool, optional): Whether to display the plot. Defaults to `False`.
@@ -149,8 +151,19 @@ def plot_magnitude_versus_time(
     # Plot data
     mag = catalog.data["magnitude"]
     datetimes = catalog.get_datetimes()
+
+    if reset_times:
+        # Convert to days since first event
+        SECONDS_PER_DAY = 86400
+        timestamps = numpy.array([dt.timestamp() for dt in datetimes])
+        xdata = (timestamps - timestamps[0]) / SECONDS_PER_DAY
+        xlabel = plot_args["xlabel"] or "Days since first event"
+    else:
+        xdata = datetimes
+        xlabel = plot_args["xlabel"] or "Datetime"
+
     ax.scatter(
-        datetimes,
+        xdata,
         mag,
         marker="o",
         c=color,
@@ -159,15 +172,16 @@ def plot_magnitude_versus_time(
     )
 
     # Set labels and title
-    ax.set_xlabel(plot_args["xlabel"] or "Datetime", fontsize=plot_args["xlabel_fontsize"])
+    ax.set_xlabel(xlabel, fontsize=plot_args["xlabel_fontsize"])
     ax.set_ylabel(plot_args["ylabel"] or "Magnitude", fontsize=plot_args["ylabel_fontsize"])
     ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"])
 
     # Autoformat ticks and labels
-    ax.xaxis.set_major_locator(plot_args["datetime_locator"])
-    ax.xaxis.set_major_formatter(plot_args["datetime_formatter"])
+    if not reset_times:
+        ax.xaxis.set_major_locator(plot_args["datetime_locator"])
+        ax.xaxis.set_major_formatter(plot_args["datetime_formatter"])
+        fig.autofmt_xdate()
     ax.grid(plot_args["grid"])
-    fig.autofmt_xdate()
 
     if plot_args["tight_layout"]:
         fig.tight_layout()
@@ -177,7 +191,7 @@ def plot_magnitude_versus_time(
     return ax
 
 
-def plot_cumulative_events_versus_time(
+def _plot_cumulative_events_versus_time(
     catalog_forecast: "CatalogForecast",
     observation: "CSEPCatalog",
     time_axis: str = "datetime",
@@ -232,7 +246,6 @@ def plot_cumulative_events_versus_time(
     Returns:
         matplotlib.axes.Axes: The Matplotlib axes object with the plotted data.
     """
-
     # Initialize plot
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
@@ -507,7 +520,7 @@ def plot_magnitude_histogram(
 ###############
 # Spatial plots
 ###############
-def plot_basemap(
+def _plot_basemap(
     basemap: Optional[str] = None,
     extent: Optional[List[float]] = None,
     coastline: bool = True,
@@ -887,7 +900,7 @@ def plot_gridded_dataset(
 #####################
 # Single Result plots
 #####################
-def plot_distribution_test(
+def plot_test_distribution(
     evaluation_result: "EvaluationResult",
     bins: Union[str, int, List[Any]] = "fd",
     percentile: Optional[int] = 95,
@@ -1123,7 +1136,7 @@ def plot_calibration_test(
 #####################
 # Results batch plots
 #####################
-def plot_comparison_test(
+def _plot_comparison_test(
     results_t: List["EvaluationResult"],
     results_w: Optional[List["EvaluationResult"]] = None,
     percentile: int = 95,
@@ -1282,7 +1295,7 @@ def plot_comparison_test(
     return ax
 
 
-def plot_consistency_test(
+def _plot_consistency_test(
     eval_results: Union[List["EvaluationResult"], "EvaluationResult"],
     normalize: bool = False,
     one_sided_lower: bool = False,
@@ -1416,7 +1429,7 @@ def plot_consistency_test(
 ###################
 # Alarm-based plots
 ###################
-def plot_concentration_ROC_diagram(
+def _plot_concentration_ROC_diagram(
     forecast: "GriddedForecast",
     catalog: "CSEPCatalog",
     linear: bool = True,
@@ -1532,7 +1545,7 @@ def plot_concentration_ROC_diagram(
     return ax
 
 
-def plot_ROC_diagram(
+def _plot_ROC_diagram(
     forecast: "GriddedForecast",
     catalog: "CSEPCatalog",
     linear: bool = True,
@@ -1659,7 +1672,7 @@ def plot_ROC_diagram(
     return ax
 
 
-def plot_Molchan_diagram(
+def _plot_Molchan_diagram(
     forecast: "GriddedForecast",
     catalog: "CSEPCatalog",
     linear: bool = True,
@@ -2159,7 +2172,7 @@ def _annotate_distribution_plot(
 
     if auto_annotate:
         if evaluation_result.name == "Catalog N-Test":
-            xlabel = "Event Count"
+            xlabel = "Event Counts"
             ylabel = "Number of Catalogs"
             title = f"{evaluation_result.name}: {evaluation_result.sim_name}"
             annotation_xy = (0.5, 0.3)
@@ -2176,7 +2189,7 @@ def _annotate_distribution_plot(
                 )
 
         elif evaluation_result.name == "Catalog S-Test":
-            xlabel = "Normalized Spatial Statistic"
+            xlabel = "Spatial Statistic"
             ylabel = "Number of Catalogs"
             title = f"{evaluation_result.name}: {evaluation_result.sim_name}"
             annotation_xy = (0.2, 0.6)
@@ -2187,7 +2200,7 @@ def _annotate_distribution_plot(
             )
 
         elif evaluation_result.name == "Catalog M-Test":
-            xlabel = "Magnitude"
+            xlabel = "Magnitude Statistic"
             ylabel = "Number of Catalogs"
             title = f"{evaluation_result.name}: {evaluation_result.sim_name}"
             annotation_xy = (0.55, 0.6)
@@ -2197,7 +2210,7 @@ def _annotate_distribution_plot(
                 f"$\\omega = {evaluation_result.observed_statistic:.2f}$"
             )
         elif evaluation_result.name == "Catalog PL-Test":
-            xlabel = "Likelihood"
+            xlabel = "Pseudo-Likelihood"
             ylabel = "Number of Catalogs"
             title = f"{evaluation_result.name}: {evaluation_result.sim_name}"
             annotation_xy = (0.55, 0.3)
@@ -2411,3 +2424,26 @@ def _process_stat_distribution(
         mean = numpy.mean(test_distribution)
 
     return plow, phigh, mean, observed_statistic
+
+
+# Public export of function wrappers for backwards/legacy compatibility.
+from .plots_legacy import (plot_cumulative_events_versus_time,
+                           plot_cumulative_events_versus_time_dev,
+                           plot_histogram,
+                           plot_ecdf,
+                           plot_magnitude_histogram_dev,
+                           plot_basemap,
+                           plot_spatial_dataset,
+                           plot_number_test,
+                           plot_magnitude_test,
+                           plot_distribution_test,
+                           plot_likelihood_test,
+                           plot_spatial_test,
+                           plot_poisson_consistency_test,
+                           plot_comparison_test,
+                           plot_consistency_test,
+                           plot_pvalues_and_intervals,
+                           plot_concentration_ROC_diagram,
+                           plot_ROC_diagram,
+                           plot_Molchan_diagram)
+
