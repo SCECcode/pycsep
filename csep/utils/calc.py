@@ -98,7 +98,7 @@ def bin1d_vec(p, bins, tol=None, right_continuous=False):
     if bins.size == 1:
         # for a single bin, set `right_continuous` to true; h is now arbitrary
         right_continuous = True
-        h = bins[0]  # (just take over dtype)
+        h = 1.
     else:
         h = bins[1] - bins[0]
 
