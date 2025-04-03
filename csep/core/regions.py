@@ -52,10 +52,7 @@ def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-ca
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        relm_region.magnitudes = magnitudes
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, magnitudes=magnitudes, name=name)
 
     return relm_region
 
@@ -97,10 +94,8 @@ def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california", 
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        relm_region.magnitudes = magnitudes
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh,magnitudes=magnitudes,
+                                  name=name)
 
     return relm_region
 
@@ -145,10 +140,8 @@ def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy", use_midpoi
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    italy_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        italy_region.magnitudes = magnitudes
+    italy_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh,
+                                   magnitudes=magnitudes, name=name)
 
     return italy_region
 
@@ -187,10 +180,8 @@ def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-c
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        relm_region.magnitudes = magnitudes
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, magnitudes=magnitudes,
+                                  name=name)
 
     return relm_region
 
@@ -229,10 +220,8 @@ def nz_csep_region(dh_scale=1, magnitudes=None, name="csep-nz", use_midpoint=Tru
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    nz_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        nz_region.magnitudes = magnitudes
+    nz_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, magnitudes=magnitudes,
+                                name=name)
 
     return nz_region
 
@@ -271,10 +260,8 @@ def nz_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-nz-collect
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    nz_collection_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        nz_collection_region.magnitudes = magnitudes
+    nz_collection_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh,
+                                           magnitudes=magnitudes, name=name)
 
     return nz_collection_region
 
@@ -294,9 +281,9 @@ def global_region(dh=0.1, name="global", magnitudes=None):
     lons = cleaner_range(-180.0, 179.9, dh)
     lats = cleaner_range(-90, 89.9, dh)
     coords = itertools.product(lons,lats)
-    region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name)
-    if magnitudes is not None:
-        region.magnitudes = magnitudes
+    region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh,
+                             magnitudes=magnitudes, name=name)
+
     return region
 
 def magnitude_bins(start_magnitude, end_magnitude, dmw):
@@ -585,7 +572,7 @@ class CartesianGrid2D:
     Custom regions can be easily created by using the from_polygon classmethod. This function will accept an arbitrary closed
     polygon and return a CartesianGrid class with only points inside the polygon to be valid.
     """
-    def __init__(self, polygons, dh, name='cartesian2d', mask=None):
+    def __init__(self, polygons, dh, name='cartesian2d', mask=None, magnitudes=None):
         self.polygons = polygons
         self.poly_mask = mask
         self.dh = dh
@@ -601,6 +588,7 @@ class CartesianGrid2D:
         # Bounds [origin, top_right]
         orgs = self.origins()
         self.bounds = numpy.column_stack((orgs, orgs + dh))
+        self.magnitudes = magnitudes
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -758,9 +746,11 @@ class CartesianGrid2D:
             dh1 = numpy.abs(lats[1]-lats[0])
             dh = numpy.max([dh1, dh2])
 
-        region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(origins, dh)], dh, name=name)
-        if magnitudes is not None:
-            region.magnitudes = magnitudes
+        region = CartesianGrid2D(polygons=[Polygon(bbox) for bbox in compute_vertices(origins, dh)],
+                                 dh=dh,
+                                 magnitudes=magnitudes,
+                                 name=name)
+
         return region
 
     def _build_bitmask_vec(self):
