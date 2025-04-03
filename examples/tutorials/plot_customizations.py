@@ -1,4 +1,6 @@
 """
+.. _tutorial-plot-customizations:
+
 Plot customizations
 ===================
 

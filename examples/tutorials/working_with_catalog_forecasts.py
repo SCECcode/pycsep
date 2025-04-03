@@ -20,7 +20,6 @@ Overview:
 # :mod:`csep.utils` subpackage.
 
 import numpy
-
 import csep
 from csep.core import regions
 from csep.utils import datasets
@@ -71,7 +70,7 @@ _ = forecast.get_expected_rates(verbose=True)
 #
 # We can plot the expected event counts the same way that we plot a :class:`csep.core.forecasts.GriddedForecast`
 
-ax = forecast.expected_rates.plot(plot_args={'clim': [-3.5, 0]}, show=True)
+ax = forecast.expected_rates.plot(clim=[-3.5, 0], show=True)
 
 ####################################################################################################################################
 # The images holes in the image are due to under-sampling from the forecast.

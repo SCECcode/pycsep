@@ -4,6 +4,8 @@
 Regions
 #######
 
+.. automodule:: csep.core.regions
+   :no-index:
 .. automodule:: csep.utils.basic_types
    :no-index:
 
@@ -16,8 +18,6 @@ module is early in development and will be a focus of future development.
 
 .. :currentmodule:: csep
 
-.. automodule:: csep.core.regions
-   :no-index:
 
 Practically speaking, earthquake forecasts, especially time-dependent forecasts, treat time differently than space and
 magnitude. If we consider a family of monthly forecasts for the state of California for earthquakes with **M** 3.95+,
@@ -100,7 +100,8 @@ mapping defined in (2). The :meth:`get_index_of<csep.core.regions.CartesianGrid2
 of longitudes and latitudes and returns the index of the polygon they are associated with. For instance, this index can
 now be used to access a data value stored in another data structure.
 
-.. ************
+
+.. _testing-regions:
 
 Testing Regions
 ###############
@@ -113,9 +114,17 @@ these regions.
 
     california_relm_region
     italy_csep_region
+    nz_csep_region
     global_region
 
-.. *************
+Also, the CSEP collection regions (i.e., extended regions where data were collected to create forecasts in testing regions) can be obtained as:
+
+.. autosummary::
+
+    california_relm_collection_region
+    italy_csep_collection_region
+    nz_csep_collection_region
+
 
 Region Utilities
 ################
