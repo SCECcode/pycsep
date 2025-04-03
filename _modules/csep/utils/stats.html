@@ -1,0 +1,536 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>csep.utils.stats &mdash; pyCSEP v0.6.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=43e4d6ac"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <!-- Google Analytics -->
+    <!-- added options to anonymize ip and disable cookies using {'storage': 'none'} 
+    <script>
+    (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+    ga('create', 'UA-495056-15', 'auto', {'storage': 'none'});
+    ga('set', 'anonymizeIp', true);
+    ga('send', 'pageview');
+    </script> -->
+
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            pyCSEP
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+    
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/installing.html">Installing pyCSEP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/core_concepts.html">Core Concepts for Beginners</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting_started/theory.html">Theory of CSEP Tests</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials and Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/catalog_filtering.html">Catalogs operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/plot_gridded_forecast.html">Plotting gridded forecast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/gridded_forecast_evaluation.html">Grid-based Forecast Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/quadtree_gridded_forecast_evaluation.html">Quadtree Grid-based Forecast Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/working_with_catalog_forecasts.html">Working with catalog-based forecasts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/catalog_forecast_evaluation.html">Catalog-based Forecast Evaluation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/plot_customizations.html">Plot customizations</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts/catalogs.html">Catalogs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts/forecasts.html">Forecasts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts/evaluations.html">Evaluations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../concepts/regions.html">Regions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help &amp; Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/glossary.html">Terms and Definitions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/publications.html">Referenced Publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/developer_notes.html">Developer Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference/api_reference.html">API Reference</a></li>
+</ul>
+
+
+    
+        <p class="caption">
+            <span class="caption-text">Source code and contributing</span>
+        </p>
+        <ul>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECCode/pycsep/issues">Getting help</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECcode/pycsep/blob/master/CHANGELOG.md">Change log</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECcode/pycsep/blob/master/CONTRIBUTING.md">Contributing</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECcode/pycsep/blob/master/CODE_OF_CONDUCT.md">Code of Conduct</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECcode/pycsep/blob/master/LICENSE">License</a></li>
+            
+                <li class="toctree-l1"><a href="https://github.com/SCECCode/pycsep">Source Code</a></li>
+            
+        </ul>
+    
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyCSEP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../csep.html">csep</a></li>
+      <li class="breadcrumb-item active">csep.utils.stats</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for csep.utils.stats</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.special</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">scipy.stats</span>
+
+
+<div class="viewcode-block" id="sup_dist">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.sup_dist.html#csep.utils.stats.sup_dist">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sup_dist</span><span class="p">(</span><span class="n">cdf1</span><span class="p">,</span> <span class="n">cdf2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    given two cumulative distribution functions, compute the supremum of the set of absolute distances.</span>
+
+<span class="sd">    note:</span>
+<span class="sd">        this function does not check that the ecdfs are ordered or balanced. beware!</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">cdf2</span> <span class="o">-</span> <span class="n">cdf1</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="sup_dist_na">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.sup_dist_na.html#csep.utils.stats.sup_dist_na">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sup_dist_na</span><span class="p">(</span><span class="n">data1</span><span class="p">,</span> <span class="n">data2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    computes the ks statistic for two ecdfs that are not necessarily aligned on the same values. performs this</span>
+<span class="sd">    operation by merging the two datasets together. this is taken from the 2sample ks test in the scipy codebase</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data1: (numpy array like)</span>
+<span class="sd">        data2: (numpy array like)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ks: sup dist from the two cdf functions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data1</span><span class="p">,</span> <span class="n">data2</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">,</span> <span class="p">(</span><span class="n">data1</span><span class="p">,</span> <span class="n">data2</span><span class="p">))</span>
+    <span class="n">n1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data1</span><span class="p">)</span>
+    <span class="n">n2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data2</span><span class="p">)</span>
+    <span class="n">data1</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">data1</span><span class="p">)</span>
+    <span class="n">data2</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">data2</span><span class="p">)</span>
+    <span class="n">data_all</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">data1</span><span class="p">,</span><span class="n">data2</span><span class="p">])</span>
+    <span class="n">cdf1</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">data1</span><span class="p">,</span><span class="n">data_all</span><span class="p">,</span><span class="n">side</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">*</span><span class="n">n1</span><span class="p">)</span>
+    <span class="n">cdf2</span> <span class="o">=</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">data2</span><span class="p">,</span><span class="n">data_all</span><span class="p">,</span><span class="n">side</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">*</span><span class="n">n2</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">cdf1</span><span class="o">-</span><span class="n">cdf2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+<div class="viewcode-block" id="cumulative_square_diff">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.cumulative_square_diff.html#csep.utils.stats.cumulative_square_diff">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cumulative_square_diff</span><span class="p">(</span><span class="n">cdf1</span><span class="p">,</span> <span class="n">cdf2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    given two cumulative distribution functions, compute the cumulative sq. diff of the set of distances.</span>
+
+<span class="sd">    note:</span>
+<span class="sd">        this function does not check that the ecdfs are ordered or balanced. beware!</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        cdf1: ndarray</span>
+<span class="sd">        cdf2: ndarray</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        cum_dist: scalar distance metric for the histograms</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">cdf2</span> <span class="o">-</span> <span class="n">cdf1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="binned_ecdf">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.binned_ecdf.html#csep.utils.stats.binned_ecdf">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">binned_ecdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">vals</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    returns the statement P(X ≤ x) for val in vals.</span>
+<span class="sd">    vals must be monotonically increasing and unqiue.</span>
+
+<span class="sd">    returns:</span>
+<span class="sd">        tuple: sorted vals, and ecdf computed at vals</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># precompute ecdf for x: returns(sorted(x), ecdf())</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">ex</span><span class="p">,</span> <span class="n">ey</span> <span class="o">=</span> <span class="n">ecdf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">cdf</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">val</span><span class="p">:</span> <span class="n">less_equal_ecdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">cdf</span><span class="o">=</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="n">ey</span><span class="p">)),</span> <span class="n">vals</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">vals</span><span class="p">,</span> <span class="n">cdf</span></div>
+
+
+<div class="viewcode-block" id="ecdf">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.ecdf.html#csep.utils.stats.ecdf">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ecdf</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the ecdf of vector x. This does not contain zero, should be equal to 1 in the last value</span>
+<span class="sd">    to satisfy F(x) == P(X ≤ x).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (numpy.array): vector of values</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        xs (numpy.array), ys (numpy.array)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span></div>
+
+
+<div class="viewcode-block" id="greater_equal_ecdf">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.greater_equal_ecdf.html#csep.utils.stats.greater_equal_ecdf">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">greater_equal_ecdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">cdf</span><span class="o">=</span><span class="p">()):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given val return P(x ≥ val).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (numpy.array): set of values</span>
+<span class="sd">        val (float): value</span>
+<span class="sd">        ecdf (tuple): ecdf of x, should be tuple (sorted(x), ecdf(x))</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (float): probability that x ≤ val</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cdf</span><span class="p">:</span>
+        <span class="n">ex</span><span class="p">,</span> <span class="n">ey</span> <span class="o">=</span> <span class="n">ecdf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ex</span><span class="p">,</span> <span class="n">ey</span> <span class="o">=</span> <span class="n">cdf</span>
+
+    <span class="n">eyc</span> <span class="o">=</span> <span class="n">ey</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># some short-circuit cases for discrete distributions; x is sorted, but reversed.</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="n">ex</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="n">ex</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="mf">1.0</span>
+    <span class="k">return</span> <span class="n">eyc</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="n">val</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="less_equal_ecdf">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.less_equal_ecdf.html#csep.utils.stats.less_equal_ecdf">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">less_equal_ecdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">cdf</span><span class="o">=</span><span class="p">()):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given val return P(x ≤ val).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x (numpy.array): set of values</span>
+<span class="sd">        val (float): value</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        (float): probability that x ≤ val</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">cdf</span><span class="p">:</span>
+        <span class="n">ex</span><span class="p">,</span> <span class="n">ey</span> <span class="o">=</span> <span class="n">ecdf</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ex</span><span class="p">,</span> <span class="n">ey</span> <span class="o">=</span> <span class="n">cdf</span>
+    <span class="c1"># some short-circuit cases for discrete distributions</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="n">ex</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="mf">1.0</span>
+    <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="n">ex</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="c1"># uses numpy implementation of binary search</span>
+    <span class="k">return</span> <span class="n">ey</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">ex</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="min_or_none">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.min_or_none.html#csep.utils.stats.min_or_none">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">min_or_none</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an array x, returns the min value. If x = [], returns None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="max_or_none">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.max_or_none.html#csep.utils.stats.max_or_none">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">max_or_none</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an array x, returns the max value. If x = [], returns None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_quantiles">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.get_quantiles.html#csep.utils.stats.get_quantiles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_quantiles</span><span class="p">(</span><span class="n">sim_counts</span><span class="p">,</span> <span class="n">obs_count</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Computes delta1 and delta2 quantile scores from empirical distribution and observation &quot;&quot;&quot;</span>
+    <span class="c1"># delta 1 prob of observation at least n_obs events given the forecast</span>
+    <span class="n">delta_1</span> <span class="o">=</span> <span class="n">greater_equal_ecdf</span><span class="p">(</span><span class="n">sim_counts</span><span class="p">,</span> <span class="n">obs_count</span><span class="p">)</span>
+    <span class="c1"># delta 2 prob of observing at most n_obs events given the catalog</span>
+    <span class="n">delta_2</span> <span class="o">=</span> <span class="n">less_equal_ecdf</span><span class="p">(</span><span class="n">sim_counts</span><span class="p">,</span> <span class="n">obs_count</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">delta_1</span><span class="p">,</span> <span class="n">delta_2</span></div>
+
+
+<div class="viewcode-block" id="poisson_log_likelihood">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.poisson_log_likelihood.html#csep.utils.stats.poisson_log_likelihood">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">poisson_log_likelihood</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="n">forecast</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Wrapper around scipy to compute the Poisson log-likelihood</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        observation: Observed (Grided) seismicity</span>
+<span class="sd">        forecast: Forecast of a Model (Grided)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Log-Liklihood values of between binned-observations and binned-forecasts</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">poisson</span><span class="o">.</span><span class="n">pmf</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="n">forecast</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="poisson_joint_log_likelihood_ndarray">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.poisson_joint_log_likelihood_ndarray.html#csep.utils.stats.poisson_joint_log_likelihood_ndarray">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">poisson_joint_log_likelihood_ndarray</span><span class="p">(</span><span class="n">target_event_log_rates</span><span class="p">,</span> <span class="n">target_observations</span><span class="p">,</span> <span class="n">n_fore</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Efficient calculation of joint log-likelihood of grid-based forecast.</span>
+
+<span class="sd">    Note: log(w!) = 0</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        target_event_log_rates: natural log of bin rates where target events occurred</span>
+<span class="sd">        target_observations: counts of target events</span>
+<span class="sd">        n_fore: expected number from the forecasts</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        joint_log_likelihood</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sum_log_target_event_rates</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">target_event_log_rates</span><span class="p">)</span>
+    <span class="c1"># factorial(n) = loggamma(n+1)</span>
+    <span class="n">discrete_penalty_term</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">loggamma</span><span class="p">(</span><span class="n">target_observations</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">sum_log_target_event_rates</span> <span class="o">-</span> <span class="n">discrete_penalty_term</span> <span class="o">-</span> <span class="n">n_fore</span></div>
+
+
+<div class="viewcode-block" id="poisson_inverse_cdf">
+<a class="viewcode-back" href="../../../reference/generated/csep.utils.stats.poisson_inverse_cdf.html#csep.utils.stats.poisson_inverse_cdf">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">poisson_inverse_cdf</span><span class="p">(</span><span class="n">random_matrix</span><span class="p">,</span> <span class="n">lam</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Wrapper around scipy inverse poisson cdf function</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        random_matrix: Matrix of dimenions equal to forecast, containing random</span>
+<span class="sd">                       numbers between 0 and 1.</span>
+<span class="sd">        lam: vector of parameters for poisson distribution</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        sample from the poisson distribution</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">poisson</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="n">random_matrix</span><span class="p">,</span> <span class="n">lam</span><span class="p">)</span></div>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_Kagan_I1_score</span><span class="p">(</span><span class="n">forecasts</span><span class="p">,</span> <span class="n">catalog</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A program for scoring (I_1) earthquake-forecast grids by the methods of:</span>
+<span class="sd">    Kagan, Yan Y. [2009] Testing long-term earthquake forecasts: likelihood methods</span>
+<span class="sd">                         and error diagrams, Geophys. J. Int., v. 177, pages 532-542.</span>
+
+<span class="sd">    Some advantages of these methods are that they:</span>
+<span class="sd">        - are insensitive to the grid used to cover the Earth;</span>
+<span class="sd">        - are insensitive to changes in the overall seismicity rate;</span>
+<span class="sd">        - do not modify the locations or magnitudes of test earthquakes;</span>
+<span class="sd">        - do not require simulation of virtual catalogs;</span>
+<span class="sd">        - return relative quality measures, not just &quot;pass&quot; or &quot;fail;&quot; and</span>
+<span class="sd">        - indicate relative specificity of forecasts as well as relative success.</span>
+<span class="sd">    </span>
+<span class="sd">    Written by Han Bao, UCLA, March 2021. Modified June 2021</span>
+<span class="sd">    </span>
+<span class="sd">    Note that: </span>
+<span class="sd">        (1) The testing catalog and forecast should have exactly the same time-window (duration)</span>
+<span class="sd">        (2) Forecasts and catalogs have identical regions</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        forecasts:  csep.forecast or a list of csep.forecast (one catalog to test against different forecasts)</span>
+<span class="sd">        catalog:    csep.catalog </span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">       I_1 (numpy.array): containing I1 for each forecast in inputs</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">### Determine if input &#39;forecasts&#39; is a list of csep.forecasts or a single csep.forecasts</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">n_forecast</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">forecasts</span><span class="p">)</span> <span class="c1"># the input forecasts is a list of csep.forecast</span>
+    <span class="k">except</span><span class="p">:</span>  
+        <span class="n">n_forecast</span> <span class="o">=</span> <span class="mi">1</span>             <span class="c1"># the input forecasts is a single csep.forecast</span>
+        <span class="n">forecasts</span> <span class="o">=</span> <span class="p">[</span><span class="n">forecasts</span><span class="p">]</span>
+
+    <span class="c1"># Sanity checks can go here</span>
+    <span class="k">for</span> <span class="n">forecast</span> <span class="ow">in</span> <span class="n">forecasts</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">forecast</span><span class="o">.</span><span class="n">region</span> <span class="o">!=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">region</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Catalog and forecasts must have identical regions.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Initialize array</span>
+    <span class="n">I_1</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_forecast</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+    <span class="c1"># Compute cell areas</span>
+    <span class="n">area_km2</span> <span class="o">=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">region</span><span class="o">.</span><span class="n">get_cell_area</span><span class="p">()</span>
+    <span class="n">total_area</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">area_km2</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">forecast</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">forecasts</span><span class="p">):</span>
+        <span class="c1"># Eq per cell per duration in forecast; note, if called on a CatalogForecast this could require computed expeted rates</span>
+        <span class="n">rate</span> <span class="o">=</span> <span class="n">forecast</span><span class="o">.</span><span class="n">spatial_counts</span><span class="p">()</span>
+        <span class="c1"># Get Rate Density and uniform_forecast of the Forecast</span>
+        <span class="n">rate_den</span> <span class="o">=</span> <span class="n">rate</span> <span class="o">/</span> <span class="n">area_km2</span>
+        <span class="n">uniform_forecast</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">rate</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_area</span>
+        <span class="c1"># Compute I_1 score</span>
+        <span class="n">n_event</span> <span class="o">=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">event_count</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">spatial_counts</span><span class="p">()</span>
+        <span class="n">non_zero_idx</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">rate_den</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">non_zero_idx</span> <span class="o">=</span> <span class="n">non_zero_idx</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">I_1</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="n">non_zero_idx</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">rate_den</span><span class="p">[</span><span class="n">non_zero_idx</span><span class="p">]</span> <span class="o">/</span> <span class="n">uniform_forecast</span><span class="p">))</span> <span class="o">/</span> <span class="n">n_event</span>
+    
+    <span class="k">return</span> <span class="n">I_1</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">log_d_multinomial</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">prob</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x:</span>
+<span class="sd">        size:</span>
+<span class="sd">        prob:</span>
+
+<span class="sd">    Returns:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">loggamma</span><span class="p">(</span><span class="n">size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+        <span class="n">x</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">prob</span><span class="p">)</span> <span class="o">-</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">loggamma</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">MLL_score</span><span class="p">(</span><span class="n">union_catalog_counts</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">catalog_counts</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the modified Multinomial log-likelihood (MLL) score, defined by Serafini et al.,</span>
+<span class="sd">    (2024). It is built from a collection catalogs Λ_u and a single catalog Ω</span>
+
+<span class="sd">        MLL_score = 2 * log( L(Λ_u + N_u / N_o + Ω + 1) /</span>
+<span class="sd">                           [L(Λ_u + N_u / N_o) * L(Ω + 1)]</span>
+<span class="sd">                           )</span>
+<span class="sd">    where N_u and N_j are the total number of events in Λ_u and Ω, respectively.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        union_catalog_counts (numpy.ndarray):</span>
+<span class="sd">        catalog_counts (numpy.ndarray):</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The MLL score for the collection of catalogs and</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">N_u</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">union_catalog_counts</span><span class="p">)</span>
+    <span class="n">N_j</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">catalog_counts</span><span class="p">)</span>
+    <span class="n">events_ratio</span> <span class="o">=</span> <span class="n">N_u</span> <span class="o">/</span> <span class="n">N_j</span>
+
+    <span class="n">union_catalog_counts_mod</span> <span class="o">=</span> <span class="n">union_catalog_counts</span> <span class="o">+</span> <span class="n">events_ratio</span>
+    <span class="n">catalog_counts_mod</span> <span class="o">=</span> <span class="n">catalog_counts</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">merged_catalog_j</span> <span class="o">=</span> <span class="n">union_catalog_counts_mod</span> <span class="o">+</span> <span class="n">catalog_counts_mod</span>
+
+    <span class="n">pr_merged_cat</span> <span class="o">=</span> <span class="n">merged_catalog_j</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">merged_catalog_j</span><span class="p">)</span>
+    <span class="n">pr_union_cat</span> <span class="o">=</span> <span class="n">union_catalog_counts_mod</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">union_catalog_counts_mod</span><span class="p">)</span>
+    <span class="n">pr_cat_j</span> <span class="o">=</span> <span class="n">catalog_counts_mod</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">catalog_counts_mod</span><span class="p">)</span>
+
+    <span class="n">log_lik_merged</span> <span class="o">=</span> <span class="n">log_d_multinomial</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">merged_catalog_j</span><span class="p">,</span>
+                                       <span class="n">size</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">merged_catalog_j</span><span class="p">),</span>
+                                       <span class="n">prob</span><span class="o">=</span><span class="n">pr_merged_cat</span><span class="p">)</span>
+    <span class="n">log_lik_union</span> <span class="o">=</span> <span class="n">log_d_multinomial</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">union_catalog_counts_mod</span><span class="p">,</span>
+                                      <span class="n">size</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">union_catalog_counts_mod</span><span class="p">),</span>
+                                      <span class="n">prob</span><span class="o">=</span><span class="n">pr_union_cat</span><span class="p">)</span>
+    <span class="n">log_like_cat_j</span> <span class="o">=</span> <span class="n">log_d_multinomial</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">catalog_counts_mod</span><span class="p">,</span>
+                                       <span class="n">size</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">catalog_counts_mod</span><span class="p">),</span>
+                                       <span class="n">prob</span><span class="o">=</span><span class="n">pr_cat_j</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">log_lik_merged</span> <span class="o">-</span> <span class="n">log_lik_union</span> <span class="o">-</span> <span class="n">log_like_cat_j</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  
+ 
+&#169; 2020, University of Southern California.
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
