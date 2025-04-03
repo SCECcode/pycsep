@@ -313,12 +313,7 @@ def magnitude_bins(start_magnitude, end_magnitude, dmw):
     Returns:
         bin_edges (numpy.ndarray)
     """
-    # convert to integers to prevent accumulating floating point errors
-    const = 10000
-    start = numpy.floor(const * start_magnitude)
-    end = numpy.floor(const * end_magnitude)
-    d = const * dmw
-    return numpy.arange(start, end + d / 2, d) / const
+    return cleaner_range(start_magnitude, end_magnitude, dmw)
 
 def create_space_magnitude_region(region, magnitudes):
     """Simple wrapper to create space-magnitude region """
@@ -495,7 +490,7 @@ def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
     """
     return list(map(lambda x: compute_vertex(x, dh, tol=tol), origin_points))
 
-def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins, tol=0.00001):
+def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins, tol=None):
     """
     Returns a list of event counts as ndarray with shape (n_poly, n_cat) where each value
     represents the event counts within the polygon.
@@ -625,8 +620,8 @@ class CartesianGrid2D:
         Returns:
             idx: ndarray-like
         """
-        idx = bin1d_vec(numpy.array(lons), self.xs)
-        idy = bin1d_vec(numpy.array(lats), self.ys)
+        idx = bin1d_vec(lons, self.xs)
+        idy = bin1d_vec(lats, self.ys)
         if numpy.any(idx == -1) or numpy.any(idy == -1):
             raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
         if numpy.any(self.bbox_mask[idy, idx] == 1):
@@ -1061,7 +1056,7 @@ class QuadtreeGrid2D:
         self.cell_area = cell_area
         return self.cell_area
 
-    def get_index_of(self, lons, lats): 
+    def get_index_of(self, lons, lats):
         """ Returns the index of lons, lats in self.polygons
 
         Args:
@@ -1182,7 +1177,7 @@ class QuadtreeGrid2D:
         out = numpy.zeros([len(self.quadkeys), len(mag_bins)])
 
         idx_loc = self.get_index_of(lon, lat)
-        idx_mag = bin1d_vec(mag, mag_bins, tol=0.00001, right_continuous=True)
+        idx_mag = bin1d_vec(mag, mag_bins, right_continuous=True)
 
         numpy.add.at(out, (idx_loc, idx_mag), 1)
 
