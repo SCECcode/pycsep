@@ -551,6 +551,8 @@ likelihood falls in the tail of the simulated likelihood distribution.
 Again this is shown by a coloured symbol which highlights whether the
 forecast model passes or fails the test.
 
+.. _forecast-comparison-tests:
+
 Forecast comparison tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

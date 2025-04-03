@@ -17,6 +17,8 @@ Loading catalogs and forecasts
    load_catalog
    query_comcat
    query_bsi
+   query_gns
+   query_gcmt
    load_gridded_forecast
    load_catalog_forecast
 
@@ -251,7 +253,7 @@ Plotting catalog-based evaluations:
 .. autosummary::
    :toctree: generated
 
-   plot_distribution_test
+   plot_test_distribution
    plot_calibration_test
 
 Plotting grid-based evaluations:

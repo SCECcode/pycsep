@@ -106,6 +106,28 @@ ax = plots.plot_consistency_test(spatial_test_result,
                                  xlabel='Spatial likelihood')
 plt.show()
 
+
+####################################################################################################################################
+# Performing a comparative test
+# -----------------------------
+#
+# Comparative tests assess the relative performance of a forecasts against a reference forecast. We load a baseline version of the
+# Helmstetter forecasts that does not account for the influence of aftershocks. We perform the paired T-test to calculate the
+# Information Gain and its significance (See :ref:`forecast-comparison-tests` for more information).
+#
+
+ref_forecast = csep.load_gridded_forecast(datasets.helmstetter_mainshock_fname,
+                                          start_date=start_date,
+                                          end_date=end_date,
+                                          name='helmstetter_mainshock')
+
+t_test = poisson.paired_t_test(forecast=forecast,
+                               benchmark_forecast=ref_forecast,
+                               observed_catalog=catalog)
+
+plots.plot_comparison_test(t_test, show=True)
+
+
 ####################################################################################################################################
 # Plot ROC Curves
 # ---------------
@@ -120,6 +142,7 @@ plt.show()
 # Note: This figure just shows an example of plotting an ROC curve with a catalog forecast.
 #       If "linear=True" the diagram is represented using a linear x-axis.
 #       If "linear=False" the diagram is represented using a logarithmic x-axis.
+#
 
 
 print("Plotting concentration ROC curve")

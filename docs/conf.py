@@ -176,6 +176,7 @@ sphinx_gallery_conf = {
     # Insert links to documentation of objects in the examples
     "reference_url": {"csep": None},
 }
+autodoc_typehints = "description"
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
