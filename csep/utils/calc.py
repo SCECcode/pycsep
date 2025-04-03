@@ -52,7 +52,9 @@ def discretize(data, bin_edges, right_continuous=False):
     return x_new
 
 def _get_tolerance(v):
-    """Determine a numerical tolerance due to limited precision of floating-point values.
+    """Determine numerical tolerance due to limited precision of floating-point values.
+
+    ... to account for roundoff error.
 
     In other words, returns a maximum possible difference that can be considered negligible.
     Only relevant for floating-point values.
@@ -64,17 +66,25 @@ def _get_tolerance(v):
 def bin1d_vec(p, bins, tol=None, right_continuous=False):
     """Efficient implementation of binning routine on 1D Cartesian Grid.
 
-    Returns the indices of the points into bins. Bins are inclusive on the lower bound
+    Bins are inclusive on the lower bound
     and exclusive on the upper bound. In the case where a point does not fall within the bins a -1
     will be returned. The last bin extends to infinity when right_continuous is set as true.
 
+    To correctly bin points that are practically on a bin edge, this function accounts for the
+    limited precision of floating-point numbers (the roundoff error) with a numerical tolerance.
+    If the provided points were subject to some floating-point operations after loading or
+    generating them, the roundoff error increases (which is not accounted for) and requires
+    overwriting the `tol` argument.
+
     Args:
-        p (array-like): Point(s) to be placed into b
+        p (array-like): Point(s) to be placed into bins.
         bins (array-like): bin edges; must be sorted (monotonically increasing)
-        right_continuous (bool): if true, consider last bin extending to infinity
+        tol (float): overwrite numerical tolerance, by default determined automatically from the
+                     points' dtype to account for the roundoff error.
+        right_continuous (bool): if true, consider last bin extending to infinity.
 
     Returns:
-        idx (array-like): indexes hashed into grid
+        numpy.ndarray: indices for the points corresponding to the bins.
 
     Raises:
         ValueError:
