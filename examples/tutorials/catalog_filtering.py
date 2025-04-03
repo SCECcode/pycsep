@@ -1,5 +1,5 @@
 """
-.. tutorial-catalog-filtering
+.. _tutorial-catalog-filtering:
 
 Catalogs operations
 ===================

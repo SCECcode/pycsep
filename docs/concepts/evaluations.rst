@@ -1,6 +1,7 @@
 .. _evaluation-reference:
 
 .. automodule:: csep.core.poisson_evaluations
+   :no-index:
 
 ###########
 Evaluations
@@ -94,6 +95,7 @@ details please follow the links below and see the :ref:`example<catalog-forecast
 forecast evaluation for an end-to-end walk through.
 
 .. automodule:: csep.core.catalog_evaluations
+   :no-index:
 
 Consistency tests
 =================

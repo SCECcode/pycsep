@@ -8,7 +8,7 @@ the tests are applied in practice, and how forecasts are ‘scored’ given
 the test results. Also, we include the code required to run in each test
 and a description of how to interpret the test results.
 
-.. code:: ipython3
+.. code:: python
 
     import csep
     from csep.core import (
@@ -63,7 +63,7 @@ examples use the Helmstetter et al (2007) smoothed seismicity forecast
 (including aftershocks), testing over a 5 year period between 2010 and
 2015.
 
-.. code:: ipython3
+.. code:: python
 
     # Set up experiment parameters
     start_date = time_utils.strptime_to_utc_datetime('2010-01-01 00:00:00.0')
@@ -246,7 +246,7 @@ observed statistic and quantile score, which can be accessed from the
 ``likelihood_test_result`` object. We can pass this directly to the
 plotting function, specifying that the test should be one-sided.
 
-.. code:: ipython3
+.. code:: python
 
     likelihood_test_result = poisson.likelihood_test(
         helmstetter,
@@ -293,7 +293,7 @@ with the forecasted number of events as described above.
 
 Implementation in pyCSEP
 
-.. code:: ipython3
+.. code:: python
 
     cond_likelihood_test_result = poisson.conditional_likelihood_test(
         helmstetter,
@@ -391,7 +391,7 @@ upper and lower bounds for the test are determined from the cumulative
 Poisson distribution. ``number_test_result.quantile`` will return both
 :math:`\delta_1` and :math:`\delta_2` values.
 
-.. code:: ipython3
+.. code:: python
 
     number_test_result = poisson.number_test(helmstetter, catalog)
     ax = plots.plot_poisson_consistency_test(
@@ -457,7 +457,7 @@ and the observed magnitudes are inconsistent with the forecast if
 
 pyCSEP implementation
 
-.. code:: ipython3
+.. code:: python
 
     mag_test_result = poisson.magnitude_test(
         helmstetter,
@@ -528,7 +528,7 @@ pyCSEP implementation
 The S-test is again a one-sided test, so we specify this when plotting
 the result.
 
-.. code:: ipython3
+.. code:: python
 
     spatial_test_result = poisson.spatial_test(
         helmstetter,
@@ -622,7 +622,7 @@ Implementation in pyCSEP
 
 The t-test and W-tests are implemented in pyCSEP as below.
 
-.. code:: ipython3
+.. code:: python
 
     helmstetter_ms = csep.load_gridded_forecast(
         datasets.helmstetter_mainshock_fname,
@@ -701,7 +701,7 @@ forecast and observations to retain only the events in
 forecast simulations for the Landers earthquake and aftershock sequence
 generated using UCERF3-ETAS (Field et al, 2017).
 
-.. code:: ipython3
+.. code:: python
 
     # Define the start and end times of the forecasts
     start_time = time_utils.strptime_to_utc_datetime("1992-06-28 11:57:35.0")
@@ -785,7 +785,7 @@ and
 
 Implementation in pyCSEP
 
-.. code:: ipython3
+.. code:: python
 
     number_test_result = catalog_evaluations.number_test(
         forecast,
@@ -860,7 +860,7 @@ that
   makes sure the magnitudes are properly discretised for the model we
   want to test.
 
-.. code:: ipython3
+.. code:: python
 
     magnitude_test_result = catalog_evaluations.magnitude_test(
         forecast,
@@ -944,7 +944,7 @@ then calculate the quantile score as
 
 Implementation in pyCSEP
 
-.. code:: ipython3
+.. code:: python
 
     pseudolikelihood_test_result = catalog_evaluations.pseudolikelihood_test(
         forecast,
@@ -994,7 +994,7 @@ statistics:
 
 Implementation in pyCSEP
 
-.. code:: ipython3
+.. code:: python
 
     spatial_test_result = catalog_evaluations.spatial_test(
         forecast,
@@ -1017,7 +1017,7 @@ on the figure by default.
 
 
 Resampled Magnitude Test
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Aim: Perform the resampled magnitude test for catalog-based forecasts (Serafini et al., , in-prep),
 which is a correction to the original M-test implementation that is biased to the total N of
@@ -1043,7 +1043,7 @@ distribution in the observed catalog.
 
 * Implementation in pyCSEP
 
-.. code:: ipython3
+.. code:: python
 
     from csep.core.catalog_evaluations import resampled_magnitude_test
 
@@ -1062,7 +1062,7 @@ horizontal line. The quantile score for this forecast is
 
 
 Modified Multinomial Log-Likelihood (MLL) Magnitude Test
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Aim: Implements the modified Multinomial log-likelihood (MLL) magnitude test (Serafini et al., in-prep).
 
@@ -1089,7 +1089,7 @@ Modified Multinomial Log-Likelihood (MLL) Magnitude Test
 * Implementation in pyCSEP
 
 
-  .. code:: ipython3
+  .. code:: python
 
       from csep.core.catalog_evaluations import MLL_magnitude_test
 

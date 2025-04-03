@@ -130,7 +130,8 @@ _= plots.plot_concentration_ROC_diagram(forecast, catalog, linear=True)
 
 ####################################################################################################################################
 # Plot ROC and Molchan curves using the alarm-based approach
-# -----------------------
+# ----------------------------------------------------------
+
 #In this script, we generate ROC diagrams and Molchan diagrams using the alarm-based approach to evaluate the predictive
 #performance of models. This method exploits contingency table analysis to evaluate the predictive capabilities of
 #forecasting models. By analysing the contingency table data, we determine the ROC curve and Molchan trajectory and

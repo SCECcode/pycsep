@@ -214,7 +214,7 @@ def query_comcat(start_time, end_time, min_magnitude=2.50,
         verbose (bool): print catalog summary statistics
 
     Returns:
-        :class:`csep.core.catalogs.CSEPCatalog
+        :class:`csep.core.catalogs.CSEPCatalog`
     """
 
     # Timezone should be in UTC
@@ -273,7 +273,7 @@ def query_bsi(start_time, end_time, min_magnitude=2.50,
         verbose (bool): print catalog summary statistics
 
     Returns:
-        :class:`csep.core.catalogs.CSEPCatalog
+        :class:`csep.core.catalogs.CSEPCatalog`
     """
 
     # Timezone should be in UTC
@@ -429,8 +429,8 @@ def load_gridded_forecast(fname, loader=None, **kwargs):
     Args:
         fname (str): path of grid based forecast
         loader (func): function to load forecast in bespoke format needs to return :class:`csep.core.forecasts.GriddedForecast`
-                       and first argument should be required and the filename of the forecast to load
-                       called as loader(func, **kwargs).
+                       and should be called with the filename of the forecast to load as the first argument,
+                       followed by additional keyword arguments, like this: ``loader(func, **kwargs)``.
 
         **kwargs: passed into loader function
 
