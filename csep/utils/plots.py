@@ -828,9 +828,7 @@ def plot_gridded_dataset(
     gridded: numpy.ndarray,
     region: "CartesianGrid2D",
     basemap: Optional[str] = None,
-    ax: Optional[pyplot.Axes] = None,
     projection: Optional[Union[ccrs.Projection, str]] = None,
-    show: bool = False,
     extent: Optional[List[float]] = None,
     set_global: bool = False,
     plot_region: bool = True,
@@ -840,6 +838,8 @@ def plot_gridded_dataset(
     clabel: Optional[str] = None,
     alpha: Optional[float] = None,
     alpha_exp: float = 0,
+    ax: Optional[pyplot.Axes] = None,
+    show: bool = False,
     **kwargs,
 ) -> matplotlib.axes.Axes:
     """
@@ -856,11 +856,9 @@ def plot_gridded_dataset(
             (whose indices correspond to each spatial cell) to a 2D-square array.
         region (CartesianGrid2D): Region in which gridded values are contained.
         basemap (str): Passed to :func:`~csep.utils.plots.plot_basemap` along with `kwargs`.
-        ax (matplotlib.axes.Axes): Previously defined ax object. Defaults to `None`.
         projection (cartopy.crs.Projection or str): Projection to be used in the underlying
             basemap. It can be a cartopy projection instance, or `approx` for a quick
             approximation of Mercator. Defaults to :class:`~cartopy.crs.PlateCarree` if `None`.
-        show (bool): If `True`, displays the plot. Defaults to `False`.
         extent (list of float): ``[lon_min, lon_max, lat_min, lat_max]``. Defaults to `None`.
         set_global (bool): Display the complete globe as basemap. Defaults to `False`.
         plot_region (bool): If `True`, plot the dataset region border. Defaults to `True`.
@@ -871,6 +869,8 @@ def plot_gridded_dataset(
         alpha (float): Transparency level. Defaults to `None`.
         alpha_exp (float): Exponent for the alpha function (recommended between `0.4` and `1`).
             Defaults to `0`.
+        ax (matplotlib.axes.Axes): Previously defined ax object. Defaults to `None`.
+        show (bool): If `True`, displays the plot. Defaults to `False`.
         **kwargs: Additional keyword arguments to customize the plot:
 
             - **colorbar_labelsize** (`int`): Font size for the colorbar label.
@@ -953,11 +953,11 @@ def plot_test_distribution(
     evaluation_result: "EvaluationResult",
     bins: Union[str, int, List[Any]] = "fd",
     percentile: Optional[int] = 95,
-    ax: Optional[matplotlib.axes.Axes] = None,
     auto_annotate: Union[bool, dict] = True,
     sim_label: str = "Simulated",
     obs_label: str = "Observation",
     legend: bool = True,
+    ax: Optional[matplotlib.axes.Axes] = None,
     show: bool = False,
     **kwargs,
 ) -> matplotlib.axes.Axes:
@@ -1096,8 +1096,8 @@ def plot_test_distribution(
 def plot_calibration_test(
     evaluation_result: "EvaluationResult",
     percentile: float = 95,
-    ax: Optional[matplotlib.axes.Axes] = None,
     label: Optional[str] = None,
+    ax: Optional[matplotlib.axes.Axes] = None,
     show: bool = False,
     **kwargs,
 ) -> matplotlib.axes.Axes:
@@ -1261,6 +1261,13 @@ def _plot_comparison_test(
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
+    # Handle case when there is only a single pair of t_results and w_results
+    if not isinstance(results_t, list):
+        results_t = [results_t]
+
+    if results_w is not None and not isinstance(results_w, list):
+        results_w = [results_w]
+
     # Iterate through T-test results, or jointly through t- and w- test results
     Results = zip(results_t, results_w) if results_w else zip(results_t)
     for index, result in enumerate(Results):
@@ -1337,11 +1344,15 @@ def _plot_comparison_test(
 
     if plot_args["legend"]:
         # Add custom legend to explain results
+
         legend_elements = [
             Line2D([0], [0], color="red", lw=2,
                    label=f"T-test rejected ($\\alpha = {results_t[0].quantile[-1]}$)"),
             Line2D([0], [0], color="green", lw=2, label="T-test non-rejected"),
-            Line2D([0], [0], color="gray", lw=2, label="T-test indistinguishable"),
+            Line2D([0], [0], color="gray", lw=2, label="T-test indistinguishable")
+        ]
+        if results_w is not None:
+            legend_elements.extend([
             Line2D(
                 [0],
                 [0],
@@ -1361,8 +1372,8 @@ def _plot_comparison_test(
                 markersize=6,
                 markerfacecolor="white",
                 label="W-test indistinguishable",
-            ),
-        ]
+            )])
+
         ax.legend(handles=legend_elements, loc="best", fontsize=plot_args["legend_fontsize"])
 
     if plot_args["tight_layout"]:
@@ -1379,9 +1390,9 @@ def _plot_consistency_test(
     normalize: bool = False,
     one_sided_lower: bool = False,
     percentile: float = 95,
-    ax: Optional[pyplot.Axes] = None,
     plot_mean: bool = False,
     color: str = "black",
+    ax: Optional[pyplot.Axes] = None,
     show: bool = False,
     **kwargs,
 ) -> matplotlib.axes.Axes:
@@ -1523,8 +1534,8 @@ def _plot_concentration_ROC_diagram(
     catalog: "CSEPCatalog",
     linear: bool = True,
     plot_uniform: bool = True,
-    show: bool = True,
     ax: Optional[pyplot.Axes] = None,
+    show: bool = True,
     **kwargs,
 ) -> matplotlib.axes.Axes:
     """
@@ -1649,8 +1660,8 @@ def _plot_ROC_diagram(
     catalog: "CSEPCatalog",
     linear: bool = True,
     plot_uniform: bool = True,
-    show: bool = True,
     ax: Optional[pyplot.Axes] = None,
+    show: bool = True,
     **kwargs,
 ) -> matplotlib.pyplot.Axes:
     """
@@ -1786,8 +1797,8 @@ def _plot_Molchan_diagram(
     catalog: "CSEPCatalog",
     linear: bool = True,
     plot_uniform: bool = True,
-    show: bool = True,
     ax: Optional[pyplot.Axes] = None,
+    show: bool = True,
     **kwargs,
 ) -> matplotlib.axes.Axes:
 
