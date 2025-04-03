@@ -3,7 +3,11 @@ import unittest
 
 import numpy
 
-from csep.core.regions import italy_csep_region, california_relm_region, nz_csep_region
+from csep.core.regions import (
+    italy_csep_region, italy_csep_collection_region,
+    california_relm_region, california_relm_collection_region,
+    nz_csep_region, nz_csep_collection_region,
+)
 
 def get_italy_region_fname():
     root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -96,8 +100,12 @@ class TestBin2d(unittest.TestCase):
         # (loading those is the bottleneck of this test case)
         cls.regions = [
             italy_csep_region(),
+            italy_csep_collection_region(),
             california_relm_region(),
-            nz_csep_region()
+            california_relm_collection_region(),
+            nz_csep_region(),
+            nz_csep_collection_region(),
+            # global_region()  # extreme slow-down (~2min loading + ~5min per loop + ~4s per vect)
         ]
 
     def test_bin2d_regions_origins(self):
