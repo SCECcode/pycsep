@@ -395,7 +395,7 @@ class AbstractBaseCatalog(LoggingMixin):
     def get_mag_idx(self):
         """ Return magnitude index from region magnitudes """
         try:
-            return bin1d_vec(self.get_magnitudes(), self.region.magnitudes, tol=0.00001, right_continuous=True)
+            return bin1d_vec(self.get_magnitudes(), self.region.magnitudes, right_continuous=True)
         except AttributeError:
             raise CSEPCatalogException("Cannot return magnitude index without self.region.magnitudes")
 
@@ -699,16 +699,21 @@ class AbstractBaseCatalog(LoggingMixin):
         event_flag[idx] = 1
         return event_flag
 
-    def magnitude_counts(self, mag_bins=None, tol=0.00001, retbins=False):
-        """ Computes the count of events within mag_bins
-
+    def magnitude_counts(self, mag_bins=None, tol=None, retbins=False):
+        """ Computes the count of events within magnitude bins
 
         Args:
-            mag_bins: uses csep.utils.constants.CSEP_MW_BINS as default magnitude bins
-            retbins (bool): if this is true, return the bins used
+            mag_bins (array-like): magnitude bin edges, by default tries to use magnitude bin edges
+                                   associated with region, otherwise :data:`csep.utils.constants.CSEP_MW_BINS`
+            tol (float): overwrite numerical tolerance, by default determined automatically from the
+                         magnitudes' dtype to account for the limited precision of floating-point values.
+                         Only necessary to specify if the magnitudes were subject to some
+                         floating-point operations after loading or generating them
+                         (increased roundoff error, see :func:`csep.utils.calc.bin1d_vec`).
+            retbins (bool): if true, return the used bins in a tuple together with the counts.
 
         Returns:
-            numpy.ndarray: showing the counts of hte events in each magnitude bin
+            numpy.ndarray: events counts in each magnitude bin
         """
         # todo: keep track of events that are ignored
         if mag_bins is None:
@@ -734,18 +739,24 @@ class AbstractBaseCatalog(LoggingMixin):
         else:
             return out
 
-    def spatial_magnitude_counts(self, mag_bins=None, tol=0.00001):
-        """ Return counts of events in space-magnitude region.
+    def spatial_magnitude_counts(self, mag_bins=None, tol=None):
+        """ Return counts of events in space-magnitude bins.
 
-        We figure out the index of the polygons and create a map that relates the spatial coordinate in the
-        Cartesian grid with the polygon in region.
+        It figures out the index of the polygons and maps the spatial coordinates in the Cartesian
+        grid with the polygon in region.
 
         Args:
-            mag_bins (list, numpy.array): magnitude bins (optional), if empty tries to use magnitude bins associated with region
-            tol (float): tolerance for comparisons within magnitude bins
+            mag_bins (array-like): magnitude bin edges (optional), by default uses magnitude bin edges
+                                   associated with region.
+            tol (float): overwrite numerical tolerance, by default determined automatically from the
+                         magnitudes' dtype to account for the limited precision of floating-point values.
+                         Only necessary to specify if the magnitudes were subject to some
+                         floating-point operations after loading or generating them
+                         (increased roundoff error, see :func:`csep.utils.calc.bin1d_vec`).
 
         Returns:
-            output: unnormalized event count in each bin, 1d ndarray where index corresponds to midpoints
+            numpy.ndarray: unnormalized event count in each space-magnitude bin (2d, with indices
+                           corresponding to spatial midpoints and magnitude bin, respectively)
 
         """
         # make sure region is specified with catalog

@@ -213,16 +213,21 @@ class MarkedGriddedDataSet(GriddedDataSet):
         """ Returns counts of events in magnitude bins """
         return numpy.sum(self.data, axis=0)
 
-    def get_magnitude_index(self, mags, tol=0.00001):
+    def get_magnitude_index(self, mags, tol=None):
         """ Returns the indices into the magnitude bins of selected magnitudes
 
         Note: the right-most bin is treated as extending to infinity.
 
         Args:
-            mags (array-like): list of magnitudes
+            mags (array-like): magnitudes bin edges.
+            tol (float): overwrite numerical tolerance, by default determined automatically from the
+                         magnitudes' dtype to account for the limited precision of floating-point values.
+                         Only necessary to specify if the magnitudes were subject to some
+                         floating-point operations after loading or generating them
+                         (increased roundoff error, see :func:`csep.utils.calc.bin1d_vec`).
 
         Returns:
-            idm (array-like): indices corresponding to mags
+            numpy.ndarray: indices corresponding to the magnitude bins
 
         Raises:
             ValueError
