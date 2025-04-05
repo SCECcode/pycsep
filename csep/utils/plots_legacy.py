@@ -1,6 +1,7 @@
 import time
 import warnings
 from functools import wraps
+from typing import overload, Optional, List, Union
 
 # Third-party imports
 import numpy
@@ -91,6 +92,20 @@ def plot_cumulative_events_versus_time_dev(xdata, ydata, obs_data,
         pyplot.show()
 
     return ax
+
+
+@overload
+def plot_cumulative_events_versus_time(
+    catalog_forecast: "CatalogForecast",
+    observation: "CSEPCatalog",
+    time_axis: str = "datetime",
+    bins: int = 50,
+    sim_label: Optional[str] = "Simulated",
+    obs_label: Optional[str] = "Observation",
+    ax: Optional[matplotlib.axes.Axes] = None,
+    show: bool = False,
+    **kwargs,
+) -> matplotlib.axes.Axes: ...
 
 
 @wraps(_plot_cumulative_events_versus_time)
@@ -511,6 +526,21 @@ def plot_magnitude_histogram_dev(ses_data, obs, plot_args, show=False):
     if show:
         pyplot.show()
     return ax
+
+
+@overload
+def plot_basemap(
+    basemap: Optional[str] = None,
+    extent: Optional[List[float]] = None,
+    coastline: bool = True,
+    borders: bool = False,
+    tile_depth: Union[str, int] = "auto",
+    set_global: bool = False,
+    projection: Optional[ccrs.Projection] = None,
+    ax: Optional[pyplot.Axes] = None,
+    show: bool = False,
+    **kwargs,
+) -> matplotlib.axes.Axes: ...
 
 
 @wraps(_plot_basemap)
@@ -1218,7 +1248,6 @@ def plot_spatial_test(evaluation_result, axes=None, plot_args=None, show=True):
     return ax
 
 
-
 def plot_poisson_consistency_test(eval_results, normalize=False,
                                   one_sided_lower=False, axes=None,
                                   plot_args=None, show=False):
@@ -1377,6 +1406,7 @@ def plot_poisson_consistency_test(eval_results, normalize=False,
 
     return ax
 
+
 def _get_marker_style(obs_stat, p, one_sided_lower):
     """Returns matplotlib marker style as fmt string"""
     if obs_stat < p[0] or obs_stat > p[1]:
@@ -1401,6 +1431,16 @@ def _get_axis_limits(pnts, border=0.05):
     return (x_min - xd, x_max + xd)
 
 
+@overload
+def plot_comparison_test(
+    results_t: List["EvaluationResult"],
+    results_w: Optional[List["EvaluationResult"]] = None,
+    percentile: int = 95,
+    ax: Optional[matplotlib.axes.Axes] = None,
+    show: bool = False,
+    **kwargs,
+) -> pyplot.Axes: ...
+
 
 @wraps(_plot_comparison_test)
 def plot_comparison_test(*args, **kwargs):
@@ -1417,6 +1457,7 @@ def plot_comparison_test(*args, **kwargs):
         kwargs['ax'] = kwargs.pop('axes')
 
     return _plot_comparison_test(*args, **kwargs)
+
 
 def _get_marker_t_color(distribution):
     """Returns matplotlib marker style as fmt string"""
@@ -1439,6 +1480,20 @@ def _get_marker_w_color(distribution, percentile):
         fmt = False
 
     return fmt
+
+
+@overload
+def plot_consistency_test(
+    eval_results: Union[List["EvaluationResult"], "EvaluationResult"],
+    normalize: bool = False,
+    one_sided_lower: bool = False,
+    percentile: float = 95,
+    plot_mean: bool = False,
+    color: str = "black",
+    ax: Optional[pyplot.Axes] = None,
+    show: bool = False,
+    **kwargs,
+) -> matplotlib.axes.Axes: ...
 
 
 @wraps(_plot_consistency_test)
@@ -1468,6 +1523,7 @@ def plot_consistency_test(*args, **kwargs):
         return _plot_consistency_test_legacy_impl(*args, **kwargs)
 
     return _plot_consistency_test(*args, **kwargs)
+
 
 def _plot_consistency_test_legacy_impl(eval_results, normalize=False, axes=None,
                           one_sided_lower=False, variance=None, plot_args=None,
@@ -1628,6 +1684,18 @@ def _plot_consistency_test_legacy_impl(eval_results, normalize=False, axes=None,
     return ax
 
 
+@overload
+def plot_concentration_ROC_diagram(
+    forecast: "GriddedForecast",
+    catalog: "CSEPCatalog",
+    linear: bool = True,
+    plot_uniform: bool = True,
+    ax: Optional[pyplot.Axes] = None,
+    show: bool = True,
+    **kwargs,
+) -> matplotlib.axes.Axes: ...
+
+
 @wraps(_plot_concentration_ROC_diagram)
 def plot_concentration_ROC_diagram(*args, **kwargs):
     """
@@ -1660,6 +1728,18 @@ def plot_concentration_ROC_diagram(*args, **kwargs):
     return _plot_concentration_ROC_diagram(*args, **kwargs)
 
 
+@overload
+def plot_ROC_diagram(
+    forecast: "GriddedForecast",
+    catalog: "CSEPCatalog",
+    linear: bool = True,
+    plot_uniform: bool = True,
+    ax: Optional[pyplot.Axes] = None,
+    show: bool = True,
+    **kwargs,
+) -> matplotlib.pyplot.Axes: ...
+
+
 @wraps(_plot_ROC_diagram)
 def plot_ROC_diagram(*args, **kwargs):
     """
@@ -1690,6 +1770,18 @@ def plot_ROC_diagram(*args, **kwargs):
         )
 
     return _plot_ROC_diagram(*args, **kwargs)
+
+
+@overload
+def plot_Molchan_diagram(
+    forecast: "GriddedForecast",
+    catalog: "CSEPCatalog",
+    linear: bool = True,
+    plot_uniform: bool = True,
+    ax: Optional[pyplot.Axes] = None,
+    show: bool = True,
+    **kwargs,
+) -> matplotlib.axes.Axes: ...
 
 
 @wraps(_plot_Molchan_diagram)

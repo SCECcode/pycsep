@@ -146,19 +146,12 @@ def plot_magnitude_versus_time(
     """
     # Initialize plot
     if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_magnitude_versus_time.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
+        _warning_plot_args("plot_magnitude_versus_time")
+
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
-    # Plot data
+    # Get data
     mag = catalog.data["magnitude"]
     datetimes = catalog.get_datetimes()
 
@@ -172,6 +165,7 @@ def plot_magnitude_versus_time(
         xdata = datetimes
         xlabel = plot_args["xlabel"] or "Datetime"
 
+    # Plot data
     ax.scatter(
         xdata,
         mag,
@@ -258,15 +252,8 @@ def _plot_cumulative_events_versus_time(
     """
     # Initialize plot
     if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_cumulative_events_versus_time.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
+        _warning_plot_args("plot_cumulative_events_versus_time")
+
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
@@ -443,15 +430,8 @@ def plot_magnitude_histogram(
 
     # Initialize plot
     if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_magnitude_histogram.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
+        _warning_plot_args("plot_magnitude_histogram")
+
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
@@ -480,7 +460,6 @@ def plot_magnitude_histogram(
     forecast_hist = numpy.array(
         list(map(lambda x: get_histogram_synthetic_cat(x, magnitude_bins), forecast_mws))
     )
-
     obs_hist, bin_edges = numpy.histogram(obs_mw, bins=magnitude_bins)
     bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
 
@@ -489,17 +468,11 @@ def plot_magnitude_histogram(
     forecast_median = numpy.median(forecast_hist, axis=0)
     forecast_low = numpy.percentile(forecast_hist, (100 - percentile) / 2.0, axis=0)
     forecast_high = numpy.percentile(forecast_hist, 100 - (100 - percentile) / 2.0, axis=0)
-
     forecast_err_lower = forecast_median - forecast_low
     forecast_err_upper = forecast_high - forecast_median
 
-    # Plot observed histogram
-    if log_scale:
-        plot_func = ax.semilogy
-    else:
-        plot_func = ax.plot
-
-    plot_func(
+    # Plot observed counts
+    ax.plot(
         bin_centers,
         obs_hist,
         color=plot_args["color"],
@@ -509,7 +482,6 @@ def plot_magnitude_histogram(
         label="Observation",
         zorder=3,
     )
-
     # Plot forecast histograms as bar plot with error bars
     ax.plot(
         bin_centers,
@@ -538,7 +510,9 @@ def plot_magnitude_histogram(
         ax = _autoscale_histogram(
             ax, magnitude_bins, numpy.hstack(forecast_mws), obs_mw, mass=100
         )
-
+    # Scale y-axis
+    if log_scale:
+        ax.set_yscale('log')
     # Format plot
     ax.grid(plot_args["grid"])
     ax.legend(loc=plot_args["legend_loc"], fontsize=plot_args["legend_fontsize"])
@@ -729,24 +703,17 @@ def plot_catalog(
     Returns:
         matplotlib.axes.Axes: The Matplotlib axes object with the plotted data.
     """
-
     if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_catalog.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
+        _warning_plot_args("plot_catalog")
+
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     # Get spatial information for plotting
     extent = extent or _calculate_spatial_extent(catalog, set_global, plot_region)
     # Instantiate GeoAxes object
-    ax = ax or _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
-    # chain basemap
-    ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False, **plot_args)
+    if ax is None:
+        ax = _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
+        ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False,
+                          **plot_args)
 
     # Plot catalog
     ax.scatter(
@@ -765,7 +732,6 @@ def plot_catalog(
         edgecolors=plot_args["markeredgecolor"],
         alpha=plot_args["alpha"],
     )
-
     # Legend
     if plot_args["legend"]:
         if isinstance(mag_ticks, (list, numpy.ndarray)):
@@ -773,7 +739,6 @@ def plot_catalog(
         else:
             mw_range = [min(catalog.get_magnitudes()), max(catalog.get_magnitudes())]
             mag_ticks = numpy.linspace(mw_range[0], mw_range[1], mag_ticks or 4, endpoint=True)
-
         # Map mag_ticks to marker sizes using the custom size mapping function
         legend_sizes = _autosize_scatter(
             values=mag_ticks,
@@ -783,7 +748,6 @@ def plot_catalog(
             min_val=min_val or numpy.min(catalog.get_magnitudes()),
             max_val=max_val or numpy.max(catalog.get_magnitudes()),
         )
-
         # Create custom legend handles
         handles = [
             pyplot.Line2D(
@@ -800,7 +764,6 @@ def plot_catalog(
             )
             for m, s in zip(mag_ticks, legend_sizes)
         ]
-
         ax.legend(
             handles,
             numpy.round(mag_ticks, 1),
@@ -813,7 +776,6 @@ def plot_catalog(
             borderpad=plot_args["legend_borderpad"],
             framealpha=plot_args["legend_framealpha"],
         )
-
     # Draw catalog's region border
     if plot_region:
         try:
@@ -821,7 +783,6 @@ def plot_catalog(
             ax.plot(pts[:, 0], pts[:, 1], lw=1, color=plot_args["region_color"])
         except AttributeError:
             pass
-
     ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"], y=1.06)
 
     if show:
@@ -889,26 +850,17 @@ def plot_gridded_dataset(
     Returns:
         matplotlib.axes.Axes: Matplotlib axes object.
     """
-
     if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_gridded_dataset.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
+        _warning_plot_args("plot_gridded_dataset")
+
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     # Get spatial information for plotting
     extent = extent or _calculate_spatial_extent(region, set_global, plot_region)
     # Instantiate GeoAxes object
-    ax = ax or _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
-
-    # chain basemap
-    ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False, **plot_args)
-
+    if ax is None:
+        ax = _create_geo_axes(plot_args["figsize"], extent, projection, set_global)
+        ax = plot_basemap(basemap, extent, ax=ax, set_global=set_global, show=False,
+                          **plot_args)
     # Define colormap and alpha transparency
     colormap, alpha = _get_colormap(colormap, alpha_exp, alpha)
 
@@ -944,7 +896,6 @@ def plot_gridded_dataset(
                     transform=ccrs.PlateCarree())
         except AttributeError:
             pass
-
     ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"], y=1.06)
 
     if show:
@@ -1011,17 +962,10 @@ def plot_test_distribution(
         matplotlib.axes.Axes: Matplotlib axes handle.
     """
 
-    # Initialize plot]
     if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_test_distribution.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
+        _warning_plot_args("plot_test_distribution")
+
+    # Initialize plot
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
@@ -1140,17 +1084,10 @@ def plot_calibration_test(
     Returns:
         matplotlib.axes.Axes: The Matplotlib axes object containing the plot.
     """
-    # Initialize plot
     if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_calibration_test.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
+        _warning_plot_args("plot_calibration_test")
+
+    # Initialize plot
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
@@ -1253,18 +1190,10 @@ def _plot_comparison_test(
     Returns:
         matplotlib.axes.Axes: The Matplotlib axes object containing the plot.
     """
+    if "plot_args" in kwargs:
+        _warning_plot_args("plot_comparison_test")
 
     # Initialize plot
-    if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_comparison_test.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
@@ -1442,18 +1371,10 @@ def _plot_consistency_test(
     Returns:
         matplotlib.axes.Axes: Matplotlib axes object with the consistency test plot.
     """
+    if "plot_args" in kwargs:
+        _warning_plot_args("plot_consistency_test")
 
     # Initialize plot
-    if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_consistency_test.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
@@ -1583,18 +1504,10 @@ def _plot_concentration_ROC_diagram(
     Returns:
         matplotlib.axes.Axes: The Axes object with the plot.
     """
+    if "plot_args" in kwargs:
+        _warning_plot_args("plot_concentration_ROC_diagram")
 
     # Initialize plot
-    if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_concentration_ROC_diagram.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
@@ -1706,18 +1619,10 @@ def _plot_ROC_diagram(
     Returns:
         matplotlib.pyplot.Axes: The Axes object with the plot.
     """
+    if "plot_args" in kwargs:
+        _warning_plot_args("plot_ROC_diagram")
 
     # Initialize plot
-    if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_ROC_diagram.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
@@ -1864,17 +1769,9 @@ def _plot_Molchan_diagram(
     Raises:
         RuntimeError: If the catalog and forecast do not have the same region.
     """
-
     if "plot_args" in kwargs:
-        warnings.warn(
-            "'plot_args' usage is deprecated and will be removed in version 1.0.\n"
-            "Fine-tuning of plot appearance may not behave as expected'.\n"
-            "Please use explicit arguments instead (e.g., color='red').\n"
-            "Refer to the function's documentation for supported keyword arguments:\n"
-            " https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_Molchan_diagram.html",
-            DeprecationWarning,
-            stacklevel=2
-        )
+        _warning_plot_args("plot_Molchan_diagram")
+
     plot_args = {**DEFAULT_PLOT_ARGS, **kwargs.get("plot_args", {}), **kwargs}
     fig, ax = pyplot.subplots(figsize=plot_args["figsize"]) if ax is None else (ax.figure, ax)
 
@@ -2139,7 +2036,7 @@ def _get_basemap(basemap: str) -> Union[img_tiles.GoogleTiles, DatasetReader]:
                 cache_src = fp.read()
             if cache_src != basemap_:
                 if os.path.isdir(cartopy.config["cache_dir"]):
-                    print(f"Cleaning existing {basemap_} cache")
+                    print(f"Cleaning existing basemap cache")
                     shutil.rmtree(cartopy.config["cache_dir"])
 
     def _save_cache_src(basemap_):
@@ -2535,6 +2432,7 @@ def _process_stat_distribution(
         plow = poisson.ppf((1 - percentile / 100.0) / 2.0, mean)
         phigh = poisson.ppf(1 - (1 - percentile / 100.0) / 2.0, mean)
         observed_statistic = res.observed_statistic
+
     elif dist_type == "negative_binomial":
         mean = res.test_distribution[1]
         variance = res.test_distribution[2]
@@ -2561,6 +2459,27 @@ def _process_stat_distribution(
         mean = numpy.mean(test_distribution)
 
     return plow, phigh, mean, observed_statistic
+
+
+def _warning_plot_args(func_name: str):
+    """
+    Issues a standardized DeprecationWarning for use of 'plot_args' in plotting functions.
+
+    Args:
+        func_name (str): The full function name (e.g., 'csep.utils.plots.plot_catalog').
+    """
+    base_url = "https://docs.cseptesting.org/reference/generated/"
+    doc_url = f"{base_url}/csep.utils.plots.{func_name}.html"
+
+    warnings.warn(
+        f"'plot_args' usage is deprecated and will be removed in version 1.0.\n"
+        f"Please use explicit keyword arguments instead (e.g., color='red').\n"
+        f"Fine-tuning of plot appearance via 'plot_args' may no longer behave as expected.\n\n"
+        f"Refer to the updated function documentation at:\n"
+        f"    {doc_url}",
+        DeprecationWarning,
+        stacklevel=2
+    )
 
 
 # Public export of function wrappers for backwards/legacy compatibility.

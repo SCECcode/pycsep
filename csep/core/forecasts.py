@@ -434,16 +434,25 @@ class GriddedForecast(MarkedGriddedDataSet):
 
     def plot(self, ax=None, show=False, log=True, extent=None, set_global=False, plot_args=None,
              **kwargs):
-        """ Plot gridded forecast according to plate-carree projection
+        """ Plot the spatial rate of the forecast
+
+        See :func:`csep.utils.plots.plot_gridded_dataset` for a detailed description of the
+        keyword arguments.
 
         Args:
-            show (bool): if true, show the figure. this call is blocking.
-            plot_args (optional/dict): dictionary containing plotting arguments for making figures
+            ax (`matplotlib.pyplot.axes`): Previous axes onto which catalog can be drawn
+            show (bool): If True, shows the figure.
+            log (bool): If True, plots the base-10 logarithm of the spatial rates
+            extent (list): Force an extent [lon_min, lon_max, lat_min, lat_max]
+            set_global (bool): Whether to plot using a global projection
+            **kwargs (dict): Keyword arguments passed to
+                :func:`csep.utils.plots.plot_gridded_dataset`
 
         Returns:
             axes: matplotlib.Axes.axes
         """
-        # no mutable function arguments
+
+
         if self.start_time is None or self.end_time is None:
             time = 'forecast period'
         else:
