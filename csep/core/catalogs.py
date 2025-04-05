@@ -857,7 +857,7 @@ class AbstractBaseCatalog(LoggingMixin):
 
         # no mutable function arguments
         plot_args_default = {
-             'basemap': kwargs.pop('basemap', None) or 'ESRI_terrain',
+             'basemap': kwargs.pop('basemap', 'ESRI_terrain') if ax is None else None
         }
 
         # Plot the region border (if it exists) by default
@@ -870,10 +870,11 @@ class AbstractBaseCatalog(LoggingMixin):
 
         plot_args = kwargs.get('plot_args', {})
         plot_args_default.update(plot_args)
+        plot_args_default.update(kwargs)
 
         # this call requires internet connection and basemap
         ax = plot_catalog(self, ax=ax, show=show, extent=extent,
-                          set_global=set_global, **plot_args_default, **kwargs)
+                          set_global=set_global, **plot_args_default)
         return ax
 
     def plot_magnitude_versus_time(self, ax=None, show=False, **kwargs):

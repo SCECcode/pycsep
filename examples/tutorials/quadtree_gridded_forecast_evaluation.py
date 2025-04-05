@@ -2,8 +2,8 @@
 
 .. _quadtree_gridded-forecast-evaluation:
 
-Quadtree Grid-based Forecast Evaluation
-=======================================
+Quadtree-based Forecast Evaluation
+==================================
 
 This example demonstrates how to create a quadtree based single resolution-grid and multi-resolution grid.
 Multi-resolution grid is created using earthquake catalog, in which seismic density determines the size of a grid cell. 

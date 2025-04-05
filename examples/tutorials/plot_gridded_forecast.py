@@ -1,6 +1,9 @@
 """
-Plotting gridded forecast
-=========================
+
+.. tutorial-handling-grid-forecast:
+
+Handling Grid-based Forecasts
+=============================
 
 This example show you how to load a gridded forecast stored in the default ASCII format.
 """

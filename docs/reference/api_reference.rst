@@ -7,13 +7,12 @@ This contains a reference document to the PyCSEP API.
 
 .. :currentmodule:: csep
 
-Loading catalogs and forecasts
-------------------------------
+Loading catalogs, forecasts and results
+---------------------------------------
 
 .. autosummary::
    :toctree: generated
 
-   load_stochastic_event_sets
    load_catalog
    query_comcat
    query_bsi
@@ -21,6 +20,8 @@ Loading catalogs and forecasts
    query_gcmt
    load_gridded_forecast
    load_catalog_forecast
+   load_stochastic_event_sets
+   load_evaluation_result
 
 Catalogs
 --------

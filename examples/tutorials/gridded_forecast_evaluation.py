@@ -28,17 +28,14 @@ import csep
 from csep.core import poisson_evaluations as poisson
 from csep.utils import datasets, time_utils, plots
 
-# Needed to show plots from the terminal
-import matplotlib.pyplot as plt
-
 ####################################################################################################################################
 # Define forecast properties
 # --------------------------
 #
 # We choose a :ref:`time-independent-forecast` to show how to evaluate a grid-based earthquake forecast using PyCSEP. Note,
 # the start and end date should be chosen based on the creation of the forecast. This is important for time-independent forecasts
-# because they can be rescale to any arbitrary time period.
-from csep.utils.stats import get_Kagan_I1_score
+# because they can be rescaled to any arbitrary time period.
+
 
 start_date = time_utils.strptime_to_utc_datetime('2006-11-12 00:00:00.0')
 end_date = time_utils.strptime_to_utc_datetime('2011-11-12 00:00:00.0')
@@ -103,8 +100,8 @@ csep.write_json(spatial_test_result, 'example_spatial_test.json')
 # consistency tests.
 
 ax = plots.plot_consistency_test(spatial_test_result,
-                                 xlabel='Spatial likelihood')
-plt.show()
+                                 xlabel='Spatial likelihood',
+                                 show=True)
 
 
 ####################################################################################################################################
@@ -182,5 +179,6 @@ _ = plots.plot_Molchan_diagram(forecast, catalog, linear=True)
 # We can also get the Kagan's I_1 score for a gridded forecast
 # (see Kagan, YanY. [2009] Testing long-term earthquake forecasts: likelihood methods and error diagrams, Geophys. J. Int., v.177, pages 532-542).
 
+from csep.utils.stats import get_Kagan_I1_score
 I_1 = get_Kagan_I1_score(forecast, catalog)
 print("I_1score is: ", I_1)
