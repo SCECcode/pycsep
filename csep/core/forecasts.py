@@ -453,9 +453,10 @@ class GriddedForecast(MarkedGriddedDataSet):
 
         plot_args = plot_args or {}
         plot_args.update({
-             'basemap': kwargs.pop('basemap', None) or 'ESRI_terrain',
+             'basemap': kwargs.pop('basemap', 'ESRI_terrain') if ax is None else None,
              'title': kwargs.pop('title', None) or self.name,
              'figsize': kwargs.pop('figsize', None) or (8, 8),
+             'plot_region': True
         })
         plot_args.update(**kwargs)
         # this call requires internet connection and basemap

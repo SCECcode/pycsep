@@ -1,5 +1,8 @@
 """
-Working with catalog-based forecasts
+
+.. _tutorial-working-catalog-forecasts:
+
+Working with Catalog-based Forecasts
 ====================================
 
 This example shows some basic interactions with data-based forecasts. We will load in a forecast stored in the CSEP

@@ -393,6 +393,7 @@ def plot_magnitude_histogram(
     observation: "CSEPCatalog",
     magnitude_bins: Optional[Union[List[float], numpy.ndarray]] = None,
     percentile: int = 95,
+    log_scale: bool = True,
     ax: Optional["matplotlib.axes.Axes"] = None,
     show: bool = False,
     **kwargs,
@@ -411,6 +412,8 @@ def plot_magnitude_histogram(
             Defaults to `None`.
         percentile (int, optional): The percentile used for uncertainty intervals. Defaults to
             `95`.
+        log_scale (bool, optional): Whether to plot the y-axis in logarithmic scale. Defaults to
+            True.
         ax (matplotlib.axes.Axes, optional): The axes object to draw the plot on. If `None`, a
             new figure and axes are created. Defaults to `None`.
         show (bool, optional): Whether to display the plot immediately. Defaults to `False`.
@@ -482,6 +485,7 @@ def plot_magnitude_histogram(
     bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
 
     # Compute statistics for the forecast histograms
+    forecast_mean = numpy.mean(forecast_hist, axis=0)
     forecast_median = numpy.median(forecast_hist, axis=0)
     forecast_low = numpy.percentile(forecast_hist, (100 - percentile) / 2.0, axis=0)
     forecast_high = numpy.percentile(forecast_hist, 100 - (100 - percentile) / 2.0, axis=0)
@@ -490,7 +494,12 @@ def plot_magnitude_histogram(
     forecast_err_upper = forecast_high - forecast_median
 
     # Plot observed histogram
-    ax.semilogy(
+    if log_scale:
+        plot_func = ax.semilogy
+    else:
+        plot_func = ax.plot
+
+    plot_func(
         bin_centers,
         obs_hist,
         color=plot_args["color"],
@@ -504,11 +513,11 @@ def plot_magnitude_histogram(
     # Plot forecast histograms as bar plot with error bars
     ax.plot(
         bin_centers,
-        forecast_median,
+        forecast_mean,
         ".",
         markersize=plot_args["markersize"],
         color="darkred",
-        label="Forecast Median",
+        label="Forecast Mean",
     )
     ax.errorbar(
         bin_centers,
@@ -815,9 +824,6 @@ def plot_catalog(
 
     ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"], y=1.06)
 
-    if plot_args["tight_layout"]:
-        ax.figure.tight_layout()
-
     if show:
         pyplot.show()
 
@@ -934,7 +940,8 @@ def plot_gridded_dataset(
     if plot_region and not set_global:
         try:
             pts = region.tight_bbox()
-            ax.plot(pts[:, 0], pts[:, 1], lw=1, color=plot_args["region_color"])
+            ax.plot(pts[:, 0], pts[:, 1], lw=1, color=plot_args["region_color"],
+                    transform=ccrs.PlateCarree())
         except AttributeError:
             pass
 
