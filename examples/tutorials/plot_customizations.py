@@ -12,8 +12,8 @@ Overview:
     2. Set the extent of maps
     3. Visualizing selected magnitude bins
     4. Plot global maps
-    5. Composing plots
-    5. Plot multiple Evaluation Results
+    5. Creating composite plots
+    6. Plot multiple Evaluation Results
 
 """
 
@@ -27,7 +27,6 @@ Overview:
 import csep
 import cartopy
 import numpy
-
 from csep.utils import datasets, plots
 
 ####################################################################################################################################
@@ -44,6 +43,7 @@ forecast = csep.load_gridded_forecast(datasets.hires_ssm_italy_fname,
 #
 # These arguments are, in order:
 #
+# * Set the figure size
 # * Set the spatial extent of the plot
 # * Access ESRI Imagery as a basemap.
 # * Assign a title
@@ -57,7 +57,8 @@ forecast = csep.load_gridded_forecast(datasets.hires_ssm_italy_fname,
 # The complete description of plot arguments can be found in :func:`csep.utils.plots.plot_gridded_dataset`
 #
 
-ax = forecast.plot(extent=[3, 22, 35, 48],
+ax = forecast.plot(figsize=(10, 8),
+                   extent=[3, 22, 35, 48],
                    basemap='ESRI_imagery',
                    title='Italy 10 year forecast',
                    grid_labels=True,
@@ -99,6 +100,7 @@ rate_sum = rates_mw.sum(axis=1)
 # The data is stored in a 1D array, so it should be projected into the `region` 2D cartesian grid.
 
 rate_sum = forecast.region.get_cartesian(rate_sum)
+rate_sum_log = numpy.log10(rate_sum)
 
 ####################################################################################################################################
 # **Plotting the dataset**
@@ -108,7 +110,10 @@ rate_sum = forecast.region.get_cartesian(rate_sum)
 #
 
 ax = plots.plot_gridded_dataset(
-            numpy.log10(rate_sum), forecast.region,
+            # Required arguments
+            rate_sum_log,
+            forecast.region,
+            # Optional keyword arguments
             figsize=(10, 6),
             set_global=True,
             coastline_color='black',
@@ -197,18 +202,19 @@ catalog = csep.query_comcat(start_time, end_time, min_magnitude=min_mag, verbose
 ####################################################################################################################################
 # **Initialize a basemap with desired arguments**
 #
-# Plot the basemap using :func:`csep.utils.plots.plot_basemap`. Do not set ```show=True``` and store the returned ```ax``` object to
+# Plot the basemap alone by using :func:`csep.utils.plots.plot_basemap`. Do not set ``show=True`` and store the returned ``ax`` object to
 # start the composite plot
 
 ax = plots.plot_basemap(figsize=(8, 8),
                         projection=cartopy.crs.AlbersEqualArea(central_longitude=-120.),
                         extent=forecast.region.get_bbox(),
-                        basemap='ESRI_terrain',
-                        coastline_color='darkred',
+                        basemap='ESRI_relief',
+                        coastline_color='gray',
+                        coastline_linewidth=1
                         )
 
 # Pass the ax object into a consecutive plot
-ax = forecast.plot(colormap='PuBu_r', ax=ax)
+ax = forecast.plot(colormap='PuBu_r', alpha_exp=0.5, ax=ax)
 
 # Use show=True to finalize the composite.
 catalog.plot(markercolor='darkred', ax=ax, show=True)

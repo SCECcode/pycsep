@@ -5,7 +5,6 @@ omit =
     tests/*
     docs/*
     examples/*
-    csep/utils/plots.py
     csep/utils/constants.py
     csep/utils/datasets.py
     csep/utils/documents.py

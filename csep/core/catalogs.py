@@ -841,22 +841,24 @@ class AbstractBaseCatalog(LoggingMixin):
         pass
 
     def plot(self, ax=None, show=False, extent=None, set_global=False, **kwargs):
-        """ Plot catalog according to plate-carree projection. See
-        https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_catalog.html for
-        a description of keyword arguments.
+        """ Plots the catalog epicenters.
+
+        See :func:`csep.utils.plots.plot_catalog` for a description of keyword arguments.
 
         Args:
-            ax (`matplotlib.pyplot.axes`): Previous axes onto which catalog can be drawn
-            show (bool): if true, show the figure. this call is blocking.
+            ax (matplotlib.pyplot.axes): Previous axes onto which catalog can be drawn
+            show (bool): If True, shows the figure.
             extent (list): Force an extent [lon_min, lon_max, lat_min, lat_max]
             set_global (bool): Whether to plot using a global projection
+            **kwargs (dict): Keyword arguments passed to
+                :func:`csep.utils.plots.plot_catalog`
 
         Returns:
             axes: matplotlib.Axes.axes
         """
 
         # no mutable function arguments
-        plot_args_default = {
+        plot_args = {
              'basemap': kwargs.pop('basemap', 'ESRI_terrain') if ax is None else None
         }
 
@@ -864,17 +866,16 @@ class AbstractBaseCatalog(LoggingMixin):
         try:
             # This will throw error if catalog does not have region
             _ = self.region.num_nodes
-            plot_args_default['region_border'] = True
+            plot_args['region_border'] = True
         except AttributeError:
             pass
 
-        plot_args = kwargs.get('plot_args', {})
-        plot_args_default.update(plot_args)
-        plot_args_default.update(kwargs)
+        plot_args.update(kwargs.get('plot_args', {}))
+        plot_args.update(kwargs)
 
         # this call requires internet connection and basemap
         ax = plot_catalog(self, ax=ax, show=show, extent=extent,
-                          set_global=set_global, **plot_args_default)
+                          set_global=set_global, **plot_args)
         return ax
 
     def plot_magnitude_versus_time(self, ax=None, show=False, **kwargs):
