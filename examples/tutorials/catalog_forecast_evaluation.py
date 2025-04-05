@@ -1,5 +1,6 @@
 """
-.. _catalog-forecast-evaluation:
+
+.. _tutorial-catalog-forecast-evaluation:
 
 Catalog-based Forecast Evaluation
 =================================
@@ -24,7 +25,7 @@ Overview:
 
 import csep
 from csep.core import regions, catalog_evaluations
-from csep.utils import datasets, time_utils
+from csep.utils import datasets, time_utils, plots
 
 ####################################################################################################################################
 # Define start and end times of forecast
@@ -71,12 +72,13 @@ space_magnitude_region = regions.create_space_magnitude_region(region, magnitude
 # More fine-grain control and optimizations can be achieved by creating a :class:`csep.core.forecasts.CatalogForecast` directly.
 
 forecast = csep.load_catalog_forecast(datasets.ucerf3_ascii_format_landers_fname,
-                                      start_time = start_time, end_time = end_time,
-                                      region = space_magnitude_region,
-                                      apply_filters = True)
+                                      start_time=start_time, end_time=end_time,
+                                      region=space_magnitude_region,
+                                      apply_filters=True)
 
 # Assign filters to forecast
-forecast.filters = [f'origin_time >= {forecast.start_epoch}', f'origin_time < {forecast.end_epoch}']
+forecast.filters = [f'origin_time >= {forecast.start_epoch}',
+                    f'origin_time < {forecast.end_epoch}']
 
 ####################################################################################################################################
 # Obtain evaluation catalog from ComCat
@@ -98,6 +100,22 @@ print(comcat_catalog)
 
 # Plot the catalog
 comcat_catalog.plot(show=True)
+
+####################################################################################################################################
+# Exploratory visualizations
+# --------------------------
+#
+# We can visualize differences between the distribution of event counts of the observations against the forecast:
+
+plots.plot_cumulative_events_versus_time(forecast, comcat_catalog, time_axis='days', show=True)
+
+
+####################################################################################################################################
+#
+# and their magnitude histograms
+#
+
+plots.plot_magnitude_histogram(forecast, comcat_catalog, log_scale=False, show=True)
 
 ####################################################################################################################################
 # Perform number test

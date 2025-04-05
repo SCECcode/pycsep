@@ -1,7 +1,7 @@
 """
 .. tutorial-catalog-filtering
 
-Catalogs operations
+Catalogs Operations
 ===================
 
 This example demonstrates how to perform standard operations on a catalog. This example requires an internet
