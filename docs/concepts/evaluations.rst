@@ -30,7 +30,7 @@ consistency tests and they verify whether a forecast in consistent with an obser
 that can be used to compare the performance of two (or more) competing forecasts.
 PyCSEP implements the following evaluation routines for grid-based forecasts. These functions are intended to work with
 :class:`GriddedForecasts<csep.core.forecasts.GriddedForecast>` and :class:`CSEPCatalogs`<csep.core.catalogs.CSEPCatalog>`.
-Visit the :ref:`catalogs reference<catalogs-reference>` and the :ref:`forecasts reference<forecasts-reference>` to learn
+Visit the :ref:`catalogs reference<catalogs-reference>` and the :ref:`forecasts reference<forecast-reference>` to learn
 more about to import your forecasts and catalogs into PyCSEP.
 
 .. note::
@@ -105,6 +105,8 @@ Consistency tests
    magnitude_test
    pseudolikelihood_test
    calibration_test
+   resampled_magnitude_test
+   MLL_magnitude_test
 
 Publication reference
 =====================
@@ -114,6 +116,8 @@ Publication reference
 3. Magnitude test (:ref:`Savran et al., 2020<savran-2020>`)
 4. Pseudolikelihood test (:ref:`Savran et al., 2020<savran-2020>`)
 5. Calibration test (:ref:`Savran et al., 2020<savran-2020>`)
+6. Resampled Magnitude Test (Serafini et al., in-prep)
+7. MLL Magnitude Test (Serafini et al., in-prep)
 
 ****************************
 Preparing evaluation catalog
@@ -121,6 +125,7 @@ Preparing evaluation catalog
 
 The evaluations in PyCSEP do not implicitly filter the observed catalogs or modify the forecast data when called. For most
 cases, the observation catalog should be filtered according to:
+
     1. Magnitude range of the forecast
     2. Spatial region of the forecast
     3. Start and end-time of the forecast

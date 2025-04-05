@@ -9,6 +9,7 @@ import os
 
 # Third-party imports
 import numpy
+import pandas as pd
 
 # PyCSEP imports
 from csep.utils.time_utils import strptime_to_utc_datetime, \
@@ -18,6 +19,7 @@ from csep.utils.geonet import gns_search
 from csep.utils.iris import gcmt_search
 from csep.core.regions import QuadtreeGrid2D
 from csep.core.exceptions import CSEPIOException
+from csep.core.regions import CartesianGrid2D
 
 
 def ndk(filename):
@@ -901,11 +903,11 @@ def mapping_GEAR1(GEAR1_file, area_file, grid_file, b_value=False):
         
         grid_file (str): Two-column, n-row array containing the centered longitude and latitude
                            coordinates of all the cells (with spatial resolution of 0.1 x 0.1) that 
-                           make up the new testing region. E.g. 25.15,  33.25
-                                                                25.25,  33.25
-                                                                25.35,  33.25
-                           Each lon lat coordinate must be a two-decimal floating number ending in 5, 
-                           i.e., the cell midpoint, as seen above.
+                           make up the new testing region. E.g. 25.15 33.25
+                                                                25.25 33.25
+                                                                25.35 33.25
+                           Each lon lat coordinate, separated by single blank space, must be a two-
+                           decimal floating number ending in 5, i.e., the cell midpoint, as seen above.
                     
         b_value (float):   If modellers wish to extroplate GEAR1 M 5.95+ earthquake rates to a lower 
                            magnitude threshold, they must provide a generic b value of the region.
@@ -915,7 +917,7 @@ def mapping_GEAR1(GEAR1_file, area_file, grid_file, b_value=False):
                            b_value variable should remain False.
 
     Returns
-        GEAR1_region.dat:  Input text file containing GEAR 1 earthquake rates in cells defined within 
+        GEAR1_region.dat:  Input text file containing GEAR1 earthquake rates in cells defined within 
                            the desired geographic region. This file feeds a so-called read_GEAR1_format
                            function, which translates the format in which the GEAR1 forecasts were 
                            originally provided into a pyCSEP-friendly format.
@@ -928,8 +930,8 @@ def mapping_GEAR1(GEAR1_file, area_file, grid_file, b_value=False):
     
     """
     print ('Reading data...')
-    bulk_dataW = np.loadtxt(GEAR1_file, skiprows=1, delimiter=',')
-    bulk_areaW = np.loadtxt(area_file, skiprows=1, delimiter=',')
+    bulk_dataW = numpy.loadtxt(GEAR1_file, skiprows=1, delimiter=',')
+    bulk_areaW = numpy.loadtxt(area_file, skiprows=1, delimiter=',')
     
     # This part of the code is aimed to ensure that all lon and lat coordinates are two-digits floating 
     # numbers. This is important, because the projection of GEAR1 onto a geographical region is basically 
@@ -939,8 +941,8 @@ def mapping_GEAR1(GEAR1_file, area_file, grid_file, b_value=False):
     longitudesW = []
 
     for i in range(len(bulk_dataW)):
-        longitudesW.append(np.float('%.2f' % round(bulk_dataW[:,0][i],2))) 
-        latitudesW.append(np.float('%.2f' % round(bulk_dataW[:,1][i],2)))
+        longitudesW.append(float('%.2f' % round(bulk_dataW[:,0][i],2))) 
+        latitudesW.append(float('%.2f' % round(bulk_dataW[:,1][i],2)))
     
     # This is the first Pandas data frame when no extrapolations are needed:
     if not b_value:    
@@ -1038,14 +1040,14 @@ def mapping_GEAR1(GEAR1_file, area_file, grid_file, b_value=False):
     longitudesW = []
     
     # This is the second Pandas data frame:
-    bulk_dataR = np.loadtxt(grid_file, skiprows=0, delimiter=' ')
+    bulk_dataR = numpy.loadtxt(grid_file, skiprows=0, delimiter=' ')
     
     grid_longitudes = []
     grid_latitudes = []
 
     for i in range(len(bulk_dataR)):
-        grid_longitudes.append(np.float('%.2f' % round(bulk_dataR[:,0][i],2))) 
-        grid_latitudes.append(np.float('%.2f' % round(bulk_dataR[:,1][i],2))) 
+        grid_longitudes.append(float('%.2f' % round(bulk_dataR[:,0][i],2))) 
+        grid_latitudes.append(float('%.2f' % round(bulk_dataR[:,1][i],2))) 
         
     polygon = pd.DataFrame()
     polygon['longitude'] = grid_longitudes
@@ -1080,13 +1082,13 @@ def read_GEAR1_format(filename, area_filename, magnitudes):
     Returns:
         :class:`csep.core.forecasts.GriddedForecast`   
     """
-    t0 = time.time()
-    bulk_data = np.loadtxt(filename, skiprows=1, delimiter=',')
+    
+    bulk_data = numpy.loadtxt(filename, skiprows=1, delimiter=',')
     
     # Construction of the testing region:
     lons = bulk_data[:,1]
     lats = bulk_data[:,2]
-    coords = np.column_stack([lons, lats])
+    coords = numpy.column_stack([lons, lats])
     
     # Coordinates are given as midpoints origin should be in the 'lower left' corner:
     r = CartesianGrid2D.from_origins(coords, magnitudes=magnitudes)
@@ -1095,16 +1097,16 @@ def read_GEAR1_format(filename, area_filename, magnitudes):
     bulk_data_no_coords = bulk_data[:, 3:]
     
     # Original GEAR1 format provides cumulative rates per meter**2
-    incremental_yrly_density = np.diff(np.fliplr(bulk_data_no_coords))
+    incremental_yrly_density = numpy.diff(numpy.fliplr(bulk_data_no_coords))
     
     # Computing the differences, but returning array with the same shape:
-    incremental_yrly_density = np.column_stack([np.fliplr(incremental_yrly_density), bulk_data_no_coords[:,-1]])
+    incremental_yrly_density = numpy.column_stack([numpy.fliplr(incremental_yrly_density), bulk_data_no_coords[:,-1]])
     
     # Read in area to denormalize back onto csep grid
-    area = np.loadtxt(area_filename, skiprows=1, delimiter=',')
+    area = numpy.loadtxt(area_filename, skiprows=1, delimiter=',')
 
     # Allows to use broadcasting
-    m2_per_cell = np.reshape(area[:,-1], (len(area[:,1]), 1))
+    m2_per_cell = numpy.reshape(area[:,-1], (len(area[:,1]), 1))
     incremental_yrly_rates = incremental_yrly_density * m2_per_cell
     
     return incremental_yrly_rates, r, magnitudes        

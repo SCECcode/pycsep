@@ -51,67 +51,75 @@ def discretize(data, bin_edges, right_continuous=False):
     x_new = bin_edges[idx]
     return x_new
 
+def _get_tolerance(v):
+    """Determine numerical tolerance due to limited precision of floating-point values.
+
+    ... to account for roundoff error.
+
+    In other words, returns a maximum possible difference that can be considered negligible.
+    Only relevant for floating-point values.
+    """
+    if issubclass(v.dtype.type, numpy.floating):
+        return numpy.abs(v) * numpy.finfo(v.dtype).eps
+    return 0  # assuming it's an int
+
 def bin1d_vec(p, bins, tol=None, right_continuous=False):
     """Efficient implementation of binning routine on 1D Cartesian Grid.
 
-    Returns the indices of the points into bins. Bins are inclusive on the lower bound
+    Bins are inclusive on the lower bound
     and exclusive on the upper bound. In the case where a point does not fall within the bins a -1
     will be returned. The last bin extends to infinity when right_continuous is set as true.
 
+    To correctly bin points that are practically on a bin edge, this function accounts for the
+    limited precision of floating-point numbers (the roundoff error) with a numerical tolerance.
+    If the provided points were subject to some floating-point operations after loading or
+    generating them, the roundoff error increases (which is not accounted for) and requires
+    overwriting the `tol` argument.
+
     Args:
-        p (array-like): Point(s) to be placed into b
-        bins (array-like): bins to considering for binning, must be monotonically increasing
-        right_continuous (bool): if true, consider last bin extending to infinity
+        p (array-like): Point(s) to be placed into bins.
+        bins (array-like): bin edges; must be sorted (monotonically increasing)
+        tol (float): overwrite numerical tolerance, by default determined automatically from the
+                     points' dtype to account for the roundoff error.
+        right_continuous (bool): if true, consider last bin extending to infinity.
 
     Returns:
-        idx (array-like): indexes hashed into grid
+        numpy.ndarray: indices for the points corresponding to the bins.
 
     Raises:
         ValueError:
     """
-    bins = numpy.array(bins)
-    p = numpy.array(p)
-    a0 = numpy.min(bins)
-    # if user supplies only a single bin, do 2 things: 1) fix right continuous to true, and use of h is arbitrary
+    bins = numpy.asarray(bins)
+    p = numpy.asarray(p)
+
+    # if not np.all(bins[:-1] <= bins[1:]):  # check for sorted bins, which is a requirement
+    #     raise ValueError("Bin edges are not sorted.")  # (pyCSEP always passes sorted bins)
+    a0 = bins[0]
     if bins.size == 1:
+        # for a single bin, set `right_continuous` to true; h is now arbitrary
         right_continuous = True
-        h = 1
+        h = 1.
     else:
         h = bins[1] - bins[0]
 
-    a0_tol = numpy.abs(a0) * numpy.finfo(numpy.float64).eps
-    h_tol = numpy.abs(h) * numpy.finfo(numpy.float64).eps
-    p_tol = numpy.abs(p) * numpy.finfo(numpy.float64).eps
-
-    # absolute tolerance
-    if tol is None:
-        idx = numpy.floor((p + (p_tol + a0_tol) - a0) / (h - h_tol))
-    else:
-        idx = numpy.floor((p + (tol + a0_tol) - a0) / (h - h_tol))
     if h < 0:
         raise ValueError("grid spacing must be positive and monotonically increasing.")
-    # account for floating point uncertainties by considering extreme case
+
+    # account for floating point precision
+    a0_tol = _get_tolerance(a0)
+    h_tol = a0_tol  # must be based on *involved* numbers
+    p_tol = tol or _get_tolerance(p)
+
+    idx = numpy.floor((p - a0 + p_tol + a0_tol) / (h - h_tol))
+    idx = numpy.asarray(idx)  # assure idx is an array
 
     if right_continuous:
         # set upper bin index to last
-        try:
-            idx[(idx < 0)] = -1
-            idx[(idx >= len(bins) - 1)] = len(bins) - 1
-        except TypeError:
-            if idx >= len(bins) - 1:
-                idx = len(bins) - 1
-            if idx < 0:
-                idx = -1
+        idx[idx < 0] = -1
+        idx[idx >= len(bins) - 1] = len(bins) - 1
     else:
-        try:
-            idx[((idx < 0) | (idx >= len(bins)))] = -1
-        except TypeError:
-            if idx < 0 or idx >= len(bins):
-                idx = -1
-    try:
-        idx = idx.astype(numpy.int64)
-    except AttributeError:
-        idx = int(idx)
+        idx[(idx < 0) | (idx >= len(bins))] = -1
+    idx = idx.astype(numpy.int64)
     return idx
 
 def _compute_likelihood(gridded_data, apprx_rate_density, expected_cond_count, n_obs):
@@ -215,12 +223,13 @@ def cleaner_range(start, end, h):
     Returns:
         bin_edges (numpy.ndarray)
     """
-    # convert to integers to prevent accumulating floating point errors
-    const = 100000
-    start = numpy.floor(const * start)
-    end = numpy.floor(const * end)
-    d = const * h
-    return numpy.arange(start, end + d / 2, d) / const
+    # determine required scaling to account for decimal places of bin edges and stepping
+    num_decimals_bins = len(str(float(start)).split('.')[1])
+    scale = max(10**num_decimals_bins, 1 / h)
+    start = numpy.round(scale * start)
+    end = numpy.round(scale * end)
+    d = scale * h
+    return numpy.arange(start, end + d / 2, d) / scale
 
 def first_nonnan(arr, axis=0, invalid_val=-1):
     mask = arr==arr

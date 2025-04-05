@@ -65,7 +65,7 @@ def negative_binomial_number_test(gridded_forecast, observed_catalog, variance):
     delta1, delta2 = _nbd_number_test_ndarray(fore_cnt, obs_cnt, variance, epsilon=epsilon)
     
     # store results
-    result.test_distribution = ('negative_binomial', fore_cnt)
+    result.test_distribution = ('negative_binomial', fore_cnt, variance)
     result.name = 'NBD N-Test'
     result.observed_statistic = obs_cnt
     result.quantile = (delta1, delta2)

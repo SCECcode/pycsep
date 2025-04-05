@@ -28,17 +28,14 @@ import csep
 from csep.core import poisson_evaluations as poisson
 from csep.utils import datasets, time_utils, plots
 
-# Needed to show plots from the terminal
-import matplotlib.pyplot as plt
-
 ####################################################################################################################################
 # Define forecast properties
 # --------------------------
 #
 # We choose a :ref:`time-independent-forecast` to show how to evaluate a grid-based earthquake forecast using PyCSEP. Note,
 # the start and end date should be chosen based on the creation of the forecast. This is important for time-independent forecasts
-# because they can be rescale to any arbitrary time period.
-from csep.utils.stats import get_Kagan_I1_score
+# because they can be rescaled to any arbitrary time period.
+
 
 start_date = time_utils.strptime_to_utc_datetime('2006-11-12 00:00:00.0')
 end_date = time_utils.strptime_to_utc_datetime('2011-11-12 00:00:00.0')
@@ -102,9 +99,31 @@ csep.write_json(spatial_test_result, 'example_spatial_test.json')
 # We provide the function :func:`csep.utils.plotting.plot_poisson_consistency_test` to visualize the evaluation results from
 # consistency tests.
 
-ax = plots.plot_poisson_consistency_test(spatial_test_result,
-                                        plot_args={'xlabel': 'Spatial likelihood'})
-plt.show()
+ax = plots.plot_consistency_test(spatial_test_result,
+                                 xlabel='Spatial likelihood',
+                                 show=True)
+
+
+####################################################################################################################################
+# Performing a comparative test
+# -----------------------------
+#
+# Comparative tests assess the relative performance of a forecasts against a reference forecast. We load a baseline version of the
+# Helmstetter forecasts that does not account for the influence of aftershocks. We perform the paired T-test to calculate the
+# Information Gain and its significance (See :ref:`forecast-comparison-tests` for more information).
+#
+
+ref_forecast = csep.load_gridded_forecast(datasets.helmstetter_mainshock_fname,
+                                          start_date=start_date,
+                                          end_date=end_date,
+                                          name='helmstetter_mainshock')
+
+t_test = poisson.paired_t_test(forecast=forecast,
+                               benchmark_forecast=ref_forecast,
+                               observed_catalog=catalog)
+
+plots.plot_comparison_test(t_test, show=True)
+
 
 ####################################################################################################################################
 # Plot ROC Curves
@@ -120,6 +139,7 @@ plt.show()
 # Note: This figure just shows an example of plotting an ROC curve with a catalog forecast.
 #       If "linear=True" the diagram is represented using a linear x-axis.
 #       If "linear=False" the diagram is represented using a logarithmic x-axis.
+#
 
 
 print("Plotting concentration ROC curve")
@@ -131,11 +151,12 @@ _= plots.plot_concentration_ROC_diagram(forecast, catalog, linear=True)
 ####################################################################################################################################
 # Plot ROC and Molchan curves using the alarm-based approach
 # -----------------------
-#In this script, we generate ROC diagrams and Molchan diagrams using the alarm-based approach to evaluate the predictive
-#performance of models. This method exploits contingency table analysis to evaluate the predictive capabilities of
-#forecasting models. By analysing the contingency table data, we determine the ROC curve and Molchan trajectory and
-#estimate the Area Skill Score to assess the accuracy and reliability of the prediction models. The generated graphs
-#visually represent the prediction performance.
+#
+# In this script, we generate ROC diagrams and Molchan diagrams using the alarm-based approach to evaluate the predictive
+# performance of models. This method exploits contingency table analysis to evaluate the predictive capabilities of
+# forecasting models. By analysing the contingency table data, we determine the ROC curve and Molchan trajectory and
+# estimate the Area Skill Score to assess the accuracy and reliability of the prediction models. The generated graphs
+# visually represent the prediction performance.
 
 # Note: If "linear=True" the diagram is represented using a linear x-axis.
 #       If "linear=False" the diagram is represented using a logarithmic x-axis.
@@ -158,5 +179,6 @@ _ = plots.plot_Molchan_diagram(forecast, catalog, linear=True)
 # We can also get the Kagan's I_1 score for a gridded forecast
 # (see Kagan, YanY. [2009] Testing long-term earthquake forecasts: likelihood methods and error diagrams, Geophys. J. Int., v.177, pages 532-542).
 
+from csep.utils.stats import get_Kagan_I1_score
 I_1 = get_Kagan_I1_score(forecast, catalog)
 print("I_1score is: ", I_1)
