@@ -50,7 +50,7 @@ from csep.utils.plots import (
     _autoscale_histogram,  # noqa
     _annotate_distribution_plot,  # noqa
     _get_colormap,  # noqa
-    _process_stat_distribution,  # noqa
+    _process_stat_distribution, _draw_shaded_bars,  # noqa
 )
 
 
@@ -119,7 +119,8 @@ class TestTimeSeriesPlots(TestPlots):
         self.assertEqual(ax.get_ylabel(), "Magnitude")
 
         # Test with custom color
-        ax = plot_magnitude_versus_time(catalog=self.observation_m2, color="red", show=show_plots)
+        ax = plot_magnitude_versus_time(catalog=self.observation_m2, color="red",
+                                        show=show_plots)
         scatter_color = ax.collections[0].get_facecolor()[0]
         self.assertTrue(all(scatter_color[:3] == (1.0, 0.0, 0.0)))  # Check if color is red
 
@@ -147,7 +148,8 @@ class TestTimeSeriesPlots(TestPlots):
         plt.close("all")
 
         # Test with reset_times=True
-        ax = plot_magnitude_versus_time(catalog=self.observation_m2, reset_times=True, show=show_plots)
+        ax = plot_magnitude_versus_time(catalog=self.observation_m2, reset_times=True,
+                                        show=show_plots)
         x_data = ax.collections[0].get_offsets().data[:, 0]  # extract x from scatter plot
 
         # Check that the X-axis label is correct
@@ -520,13 +522,14 @@ class TestBatchPlots(TestPlots):
         # Mocking EvaluationResult for testing
         self.mock_result = Mock()
         self.mock_result.sim_name = "Mock Forecast"
+        self.mock_result.name = "Mock Test"
         self.mock_result.test_distribution = numpy.random.normal(loc=10, scale=2, size=100)
         self.mock_result.observed_statistic = 8
 
     def test_plot_consistency_basic(self):
         ax = plot_consistency_test(eval_results=self.mock_result, show=show_plots)
-        self.assertEqual(ax.get_title(), "")
-        self.assertEqual(ax.get_xlabel(), "Statistic distribution")
+        self.assertEqual(ax.get_title(), "Mock Test")
+        self.assertEqual(ax.get_xlabel(), "Statistic value")
 
     def test_plot_consistency_with_multiple_results(self):
         mock_results = [self.mock_result for _ in range(5)]
@@ -605,7 +608,7 @@ class TestBatchPlots(TestPlots):
                 [i.get_text() for i in matplotlib.pyplot.gca().get_yticklabels()],
                 [i.sim_name for i in [Ntest_result]],
             )
-            self.assertEqual(matplotlib.pyplot.gca().get_title(), "")
+            self.assertEqual(matplotlib.pyplot.gca().get_title(), "Mock NTest")
 
     def test_MultiNTestPlot(self):
 
@@ -1337,6 +1340,28 @@ class TestHelperFunctions(TestPlots):
         cmap, alpha = _get_colormap("viridis", 0)
         self.assertEqual(alpha, 1)
         self.assertTrue(numpy.all(cmap.colors[:, -1] == 1))  # No alpha modification
+
+    def test_plot_shaded_bars_vertical(self):
+        fig, ax = plt.subplots()
+        ax.set_xticks([0, 1, 2, 3])
+        ax = _draw_shaded_bars(ax, n_results=4, orientation="vertical")
+        self.assertGreater(len(ax.patches), 0)
+        for patch_ in ax.patches:
+            self.assertGreaterEqual(patch_.get_alpha(), 0.2)
+
+    def test_plot_shaded_bars_horizontal(self):
+        fig, ax = plt.subplots()
+        ax.set_yticks([0, 1, 2, 3])
+        ax = _draw_shaded_bars(ax, n_results=4, orientation="horizontal")
+        self.assertGreater(len(ax.patches), 0)
+        for patch_ in ax.patches:
+            self.assertGreaterEqual(patch_.get_alpha(), 0.2)
+
+    def test_plot_shaded_bars_skips_when_few_results(self):
+        fig, ax = plt.subplots()
+        ax.set_xticks([0, 1, 2])
+        ax = _draw_shaded_bars(ax, n_results=2, orientation="vertical")
+        self.assertEqual(len(ax.patches), 0)
 
     def tearDown(self):
         plt.close("all")
