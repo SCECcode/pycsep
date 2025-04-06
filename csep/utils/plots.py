@@ -35,7 +35,6 @@ if TYPE_CHECKING:
     from csep.models import EvaluationResult
     from csep.core.regions import CartesianGrid2D
 
-
 DEFAULT_PLOT_ARGS = {
     # General figure/axes handling
     "figsize": None,
@@ -95,16 +94,16 @@ DEFAULT_PLOT_ARGS = {
 # Data-exploratory plots
 ########################
 def plot_magnitude_versus_time(
-    catalog: "CSEPCatalog",
-    color: str = "steelblue",
-    size: int = 4,
-    max_size: int = 300,
-    power: int = 4,
-    alpha: float = 0.5,
-    reset_times: bool = False,
-    ax: Optional[matplotlib.axes.Axes] = None,
-    show: bool = False,
-    **kwargs: Any,
+        catalog: "CSEPCatalog",
+        color: str = "steelblue",
+        size: int = 4,
+        max_size: int = 300,
+        power: int = 4,
+        alpha: float = 0.5,
+        reset_times: bool = False,
+        ax: Optional[matplotlib.axes.Axes] = None,
+        show: bool = False,
+        **kwargs: Any,
 ) -> matplotlib.axes.Axes:
     """
     Scatter plot of the catalog magnitudes and origin times. The size of each event is scaled
@@ -196,15 +195,15 @@ def plot_magnitude_versus_time(
 
 
 def _plot_cumulative_events_versus_time(
-    catalog_forecast: "CatalogForecast",
-    observation: "CSEPCatalog",
-    time_axis: str = "datetime",
-    bins: int = 50,
-    sim_label: Optional[str] = "Simulated",
-    obs_label: Optional[str] = "Observation",
-    ax: Optional[matplotlib.axes.Axes] = None,
-    show: bool = False,
-    **kwargs,
+        catalog_forecast: "CatalogForecast",
+        observation: "CSEPCatalog",
+        time_axis: str = "datetime",
+        bins: int = 50,
+        sim_label: Optional[str] = "Simulated",
+        obs_label: Optional[str] = "Observation",
+        ax: Optional[matplotlib.axes.Axes] = None,
+        show: bool = False,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Plots the cumulative number of forecasted events from a
@@ -376,14 +375,14 @@ def _plot_cumulative_events_versus_time(
 
 
 def plot_magnitude_histogram(
-    catalog_forecast: Union["CatalogForecast", List["CSEPCatalog"]],
-    observation: "CSEPCatalog",
-    magnitude_bins: Optional[Union[List[float], numpy.ndarray]] = None,
-    percentile: int = 95,
-    log_scale: bool = True,
-    ax: Optional["matplotlib.axes.Axes"] = None,
-    show: bool = False,
-    **kwargs,
+        catalog_forecast: Union["CatalogForecast", List["CSEPCatalog"]],
+        observation: "CSEPCatalog",
+        magnitude_bins: Optional[Union[List[float], numpy.ndarray]] = None,
+        percentile: int = 95,
+        log_scale: bool = True,
+        ax: Optional["matplotlib.axes.Axes"] = None,
+        show: bool = False,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Generates a semi-log magnitude histogram comparing a catalog-based forecast with observed
@@ -534,16 +533,16 @@ def plot_magnitude_histogram(
 # Spatial plots
 ###############
 def _plot_basemap(
-    basemap: Optional[str] = None,
-    extent: Optional[List[float]] = None,
-    coastline: bool = True,
-    borders: bool = False,
-    tile_depth: Union[str, int] = "auto",
-    set_global: bool = False,
-    projection: Optional[ccrs.Projection] = None,
-    ax: Optional[pyplot.Axes] = None,
-    show: bool = False,
-    **kwargs,
+        basemap: Optional[str] = None,
+        extent: Optional[List[float]] = None,
+        coastline: bool = True,
+        borders: bool = False,
+        tile_depth: Union[str, int] = "auto",
+        set_global: bool = False,
+        projection: Optional[ccrs.Projection] = None,
+        ax: Optional[pyplot.Axes] = None,
+        show: bool = False,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Wrapper function for multiple Cartopy base plots, including access to standard raster
@@ -636,21 +635,21 @@ def _plot_basemap(
 
 
 def plot_catalog(
-    catalog: "CSEPCatalog",
-    basemap: Optional[str] = None,
-    projection: Optional[Union[ccrs.Projection, str]] = None,
-    extent: Optional[Sequence[float]] = None,
-    set_global: bool = False,
-    mag_ticks: Optional[Union[Sequence[float], numpy.ndarray, int]] = None,
-    size: float = 15,
-    max_size: float = 300,
-    power: float = 3,
-    min_val: Optional[float] = None,
-    max_val: Optional[float] = None,
-    plot_region: bool = False,
-    ax: Optional[matplotlib.axes.Axes] = None,
-    show: bool = False,
-    **kwargs,
+        catalog: "CSEPCatalog",
+        basemap: Optional[str] = None,
+        projection: Optional[Union[ccrs.Projection, str]] = None,
+        extent: Optional[Sequence[float]] = None,
+        set_global: bool = False,
+        mag_ticks: Optional[Union[Sequence[float], numpy.ndarray, int]] = None,
+        size: float = 15,
+        max_size: float = 300,
+        power: float = 3,
+        min_val: Optional[float] = None,
+        max_val: Optional[float] = None,
+        plot_region: bool = False,
+        ax: Optional[matplotlib.axes.Axes] = None,
+        show: bool = False,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Spatial plot of catalog. Can be plotted over a basemap if desired, by passing the keyword
@@ -792,22 +791,22 @@ def plot_catalog(
 
 
 def plot_gridded_dataset(
-    gridded: numpy.ndarray,
-    region: "CartesianGrid2D",
-    basemap: Optional[str] = None,
-    projection: Optional[Union[ccrs.Projection, str]] = None,
-    extent: Optional[List[float]] = None,
-    set_global: bool = False,
-    plot_region: bool = True,
-    colorbar: bool = True,
-    colormap: Union[str, matplotlib.colors.Colormap] = "viridis",
-    clim: Optional[Tuple[float, float]] = None,
-    clabel: Optional[str] = None,
-    alpha: Optional[float] = None,
-    alpha_exp: float = 0,
-    ax: Optional[pyplot.Axes] = None,
-    show: bool = False,
-    **kwargs,
+        gridded: numpy.ndarray,
+        region: "CartesianGrid2D",
+        basemap: Optional[str] = None,
+        projection: Optional[Union[ccrs.Projection, str]] = None,
+        extent: Optional[List[float]] = None,
+        set_global: bool = False,
+        plot_region: bool = True,
+        colorbar: bool = True,
+        colormap: Union[str, matplotlib.colors.Colormap] = "viridis",
+        clim: Optional[Tuple[float, float]] = None,
+        clabel: Optional[str] = None,
+        alpha: Optional[float] = None,
+        alpha_exp: float = 0,
+        ax: Optional[pyplot.Axes] = None,
+        show: bool = False,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Plot spatial gridded dataset such as data from a gridded forecast. Can be plotted over a
@@ -823,6 +822,9 @@ def plot_gridded_dataset(
             (whose indices correspond to each spatial cell) to a 2D-square array.
         region (CartesianGrid2D): Region in which gridded values are contained.
         basemap (str): Passed to :func:`~csep.utils.plots.plot_basemap` along with `kwargs`.
+            Possible values are: `'stock_img'`, `'google-satellite'`, `'ESRI_terrain'`,
+            `'ESRI_imagery'`, `'ESRI_relief'`, `'ESRI_topo'`, a custom web service link, or a
+            GeoTiff filepath. Defaults to `None`.
         projection (cartopy.crs.Projection or str): Projection to be used in the underlying
             basemap. It can be a cartopy projection instance, or `approx` for a quick
             approximation of Mercator. Defaults to :class:`~cartopy.crs.PlateCarree` if `None`.
@@ -908,16 +910,16 @@ def plot_gridded_dataset(
 # Single Result plots
 #####################
 def plot_test_distribution(
-    evaluation_result: "EvaluationResult",
-    bins: Union[str, int, List[Any]] = "fd",
-    percentile: Optional[int] = 95,
-    auto_annotate: Union[bool, dict] = True,
-    sim_label: str = "Simulated",
-    obs_label: str = "Observation",
-    legend: bool = True,
-    ax: Optional[matplotlib.axes.Axes] = None,
-    show: bool = False,
-    **kwargs,
+        evaluation_result: "EvaluationResult",
+        bins: Union[str, int, List[Any]] = "fd",
+        percentile: Optional[int] = 95,
+        auto_annotate: Union[bool, dict] = True,
+        sim_label: str = "Simulated",
+        obs_label: str = "Observation",
+        legend: bool = True,
+        ax: Optional[matplotlib.axes.Axes] = None,
+        show: bool = False,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Plots a histogram of a single statistic for stochastic event sets and observations.
@@ -1045,12 +1047,12 @@ def plot_test_distribution(
 
 
 def plot_calibration_test(
-    evaluation_result: "EvaluationResult",
-    percentile: float = 95,
-    label: Optional[str] = None,
-    ax: Optional[matplotlib.axes.Axes] = None,
-    show: bool = False,
-    **kwargs,
+        evaluation_result: "EvaluationResult",
+        percentile: float = 95,
+        label: Optional[str] = None,
+        ax: Optional[matplotlib.axes.Axes] = None,
+        show: bool = False,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Plots a calibration test (Quantile-Quantile plot) with confidence intervals.
@@ -1150,12 +1152,12 @@ def plot_calibration_test(
 # Results batch plots
 #####################
 def _plot_comparison_test(
-    results_t: List["EvaluationResult"],
-    results_w: Optional[List["EvaluationResult"]] = None,
-    percentile: int = 95,
-    ax: Optional[matplotlib.axes.Axes] = None,
-    show: bool = False,
-    **kwargs,
+        results_t: List["EvaluationResult"],
+        results_w: Optional[List["EvaluationResult"]] = None,
+        percentile: int = 95,
+        ax: Optional[matplotlib.axes.Axes] = None,
+        show: bool = False,
+        **kwargs,
 ) -> pyplot.Axes:
     """
     Plots a list of T-Test (and optional W-Test) results on a single axis.
@@ -1268,15 +1270,7 @@ def _plot_comparison_test(
         ax.yaxis.set_major_locator(pyplot.MaxNLocator(integer=True))
 
     if plot_args["hbars"]:
-        if len(results_t) > 2:
-            ax.bar(
-                ax.get_xticks(),
-                numpy.array([9999] * len(ax.get_xticks())),
-                bottom=-2000,
-                width=(ax.get_xticks()[1] - ax.get_xticks()[0]),
-                color=["gray", "w"],
-                alpha=0.2,
-            )
+        ax = _draw_shaded_bars(ax, len(results_t), orientation='vertical')
 
     if plot_args["legend"]:
         # Add custom legend to explain results
@@ -1289,28 +1283,33 @@ def _plot_comparison_test(
         ]
         if results_w is not None:
             legend_elements.extend([
-            Line2D(
-                [0],
-                [0],
-                color="gray",
-                lw=2,
-                marker="o",
-                markersize=6,
-                markerfacecolor="green",
-                label="W-test non-rejected",
-            ),
-            Line2D(
-                [0],
-                [0],
-                color="gray",
-                lw=2,
-                marker="o",
-                markersize=6,
-                markerfacecolor="white",
-                label="W-test indistinguishable",
-            )])
+                Line2D(
+                    [0],
+                    [0],
+                    color="gray",
+                    lw=2,
+                    marker="o",
+                    markersize=6,
+                    markerfacecolor="green",
+                    label="W-test non-rejected",
+                ),
+                Line2D(
+                    [0],
+                    [0],
+                    color="gray",
+                    lw=2,
+                    marker="o",
+                    markersize=6,
+                    markerfacecolor="white",
+                    label="W-test indistinguishable",
+                )])
 
-        ax.legend(handles=legend_elements, loc="best", fontsize=plot_args["legend_fontsize"])
+        ax.legend(handles=legend_elements,
+                  loc=plot_args['legend_loc'],
+                  fontsize=plot_args["legend_fontsize"],
+                  labelspacing=plot_args["legend_labelspacing"],
+                  borderpad=plot_args["legend_borderpad"],
+                  framealpha=plot_args["legend_framealpha"])
 
     if plot_args["tight_layout"]:
         fig.tight_layout()
@@ -1322,15 +1321,15 @@ def _plot_comparison_test(
 
 
 def _plot_consistency_test(
-    eval_results: Union[List["EvaluationResult"], "EvaluationResult"],
-    normalize: bool = False,
-    one_sided_lower: bool = False,
-    percentile: float = 95,
-    plot_mean: bool = False,
-    color: str = "black",
-    ax: Optional[pyplot.Axes] = None,
-    show: bool = False,
-    **kwargs,
+        eval_results: Union[List["EvaluationResult"], "EvaluationResult"],
+        normalize: bool = False,
+        one_sided_lower: bool = False,
+        percentile: float = 95,
+        plot_mean: bool = False,
+        color: str = "black",
+        ax: Optional[pyplot.Axes] = None,
+        show: bool = False,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Plots the results from multiple consistency tests. The distribution of score results from
@@ -1428,23 +1427,35 @@ def _plot_consistency_test(
     ax.set_ylim([-0.5, len(results) - 0.5])
     ax.set_yticks(numpy.arange(len(results)))
     ax.set_yticklabels([res.sim_name for res in results], fontsize=plot_args["ylabel_fontsize"])
-    ax.set_xlabel(
-        plot_args["xlabel"] or "Statistic distribution", fontsize=plot_args["xlabel_fontsize"]
-    )
     ax.tick_params(axis="x", labelsize=plot_args["xticks_fontsize"])
-    ax.set_title(plot_args["title"], fontsize=plot_args["title_fontsize"])
+
+    ax.set_xlabel(
+        plot_args["xlabel"] or "Statistic value", fontsize=plot_args["xlabel_fontsize"]
+    )
+    ax.set_title(plot_args["title"] or results[0].name, fontsize=plot_args["title_fontsize"])
+
     if plot_args["hbars"]:
-        yTickPos = ax.get_yticks()
-        if len(yTickPos) >= 2:
-            ax.barh(
-                yTickPos,
-                numpy.array([99999] * len(yTickPos)),
-                left=-10000,
-                height=(yTickPos[1] - yTickPos[0]),
-                color=["w", "gray"],
-                alpha=0.2,
-                zorder=0,
+        _draw_shaded_bars(ax, len(results), orientation='horizontal')
+
+    if plot_args["legend"]:
+        legend_elements = [Line2D([0], [1], color='green', marker='s', lw=0, markersize=4,
+                                  label='Observations (consistent)'),
+                           Line2D([0], [1], color='red', marker='o', lw=0, markersize=4,
+                                  label='Observations (rejected)'),
+                           Line2D([0], [0], color='k', lw=1,
+                                  label=f'Simulations {percentile}% conf.')]
+        if plot_mean:
+            legend_elements.append(
+                Line2D([0], [0], marker='o', lw=0, label='Simulations mean value',
+                       color='k', markersize=2),
             )
+        ax.legend(handles=legend_elements,
+                  loc=plot_args['legend_loc'],
+                  fontsize=plot_args["legend_fontsize"],
+                  labelspacing=plot_args["legend_labelspacing"],
+                  borderpad=plot_args["legend_borderpad"],
+                  framealpha=plot_args["legend_framealpha"])
+
     if plot_args["tight_layout"]:
         fig.tight_layout()
 
@@ -1458,13 +1469,13 @@ def _plot_consistency_test(
 # Alarm-based plots
 ###################
 def _plot_concentration_ROC_diagram(
-    forecast: "GriddedForecast",
-    catalog: "CSEPCatalog",
-    linear: bool = True,
-    plot_uniform: bool = True,
-    ax: Optional[pyplot.Axes] = None,
-    show: bool = True,
-    **kwargs,
+        forecast: "GriddedForecast",
+        catalog: "CSEPCatalog",
+        linear: bool = True,
+        plot_uniform: bool = True,
+        ax: Optional[pyplot.Axes] = None,
+        show: bool = True,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
     """
     Plots the Concentration ROC Diagram for a given forecast and observed catalog.
@@ -1576,13 +1587,13 @@ def _plot_concentration_ROC_diagram(
 
 
 def _plot_ROC_diagram(
-    forecast: "GriddedForecast",
-    catalog: "CSEPCatalog",
-    linear: bool = True,
-    plot_uniform: bool = True,
-    ax: Optional[pyplot.Axes] = None,
-    show: bool = True,
-    **kwargs,
+        forecast: "GriddedForecast",
+        catalog: "CSEPCatalog",
+        linear: bool = True,
+        plot_uniform: bool = True,
+        ax: Optional[pyplot.Axes] = None,
+        show: bool = True,
+        **kwargs,
 ) -> matplotlib.pyplot.Axes:
     """
     Plots the ROC (Receiver Operating Characteristic) curve for a given forecast and observed
@@ -1648,10 +1659,10 @@ def _plot_ROC_diagram(
         forecastedNo_observedNo = obs_counts[(binary_forecast == 0) & (obs_counts == 0)]
 
         H = len(forecastedYes_observedYes) / (
-            len(forecastedYes_observedYes) + len(forecastedNo_observedYes)
+                len(forecastedYes_observedYes) + len(forecastedNo_observedYes)
         )
         F = len(forecastedYes_observedNo) / (
-            len(forecastedYes_observedNo) + len(forecastedNo_observedNo)
+                len(forecastedYes_observedNo) + len(forecastedNo_observedNo)
         )
 
         threshold_row = {"Threshold": threshold, "H": H, "F": F}
@@ -1705,15 +1716,14 @@ def _plot_ROC_diagram(
 
 
 def _plot_Molchan_diagram(
-    forecast: "GriddedForecast",
-    catalog: "CSEPCatalog",
-    linear: bool = True,
-    plot_uniform: bool = True,
-    ax: Optional[pyplot.Axes] = None,
-    show: bool = True,
-    **kwargs,
+        forecast: "GriddedForecast",
+        catalog: "CSEPCatalog",
+        linear: bool = True,
+        plot_uniform: bool = True,
+        ax: Optional[pyplot.Axes] = None,
+        show: bool = True,
+        **kwargs,
 ) -> matplotlib.axes.Axes:
-
     """
     Plot the Molchan Diagram based on forecast and test catalogs using the contingency table.
     The Area Skill score and its error are shown in the legend.
@@ -1823,14 +1833,16 @@ def _plot_Molchan_diagram(
         contingency_df = pandas.DataFrame(data, index=index)
         nu = contingency_df.loc["Not Forecasted", "Observed"] / contingency_df["Observed"].sum()
         tau = contingency_df.loc["Forecasted"].sum() / (
-            contingency_df.loc["Forecasted"].sum() + contingency_df.loc["Not Forecasted"].sum()
+                contingency_df.loc["Forecasted"].sum() + contingency_df.loc[
+            "Not Forecasted"].sum()
         )
         R_score = (
-            contingency_df.loc["Forecasted", "Observed"] / contingency_df["Observed"].sum()
-        ) - (
-            contingency_df.loc["Forecasted", "Not Observed"]
-            / contingency_df["Not Observed"].sum()
-        )
+                          contingency_df.loc["Forecasted", "Observed"] / contingency_df[
+                      "Observed"].sum()
+                  ) - (
+                          contingency_df.loc["Forecasted", "Not Observed"]
+                          / contingency_df["Not Observed"].sum()
+                  )
 
         threshold_row = {
             "Threshold": threshold,
@@ -1885,9 +1897,9 @@ def _plot_Molchan_diagram(
 
     bin_size = 0.01
     devstd = numpy.sqrt(1 / (12 * Table_molchan["Obs_active_bins"].iloc[0]))
-    devstd = devstd * bin_size**-1
+    devstd = devstd * bin_size ** -1
     devstd = numpy.ceil(devstd + 0.5)
-    devstd = devstd / bin_size**-1
+    devstd = devstd / bin_size ** -1
     dev_std = numpy.round(devstd, 2)
 
     # Plot the Molchan trajectory
@@ -2107,12 +2119,12 @@ def _get_basemap(basemap: str) -> Union[img_tiles.GoogleTiles, DatasetReader]:
 
 
 def _autosize_scatter(
-    values: numpy.ndarray,
-    min_size: float = 50.0,
-    max_size: float = 400.0,
-    power: float = 3.0,
-    min_val: Optional[float] = None,
-    max_val: Optional[float] = None,
+        values: numpy.ndarray,
+        min_size: float = 50.0,
+        max_size: float = 400.0,
+        power: float = 3.0,
+        min_val: Optional[float] = None,
+        max_val: Optional[float] = None,
 ) -> numpy.ndarray:
     """
     Auto-sizes scatter plot markers based on values.
@@ -2136,11 +2148,11 @@ def _autosize_scatter(
 
 
 def _autoscale_histogram(
-    ax: matplotlib.axes.Axes,
-    bin_edges: numpy.ndarray,
-    simulated: numpy.ndarray,
-    observation: numpy.ndarray,
-    mass: float = 99.5,
+        ax: matplotlib.axes.Axes,
+        bin_edges: numpy.ndarray,
+        simulated: numpy.ndarray,
+        observation: numpy.ndarray,
+        mass: float = 99.5,
 ) -> matplotlib.axes.Axes:
     """
     Autoscale the histogram axes based on the data distribution.
@@ -2180,11 +2192,38 @@ def _autoscale_histogram(
     return ax
 
 
+def _draw_shaded_bars(ax, n_results, orientation='vertical'):
+    if n_results > 2:
+        if orientation == 'vertical':
+            ax.bar(
+                ax.get_xticks(),
+                numpy.array([9999] * len(ax.get_xticks())),
+                bottom=-2000,
+                width=(ax.get_xticks()[1] - ax.get_xticks()[0]),
+                color=["gray", "w"],
+                alpha=0.2,
+            )
+        if orientation == 'horizontal':
+            yTickPos = ax.get_yticks()
+            if len(yTickPos) >= 2:
+                ax.barh(
+                    yTickPos,
+                    numpy.array([99999] * len(yTickPos)),
+                    left=-10000,
+                    height=(yTickPos[1] - yTickPos[0]),
+                    color=["w", "gray"],
+                    alpha=0.2,
+                    zorder=0,
+                )
+
+    return ax
+
+
 def _annotate_distribution_plot(
-    ax: matplotlib.axes.Axes,
-    evaluation_result: "EvaluationResult",
-    auto_annotate: bool,
-    plot_args: Dict[str, Any],
+        ax: matplotlib.axes.Axes,
+        evaluation_result: "EvaluationResult",
+        auto_annotate: bool,
+        plot_args: Dict[str, Any],
 ) -> matplotlib.axes.Axes:
     """
     Annotates a distribution plot based on the evaluation result type.
@@ -2255,7 +2294,7 @@ def _annotate_distribution_plot(
             )
 
         else:
-            xlabel = "Statistic"
+            xlabel = "Statistic value"
             ylabel = "Number of Catalogs"
 
     if annotation_text or plot_args.get("annotation_text"):
@@ -2273,10 +2312,10 @@ def _annotate_distribution_plot(
 
 
 def _calculate_spatial_extent(
-    element: Union["CSEPCatalog", "CartesianGrid2D"],
-    set_global: bool,
-    region_border: bool,
-    padding_fraction: float = 0.05,
+        element: Union["CSEPCatalog", "CartesianGrid2D"],
+        set_global: bool,
+        region_border: bool,
+        padding_fraction: float = 0.05,
 ) -> Optional[List[float]]:
     """
     Calculates the spatial extent for plotting based on the catalog.
@@ -2308,10 +2347,10 @@ def _calculate_spatial_extent(
 
 
 def _create_geo_axes(
-    figsize: Optional[Tuple[float, float]],
-    extent: Optional[List[float]],
-    projection: Union[ccrs.Projection, str],
-    set_global: bool,
+        figsize: Optional[Tuple[float, float]],
+        extent: Optional[List[float]],
+        projection: Union[ccrs.Projection, str],
+        set_global: bool,
 ) -> pyplot.Axes:
     """
     Creates and returns GeoAxes for plotting.
@@ -2366,9 +2405,9 @@ def _add_gridlines(ax: matplotlib.axes.Axes, grid_labels: bool, grid_fontsize: f
 
 
 def _get_colormap(
-    cmap: Union[str, matplotlib.colors.Colormap],
-    alpha_exp: float,
-    alpha_0: Optional[float] = None,
+        cmap: Union[str, matplotlib.colors.Colormap],
+        alpha_exp: float,
+        alpha_0: Optional[float] = None,
 ) -> Tuple[matplotlib.colors.ListedColormap, Optional[float]]:
     """
     Defines the colormap and applies alpha transparency based on the given parameters.
@@ -2405,10 +2444,10 @@ def _get_colormap(
 
 
 def _process_stat_distribution(
-    res: "EvaluationResult",
-    percentile: float,
-    normalize: bool,
-    one_sided_lower: bool,
+        res: "EvaluationResult",
+        percentile: float,
+        normalize: bool,
+        one_sided_lower: bool,
 ) -> Tuple[float, float, float, float]:
     """
     Processes the statistical distribution based on its type and returns plotting values.
@@ -2437,7 +2476,7 @@ def _process_stat_distribution(
         mean = res.test_distribution[1]
         variance = res.test_distribution[2]
         upsilon = 1.0 - ((variance - mean) / variance)
-        tau = mean**2 / (variance - mean)
+        tau = mean ** 2 / (variance - mean)
         plow = nbinom.ppf((1 - percentile / 100.0) / 2.0, tau, upsilon)
         phigh = nbinom.ppf(1 - (1 - percentile / 100.0) / 2.0, tau, upsilon)
         observed_statistic = res.observed_statistic
@@ -2502,4 +2541,3 @@ from .plots_legacy import (plot_cumulative_events_versus_time,
                            plot_concentration_ROC_diagram,
                            plot_ROC_diagram,
                            plot_Molchan_diagram)
-
