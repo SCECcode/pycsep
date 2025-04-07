@@ -268,18 +268,19 @@ def nz_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-nz-collect
 def global_region(dh=0.1, name="global", magnitudes=None):
     """ Creates a global region used for evaluating gridded forecasts on the global scale.
 
-    The gridded region corresponds to the
 
     Args:
-        dh:
+        dh (float): Spacing for lat and lon discretization.
+        name (str): Name of the region
+        magnitudes(list/array): Array containing the magnitude bins
 
     Returns:
-        csep.utils.CartesianGrid2D:
+        csep.utils.CartesianGrid2D: Global region
     """
     # generate latitudes
 
-    lons = cleaner_range(-180.0, 179.9, dh)
-    lats = cleaner_range(-90, 89.9, dh)
+    lons = cleaner_range(-180.0, 180.0, dh)[:-1]
+    lats = cleaner_range(-90, 90.0, dh)[:-1]
     coords = itertools.product(lons,lats)
     region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh,
                              magnitudes=magnitudes, name=name)
