@@ -57,8 +57,9 @@ class TestCartesian2D(unittest.TestCase):
         self.origins.pop(0)
         self.origins.pop(-1)
         self.num_nodes = len(self.origins)
+        self.magnitudes = numpy.array([4, 5])
         # this is kinda ugly, maybe we want to create this in a different way, class method?
-        self.cart_grid = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(self.origins, self.dh)], self.dh)
+        self.cart_grid = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(self.origins, self.dh)], self.dh, magnitudes=self.magnitudes)
 
     def test_polygon_mask_all_masked(self):
         polygons = [Polygon(bbox) for bbox in compute_vertices(self.origins, self.dh)]
