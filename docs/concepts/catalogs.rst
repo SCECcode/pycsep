@@ -187,7 +187,7 @@ Once you have a function that returns an eventlist, you can create the catalog o
     eventlist = my_custom_web_loader(...)
     catalog = csep.catalogs.CSEPCatalog(data=eventlist, **kwargs)
 
-The **kwargs represents any other keyword argument that can be passed to
+The `**kwargs` represents any other keyword argument that can be passed to
 :class:`CSEPCatalog<csep.core.catalogs.CSEPCatalog>`. This could be the ``catalog_id`` or the
 :class:`CartesianGrid2D<csep.core.regions.CartesianGrid2D>`.
 
@@ -216,6 +216,7 @@ provide some getter methods to access the essential catalog data. These return a
 ``dtype`` defined by the class.
 
 .. automodule:: csep.core.catalogs
+   :no-index:
 
 The following functions return :class:`numpy.ndarrays<numpy.ndarray>` of the catalog information.
 
@@ -287,7 +288,7 @@ object to filter events using the data type.
 
 The filter function can accept a string or a list of filter statements. If the function is called without any arguments
 the function looks to use the ``catalog.filters`` member. This can be provided during class instantiation or bound
-to the class afterward. :ref:`Here<tutorial-catalog-filtering>` is complete example of how to filter a catalog
+to the class afterward. :ref:`Here <tutorial-catalog-filtering>` is complete example of how to filter a catalog
 using the filtering strings.
 
 Filtering events in space

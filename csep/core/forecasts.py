@@ -363,7 +363,7 @@ class GriddedForecast(MarkedGriddedDataSet):
         """ Creates MarkedGriddedDataSet class from custom parsing function.
 
         Args:
-            func (callable): function will be called as func(*func_args).
+            func (callable): function will be called as func(func_args).
             func_args (tuple): arguments to pass to func
             **kwargs: keyword arguments to pass to the GriddedForecast class constructor.
 
@@ -756,6 +756,7 @@ class CatalogForecast(LoggingMixin):
             fname (str): path to file or directory containing forecast files
 
         Returns:
-              :class:`csep.core.forecasts.CatalogForecast
+              :class:`csep.core.forecasts.CatalogForecast`
+
         """
         raise NotImplementedError("load_ascii is not implemented!")
