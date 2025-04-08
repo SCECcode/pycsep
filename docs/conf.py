@@ -71,7 +71,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -99,10 +99,11 @@ html_theme = 'sphinx_rtd_theme'
 # intersphinx configuration
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
-    "numpy": ("https://docs.scipy.org/doc/numpy/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/stable/", None),
-    "scipy": ('http://docs.scipy.org/doc/scipy/reference', None),
-    "matplotlib": ('http://matplotlib.sourceforge.net/', None)
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "matplotlib": ("https://matplotlib.org/stable", None),
+    "cartopy": ('https://scitools.org.uk/cartopy/docs/latest/', None)
 }
 
 html_theme_options = {}
@@ -166,7 +167,7 @@ sphinx_gallery_conf = {
     # Remove the "Download all examples" button from the top level gallery
     "download_all_examples": False,
     # Sort gallery example by file name instead of number of lines (default)
-    "within_subsection_order": FileNameSortKey,
+    "within_subsection_order": "FileNameSortKey",
     # directory where function granular galleries are stored
     # "backreferences_dir": "",
     # Modules for which function level galleries are created.  In
@@ -175,6 +176,7 @@ sphinx_gallery_conf = {
     # Insert links to documentation of objects in the examples
     "reference_url": {"csep": None},
 }
+autodoc_typehints = "description"
 
 # -- Options for HTMLHelp output ---------------------------------------------
 

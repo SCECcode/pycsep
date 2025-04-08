@@ -56,7 +56,7 @@ The default file format of a gridded-forecast is a tab delimited ASCII file with
 
 Each row represents a single space-magnitude bin and the entire forecast file contains the rate for a specified
 time-horizon. An example of a gridded forecast for the RELM testing region can be found
-`here <https://github.com/SCECcode/csep2/blob/dev/csep/artifacts/ExampleForecasts/GriddedForecasts/helmstetter_et_al.hkj.aftershock-fromXML.dat>`_.
+`here <https://github.com/SCECcode/csep2/blob/dev/csep/artifacts/ExampleForecasts/GriddedForecasts/helmstetter_et_al.hkj.aftershock-fromXML.dat>`__.
 
 
 The coordinates (LON, LAT, DEPTH, MAG) describe the independent space-magnitude region of the forecast. The lower
@@ -79,7 +79,7 @@ the forecast into the appropriate format in the first place. This function has n
 expected data.
 
 .. automethod:: csep.core.forecasts.GriddedForecast.from_custom
-
+   :no-index:
 
 Working with quadtree-gridded forecasts
 ##############################################
@@ -131,7 +131,7 @@ Working with catalog-based forecasts
 
 Please see visit :ref:`this<catalog-forecast-evaluation>` example for an end-to-end tutorial on how to evaluate a catalog-based
 earthquake forecast. An example of a catalog-based forecast stored in the default pyCSEP format can be found
-`here <https://github.com/SCECcode/pycsep/blob/dev/csep/artifacts/ExampleForecasts/CatalogForecasts/ucerf3-landers_1992-06-28T11-57-34-14.csv>`_.
+`here <https://github.com/SCECcode/pycsep/blob/dev/csep/artifacts/ExampleForecasts/CatalogForecasts/ucerf3-landers_1992-06-28T11-57-34-14.csv>`__.
 
 
 The standard format for catalog-based forecasts a comma separated value ASCII format. This format was chosen to be
@@ -139,7 +139,7 @@ human-readable and easy to implement in all programming languages. Information a
 
 .. note::
     Custom formats can be supported by writing a custom function or sub-classing the
-    :ref:`AbstractBaseCatalog<csep.core.forecasts.AbstractBaseCatalog>`.
+    :class:`AbstractBaseCatalog <csep.core.catalogs.AbstractBaseCatalog>`.
 
 The event format matches the follow specfication: ::
 

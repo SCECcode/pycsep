@@ -52,10 +52,7 @@ def california_relm_collection_region(dh_scale=1, magnitudes=None, name="relm-ca
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        relm_region.magnitudes = magnitudes
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, magnitudes=magnitudes, name=name)
 
     return relm_region
 
@@ -97,10 +94,8 @@ def california_relm_region(dh_scale=1, magnitudes=None, name="relm-california", 
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        relm_region.magnitudes = magnitudes
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh,magnitudes=magnitudes,
+                                  name=name)
 
     return relm_region
 
@@ -145,10 +140,8 @@ def italy_csep_region(dh_scale=1, magnitudes=None, name="csep-italy", use_midpoi
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    italy_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        italy_region.magnitudes = magnitudes
+    italy_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh,
+                                   magnitudes=magnitudes, name=name)
 
     return italy_region
 
@@ -187,10 +180,8 @@ def italy_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-italy-c
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        relm_region.magnitudes = magnitudes
+    relm_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, magnitudes=magnitudes,
+                                  name=name)
 
     return relm_region
 
@@ -229,10 +220,8 @@ def nz_csep_region(dh_scale=1, magnitudes=None, name="csep-nz", use_midpoint=Tru
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    nz_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        nz_region.magnitudes = magnitudes
+    nz_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, magnitudes=magnitudes,
+                                name=name)
 
     return nz_region
 
@@ -271,32 +260,31 @@ def nz_csep_collection_region(dh_scale=1, magnitudes=None, name="csep-nz-collect
 
     # turn points into polygons and make region object
     bboxes = compute_vertices(origins, dh)
-    nz_collection_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh, name=name)
-
-    if magnitudes is not None:
-        nz_collection_region.magnitudes = magnitudes
+    nz_collection_region = CartesianGrid2D([Polygon(bbox) for bbox in bboxes], dh,
+                                           magnitudes=magnitudes, name=name)
 
     return nz_collection_region
 
 def global_region(dh=0.1, name="global", magnitudes=None):
     """ Creates a global region used for evaluating gridded forecasts on the global scale.
 
-    The gridded region corresponds to the
 
     Args:
-        dh:
+        dh (float): Spacing for lat and lon discretization.
+        name (str): Name of the region
+        magnitudes(list/array): Array containing the magnitude bins
 
     Returns:
-        csep.utils.CartesianGrid2D:
+        csep.utils.CartesianGrid2D: Global region
     """
     # generate latitudes
 
-    lons = cleaner_range(-180.0, 179.9, dh)
-    lats = cleaner_range(-90, 89.9, dh)
+    lons = cleaner_range(-180.0, 180.0, dh)[:-1]
+    lats = cleaner_range(-90, 90.0, dh)[:-1]
     coords = itertools.product(lons,lats)
-    region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh, name=name)
-    if magnitudes is not None:
-        region.magnitudes = magnitudes
+    region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(coords, dh)], dh,
+                             magnitudes=magnitudes, name=name)
+
     return region
 
 def magnitude_bins(start_magnitude, end_magnitude, dmw):
@@ -313,12 +301,7 @@ def magnitude_bins(start_magnitude, end_magnitude, dmw):
     Returns:
         bin_edges (numpy.ndarray)
     """
-    # convert to integers to prevent accumulating floating point errors
-    const = 10000
-    start = numpy.floor(const * start_magnitude)
-    end = numpy.floor(const * end_magnitude)
-    d = const * dmw
-    return numpy.arange(start, end + d / 2, d) / const
+    return cleaner_range(start_magnitude, end_magnitude, dmw)
 
 def create_space_magnitude_region(region, magnitudes):
     """Simple wrapper to create space-magnitude region """
@@ -495,7 +478,7 @@ def compute_vertices(origin_points, dh, tol=numpy.finfo(float).eps):
     """
     return list(map(lambda x: compute_vertex(x, dh, tol=tol), origin_points))
 
-def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins, tol=0.00001):
+def _bin_catalog_spatio_magnitude_counts(lons, lats, mags, n_poly, mask, idx_map, binx, biny, mag_bins, tol=None):
     """
     Returns a list of event counts as ndarray with shape (n_poly, n_cat) where each value
     represents the event counts within the polygon.
@@ -590,7 +573,7 @@ class CartesianGrid2D:
     Custom regions can be easily created by using the from_polygon classmethod. This function will accept an arbitrary closed
     polygon and return a CartesianGrid class with only points inside the polygon to be valid.
     """
-    def __init__(self, polygons, dh, name='cartesian2d', mask=None):
+    def __init__(self, polygons, dh, name='cartesian2d', mask=None, magnitudes=None):
         self.polygons = polygons
         self.poly_mask = mask
         self.dh = dh
@@ -606,6 +589,7 @@ class CartesianGrid2D:
         # Bounds [origin, top_right]
         orgs = self.origins()
         self.bounds = numpy.column_stack((orgs, orgs + dh))
+        self.magnitudes = magnitudes
 
     def __eq__(self, other):
         return self.to_dict() == other.to_dict()
@@ -625,8 +609,8 @@ class CartesianGrid2D:
         Returns:
             idx: ndarray-like
         """
-        idx = bin1d_vec(numpy.array(lons), self.xs)
-        idy = bin1d_vec(numpy.array(lats), self.ys)
+        idx = bin1d_vec(lons, self.xs)
+        idy = bin1d_vec(lats, self.ys)
         if numpy.any(idx == -1) or numpy.any(idy == -1):
             raise ValueError("at least one lon and lat pair contain values that are outside of the valid region.")
         if numpy.any(self.bbox_mask[idy, idx] == 1):
@@ -674,7 +658,11 @@ class CartesianGrid2D:
         """Returns 2d ndrray representation of the data set, corresponding to the bounding box.
 
         Args:
-            data:
+            data: An array of values, whose indices corresponds to each cell of the region
+
+        Returns:
+            A 2D array of values, corresponding to the original data projected onto the region.
+            Values outside the region polygon are represented as np.nan
         """
         assert len(data) == len(self.polygons)
         results = numpy.zeros(self.bbox_mask.shape[:2])
@@ -763,9 +751,11 @@ class CartesianGrid2D:
             dh1 = numpy.abs(lats[1]-lats[0])
             dh = numpy.max([dh1, dh2])
 
-        region = CartesianGrid2D([Polygon(bbox) for bbox in compute_vertices(origins, dh)], dh, name=name)
-        if magnitudes is not None:
-            region.magnitudes = magnitudes
+        region = CartesianGrid2D(polygons=[Polygon(bbox) for bbox in compute_vertices(origins, dh)],
+                                 dh=dh,
+                                 magnitudes=magnitudes,
+                                 name=name)
+
         return region
 
     def _build_bitmask_vec(self):
@@ -1061,7 +1051,7 @@ class QuadtreeGrid2D:
         self.cell_area = cell_area
         return self.cell_area
 
-    def get_index_of(self, lons, lats): 
+    def get_index_of(self, lons, lats):
         """ Returns the index of lons, lats in self.polygons
 
         Args:
@@ -1182,7 +1172,7 @@ class QuadtreeGrid2D:
         out = numpy.zeros([len(self.quadkeys), len(mag_bins)])
 
         idx_loc = self.get_index_of(lon, lat)
-        idx_mag = bin1d_vec(mag, mag_bins, tol=0.00001, right_continuous=True)
+        idx_mag = bin1d_vec(mag, mag_bins, right_continuous=True)
 
         numpy.add.at(out, (idx_loc, idx_mag), 1)
 
