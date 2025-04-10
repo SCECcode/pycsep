@@ -1,6 +1,29 @@
+# v0.7.0 (4/10/2025)
+
+## Change-log
+
+Added ROC and Molchan diagrams for gridded forecasts (#254)
+Added function to map the GEAR1 global forecast into arbitrary sub-regions and lower magnitude ranges (#249)
+Added two new pyCSEP tutorials in english and spanish (#251)
+Implementation of the Brier Score and its consistency test (#232)
+Implementation and correction of M-test with resampling and addition of a new magnitude test based on the multinomial distribution  (#268)
+Fix and optimize catalog binning strategy by `bin1d_vec` (#270)
+Github Actions and CI set for python >= 3.9 (#250)
+
+## Credits
+
+Toño Bayona (@bayonato89)
+Marcus Herrmann (@mherrmann3)
+Francesco Serafini (@Serra314)
+Emanuele Biondini (@Biondini)
+Pablo Iturrieta (@pabloitu)
+Fabio Silva (@fabiolsilva)
+Philip Maechling (@pjmaechling)
+Bill Savran (@wsavran)
+
 # v0.6.3 (2/1/2024)
 
-# Change-log
+## Change-log
 
 Added test for Winodws 10 on GitHub actions ([#244](https://github.com/SCECcode/pycsep/pull/244))  
 Removed shading in plotting fewer than 3 forecasts ([#247](https://github.com/SCECcode/pycsep/pull/247))  
@@ -18,7 +41,7 @@ Fabio Silva (@fabiolsilva)
 
 # v0.6.2 (6/16/2023)
 
-# Change-log
+## Change-log
 Fixed an error-bar bug for normalized consistency plots ([#222](https://github.com/SCECcode/pycsep/pull/222))  
 Fixed handles URL exception or SSL verifications errors for both python 3.8 and 3.11 inclusive ([#231](https://github.com/SCECcode/pycsep/pull/231))  
 Included CMT Catalog accessor ([#217](https://github.com/SCECcode/pycsep/pull/217))  
@@ -31,7 +54,7 @@ Fabio Silva (@fabiolsilva)
 
 # v0.6.1 (12/12/2022)
 
-# Change-log
+## Change-log
 Added quadtree csv reader ([#186](https://github.com/SCECcode/pycsep/pull/186))  
 Non-Poissonian tests
 ([#189](https://github.com/SCECcode/pycsep/pull/189),
