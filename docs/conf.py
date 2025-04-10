@@ -28,9 +28,9 @@ html_show_copyright = False
 html_show_sphinx = False
 
 # The short X.Y version
-version = 'v0.6'
+version = 'v0.7'
 # The full version, including alpha/beta/rc tags
-release = 'v0.6.3'
+release = 'v0.7.0'
 
 
 # -- General configuration ---------------------------------------------------
