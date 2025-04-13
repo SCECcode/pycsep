@@ -93,6 +93,9 @@ spatial_test_result = poisson.spatial_test(forecast, catalog)
 csep.write_json(spatial_test_result, 'example_spatial_test.json')
 
 ####################################################################################################################################
+#
+# .. _grid-forecast-evaluation-plot:
+#
 # Plot spatial test results
 # -------------------------
 #
@@ -105,6 +108,9 @@ ax = plots.plot_consistency_test(spatial_test_result,
 
 
 ####################################################################################################################################
+#
+# .. _grid-forecast-evaluation-plot-comparison:
+#
 # Performing a comparative test
 # -----------------------------
 #
@@ -126,6 +132,9 @@ plots.plot_comparison_test(t_test, show=True)
 
 
 ####################################################################################################################################
+#
+# .. _grid-forecast-evaluation-concentration-roc:
+#
 # Plot ROC Curves
 # ---------------
 #
@@ -149,6 +158,9 @@ _= plots.plot_concentration_ROC_diagram(forecast, catalog, linear=True)
 
 
 ####################################################################################################################################
+#
+# .. _grid-forecast-evaluation-roc-and-molchan:
+#
 # Plot ROC and Molchan curves using the alarm-based approach
 # ----------------------------------------------------------
 

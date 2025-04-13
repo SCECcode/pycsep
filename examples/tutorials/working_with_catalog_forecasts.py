@@ -68,6 +68,9 @@ _ = forecast.get_expected_rates(verbose=True)
 
 
 ####################################################################################################################################
+#
+# .. _tutorial-working-catalog-forecasts-plot:
+#
 # Plot expected event counts
 # --------------------------
 #

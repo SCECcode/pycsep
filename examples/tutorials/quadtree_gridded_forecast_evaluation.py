@@ -186,6 +186,9 @@ number_test_single_res_result = poisson.number_test(forecast_single_grid, catalo
 
 
 ####################################################################################################################################
+#
+# .. _quadtree_gridded-forecast-evaluation-plot:
+#
 # Plot spatial test results
 # -------------------------
 #

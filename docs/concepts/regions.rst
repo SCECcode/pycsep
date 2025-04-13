@@ -6,8 +6,6 @@ Regions
 
 .. automodule:: csep.core.regions
    :no-index:
-.. automodule:: csep.utils.basic_types
-   :no-index:
 
 PyCSEP includes commonly used CSEP testing regions and classes that facilitate working with gridded data sets. This
 module is early in development and will be a focus of future development.

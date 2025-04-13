@@ -102,6 +102,9 @@ print(comcat_catalog)
 comcat_catalog.plot(show=True)
 
 ####################################################################################################################################
+#
+# .. _catalog-forecast-evaluation-exploratory:
+#
 # Exploratory visualizations
 # --------------------------
 #
@@ -126,6 +129,9 @@ plots.plot_magnitude_histogram(forecast, comcat_catalog, log_scale=False, show=T
 number_test_result = catalog_evaluations.number_test(forecast, comcat_catalog)
 
 ####################################################################################################################################
+#
+# .. _catalog-forecast-evaluation-plot:
+#
 # Plot number test result
 # -----------------------
 #

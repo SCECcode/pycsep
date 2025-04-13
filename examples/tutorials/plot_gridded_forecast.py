@@ -1,6 +1,6 @@
 """
 
-.. tutorial-handling-grid-forecast:
+.. _tutorial-handling-grid-forecast:
 
 Handling Grid-based Forecasts
 =============================
@@ -42,6 +42,9 @@ forecast = csep.load_gridded_forecast(datasets.helmstetter_mainshock_fname,
                                       name='helmstetter_mainshock')
 
 ####################################################################################################################################
+#
+# .. _tutorial-handling-grid-forecast-plot:
+#
 # Plot forecast
 # -------------
 #

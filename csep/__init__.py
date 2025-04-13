@@ -333,7 +333,7 @@ def query_gns(start_time, end_time,  min_magnitude=2.950,
         verbose (bool): print catalog summary statistics
 
     Returns:
-        :class:`csep.core.catalogs.CSEPCatalog
+        :class:`csep.core.catalogs.CSEPCatalog`
     """
 
     # Timezone should be in UTC

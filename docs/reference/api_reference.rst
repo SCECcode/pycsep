@@ -234,10 +234,14 @@ Region utilities:
 .. currentmodule:: csep.utils.plots
 .. automodule:: csep.utils.plots
 
+.. _api-plot-functions:
+
 Plotting
 --------
 
-General plotting:
+PyCSEP offers multiple plot functionalities to visually explore forecasts, catalogs and results.
+
+Exploratory plotting:
 
 .. autosummary::
    :toctree: generated
@@ -245,17 +249,15 @@ General plotting:
    plot_magnitude_versus_time
    plot_cumulative_events_versus_time
    plot_magnitude_histogram
-   plot_basemap
-   plot_catalog
-   plot_gridded_dataset
 
-Plotting catalog-based evaluations:
+Spatial plotting:
 
 .. autosummary::
    :toctree: generated
 
-   plot_test_distribution
-   plot_calibration_test
+   plot_basemap
+   plot_catalog
+   plot_gridded_dataset
 
 Plotting grid-based evaluations:
 
@@ -264,6 +266,14 @@ Plotting grid-based evaluations:
 
    plot_comparison_test
    plot_consistency_test
+
+Plotting catalog-based evaluations:
+
+.. autosummary::
+   :toctree: generated
+
+   plot_test_distribution
+   plot_calibration_test
 
 Plotting alarm-based evaluations:
 
