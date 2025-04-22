@@ -9,6 +9,7 @@ python-dateutil
 pytest
 vcrpy
 pytest-cov
+rasterio
 shapely
 sphinx
 sphinx-gallery

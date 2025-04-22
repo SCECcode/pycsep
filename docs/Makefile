@@ -17,7 +17,8 @@ livehtml:
 
 clean:
 	rm -rf $(BUILDDIR)/*
-	rm -rf auto_examples/
+	rm -rf tutorials/*
+	rm -rf reference/generated
 
 .PHONY: help Makefile
 

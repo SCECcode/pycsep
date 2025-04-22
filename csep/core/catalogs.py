@@ -23,7 +23,7 @@ from csep.utils.constants import CSEP_MW_BINS
 from csep.utils.log import LoggingMixin
 from csep.utils.readers import csep_ascii
 from csep.utils.file import get_file_extension
-from csep.utils.plots import plot_catalog
+from csep.utils.plots import plot_catalog, plot_magnitude_versus_time
 
 
 class AbstractBaseCatalog(LoggingMixin):
@@ -840,48 +840,59 @@ class AbstractBaseCatalog(LoggingMixin):
         """ Implements the b-positive indicator from Nicholas van der Elst """
         pass
 
-    def plot(self, ax=None, show=False, extent=None, set_global=False, plot_args=None):
-        """ Plot catalog according to plate-carree projection
+    def plot(self, ax=None, show=False, extent=None, set_global=False, **kwargs):
+        """ Plots the catalog epicenters.
+
+        See :func:`csep.utils.plots.plot_catalog` for a description of keyword arguments.
 
         Args:
-            ax (`matplotlib.pyplot.axes`): Previous axes onto which catalog can be drawn
-            show (bool): if true, show the figure. this call is blocking.
+            ax (matplotlib.pyplot.axes): Previous axes onto which catalog can be drawn
+            show (bool): If True, shows the figure.
             extent (list): Force an extent [lon_min, lon_max, lat_min, lat_max]
-            plot_args (optional/dict): dictionary containing plotting arguments for making figures
+            set_global (bool): Whether to plot using a global projection
+            **kwargs (dict): Keyword arguments passed to
+                :func:`csep.utils.plots.plot_catalog`
 
         Returns:
             axes: matplotlib.Axes.axes
         """
 
         # no mutable function arguments
-        plot_args_default = {
-             'basemap': 'ESRI_terrain',
-             'markersize': 2,
-             'markercolor': 'red',
-             'alpha': 0.3,
-             'mag_scale': 7,
-             'legend': True,
-             'grid_labels': True,
-             'legend_loc': 3,
-             'figsize': (8, 8),
-             'title': self.name,
-             'mag_ticks': False
+        plot_args = {
+             'basemap': kwargs.pop('basemap', 'ESRI_terrain') if ax is None else None
         }
 
         # Plot the region border (if it exists) by default
         try:
             # This will throw error if catalog does not have region
             _ = self.region.num_nodes
-            plot_args_default['region_border'] = True
+            plot_args['region_border'] = True
         except AttributeError:
             pass
 
-        plot_args = plot_args or {}
-        plot_args_default.update(plot_args)
+        plot_args.update(kwargs.get('plot_args', {}))
+        plot_args.update(kwargs)
 
         # this call requires internet connection and basemap
-        ax = plot_catalog(self, ax=ax,show=show, extent=extent,
-                          set_global=set_global, plot_args=plot_args_default)
+        ax = plot_catalog(self, ax=ax, show=show, extent=extent,
+                          set_global=set_global, **plot_args)
+        return ax
+
+    def plot_magnitude_versus_time(self, ax=None, show=False, **kwargs):
+        """ Plot the magnitude-time series of a catalog. See
+        https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_magnitude_versus_time.html for
+        a description of keyword arguments.
+
+        Args:
+            ax (`matplotlib.pyplot.axes`): Previous axes onto which catalog can be drawn
+            show (bool): if true, show the figure. this call is blocking.
+
+        Returns:
+            axes: matplotlib.Axes.axes
+        """
+
+        ax = plot_magnitude_versus_time(self, ax=ax, show=show, **kwargs)
+
         return ax
 
 

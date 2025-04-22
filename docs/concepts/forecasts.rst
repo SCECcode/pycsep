@@ -129,7 +129,7 @@ Working with catalog-based forecasts
 
 .. autosummary:: csep.core.forecasts.CatalogForecast
 
-Please see visit :ref:`this<catalog-forecast-evaluation>` example for an end-to-end tutorial on how to evaluate a catalog-based
+Please see visit :ref:`this Example <tutorial-catalog-forecast-evaluation>` for an end-to-end tutorial on how to evaluate a catalog-based
 earthquake forecast. An example of a catalog-based forecast stored in the default pyCSEP format can be found
 `here <https://github.com/SCECcode/pycsep/blob/dev/csep/artifacts/ExampleForecasts/CatalogForecasts/ucerf3-landers_1992-06-28T11-57-34-14.csv>`__.
 

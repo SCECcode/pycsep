@@ -7,18 +7,21 @@ This contains a reference document to the PyCSEP API.
 
 .. :currentmodule:: csep
 
-Loading catalogs and forecasts
-------------------------------
+Loading catalogs, forecasts and results
+---------------------------------------
 
 .. autosummary::
    :toctree: generated
 
-   load_stochastic_event_sets
    load_catalog
    query_comcat
    query_bsi
+   query_gns
+   query_gcmt
    load_gridded_forecast
    load_catalog_forecast
+   load_stochastic_event_sets
+   load_evaluation_result
 
 Catalogs
 --------
@@ -179,6 +182,17 @@ Grid-based forecast evaluations:
    paired_t_test
    w_test
 
+Evaluation result base class
+
+.. automodule:: csep.models
+
+.. autosummary::
+   :toctree: generated
+
+    EvaluationResult
+
+
+.. currentmodule:: csep.core.regions
 .. automodule:: csep.core.regions
 
 Regions
@@ -193,6 +207,7 @@ Region class(es):
     :toctree: generated
 
     CartesianGrid2D
+    CartesianGrid2D.get_cartesian
 
 Testing regions:
 
@@ -201,6 +216,7 @@ Testing regions:
 
     california_relm_region
     italy_csep_region
+    nz_csep_region
     global_region
 
 Region utilities:
@@ -215,53 +231,59 @@ Region utilities:
     masked_region
     generate_aftershock_region
 
+.. currentmodule:: csep.utils.plots
+.. automodule:: csep.utils.plots
+
+.. _api-plot-functions:
 
 Plotting
 --------
 
-.. automodule:: csep.utils.plots
+PyCSEP offers multiple plot functionalities to visually explore forecasts, catalogs and results.
 
-General plotting:
-
-.. autosummary::
-   :toctree: generated
-
-   plot_histogram
-   plot_ecdf
-   plot_basemap
-   plot_spatial_dataset
-   add_labels_for_publication
-
-Plotting from catalogs:
+Exploratory plotting:
 
 .. autosummary::
    :toctree: generated
 
    plot_magnitude_versus_time
-   plot_catalog
-
-Plotting stochastic event sets and evaluations:
-
-.. autosummary::
-   :toctree: generated
-
    plot_cumulative_events_versus_time
    plot_magnitude_histogram
-   plot_number_test
-   plot_magnitude_test
-   plot_distribution_test
-   plot_likelihood_test
-   plot_spatial_test
-   plot_calibration_test
 
-Plotting gridded forecasts and evaluations:
+Spatial plotting:
 
 .. autosummary::
    :toctree: generated
 
-   plot_spatial_dataset
+   plot_basemap
+   plot_catalog
+   plot_gridded_dataset
+
+Plotting grid-based evaluations:
+
+.. autosummary::
+   :toctree: generated
+
    plot_comparison_test
-   plot_poisson_consistency_test
+   plot_consistency_test
+
+Plotting catalog-based evaluations:
+
+.. autosummary::
+   :toctree: generated
+
+   plot_test_distribution
+   plot_calibration_test
+
+Plotting alarm-based evaluations:
+
+.. autosummary::
+   :toctree: generated
+
+   plot_ROC_diagram
+   plot_concentration_ROC_diagram
+   plot_Molchan_diagram
+
 
 .. automodule:: csep.utils.time_utils
 

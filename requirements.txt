@@ -6,6 +6,7 @@ cartopy
 obspy
 pyproj
 python-dateutil
+rasterio
 shapely
 mercantile
 

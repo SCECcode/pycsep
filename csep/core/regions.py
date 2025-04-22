@@ -658,7 +658,11 @@ class CartesianGrid2D:
         """Returns 2d ndrray representation of the data set, corresponding to the bounding box.
 
         Args:
-            data:
+            data: An array of values, whose indices corresponds to each cell of the region
+
+        Returns:
+            A 2D array of values, corresponding to the original data projected onto the region.
+            Values outside the region polygon are represented as np.nan
         """
         assert len(data) == len(self.polygons)
         results = numpy.zeros(self.bbox_mask.shape[:2])

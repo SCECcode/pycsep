@@ -13,7 +13,7 @@ from csep.utils.calc import bin1d_vec
 from csep.utils.time_utils import decimal_year, datetime_to_utc_epoch
 from csep.core.catalogs import AbstractBaseCatalog
 from csep.utils.constants import SECONDS_PER_ASTRONOMICAL_YEAR
-from csep.utils.plots import plot_spatial_dataset
+from csep.utils.plots import plot_gridded_dataset
 
 
 # idea: should this be a SpatialDataSet and the class below SpaceMagnitudeDataSet, bc of functions like
@@ -432,17 +432,27 @@ class GriddedForecast(MarkedGriddedDataSet):
         gds = cls(start_date, end_date, magnitudes=mws, name=name, region=region, data=rates)
         return gds
 
-    def plot(self, ax=None, show=False, log=True, extent=None, set_global=False, plot_args=None):
-        """ Plot gridded forecast according to plate-carree projection
+    def plot(self, ax=None, show=False, log=True, extent=None, set_global=False, plot_args=None,
+             **kwargs):
+        """ Plot the spatial rate of the forecast
+
+        See :func:`csep.utils.plots.plot_gridded_dataset` for a detailed description of the
+        keyword arguments.
 
         Args:
-            show (bool): if true, show the figure. this call is blocking.
-            plot_args (optional/dict): dictionary containing plotting arguments for making figures
+            ax (`matplotlib.pyplot.axes`): Previous axes onto which catalog can be drawn
+            show (bool): If True, shows the figure.
+            log (bool): If True, plots the base-10 logarithm of the spatial rates
+            extent (list): Force an extent [lon_min, lon_max, lat_min, lat_max]
+            set_global (bool): Whether to plot using a global projection
+            **kwargs (dict): Keyword arguments passed to
+                :func:`csep.utils.plots.plot_gridded_dataset`
 
         Returns:
             axes: matplotlib.Axes.axes
         """
-        # no mutable function arguments
+
+
         if self.start_time is None or self.end_time is None:
             time = 'forecast period'
         else:
@@ -451,19 +461,24 @@ class GriddedForecast(MarkedGriddedDataSet):
             time = f'{round(end-start,3)} years'
 
         plot_args = plot_args or {}
-        plot_args.setdefault('figsize', (10, 10))
-        plot_args.setdefault('title', self.name)
-
+        plot_args.update({
+             'basemap': kwargs.pop('basemap', 'ESRI_terrain') if ax is None else None,
+             'title': kwargs.pop('title', None) or self.name,
+             'figsize': kwargs.pop('figsize', None) or (8, 8),
+             'plot_region': True
+        })
+        plot_args.update(**kwargs)
         # this call requires internet connection and basemap
         if log:
             plot_args.setdefault('clabel', f'log10 M{self.min_magnitude}+ rate per cell per {time}')
             with numpy.errstate(divide='ignore'):
-                ax = plot_spatial_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, ax=ax,
-                                          show=show, extent=extent, set_global=set_global, plot_args=plot_args)
+                ax = plot_gridded_dataset(numpy.log10(self.spatial_counts(cartesian=True)), self.region, ax=ax,
+                                          show=show, extent=extent, set_global=set_global,
+                                          **plot_args)
         else:
             plot_args.setdefault('clabel', f'M{self.min_magnitude}+ rate per cell per {time}')
-            ax = plot_spatial_dataset(self.spatial_counts(cartesian=True), self.region, ax=ax,show=show, extent=extent,
-                                      set_global=set_global, plot_args=plot_args)
+            ax = plot_gridded_dataset(self.spatial_counts(cartesian=True), self.region, ax=ax, show=show, extent=extent,
+                                      set_global=set_global, **plot_args)
         return ax
 
 

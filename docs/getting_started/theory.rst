@@ -104,6 +104,8 @@ examples use the Helmstetter et al (2007) smoothed seismicity forecast
     Found 24 events in the ComCat catalog.
 
 
+.. _theory-consistency-tests:
+
 Consistency tests
 ~~~~~~~~~~~~~~~~~
 
@@ -551,6 +553,8 @@ likelihood falls in the tail of the simulated likelihood distribution.
 Again this is shown by a coloured symbol which highlights whether the
 forecast model passes or fails the test.
 
+.. _forecast-comparison-tests:
+
 Forecast comparison tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -652,6 +656,8 @@ and the vertical bar shows the confidence bars for the information gain
 case, the model with aftershocks performs statistically worse than the
 benchmark model. We note that this comparison is used for demonstation
 purposes only.
+
+.. _theory-catalog-forecasts:
 
 Catalog-based forecast tests
 ----------------------------

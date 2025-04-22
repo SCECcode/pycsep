@@ -1,7 +1,7 @@
 """
 .. _tutorial-catalog-filtering:
 
-Catalogs operations
+Catalogs Operations
 ===================
 
 This example demonstrates how to perform standard operations on a catalog. This example requires an internet
@@ -24,15 +24,19 @@ Overview:
 import csep
 from csep.core import regions
 from csep.utils import time_utils, comcat
-# sphinx_gallery_thumbnail_path = '_static/CSEP2_Logo_CMYK.png'
 
 ####################################################################################################################################
 # Load catalog
 # ------------
 #
-# PyCSEP provides access to the ComCat web API using :func:`csep.query_comcat` and to the Bollettino Sismico Italiano
-# API using :func:`csep.query_bsi`. These functions require a :class:`datetime.datetime` to specify the start and end
-# dates.
+# PyCSEP provides access to multiple catalog webservices, using the following functions:
+#
+#   * `ANSS Comprehensive Earthquake Catalog (ComCat) <https://earthquake.usgs.gov/data/comcat/>`_: :func:`csep.query_comcat`
+#   * `INGV Bolletino Sismico Italiano (BSI) <https://terremoti.ingv.it/en/bsi>`_: :func:`csep.query_bsi`
+#   * `GNS New Zealand GeoNet <https://www.geonet.org.nz/>`_: :func:`csep.query_gns`
+#   * `Global CMT <https://www.globalcmt.org/>`_ (through the `ISC <https://www.isc.ac.uk/>`_ API): :func:`csep.query_gcmt`
+#
+# These functions require a :class:`datetime.datetime` to specify the start and end dates of the query.
 
 start_time = csep.utils.time_utils.strptime_to_utc_datetime('2019-01-01 00:00:00.0')
 end_time = csep.utils.time_utils.utc_now_datetime()
@@ -91,10 +95,36 @@ aftershock_region = regions.generate_aftershock_region(event.magnitude, event.lo
 catalog = catalog.filter_spatial(aftershock_region).apply_mct(event.magnitude, m71_epoch)
 print(catalog)
 
+####################################################################################################################################
+# Additional CSEP regions (e.g., California, Italy, New Zealand) can be accessed through the :mod:`csep.core.regions` module. See :ref:`testing-regions` for more information.
+
+
+####################################################################################################################################
+#
+# .. _tutorial-catalog-filtering-plot:
+#
+# Plot catalog
+# -------------
+#
+# To visualize the catalog spatially, simply use the method :meth:`~csep.core.catalogs.CSEPCatalog.plot`
+catalog.plot(show=True)
+
+
+####################################################################################################################################
+# To plot the magnitude time series, use :meth:`~csep.core.catalogs.CSEPCatalog.plot_magnitude_vs_time`
+catalog.plot_magnitude_versus_time(show=True)
 
 ####################################################################################################################################
 # Write catalog
 # -------------
 #
-# Use :meth:`csep.core.catalogs.AbstractBaseCatalog.write_ascii` to write the catalog into the comma separated value format.
+# Use the method :meth:`~csep.core.catalogs.CSEPCatalog.write_ascii` to write the catalog into the comma separated value format.
 catalog.write_ascii('2019-11-11-comcat.csv')
+
+
+####################################################################################################################################
+# Load catalog
+# ------------
+#
+# Also, the function :func:`csep.load_catalog` can be used to read catalogs un multiple formats (See :ref:`catalogs-reference`)
+catalog = csep.load_catalog('2019-11-11-comcat.csv')

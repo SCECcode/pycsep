@@ -2,8 +2,8 @@
 
 .. _quadtree_gridded-forecast-evaluation:
 
-Quadtree Grid-based Forecast Evaluation
-=======================================
+Quadtree-based Forecast Evaluation
+==================================
 
 This example demonstrates how to create a quadtree based single resolution-grid and multi-resolution grid.
 Multi-resolution grid is created using earthquake catalog, in which seismic density determines the size of a grid cell. 
@@ -186,6 +186,9 @@ number_test_single_res_result = poisson.number_test(forecast_single_grid, catalo
 
 
 ####################################################################################################################################
+#
+# .. _quadtree_gridded-forecast-evaluation-plot:
+#
 # Plot spatial test results
 # -------------------------
 #
@@ -194,9 +197,9 @@ number_test_single_res_result = poisson.number_test(forecast_single_grid, catalo
 
 
 stest_result = [spatial_test_single_res_result, spatial_test_multi_res_result]
-ax_spatial = plots.plot_poisson_consistency_test(stest_result,
-                                        plot_args={'xlabel': 'Spatial likelihood'})
+ax_spatial = plots.plot_consistency_test(stest_result,
+                                         xlabel='Spatial likelihood')
 
 ntest_result = [number_test_single_res_result, number_test_multi_res_result]
-ax_number = plots.plot_poisson_consistency_test(ntest_result,
-                                        plot_args={'xlabel': 'Number of Earthquakes'})
+ax_number = plots.plot_consistency_test(ntest_result,
+                                        xlabel='Number of Earthquakes')

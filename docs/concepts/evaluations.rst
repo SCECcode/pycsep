@@ -91,7 +91,7 @@ statistics from these catalogs and compare them against one another.
 
 We provide four statistics that probe fundamental aspects of the earthquake forecasts. Please see
 :ref:`Savran et al., 2020<savran-2020>` for a complete description of the individual tests. For the implementation
-details please follow the links below and see the :ref:`example<catalog-forecast-evaluation>` for catalog-based
+details please follow the links below and see the :ref:`Example <tutorial-catalog-forecast-evaluation>` for catalog-based
 forecast evaluation for an end-to-end walk through.
 
 .. automodule:: csep.core.catalog_evaluations
