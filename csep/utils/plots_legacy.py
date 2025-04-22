@@ -2023,11 +2023,9 @@ def add_labels_for_publication(figure, style='bssa', labelsize=16):
     This function is deprecated and will be removed in version 1.0.
 
      """
-
+    import string
     warnings.warn(
-        "'plot_spatial_test' is deprecated and will be removed in version 1.0.\n"
-        "Use 'plot_test_distribution' instead.\n"
-        "Documentation: https://docs.cseptesting.org/reference/generated/csep.utils.plots.plot_test_distribution.html",
+        "'add_labels_for_publication' is deprecated and will be removed in version 1.0.\n",
         DeprecationWarning,
         stacklevel=2
     )

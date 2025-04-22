@@ -2174,7 +2174,7 @@ def _get_axis_limits(points: Union[Sequence, numpy.ndarray],
     return x_min - xd, x_max + xd
 
 
-def _get_basemap(basemap: str) -> Union[img_tiles.GoogleTiles, DatasetReader]:
+def _get_basemap(basemap: str) -> Union[img_tiles.GoogleTiles, DatasetReader, None]:
     """
     Returns the basemap tiles for a given basemap type or web service.
 
@@ -2251,6 +2251,14 @@ def _get_basemap(basemap: str) -> Union[img_tiles.GoogleTiles, DatasetReader]:
             )
             tiles = img_tiles.GoogleTiles(url=webservice, cache=cache)
             _save_cache_src(basemap)
+        elif basemap == 'stamen_terrain-background' or basemap == 'stamen_terrain':
+            warnings.warn(
+                f"stamen basemaps are no longer supported. Please try one of:"
+                f"  'google-satellite`, `ESRI_terrain`, `ESRI_relief`, etc.\n",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            return None
 
         elif os.path.isfile(basemap):
             return rio_open(basemap)
@@ -2699,4 +2707,5 @@ from .plots_legacy import (plot_cumulative_events_versus_time,
                            plot_pvalues_and_intervals,
                            plot_concentration_ROC_diagram,
                            plot_ROC_diagram,
-                           plot_Molchan_diagram)
+                           plot_Molchan_diagram,
+                           add_labels_for_publication)
