@@ -191,3 +191,158 @@ catalog_id should be assigned to correspond with the total number of catalogs in
 contains zero forecasted events, you would specify the forecasting using (2). The *catalog_id* should be assigned to
 correspond with the total number of catalogs in the forecast.
 
+
+*********************
+Alarm-based forecasts
+*********************
+
+Alarm-based forecasts represent a different paradigm from traditional rate-based forecasts. Instead of providing
+earthquake rates, alarm-based forecasts assign a score (e.g., probability, alarm level, or hazard metric) to each
+spatial cell indicating the relative likelihood of earthquake occurrence. These forecasts are evaluated using
+Receiver Operating Characteristic (ROC) curves and Molchan diagrams rather than likelihood-based tests.
+
+Alarm-based forecasts are particularly useful for:
+
+1. Binary classification models (e.g., "high risk" vs "low risk" areas)
+2. Machine learning classifiers
+3. Pattern-based approaches
+4. Any model that produces relative rankings rather than absolute rates
+
+Working with alarm-based forecasts
+##################################
+
+PyCSEP provides the :func:`load_alarm_forecast<csep.load_alarm_forecast>` function to load alarm-based forecasts
+from CSV files. The loaded forecast is returned as a :class:`GriddedForecast<csep.core.forecasts.GriddedForecast>`
+object that can be evaluated using ROC curves and Molchan diagrams.
+
+.. autosummary:: csep.load_alarm_forecast
+
+Default file format
+-------------------
+
+The default file format for alarm-based forecasts is a comma-separated ASCII file with the following columns::
+
+    lon,lat,alarm_score,probability,rate_per_day,magnitude_min,magnitude_target
+    165.0,-47.0,0.234,0.199,0.000117,4.0,7.0
+    165.1,-47.0,0.156,0.133,0.000078,4.0,7.0
+
+Required columns:
+
+- **lon**: Longitude of cell center
+- **lat**: Latitude of cell center
+- At least one score column (e.g., **alarm_score**, **probability**, **rate_per_day**)
+
+Optional columns:
+
+- **magnitude_min**: Minimum magnitude threshold (default: 4.0)
+- **magnitude_target**: Maximum magnitude threshold (default: magnitude_min + 3.0)
+- **start_time**: Forecast start time
+- **end_time**: Forecast end time
+
+The spatial grid is automatically inferred from the provided coordinates, making this format
+suitable for any geographic region worldwide.
+
+Loading alarm forecasts
+-----------------------
+
+Basic usage::
+
+    import csep
+
+    # Load alarm forecast
+    forecast = csep.load_alarm_forecast('alarm_forecast.csv', name='MyModel')
+
+    # Load with specific score field
+    forecast = csep.load_alarm_forecast('forecast.csv', score_field='probability')
+
+    # Load tab-delimited file
+    forecast = csep.load_alarm_forecast('forecast.tsv', delimiter='\t')
+
+Evaluating alarm forecasts
+--------------------------
+
+Alarm forecasts are evaluated using ROC curves and Molchan diagrams::
+
+    from csep.utils import plots
+
+    # Load forecast and catalog
+    forecast = csep.load_alarm_forecast('forecast.csv')
+    catalog = csep.query_gns(start_time=..., end_time=...)
+
+    # ROC curve
+    ax, auc = plots.plot_ROC_diagram(forecast, catalog, linear=True)
+
+    # Molchan diagram
+    ax, ass, sigma = plots.plot_Molchan_diagram(forecast, catalog, linear=True)
+
+See :ref:`alarm-forecast-evaluation` for a complete tutorial on evaluating alarm-based forecasts.
+
+
+Temporal alarm-based forecasts
+##############################
+
+Temporal forecasts are a time-based variant of alarm-based forecasts. Instead of assigning scores to
+spatial cells, temporal forecasts assign probability scores to a sequence of time windows (e.g., daily
+forecasts). The evaluation is analogous: observations are computed from an earthquake catalog to determine
+whether events occurred in each time window, and the forecast probabilities are compared against these
+binary observations using ROC curves and Molchan diagrams.
+
+Working with temporal forecasts
+###############################
+
+PyCSEP provides functions to load temporal forecasts and compute observations from catalogs:
+
+.. autosummary::
+
+   csep.load_temporal_forecast
+   csep.compute_temporal_observations
+
+Default file format
+-------------------
+
+Temporal forecasts use a simple two-column CSV format::
+
+    time,probability
+    1,0.0234
+    2,0.0221
+    3,0.0228
+
+The **time** column can contain either:
+
+- Integer indices (1, 2, 3, ...) - requires ``start_time`` and ``time_delta`` parameters
+- Datetime strings ('2016-01-01', '2016-01-02', ...) - automatically parsed
+
+Loading and evaluating temporal forecasts
+-----------------------------------------
+
+Example workflow::
+
+    import csep
+    from csep.utils import plots
+
+    # Load temporal forecast (500 daily windows)
+    data = csep.load_temporal_forecast('forecast.csv')
+
+    # Query observed catalog
+    catalog = csep.query_gns(
+        start_time='2016-01-01',
+        end_time='2017-06-01',
+        min_magnitude=4.0
+    )
+
+    # Compute observations from catalog
+    observations = csep.compute_temporal_observations(
+        catalog,
+        data['times'],
+        start_time='2016-01-01',  # Map integer times to dates
+        time_delta='1D',           # 1 day per window
+        magnitude_min=4.0
+    )
+
+    # Evaluate with ROC and Molchan diagrams
+    ax, auc = plots.plot_temporal_ROC_diagram(
+        data['probabilities'], observations, name='DailyM4+'
+    )
+    ax, ass, sigma = plots.plot_temporal_Molchan_diagram(
+        data['probabilities'], observations, name='DailyM4+'
+    )

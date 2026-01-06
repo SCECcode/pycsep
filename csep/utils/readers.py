@@ -1108,5 +1108,422 @@ def read_GEAR1_format(filename, area_filename, magnitudes):
     # Allows to use broadcasting
     m2_per_cell = numpy.reshape(area[:,-1], (len(area[:,1]), 1))
     incremental_yrly_rates = incremental_yrly_density * m2_per_cell
-    
-    return incremental_yrly_rates, r, magnitudes        
+    return incremental_yrly_rates, r, magnitudes
+
+def alarm_forecast_csv(filename, lon_col='lon', lat_col='lat',
+                       score_field='alarm_score', magnitude_min=None,
+                       magnitude_max=None, start_time=None, end_time=None,
+                       delimiter=',', score_fields=None, magnitude_bins=None):
+    """
+    Read alarm-based earthquake forecast from CSV file.
+
+    This function reads alarm-based forecasts that contain spatial cells with
+    associated scores (e.g., alarm_score, probability, rate_per_day). The forecast
+    is converted into a format compatible with GriddedForecast for evaluation using
+    ROC curves and Molchan diagrams.
+
+    Expected CSV columns (flexible column names):
+        - lon, lat: Spatial coordinates of cells (required)
+        - alarm_score, probability, or rate_per_day: Forecast scores (at least one required)
+        - magnitude_min, magnitude_target: Magnitude thresholds (optional)
+        - start_time, end_time: Forecast time window (optional)
+        - cell_id, alarm, notes: Additional metadata (optional)
+
+    The function supports any geographic region worldwide by inferring the spatial
+    grid from the provided lon/lat coordinates.
+
+    Args:
+        filename (str): Path to alarm forecast CSV file
+        lon_col (str): Name of longitude column (default: 'lon')
+        lat_col (str): Name of latitude column (default: 'lat')
+        score_field (str): Which field to use as forecast rate. Options:
+                          'alarm_score' (recommended for continuous scores),
+                          'probability', 'rate_per_day', or any numeric column name.
+                          Default: 'alarm_score'. Ignored if score_fields is provided.
+        magnitude_min (float): Minimum magnitude for forecast. If None, reads from
+                              'magnitude_min' column or uses 4.0 as default.
+        magnitude_max (float): Maximum magnitude for forecast. If None, reads from
+                              'magnitude_target' column or uses magnitude_min + 0.1.
+        start_time (str or datetime): Forecast start time. If None, reads from
+                                     'start_time' column if available.
+        end_time (str or datetime): Forecast end time. If None, reads from
+                                   'end_time' column if available.
+        delimiter (str): CSV delimiter character. Default: ',' (comma).
+                        Use '\\t' for tab-delimited, ';' for semicolon, etc.
+        score_fields (list of str): List of column names to extract as multiple
+                                   score fields. If provided, score_field is ignored
+                                   and rates will have shape (n_cells, n_score_fields).
+                                   Useful for combining multiple alarm metrics.
+        magnitude_bins (list or numpy.ndarray): Custom magnitude bin edges.
+                                               If provided, overrides magnitude_min
+                                               and magnitude_max. Example: [4.0, 5.0, 6.0]
+                                               creates two bins: [4.0-5.0) and [5.0-6.0).
+
+    Returns:
+        tuple: (rates, region, magnitudes, metadata)
+            - rates (numpy.ndarray): Forecast rates, shape (num_cells, num_mag_bins)
+                                    or (num_cells, num_score_fields) if score_fields used
+            - region (CartesianGrid2D): Spatial region inferred from coordinates
+            - magnitudes (numpy.ndarray): Magnitude bins
+            - metadata (dict): Additional information (start_time, end_time, score_field(s))
+
+    Raises:
+        FileNotFoundError: If the CSV file does not exist
+        ValueError: If required columns are missing or data is invalid
+        CSEPIOException: If the CSV format cannot be parsed
+
+    Example:
+        >>> # Basic usage
+        >>> rates, region, mags, meta = alarm_forecast_csv('forecast.csv')
+        >>> forecast = GriddedForecast(data=rates, region=region,
+        ...                           magnitudes=mags, name='AlarmForecast')
+        >>>
+        >>> # Tab-delimited file
+        >>> rates, region, mags, meta = alarm_forecast_csv('forecast.tsv', delimiter='\\t')
+        >>>
+        >>> # Multiple score fields
+        >>> rates, region, mags, meta = alarm_forecast_csv(
+        ...     'forecast.csv',
+        ...     score_fields=['alarm_score', 'probability', 'rate_per_day']
+        ... )
+        >>>
+        >>> # Custom magnitude bins
+        >>> rates, region, mags, meta = alarm_forecast_csv(
+        ...     'forecast.csv',
+        ...     magnitude_bins=[4.0, 4.5, 5.0, 5.5, 6.0]
+        ... )
+    """
+    # Check file exists
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"Alarm forecast file not found: {filename}")
+
+    # Read CSV file with custom delimiter
+    try:
+        df = pd.read_csv(filename, delimiter=delimiter)
+    except Exception as e:
+        raise CSEPIOException(f"Failed to read CSV file {filename}: {str(e)}")
+
+    # Validate required columns
+    if lon_col not in df.columns:
+        raise ValueError(f"Longitude column '{lon_col}' not found in CSV. "
+                        f"Available columns: {list(df.columns)}")
+    if lat_col not in df.columns:
+        raise ValueError(f"Latitude column '{lat_col}' not found in CSV. "
+                        f"Available columns: {list(df.columns)}")
+
+    # Determine which score fields to extract
+    if score_fields is not None:
+        # Multiple score fields mode
+        if not isinstance(score_fields, (list, tuple)):
+            raise ValueError("score_fields must be a list of column names")
+        for field in score_fields:
+            if field not in df.columns:
+                raise ValueError(f"Score field '{field}' not found in CSV. "
+                                f"Available columns: {list(df.columns)}")
+        active_score_fields = list(score_fields)
+    else:
+        # Single score field mode
+        if score_field not in df.columns:
+            raise ValueError(f"Score field '{score_field}' not found in CSV. "
+                            f"Available columns: {list(df.columns)}")
+        active_score_fields = [score_field]
+
+    # Extract coordinates
+    lons = df[lon_col].values
+    lats = df[lat_col].values
+
+    # Validate coordinates
+    if len(lons) == 0:
+        raise ValueError("No data found in alarm forecast CSV")
+    if numpy.any(numpy.isnan(lons)) or numpy.any(numpy.isnan(lats)):
+        raise ValueError("NaN values found in coordinate columns")
+
+    # Extract forecast scores for all active fields
+    scores_list = []
+    for field in active_score_fields:
+        scores = df[field].values.copy()
+        if numpy.any(numpy.isnan(scores)):
+            warnings.warn(f"NaN values found in '{field}' column. "
+                         f"Replacing with 0.0", RuntimeWarning)
+            scores = numpy.nan_to_num(scores, nan=0.0)
+        if numpy.any(scores < 0):
+            warnings.warn(f"Negative values found in '{field}' column. "
+                         f"Replacing with 0.0", RuntimeWarning)
+            scores = numpy.maximum(scores, 0.0)
+        scores_list.append(scores)
+
+    # Determine magnitude bins
+    if magnitude_bins is not None:
+        # Custom magnitude bins provided
+        magnitudes = numpy.asarray(magnitude_bins)
+        if len(magnitudes) < 2:
+            raise ValueError("magnitude_bins must have at least 2 edges")
+    else:
+        # Use magnitude_min/magnitude_max logic
+        if magnitude_min is None:
+            if 'magnitude_min' in df.columns:
+                mag_min_vals = df['magnitude_min'].dropna()
+                if len(mag_min_vals) > 0:
+                    magnitude_min = float(mag_min_vals.iloc[0])
+                else:
+                    magnitude_min = 4.0
+                    warnings.warn("No valid magnitude_min found, using default 4.0",
+                                RuntimeWarning)
+            else:
+                magnitude_min = 4.0
+                warnings.warn("No magnitude_min specified, using default 4.0",
+                            RuntimeWarning)
+
+        if magnitude_max is None:
+            if 'magnitude_target' in df.columns:
+                mag_max_vals = df['magnitude_target'].dropna()
+                if len(mag_max_vals) > 0:
+                    magnitude_max = float(mag_max_vals.iloc[0])
+                else:
+                    magnitude_max = magnitude_min + 0.1
+            else:
+                magnitude_max = magnitude_min + 0.1
+
+        # Create magnitude bins (single bin for alarm forecasts)
+        magnitudes = numpy.array([magnitude_min, magnitude_max])
+
+    # Extract time information if available
+    metadata = {}
+    if score_fields is not None:
+        metadata['score_fields'] = active_score_fields
+    else:
+        metadata['score_field'] = score_field
+
+    if start_time is None and 'start_time' in df.columns:
+        try:
+            start_time = pd.to_datetime(df['start_time'].iloc[0])
+            metadata['start_time'] = start_time
+        except:
+            pass
+    elif start_time is not None:
+        metadata['start_time'] = start_time
+
+    if end_time is None and 'end_time' in df.columns:
+        try:
+            end_time = pd.to_datetime(df['end_time'].iloc[0])
+            metadata['end_time'] = end_time
+        except:
+            pass
+    elif end_time is not None:
+        metadata['end_time'] = end_time
+
+    # Create region from coordinates
+    coords = numpy.column_stack([lons, lats])
+
+    try:
+        region = CartesianGrid2D.from_origins(coords, magnitudes=magnitudes)
+    except Exception as e:
+        raise CSEPIOException(
+            f"Failed to create spatial region from coordinates: {str(e)}")
+
+    # Reshape rates for GriddedForecast
+    # Stack all score columns: shape (n_cells, n_score_fields)
+    rates = numpy.column_stack(scores_list)
+
+    return rates, region, magnitudes, metadata
+
+
+def temporal_forecast_csv(filename, time_col='time', probability_col='probability',
+                          delimiter=','):
+    """
+    Read temporal probability forecast from CSV file.
+
+    This function reads time-series probability forecasts where each row represents
+    a time window (e.g., day) with an associated probability of earthquake occurrence.
+    Observations should be computed separately from a catalog using
+    compute_temporal_observations().
+
+    Expected CSV format:
+        time,probability
+        1,0.0234
+        2,0.0221
+        3,0.0217
+        ...
+
+    Args:
+        filename (str): Path to temporal forecast CSV file
+        time_col (str): Name of time/index column (default: 'time').
+                       Can be integer indices or datetime strings.
+        probability_col (str): Name of probability column (default: 'probability').
+                              Values should be in range [0, 1].
+        delimiter (str): CSV delimiter character. Default: ',' (comma).
+
+    Returns:
+        tuple: (times, probabilities, metadata)
+            - times (numpy.ndarray or pandas.DatetimeIndex): Time indices
+            - probabilities (numpy.ndarray): Forecast probabilities
+            - metadata (dict): Additional information
+
+    Raises:
+        FileNotFoundError: If the CSV file does not exist
+        ValueError: If required columns are missing or data is invalid
+        CSEPIOException: If the CSV format cannot be parsed
+
+    Example:
+        >>> times, probs, meta = temporal_forecast_csv('daily_forecast.csv')
+        >>> # Compute observations from catalog
+        >>> observations = compute_temporal_observations(catalog, times)
+        >>> from csep.utils import plots
+        >>> plots.plot_temporal_Molchan_diagram(probs, observations)
+    """
+    # Check file exists
+    if not os.path.exists(filename):
+        raise FileNotFoundError(f"Temporal forecast file not found: {filename}")
+
+    # Read CSV file
+    try:
+        df = pd.read_csv(filename, delimiter=delimiter)
+    except Exception as e:
+        raise CSEPIOException(f"Failed to read CSV file {filename}: {str(e)}")
+
+    # Validate required columns
+    if probability_col not in df.columns:
+        raise ValueError(f"Probability column '{probability_col}' not found in CSV. "
+                        f"Available columns: {list(df.columns)}")
+
+    # Extract time column if present
+    if time_col in df.columns:
+        times = df[time_col].values
+        # Try to parse as datetime
+        try:
+            times = pd.to_datetime(times)
+        except:
+            pass  # Keep as-is (likely integer indices)
+    else:
+        # Use row indices as time
+        times = numpy.arange(len(df))
+        warnings.warn(f"Time column '{time_col}' not found, using row indices",
+                     RuntimeWarning)
+
+    # Extract probabilities
+    probabilities = df[probability_col].values.astype(float)
+
+    # Validate probabilities
+    if len(probabilities) == 0:
+        raise ValueError("No data found in temporal forecast CSV")
+    if numpy.any(numpy.isnan(probabilities)):
+        raise ValueError("NaN values found in probability column")
+    if numpy.any(probabilities < 0) or numpy.any(probabilities > 1):
+        warnings.warn("Probability values outside [0, 1] range found. "
+                     "Clipping to valid range.", RuntimeWarning)
+        probabilities = numpy.clip(probabilities, 0, 1)
+
+    # Build metadata
+    metadata = {
+        'n_time_windows': len(probabilities),
+        'probability_col': probability_col
+    }
+
+    return times, probabilities, metadata
+
+
+def compute_temporal_observations(catalog, times, magnitude_min=None,
+                                   start_time=None, time_delta=None):
+    """
+    Compute binary observations from a catalog based on forecast time windows.
+
+    This function counts whether one or more earthquakes occurred in each time
+    window, creating a binary observation vector suitable for temporal ROC
+    and Molchan evaluation.
+
+    Args:
+        catalog: A CSEPCatalog object or any object with:
+                 - get_datetimes(): Returns array of event datetimes
+                 - get_magnitudes(): Returns array of event magnitudes
+        times (array-like): Array representing forecast time windows.
+                           Can be datetime objects OR integer indices (1, 2, 3, ...).
+                           If integers, use start_time and time_delta to map to real times.
+        magnitude_min (float, optional): Minimum magnitude threshold. If provided,
+                                        only events >= magnitude_min are counted.
+        start_time (str or datetime, optional): Start time of the forecast period.
+                                               Required if times are integer indices.
+                                               Example: '2024-01-01' or datetime object.
+        time_delta (str or timedelta, optional): Duration of each time window.
+                                                Required if times are integer indices.
+                                                Examples: '1D' (1 day), '1H' (1 hour),
+                                                '7D' (1 week), or pd.Timedelta object.
+
+    Returns:
+        numpy.ndarray: Binary array of observations (1 if event occurred in window, 0 otherwise)
+                      Shape: (len(times),)
+
+    Example:
+        >>> # With datetime times in CSV
+        >>> catalog = csep.load_catalog('events.csv')
+        >>> data = csep.load_temporal_forecast('forecast.csv')
+        >>> observations = compute_temporal_observations(catalog, data['times'])
+        >>>
+        >>> # With integer indices (1, 2, 3, ...)
+        >>> observations = compute_temporal_observations(
+        ...     catalog, data['times'],
+        ...     start_time='2024-01-01',
+        ...     time_delta='1D',
+        ...     magnitude_min=4.0
+        ... )
+    """
+    times = numpy.asarray(times)
+
+    # Determine if we need to construct datetime times from indices
+    if start_time is not None:
+        # User provided start_time - use it with indices
+        start_time = pd.to_datetime(start_time)
+
+        if time_delta is None:
+            time_delta = pd.Timedelta(days=1)  # Default to 1 day
+        elif isinstance(time_delta, str):
+            time_delta = pd.Timedelta(time_delta)
+
+        # Convert indices to real datetimes
+        # times are treated as 0-indexed offsets from start_time
+        # If times are 1-indexed (like 1, 2, 3), subtract 1
+        min_time = numpy.min(times)
+        offsets = times - min_time  # Normalize to 0-indexed
+        real_times = pd.DatetimeIndex([start_time + int(i) * time_delta for i in offsets])
+        dt = time_delta
+    else:
+        # Try to parse times as datetimes
+        try:
+            real_times = pd.to_datetime(times)
+            # Infer time delta from spacing
+            if len(real_times) >= 2:
+                dt = real_times[1] - real_times[0]
+            else:
+                dt = pd.Timedelta(days=1)
+        except Exception:
+            raise ValueError(
+                "Could not parse times as datetimes. For integer indices, "
+                "please provide start_time and time_delta parameters. "
+                "Example: start_time='2024-01-01', time_delta='1D'"
+            )
+
+    # Get catalog event times and normalize to tz-naive UTC
+    event_times = pd.to_datetime(catalog.get_datetimes())
+    if event_times.tz is not None:
+        event_times = event_times.tz_convert('UTC').tz_localize(None)
+
+    # Normalize real_times to tz-naive as well
+    if hasattr(real_times, 'tz') and real_times.tz is not None:
+        real_times = real_times.tz_convert('UTC').tz_localize(None)
+
+    # Apply magnitude filter if specified
+    if magnitude_min is not None:
+        magnitudes = catalog.get_magnitudes()
+        mask = magnitudes >= magnitude_min
+        event_times = event_times[mask]
+
+    # Count events in each time window
+    observations = numpy.zeros(len(real_times), dtype=int)
+
+    for i, window_start in enumerate(real_times):
+        window_end = window_start + dt
+        # Count events in [window_start, window_end)
+        events_in_window = (event_times >= window_start) & (event_times < window_end)
+        if numpy.any(events_in_window):
+            observations[i] = 1
+
+    return observations

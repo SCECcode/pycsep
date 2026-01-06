@@ -276,3 +276,111 @@ as simple as it gets.
 
     If you want to use mock-forecasts and mock-catalogs for other evaluations. You can just add the additional methods
     that are needed onto the mock classes you have already built.
+
+
+********************************
+Alarm-based forecast evaluations
+********************************
+
+Alarm-based forecasts are evaluated using different metrics than rate-based forecasts. Instead of likelihood-based
+tests, we use threshold-based approaches that assess how well the forecast ranks spatial cells by earthquake
+occurrence probability.
+
+PyCSEP provides two main evaluation methods for alarm-based forecasts:
+
+1. **ROC (Receiver Operating Characteristic) curves** - Plot hit rate vs false alarm rate
+2. **Molchan diagrams** - Plot miss rate vs alarm fraction (space occupied)
+
+Both methods sweep through a range of thresholds and compute contingency statistics at each level.
+
+.. _alarm-forecast-evaluation:
+
+ROC Diagram
+===========
+
+The ROC diagram plots the True Positive Rate (hit rate) against the False Positive Rate (false alarm rate)
+as the alarm threshold varies. A perfect forecast follows the upper-left corner, while a random forecast
+follows the diagonal.
+
+The Area Under the Curve (AUC) summarizes forecast skill:
+
+- **AUC = 1.0**: Perfect forecast
+- **AUC = 0.5**: Random forecast (no skill)
+- **AUC < 0.5**: Anti-skill (worse than random)
+
+.. autosummary::
+
+   csep.utils.plots.plot_ROC_diagram
+
+Example::
+
+    from csep.utils import plots
+
+    forecast = csep.load_alarm_forecast('forecast.csv')
+    catalog = csep.query_gns(start_time=..., end_time=...)
+
+    # Create ROC diagram
+    ax, auc = plots.plot_ROC_diagram(forecast, catalog, linear=True)
+    print(f"AUC: {auc:.3f}")
+
+Molchan Diagram
+===============
+
+The Molchan diagram plots the miss rate (fraction of earthquakes not captured) against the alarm fraction
+(fraction of space-time occupied by alarms). This visualization emphasizes the trade-off between capturing
+earthquakes and raising false alarms.
+
+The Area Skill Score (ASS) summarizes forecast skill:
+
+- **ASS = 1.0**: Perfect forecast (captures all events with minimal space)
+- **ASS = 0.5**: Random forecast (no skill)
+- **ASS < 0.5**: Anti-skill (worse than random)
+
+.. autosummary::
+
+   csep.utils.plots.plot_Molchan_diagram
+
+Example::
+
+    from csep.utils import plots
+
+    forecast = csep.load_alarm_forecast('forecast.csv')
+    catalog = csep.query_gns(start_time=..., end_time=...)
+
+    # Create Molchan diagram
+    ax, ass, sigma = plots.plot_Molchan_diagram(forecast, catalog, linear=True)
+    print(f"ASS: {ass:.3f} ± {sigma:.3f}")
+
+Temporal alarm-based evaluations
+--------------------------------
+
+Temporal alarm-based forecasts (e.g., daily earthquake probability sequences) are evaluated using
+temporal versions of the ROC and Molchan diagrams:
+
+.. autosummary::
+
+   csep.utils.plots.plot_temporal_ROC_diagram
+   csep.utils.plots.plot_temporal_Molchan_diagram
+
+These functions evaluate how well forecast probabilities correspond to binary event occurrence over time.
+
+Example::
+
+    from csep.utils import plots
+
+    # Load forecast and compute observations
+    data = csep.load_temporal_forecast('forecast.csv')
+    observations = csep.compute_temporal_observations(
+        catalog, data['times'],
+        start_time='2016-01-01', time_delta='1D'
+    )
+
+    # Temporal ROC
+    ax, auc = plots.plot_temporal_ROC_diagram(
+        data['probabilities'], observations, name='DailyM4+'
+    )
+
+    # Temporal Molchan
+    ax, ass, sigma = plots.plot_temporal_Molchan_diagram(
+        data['probabilities'], observations, name='DailyM4+'
+    )

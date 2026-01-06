@@ -53,6 +53,9 @@ __all__ = [
     'load_evaluation_result',
     'load_gridded_forecast',
     'load_catalog_forecast',
+    'load_alarm_forecast',
+    'load_temporal_forecast',
+    'compute_temporal_observations',
     'utc_now_datetime',
     'strptime_to_utc_datetime',
     'datetime_to_utc_epoch',
@@ -524,3 +527,226 @@ def load_catalog_forecast(fname, catalog_loader=None, format='native',
     # create observed_catalog forecast
     return CatalogForecast(filename=fname, loader=catalog_loader,
                            catalog_format=format, catalog_type=type, **kwargs)
+
+
+def load_alarm_forecast(fname, name=None, score_field='alarm_score',
+                       lon_col='lon', lat_col='lat',
+                       magnitude_min=None, magnitude_max=None,
+                       start_time=None, end_time=None,
+                       delimiter=',', score_fields=None, magnitude_bins=None,
+                       **kwargs):
+    """ Load alarm-based earthquake forecast from CSV file.
+
+    This function loads alarm-based forecasts that contain spatial cells with
+    associated scores (e.g., alarm_score, probability, rate_per_day). The forecast
+    is returned as a GriddedForecast object that can be evaluated using ROC curves
+    and Molchan diagrams via plot_ROC_diagram() and plot_Molchan_diagram().
+
+    The function works with any geographic region worldwide by inferring the spatial
+    grid from the provided lon/lat coordinates in the CSV file.
+
+    Args:
+        fname (str): Path to alarm forecast CSV file
+        name (str): Name for the forecast (optional, defaults to filename)
+        score_field (str): Which field to use as forecast rate. Options:
+                          'alarm_score' (recommended for continuous scores),
+                          'probability', 'rate_per_day', or any numeric column.
+                          Default: 'alarm_score'. Ignored if score_fields is provided.
+        lon_col (str): Name of longitude column (default: 'lon')
+        lat_col (str): Name of latitude column (default: 'lat')
+        magnitude_min (float): Minimum magnitude for forecast. If None, reads from
+                              'magnitude_min' column or uses 4.0 as default.
+        magnitude_max (float): Maximum magnitude for forecast. If None, reads from
+                              'magnitude_target' column or uses magnitude_min + 0.1.
+        start_time (str or datetime): Forecast start time. If None, reads from
+                                     'start_time' column if available.
+        end_time (str or datetime): Forecast end time. If None, reads from
+                                   'end_time' column if available.
+        delimiter (str): CSV delimiter character. Default: ',' (comma).
+                        Use '\\t' for tab-delimited, ';' for semicolon, etc.
+        score_fields (list of str): List of column names to extract as multiple
+                                   score fields. If provided, score_field is ignored
+                                   and rates will have shape (n_cells, n_score_fields).
+        magnitude_bins (list or numpy.ndarray): Custom magnitude bin edges.
+                                               If provided, overrides magnitude_min
+                                               and magnitude_max.
+        **kwargs: Additional keyword arguments passed to GriddedForecast constructor
+
+    Returns:
+        :class:`csep.core.forecasts.GriddedForecast`
+
+    Raises:
+        FileNotFoundError: If the CSV file does not exist
+        ValueError: If required columns are missing or data is invalid
+
+    Example:
+        >>> # Load alarm forecast
+        >>> forecast = csep.load_alarm_forecast('alarm_forecast.csv',
+        ...                                     name='MyAlarmForecast')
+        >>>
+        >>> # Load tab-delimited file
+        >>> forecast = csep.load_alarm_forecast('forecast.tsv', delimiter='\\t')
+        >>>
+        >>> # Load with multiple score fields
+        >>> forecast = csep.load_alarm_forecast('forecast.csv',
+        ...     score_fields=['alarm_score', 'probability'])
+        >>>
+        >>> # Load observed catalog
+        >>> catalog = csep.load_catalog('observed_events.csv')
+        >>>
+        >>> # Evaluate with Molchan diagram
+        >>> from csep.utils import plots
+        >>> plots.plot_Molchan_diagram(forecast, catalog, linear=True)
+        >>>
+        >>> # Evaluate with ROC curve
+        >>> plots.plot_ROC_diagram(forecast, catalog, linear=True)
+    """
+    # Sanity checks
+    if not os.path.exists(fname):
+        raise FileNotFoundError(
+            f"Could not locate file {fname}. Unable to load alarm forecast.")
+
+    # Set default name from filename if not provided
+    if name is None:
+        name = os.path.splitext(os.path.basename(fname))[0]
+
+    # Load alarm forecast using custom reader
+    rates, region, magnitudes, metadata = readers.alarm_forecast_csv(
+        filename=fname,
+        lon_col=lon_col,
+        lat_col=lat_col,
+        score_field=score_field,
+        magnitude_min=magnitude_min,
+        magnitude_max=magnitude_max,
+        start_time=start_time,
+        end_time=end_time,
+        delimiter=delimiter,
+        score_fields=score_fields,
+        magnitude_bins=magnitude_bins
+    )
+
+    # Extract time information from metadata if available
+    if 'start_time' in metadata and 'start_time' not in kwargs:
+        kwargs['start_time'] = metadata['start_time']
+    if 'end_time' in metadata and 'end_time' not in kwargs:
+        kwargs['end_time'] = metadata['end_time']
+
+    # Create GriddedForecast
+    forecast = GriddedForecast(
+        data=rates,
+        region=region,
+        magnitudes=magnitudes,
+        name=name,
+        **kwargs
+    )
+
+    return forecast
+
+
+def load_temporal_forecast(fname, time_col='time', probability_col='probability',
+                           delimiter=',', **kwargs):
+    """ Load temporal probability forecast from CSV file.
+
+    This function loads time-series probability forecasts where each row represents
+    a time window (e.g., day) with an associated probability of earthquake occurrence.
+    Observations should be computed separately from a catalog using
+    compute_temporal_observations().
+
+    Args:
+        fname (str): Path to temporal forecast CSV file
+        time_col (str): Name of time/index column (default: 'time')
+        probability_col (str): Name of probability column (default: 'probability')
+        delimiter (str): CSV delimiter character. Default: ','
+
+    Returns:
+        dict: Dictionary containing:
+            - 'times': Time indices (numpy array or DatetimeIndex)
+            - 'probabilities': Forecast probabilities (numpy array)
+            - 'metadata': Additional information (dict)
+
+    Raises:
+        FileNotFoundError: If the CSV file does not exist
+        ValueError: If required columns are missing
+
+    Example:
+        >>> # Load temporal forecast
+        >>> data = csep.load_temporal_forecast('daily_forecast.csv')
+        >>> catalog = csep.load_catalog('events.csv')
+        >>>
+        >>> # Compute observations from catalog
+        >>> observations = csep.compute_temporal_observations(
+        ...     catalog, data['times'], magnitude_min=4.0
+        ... )
+        >>>
+        >>> # Evaluate with temporal Molchan diagram
+        >>> from csep.utils import plots
+        >>> ax, ass, sigma = plots.plot_temporal_Molchan_diagram(
+        ...     data['probabilities'], observations, name='DailyM4+'
+        ... )
+    """
+    # Sanity checks
+    if not os.path.exists(fname):
+        raise FileNotFoundError(
+            f"Could not locate file {fname}. Unable to load temporal forecast.")
+
+    times, probabilities, metadata = readers.temporal_forecast_csv(
+        filename=fname,
+        time_col=time_col,
+        probability_col=probability_col,
+        delimiter=delimiter
+    )
+
+    return {
+        'times': times,
+        'probabilities': probabilities,
+        'metadata': metadata
+    }
+
+
+def compute_temporal_observations(catalog, times, magnitude_min=None,
+                                   start_time=None, time_delta=None):
+    """ Compute binary observations from a catalog for temporal forecast evaluation.
+
+    This function counts whether one or more earthquakes occurred in each time
+    window, creating a binary observation vector suitable for temporal ROC
+    and Molchan evaluation.
+
+    Args:
+        catalog: A CSEPCatalog object containing observed earthquakes
+        times (array-like): Array representing forecast time windows.
+                           Can be datetime objects OR integer indices (1, 2, 3, ...).
+                           If integers, use start_time and time_delta.
+        magnitude_min (float, optional): Minimum magnitude threshold.
+        start_time (str or datetime, optional): Start time of the forecast.
+                                               Required if times are integer indices.
+                                               Example: '2024-01-01'
+        time_delta (str, optional): Duration of each time window.
+                                   Required if times are integer indices.
+                                   Examples: '1D' (1 day), '1H' (1 hour), '7D' (1 week)
+
+    Returns:
+        numpy.ndarray: Binary array (1 if event occurred in window, 0 otherwise)
+
+    Example:
+        >>> # With datetime times in CSV
+        >>> data = csep.load_temporal_forecast('forecast.csv')
+        >>> catalog = csep.load_catalog('events.csv')
+        >>> observations = csep.compute_temporal_observations(
+        ...     catalog, data['times'], magnitude_min=4.0
+        ... )
+        >>>
+        >>> # With integer indices (1, 2, 3, ...)
+        >>> observations = csep.compute_temporal_observations(
+        ...     catalog, data['times'],
+        ...     start_time='2024-01-01',
+        ...     time_delta='1D',
+        ...     magnitude_min=4.0
+        ... )
+    """
+    return readers.compute_temporal_observations(
+        catalog=catalog,
+        times=times,
+        magnitude_min=magnitude_min,
+        start_time=start_time,
+        time_delta=time_delta
+    )

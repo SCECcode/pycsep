@@ -21,6 +21,7 @@ pyCSEP: Tools for Earthquake Forecast Developers
     tutorials/quadtree_gridded_forecast_evaluation.rst
     tutorials/working_with_catalog_forecasts.rst
     tutorials/catalog_forecast_evaluation.rst
+    tutorials/alarm_forecast_evaluation.rst
     tutorials/plot_customizations.rst
 
 .. toctree::

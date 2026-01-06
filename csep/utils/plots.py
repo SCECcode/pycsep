@@ -2771,3 +2771,356 @@ def add_labels_for_publication(figure, style='bssa', labelsize=16):
                         fontsize=labelsize)
 
     return
+
+
+def plot_temporal_ROC_diagram(probabilities, observations, name=None, linear=True,
+                              axes=None, plot_uniform=True, savepdf=False,
+                              savepng=False, show=True, plot_args=None):
+    """
+    Plot Receiver Operating Characteristic (ROC) diagram for temporal probability forecasts.
+
+    This function evaluates time-series probability forecasts (e.g., daily M4+ probabilities)
+    by computing ROC curves. Each time window (e.g., day) is treated as a sample,
+    and the function sweeps through probability thresholds to build the ROC curve.
+
+    The ROC is computed following this procedure:
+        (1) Sort time windows by forecast probability (descending order)
+        (2) For each unique probability as a threshold:
+            - Time windows with probability >= threshold: alarm ON
+            - Time windows with probability < threshold: alarm OFF
+        (3) Build contingency table for each threshold
+        (4) Compute Hit Rate (H) and False Alarm Rate (F)
+        (5) Plot ROC trajectory
+
+    Args:
+        probabilities (array-like): Forecast probabilities for each time window.
+                                   Shape (n_time_windows,). Values in [0, 1].
+        observations (array-like): Binary observations for each time window.
+                                  Shape (n_time_windows,). Values: 1 if event occurred, 0 otherwise.
+        name (str): Name for the forecast (used in legend)
+        linear (bool): If True, use linear x-axis; if False, use logarithmic x-axis
+        axes (matplotlib.axes.Axes): Previously defined axes object
+        plot_uniform (bool): If True, include uniform forecast baseline
+        savepdf (bool): Save plot as PDF
+        savepng (bool): Save plot as PNG
+        show (bool): Display the plot
+
+        Optional plotting arguments (plot_args dict):
+            * figsize: (tuple) - default: (9, 8)
+            * linecolor: (str) - default: 'black'
+            * linestyle: (str) - default: '-'
+            * legend_fontsize: (float) - default: 16
+            * legend_loc: (str) - default: 'lower right'
+            * title_fontsize: (float) - default: 16
+            * label_fontsize: (float) - default: 14
+            * title: (str) - default: 'Temporal ROC Diagram'
+            * filename: (str) - default: 'temporal_roc_figure'
+
+    Returns:
+        tuple: (ax, auc)
+            - ax: matplotlib axes object
+            - auc: Area Under the ROC Curve
+
+    Raises:
+        ValueError: If probabilities and observations have different lengths
+
+    Example:
+        >>> probs = numpy.array([0.8, 0.6, 0.2, 0.1, 0.9])
+        >>> obs = numpy.array([1, 0, 0, 0, 1])
+        >>> ax, auc = plots.plot_temporal_ROC_diagram(probs, obs, name='MyForecast')
+        >>> print(f"AUC: {auc:.2f}")
+    """
+    probabilities = numpy.asarray(probabilities)
+    observations = numpy.asarray(observations)
+
+    if len(probabilities) != len(observations):
+        raise ValueError("probabilities and observations must have the same length")
+
+    # Parse plotting arguments
+    plot_args = plot_args or {}
+    figsize = plot_args.get('figsize', (9, 8))
+    linecolor = plot_args.get('linecolor', 'black')
+    linestyle = plot_args.get('linestyle', '-')
+    legend_fontsize = plot_args.get('legend_fontsize', 16)
+    legend_loc = plot_args.get('legend_loc', 'lower right')
+    title_fontsize = plot_args.get('title_fontsize', 16)
+    label_fontsize = plot_args.get('label_fontsize', 14)
+    title = plot_args.get('title', 'Temporal ROC Diagram')
+    filename = plot_args.get('filename', 'temporal_roc_figure')
+
+    # Initialize figure
+    if axes is not None:
+        ax = axes
+    else:
+        fig, ax = pyplot.subplots(figsize=figsize)
+
+    # Get sorted indices (descending by probability)
+    I = numpy.argsort(probabilities)[::-1]
+    sorted_probs = probabilities[I]
+    sorted_obs = observations[I]
+
+    # Get unique thresholds
+    thresholds = numpy.unique(sorted_probs)[::-1]  # Descending
+
+    # Build ROC curve
+    H_list = [0.0]  # Hit rate
+    F_list = [0.0]  # False alarm rate
+
+    n_events = numpy.sum(observations)
+    n_non_events = len(observations) - n_events
+
+    if n_events == 0 or n_non_events == 0:
+        # Degenerate case
+        import warnings
+        warnings.warn("No events or all events observed. ROC curve is degenerate.",
+                     RuntimeWarning)
+        H_list = [0.0, 1.0]
+        F_list = [0.0, 1.0]
+    else:
+        for threshold in thresholds:
+            # Alarm is ON where probability >= threshold
+            alarm_on = sorted_probs >= threshold
+
+            # Contingency table
+            a = numpy.sum((alarm_on) & (sorted_obs == 1))  # True positives
+            b = numpy.sum((alarm_on) & (sorted_obs == 0))  # False positives
+            c = numpy.sum((~alarm_on) & (sorted_obs == 1))  # Misses
+            d = numpy.sum((~alarm_on) & (sorted_obs == 0))  # True negatives
+
+            H = a / (a + c) if (a + c) > 0 else 0  # Hit rate
+            F = b / (b + d) if (b + d) > 0 else 0  # False alarm rate
+
+            H_list.append(H)
+            F_list.append(F)
+
+    # Ensure curve ends at (1, 1)
+    if H_list[-1] != 1.0 or F_list[-1] != 1.0:
+        H_list.append(1.0)
+        F_list.append(1.0)
+
+    H_arr = numpy.array(H_list)
+    F_arr = numpy.array(F_list)
+
+    # Compute AUC using trapezoidal rule
+    auc = numpy.trapz(H_arr, F_arr)
+
+    # Format label
+    label_name = name if name else 'Forecast'
+    forecast_label = plot_args.get('label', f'{label_name}, AUC={auc:.2f}')
+
+    # Plot ROC curve
+    ax.plot(F_arr, H_arr, label=forecast_label, color=linecolor, linestyle=linestyle)
+
+    # Plot uniform forecast
+    if plot_uniform:
+        ax.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Random (AUC=0.50)')
+
+    # Plotting arguments
+    ax.set_xlabel('False Alarm Rate (F)', fontsize=label_fontsize)
+    ax.set_ylabel('Hit Rate (H)', fontsize=label_fontsize)
+    ax.set_title(title, fontsize=title_fontsize)
+
+    if not linear:
+        ax.set_xscale('log')
+        ax.set_xlim(1e-3, 1.02)  # Positive lower limit for log scale
+    else:
+        ax.set_xlim(-0.02, 1.02)
+
+    ax.tick_params(axis='x', labelsize=label_fontsize)
+    ax.tick_params(axis='y', labelsize=label_fontsize)
+    ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
+    ax.set_ylim(-0.02, 1.02)
+
+    if filename:
+        if savepdf:
+            pyplot.savefig(f"{filename}.pdf", format='pdf')
+        if savepng:
+            pyplot.savefig(f"{filename}.png", format='png')
+
+    if show:
+        pyplot.show()
+
+    return ax, auc
+
+
+def plot_temporal_Molchan_diagram(probabilities, observations, name=None, linear=True,
+                                  axes=None, plot_uniform=True, savepdf=False,
+                                  savepng=False, show=True, plot_args=None):
+    """
+    Plot Molchan diagram for temporal probability forecasts.
+
+    This function evaluates time-series probability forecasts (e.g., daily M4+ probabilities)
+    by computing Molchan diagrams. Each time window (e.g., day) is treated as a sample.
+    The Area Skill Score (ASS) and its uncertainty are computed and displayed.
+
+    The Molchan diagram is computed following this procedure:
+        (1) Sort time windows by forecast probability (descending order)
+        (2) For each unique probability as a threshold:
+            - Time windows with probability >= threshold: alarm ON
+            - Time windows with probability < threshold: alarm OFF
+        (3) Build contingency table for each threshold
+        (4) Compute τ (fraction of time in alarm) and ν (miss rate)
+        (5) Plot Molchan trajectory and compute Area Skill Score
+
+    Interpretation:
+        - τ (tau): Fraction of time windows where alarm is ON
+        - ν (nu): Fraction of events missed (events in alarm-OFF windows)
+        - ASS: Area Skill Score (0.5 = random, 1.0 = perfect, 0.0 = inverse)
+
+    Args:
+        probabilities (array-like): Forecast probabilities for each time window.
+                                   Shape (n_time_windows,). Values in [0, 1].
+        observations (array-like): Binary observations for each time window.
+                                  Shape (n_time_windows,). Values: 1 if event occurred, 0 otherwise.
+        name (str): Name for the forecast (used in legend)
+        linear (bool): If True, use linear x-axis; if False, use logarithmic x-axis
+        axes (matplotlib.axes.Axes): Previously defined axes object
+        plot_uniform (bool): If True, include uniform forecast baseline
+        savepdf (bool): Save plot as PDF
+        savepng (bool): Save plot as PNG
+        show (bool): Display the plot
+
+        Optional plotting arguments (plot_args dict):
+            * figsize: (tuple) - default: (9, 8)
+            * linecolor: (str) - default: 'black'
+            * linestyle: (str) - default: '-'
+            * legend_fontsize: (float) - default: 16
+            * legend_loc: (str) - default: 'upper right'
+            * title_fontsize: (float) - default: 16
+            * label_fontsize: (float) - default: 14
+            * title: (str) - default: 'Temporal Molchan Diagram'
+            * filename: (str) - default: 'temporal_molchan_figure'
+
+    Returns:
+        tuple: (ax, ass, ass_std)
+            - ax: matplotlib axes object
+            - ass: Area Skill Score
+            - ass_std: Standard deviation of ASS
+
+    Raises:
+        ValueError: If probabilities and observations have different lengths
+
+    Example:
+        >>> probs = numpy.array([0.8, 0.6, 0.2, 0.1, 0.9])
+        >>> obs = numpy.array([1, 0, 0, 0, 1])
+        >>> ax, ass, sigma = plots.plot_temporal_Molchan_diagram(probs, obs, name='MyForecast')
+        >>> print(f"ASS: {ass:.2f} ± {sigma:.2f}")
+    """
+    probabilities = numpy.asarray(probabilities)
+    observations = numpy.asarray(observations)
+
+    if len(probabilities) != len(observations):
+        raise ValueError("probabilities and observations must have the same length")
+
+    # Parse plotting arguments
+    plot_args = plot_args or {}
+    figsize = plot_args.get('figsize', (9, 8))
+    linecolor = plot_args.get('linecolor', 'black')
+    linestyle = plot_args.get('linestyle', '-')
+    legend_fontsize = plot_args.get('legend_fontsize', 16)
+    legend_loc = plot_args.get('legend_loc', 'upper right')
+    title_fontsize = plot_args.get('title_fontsize', 16)
+    label_fontsize = plot_args.get('label_fontsize', 14)
+    title = plot_args.get('title', 'Temporal Molchan Diagram')
+    filename = plot_args.get('filename', 'temporal_molchan_figure')
+
+    # Initialize figure
+    if axes is not None:
+        ax = axes
+    else:
+        fig, ax = pyplot.subplots(figsize=figsize)
+
+    # Get sorted indices (descending by probability)
+    I = numpy.argsort(probabilities)[::-1]
+    sorted_probs = probabilities[I]
+    sorted_obs = observations[I]
+
+    # Get unique thresholds
+    thresholds = numpy.unique(sorted_probs)[::-1]  # Descending
+
+    # Build Molchan trajectory
+    tau_list = [0.0]  # Fraction of time in alarm
+    nu_list = [1.0]   # Miss rate
+
+    n_time_windows = len(observations)
+    n_events = numpy.sum(observations)
+
+    if n_events == 0:
+        # Degenerate case - no events
+        import warnings
+        warnings.warn("No events observed. Molchan diagram is degenerate.",
+                     RuntimeWarning)
+        tau_list = [0.0, 1.0]
+        nu_list = [1.0, 0.0]
+    else:
+        for threshold in thresholds:
+            # Alarm is ON where probability >= threshold
+            alarm_on = sorted_probs >= threshold
+
+            # Contingency table
+            a = numpy.sum((alarm_on) & (sorted_obs == 1))  # Hits
+            c = numpy.sum((~alarm_on) & (sorted_obs == 1))  # Misses
+
+            n_alarm_on = numpy.sum(alarm_on)
+
+            tau = n_alarm_on / n_time_windows  # Fraction of time in alarm
+            nu = c / n_events if n_events > 0 else 0  # Miss rate
+
+            tau_list.append(tau)
+            nu_list.append(nu)
+
+    # Ensure curve ends at (1, 0)
+    if tau_list[-1] != 1.0 or nu_list[-1] != 0.0:
+        tau_list.append(1.0)
+        nu_list.append(0.0)
+
+    tau_arr = numpy.array(tau_list)
+    nu_arr = numpy.array(nu_list)
+
+    # Compute Area Skill Score using trapezoidal integration
+    # ASS = 1 - 2 * Area under the Molchan curve
+    # For perfect forecast: curve goes (0,1) -> (0,0) -> (1,0), ASS = 1
+    # For random forecast: curve goes (0,1) -> (1,0) diagonal, ASS = 0.5
+    area_under_curve = numpy.trapz(nu_arr, tau_arr)
+    ass = 1.0 - 2.0 * area_under_curve
+
+    # Compute standard deviation: σ = sqrt(1/(12*N)) where N = number of events
+    ass_std = numpy.sqrt(1.0 / (12.0 * n_events)) if n_events > 0 else 0.0
+
+    # Format label
+    label_name = name if name else 'Forecast'
+    forecast_label = plot_args.get('label', f'{label_name}, ASS={ass:.2f}±{ass_std:.2f}')
+
+    # Plot Molchan trajectory
+    ax.plot(tau_arr, nu_arr, label=forecast_label, color=linecolor, linestyle=linestyle)
+
+    # Plot uniform forecast
+    if plot_uniform:
+        ax.plot([0, 1], [1, 0], linestyle='--', color='gray', label='Random (ASS=0.50)')
+
+    # Plotting arguments
+    ax.set_xlabel('Fraction of time in alarm (τ)', fontsize=label_fontsize)
+    ax.set_ylabel('Miss rate (ν)', fontsize=label_fontsize)
+    ax.set_title(title, fontsize=title_fontsize)
+
+    if not linear:
+        ax.set_xscale('log')
+        ax.set_xlim(1e-3, 1.02)  # Positive lower limit for log scale
+    else:
+        ax.set_xlim(-0.02, 1.02)
+
+    ax.tick_params(axis='x', labelsize=label_fontsize)
+    ax.tick_params(axis='y', labelsize=label_fontsize)
+    ax.legend(loc=legend_loc, shadow=True, fontsize=legend_fontsize)
+    ax.set_ylim(-0.02, 1.02)
+
+    if filename:
+        if savepdf:
+            pyplot.savefig(f"{filename}.pdf", format='pdf')
+        if savepng:
+            pyplot.savefig(f"{filename}.png", format='png')
+
+    if show:
+        pyplot.show()
+
+    return ax, ass, ass_std
