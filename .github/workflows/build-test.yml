@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    if: github.repository == 'SCECcode/pycsep'
+    if: github.repository == 'cseptesting/pycsep'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -48,7 +48,7 @@ jobs:
 
 
   build_pip:
-    if: github.repository == 'SCECcode/pycsep'
+    if: github.repository == 'cseptesting/pycsep'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
