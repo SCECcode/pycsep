@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_Molchan\_diagram
+=================================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_Molchan_diagram

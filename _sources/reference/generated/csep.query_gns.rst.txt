@@ -1,0 +1,6 @@
+﻿csep.query\_gns
+===============
+
+.. currentmodule:: csep
+
+.. autofunction:: query_gns

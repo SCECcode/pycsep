@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_ROC\_diagram
+=============================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_ROC_diagram

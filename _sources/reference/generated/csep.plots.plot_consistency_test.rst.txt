@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_consistency\_test
+==================================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_consistency_test

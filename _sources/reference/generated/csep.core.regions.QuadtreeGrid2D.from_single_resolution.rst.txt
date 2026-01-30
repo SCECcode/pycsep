@@ -1,0 +1,6 @@
+﻿csep.core.regions.QuadtreeGrid2D.from\_single\_resolution
+=========================================================
+
+.. currentmodule:: csep.core.regions
+
+.. automethod:: QuadtreeGrid2D.from_single_resolution

@@ -1,0 +1,6 @@
+﻿csep.core.regions.CartesianGrid2D.get\_index\_of
+================================================
+
+.. currentmodule:: csep.core.regions
+
+.. automethod:: CartesianGrid2D.get_index_of

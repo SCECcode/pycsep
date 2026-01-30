@@ -1,0 +1,6 @@
+﻿csep.load\_evaluation\_result
+=============================
+
+.. currentmodule:: csep
+
+.. autofunction:: load_evaluation_result

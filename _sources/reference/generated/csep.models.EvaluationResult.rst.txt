@@ -1,0 +1,25 @@
+﻿csep.models.EvaluationResult
+============================
+
+.. currentmodule:: csep.models
+
+.. autoclass:: EvaluationResult
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~EvaluationResult.__init__
+      ~EvaluationResult.from_dict
+      ~EvaluationResult.plot
+      ~EvaluationResult.to_dict
+   
+   
+
+   
+   
+   

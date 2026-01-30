@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_catalog
+========================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_catalog

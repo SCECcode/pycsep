@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_magnitude\_histogram
+=====================================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_magnitude_histogram

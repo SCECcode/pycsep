@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_test\_distribution
+===================================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_test_distribution

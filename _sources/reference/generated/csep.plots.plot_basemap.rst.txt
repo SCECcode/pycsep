@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_basemap
+========================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_basemap

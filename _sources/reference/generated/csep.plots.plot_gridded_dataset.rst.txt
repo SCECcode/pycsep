@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_gridded\_dataset
+=================================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_gridded_dataset

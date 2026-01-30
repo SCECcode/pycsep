@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_concentration\_ROC\_diagram
+============================================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_concentration_ROC_diagram

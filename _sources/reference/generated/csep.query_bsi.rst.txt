@@ -1,0 +1,6 @@
+﻿csep.query\_bsi
+===============
+
+.. currentmodule:: csep
+
+.. autofunction:: query_bsi

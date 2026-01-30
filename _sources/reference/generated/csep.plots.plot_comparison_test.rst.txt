@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_comparison\_test
+=================================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_comparison_test

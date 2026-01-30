@@ -1,0 +1,6 @@
+﻿csep.plots.plot\_magnitude\_versus\_time
+========================================
+
+.. currentmodule:: csep.plots
+
+.. autofunction:: plot_magnitude_versus_time

@@ -1,0 +1,6 @@
+﻿csep.query\_gcmt
+================
+
+.. currentmodule:: csep
+
+.. autofunction:: query_gcmt

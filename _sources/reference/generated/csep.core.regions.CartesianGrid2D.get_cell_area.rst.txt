@@ -1,0 +1,6 @@
+﻿csep.core.regions.CartesianGrid2D.get\_cell\_area
+=================================================
+
+.. currentmodule:: csep.core.regions
+
+.. automethod:: CartesianGrid2D.get_cell_area

@@ -1,0 +1,6 @@
+﻿csep.core.regions.nz\_csep\_region
+==================================
+
+.. currentmodule:: csep.core.regions
+
+.. autofunction:: nz_csep_region

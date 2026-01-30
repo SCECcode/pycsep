@@ -1,0 +1,6 @@
+﻿csep.core.regions.QuadtreeGrid2D.get\_cartesian
+===============================================
+
+.. currentmodule:: csep.core.regions
+
+.. automethod:: QuadtreeGrid2D.get_cartesian

@@ -1,0 +1,6 @@
+﻿csep.core.regions.CartesianGrid2D.from\_dict
+============================================
+
+.. currentmodule:: csep.core.regions
+
+.. automethod:: CartesianGrid2D.from_dict

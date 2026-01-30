@@ -1,0 +1,41 @@
+﻿csep.core.regions.QuadtreeGrid2D
+================================
+
+.. currentmodule:: csep.core.regions
+
+.. autoclass:: QuadtreeGrid2D
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~QuadtreeGrid2D.__init__
+      ~QuadtreeGrid2D.from_catalog
+      ~QuadtreeGrid2D.from_quadkeys
+      ~QuadtreeGrid2D.from_single_resolution
+      ~QuadtreeGrid2D.get_bbox
+      ~QuadtreeGrid2D.get_cartesian
+      ~QuadtreeGrid2D.get_cell_area
+      ~QuadtreeGrid2D.get_index_of
+      ~QuadtreeGrid2D.get_location_of
+      ~QuadtreeGrid2D.midpoints
+      ~QuadtreeGrid2D.origins
+      ~QuadtreeGrid2D.save_quadtree
+      ~QuadtreeGrid2D.tight_bbox
+      ~QuadtreeGrid2D.to_dict
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~QuadtreeGrid2D.num_nodes
+   
+   
